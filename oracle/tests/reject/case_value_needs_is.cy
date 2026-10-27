@@ -1,4 +1,13 @@
-enum S { a, b }
-MAIN {
-    let $x := match S.a { a { 1 } b { 2 } };
-}
+union.tagged S:
+    a; b;
+end of union.tagged S
+!MAIN:
+    let $x := match S.a:
+        case a:
+            1
+        end of case a
+        case b:
+            2
+        end of case b
+    end of match;
+!end of MAIN

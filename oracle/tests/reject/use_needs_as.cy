@@ -1,3 +1,3 @@
 use std::list.append;
-MAIN {
-}
+!MAIN:
+!end of MAIN

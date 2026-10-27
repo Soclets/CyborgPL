@@ -1,3 +1,3 @@
-%extern.C fn f <T: any> [$a: <T>];
-MAIN {
-}
+%external.C procedure f <T: any> [$a: <T>];
+!MAIN:
+!end of MAIN

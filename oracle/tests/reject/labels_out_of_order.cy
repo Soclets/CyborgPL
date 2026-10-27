@@ -1,5 +1,9 @@
-coll.fn say {
+collection.function say:
     labels [$a as first, $b as second];
-    say [$a: i32, $b: i32] -> i32 { return $a; }
-}
-MAIN { let $x := say(second: 2, first: 1); }
+    say [$a: integer.signed.32_bit, $b: integer.signed.32_bit] -> integer.signed.32_bit:
+        return $a;
+    end of say
+end of collection.function say
+!MAIN:
+    let $x := say(second: 2, first: 1);
+!end of MAIN

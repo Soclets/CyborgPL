@@ -1,4 +1,6 @@
-fn twice [$n: i64] -> i64 { return $n x 2; }
-MAIN {
-    std::print.useful(twice[2], newln);
-}
+function twice [$n: integer.signed.64_bit] -> integer.signed.64_bit:
+    return $n times 2;
+end of function twice
+!MAIN:
+    std::print.shortest(twice[2], newline);
+!end of MAIN

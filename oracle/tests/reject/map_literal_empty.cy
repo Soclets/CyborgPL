@@ -1,1 +1,3 @@
-MAIN { let $m := std::map[]; }
+!MAIN:
+    let $m := std::map[];
+!end of MAIN

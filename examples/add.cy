@@ -1,9 +1,9 @@
 # A function that adds two numbers, called from MAIN.
-fn add [$a: i32, $b: i32] -> i32 {
-    return $a + $b;
-}
+function add [$a: integer.signed.32_bit, $b: integer.signed.32_bit] -> integer.signed.32_bit:
+    return $a plus $b;
+end of function add
 
-MAIN {
+!MAIN:
     let $sum := add(10, 20);
-    std::print.useful("sum: ", $sum, newln);
-}
+    std::print.shortest("sum: ", $sum, newline);
+!end of MAIN

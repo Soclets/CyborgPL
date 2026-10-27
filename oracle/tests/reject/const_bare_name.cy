@@ -1,3 +1,3 @@
-const max := 8;
-MAIN {
-}
+constant max := 8;
+!MAIN:
+!end of MAIN

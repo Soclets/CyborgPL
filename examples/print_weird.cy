@@ -2,9 +2,9 @@
 # the arrow pointing into the output, as `<-` points into a variable in `inline.ASM`. Plain
 # `.weird` shows the stored form, as `print` does; `.weird.useful` the useful one, as `print.useful`
 # does. The strongest modifier comes first: `.weird` before `.useful`.
-MAIN {
-    let $tenth: f64 = 0.1;
+!MAIN:
+    let $tenth: float.binary.64_bit = 0.1;
     let $n := 3;
-    std::print.weird.useful <- "tenth is " <- $tenth <- ", n is " <- $n <- newln;
-    std::print.weird.stored <- "stored: " <- $tenth <- newln;
-}
+    std::print.arrows.shortest <- "tenth is " <- $tenth <- ", n is " <- $n <- newline;
+    std::print.arrows.stored <- "stored: " <- $tenth <- newline;
+!end of MAIN

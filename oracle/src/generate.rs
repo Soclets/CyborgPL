@@ -62,7 +62,8 @@ fn read_templates(src: &str, lines_at: &[usize]) -> Result<Vec<Template>, String
             let e = q.find('\'').ok_or(format!("line {at}: a template's quoted variable is never closed"))?;
             (q[..e].to_string(), q[e + 1..].trim())
         };
-        let rest = rest.strip_suffix('{').ok_or(format!("line {at}: a template's `{{` ends its first line"))?.trim();
+        // its first line ends in `:`, as every block's (owner, 2026-10-26)
+        let rest = rest.strip_suffix(':').ok_or(format!("line {at}: a template's first line ends in `:`: `for $n in [2, 4, 8]:`"))?.trim();
         let (items, counting) = if let Some(list) = rest.strip_prefix("in ") {
             let list = list.trim().strip_prefix('[').and_then(|l| l.strip_suffix(']')).ok_or(format!("line {at}: a template runs over a list written out, `in [2, 4, 8]`"))?;
             (split_top(list), None)
@@ -76,35 +77,40 @@ fn read_templates(src: &str, lines_at: &[usize]) -> Result<Vec<Template>, String
             let step = parts[2].trim().strip_prefix("by:").ok_or(format!("line {at}: a counting template writes its step: `by: 1`"))?;
             (Vec::new(), Some((parts[0].trim().to_string(), word == "before", b.trim().to_string(), step.trim().to_string())))
         } else { return Err(format!("line {at}: a template runs `in [ … ]` or `[from: A, to: B, by: C]`")); };
-        // its body: up to the `}` closing the `for`
+        // its body: up to the `end of for` closing it, each line ending `:` opening a block and each `end of` closing one
         let mut depth = 1;
         let mut j = i + 1;
         let mut body = Vec::new();
         while j < lines.len() {
-            depth += brace_delta(lines[j]);
+            depth += block_delta(lines[j]);
             if depth == 0 { break; }
             body.push(lines[j].to_string());
             j += 1;
         }
-        if depth != 0 { return Err(format!("line {at}: the template's `{{` is never closed")); }
+        if depth != 0 { return Err(format!("line {at}: the template has no `end of for`")); }
         let text = body.join("\n");
         let n = text.find("named ").ok_or(format!("line {at}: a template names what it makes first: `named \"times_\" ++ …;`"))?;
         let semi = text[n..].find(';').ok_or(format!("line {at}: the `named` line ends with `;`"))? + n;
         let named = text[n + 6..semi].trim().to_string();
         let member: Vec<String> = text[semi + 1..].lines().map(str::to_string).skip_while(|l| l.trim().is_empty()).collect();
         let member: Vec<String> = { let mut m = member; while m.last().is_some_and(|l| l.trim().is_empty()) { m.pop(); } m };
-        if member.is_empty() { return Err(format!("line {at}: a template writes a member under its `named` line: `[ … ] -> T {{ … }}`")); }
+        if member.is_empty() { return Err(format!("line {at}: a template writes a member under its `named` line: `[ … ] -> T:` … `end of …`")); }
         out.push(Template { for_line: at, close_line: j + 1, indent, var, items, counting, named, member });
     }
     Ok(out)
 }
 
 fn is_type(item: &str) -> bool {
-    let w = item.split(['[', '.']).next().unwrap_or("");
-    ["bool", "str", "char", "C", "brain16", "list", "array", "map", "ptr"].iter().any(|p| w.starts_with(p) && w[p.len()..].chars().all(|c| c.is_ascii_digit()))
-        // the number types, a letter and a width (owner, 2026-10-20)
-        || ["i", "u", "f", "d"].iter().any(|p| w.strip_prefix(p).is_some_and(|d| !d.is_empty() && d.chars().all(|c| c.is_ascii_digit())))
+    let w = item.trim_start_matches('%').split(['[', '.']).next().unwrap_or("");
+    // the types by their names since 2026-10-27: `integer.signed.32_bit`, `float.binary.64_bit`, `boolean`, `string.utf8`
+    ["boolean", "string", "character", "C", "list", "array", "map", "pointer", "integer", "float", "std"].contains(&w)
         || w.starts_with(|c: char| c.is_ascii_uppercase())
+}
+
+/// A line's effect on block depth: one ending in `:` opens a block, one starting `end of` closes one
+fn block_delta(line: &str) -> i32 {
+    let code = match line.find('#') { Some(h) if !line[..h].contains('"') => &line[..h], _ => line }.trim();
+    if code.starts_with("end of ") || code.starts_with("!end of ") { -1 } else if code.ends_with(':') { 1 } else { 0 }
 }
 
 /// `'v'` or `$v` written as the value, outside text.
@@ -159,9 +165,9 @@ fn expected(prog: &mut crate::ast::Program) -> Result<Vec<(usize, Vec<(Template,
                 let fname = format!("generated_name_{k}");
                 k += 1;
                 let src_fn = if is_type(v) {
-                    format!("fn {fname} [] -> str.utf8 {{ return {}; }}", put(&t.named, &t.var, &format!("\"{v}\"")))
+                    format!("function {fname} [] -> string.utf8:\n    return {};\nend of function {fname}\n", put(&t.named, &t.var, &format!("\"{v}\"")))
                 } else {
-                    format!("fn {fname} [] -> str.utf8 {{ let '{}' := {v}; return {}; }}", t.var, t.named)
+                    format!("function {fname} [] -> string.utf8:\n    let ${} := {v};\n    return {};\nend of function {fname}\n", t.var, t.named)
                 };
                 let toks = crate::lexer::lex(&src_fn).map_err(|e| format!("{}: line {}: the `named` line: {}", path.display(), t.for_line, e.msg))?;
                 let part = crate::parser::Parser::new_in_kit(toks, module.clone(), root.clone()).program().map_err(|e| format!("{}: line {}: the `named` line: {}", path.display(), t.for_line, e.msg))?;
@@ -191,6 +197,8 @@ fn expected(prog: &mut crate::ast::Program) -> Result<Vec<(usize, Vec<(Template,
                 let name = n.next().unwrap_or_default();
                 for (li, l) in t.member.iter().enumerate() {
                     let body = put(l.strip_prefix(base.as_str()).unwrap_or(l.trim_start()), &t.var, v);
+                    // the member's last line, `end of named` in the template, names what was made (PROVISIONAL)
+                    let body = if body.trim() == "end of named" { body.replace("end of named", &format!("end of {coll}.{name}")) } else { body };
                     lines.push(if li == 0 { format!("{}{coll}.{name} {body}", t.indent) } else { format!("{}{body}", t.indent) });
                 }
             }

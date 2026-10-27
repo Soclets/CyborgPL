@@ -1,3 +1,3 @@
-MAIN {
-    const $b := incl.bytes["incl_assets/missing.png"];
-}
+!MAIN:
+    constant $b := include.bytes["incl_assets/missing.png"];
+!end of MAIN

@@ -3,9 +3,11 @@
 # naming `not`. (`&` was free too until 2026-10-14, when it became the language's own `and`.)
 
 # a over b: how many times b fits in a
-op ! [$a: i32, $b: i32] -> i32 { return $a div.floor $b; }
+operator ! [$a: integer.signed.32_bit, $b: integer.signed.32_bit] -> integer.signed.32_bit:
+    return $a divide.floor $b;
+end of operator not
 
-MAIN {
-    std::print.useful((17 ! 5), newln);
-    std::print.useful(not true, newln);
-}
+!MAIN:
+    std::print.shortest((17 ! 5), newline);
+    std::print.shortest(not true, newline);
+!end of MAIN

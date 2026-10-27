@@ -1,4 +1,4 @@
-MAIN {
+!MAIN:
     let $s := "abc";
-    let $c := $s[pos: 2];
-}
+    let $c := $s[position: 2];
+!end of MAIN

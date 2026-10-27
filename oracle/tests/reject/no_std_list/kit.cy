@@ -1,3 +1,5 @@
-fn f [lent $xs: list[i32]] { }
+function f [lent $xs: list[integer.signed.32_bit]]:
+end of function f
 
-MAIN { }
+!MAIN:
+!end of MAIN

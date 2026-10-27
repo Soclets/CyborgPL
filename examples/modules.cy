@@ -1,28 +1,34 @@
 # Modules as blocks in one file (a kit of one root file). See examples/geometry/ for files.
 
 
-const $scale := 10;
+constant $scale := 10;
 
-module counter {
-    pub const $start := 1;
-    pub struct Count { n: i32 }
-    pub fn bump [$c: Count] -> Count {
-        return Count[n = $c.n + step()];
-    }
-    fn step [] -> i32 { return my.$scale; }      # private; reaches the root's const
-    pub.kit module inner {
-        pub.kit fn twice [$n: i32] -> i32 { return $n x 2; }
-    }
-}
+module counter:
+    public constant $start := 1;
+    public record Count:
+        n: integer.signed.32_bit;
+    end of record Count
+    public function bump [$c: Count] -> Count:
+        return Count[n = $c.n plus step()];
+    end of function bump
+    function step [] -> integer.signed.32_bit:
+        return my.$scale;
+    end of function step      # private; reaches the root's const
+    public.kit module inner:
+        public.kit function twice [$n: integer.signed.32_bit] -> integer.signed.32_bit:
+            return $n times 2;
+        end of function twice
+    end of module inner
+end of module counter
 
-fn show [$c: counter.Count] {
-    std::print.useful("count ", $c.n, newln);
-}
+procedure show [$c: counter.Count]:
+    std::print.shortest("count ", $c.n, newline);
+end of procedure show
 
-MAIN {
+!MAIN:
     let $c := counter.Count[n = counter.$start];
     show(copy $c);
     let $d := counter.bump(give $c);
     show(copy $d);
-    std::print.useful(counter.inner.twice($d.n), newln);
-}
+    std::print.shortest(counter.inner.twice($d.n), newline);
+!end of MAIN

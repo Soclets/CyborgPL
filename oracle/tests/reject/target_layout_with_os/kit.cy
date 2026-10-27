@@ -1,2 +1,3 @@
 # `layout`, `output` and `exit` are for a chip with no OS (owner, 2026-10-09)
-MAIN { }
+!MAIN:
+!end of MAIN

@@ -1,1 +1,3 @@
-MAIN { let $x: %f128 = 1.5; }
+!MAIN:
+    let $x: float.binary.%128_bit = 1.5;
+!end of MAIN

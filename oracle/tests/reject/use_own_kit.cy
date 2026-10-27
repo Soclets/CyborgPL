@@ -1,5 +1,5 @@
 use my.helper as h;
-fn helper [] {
-}
-MAIN {
-}
+function helper []:
+end of function helper
+!MAIN:
+!end of MAIN

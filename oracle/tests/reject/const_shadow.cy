@@ -1,4 +1,4 @@
-const $max := 8;
-MAIN {
+constant $max := 8;
+!MAIN:
     shadow $max := 9;
-}
+!end of MAIN

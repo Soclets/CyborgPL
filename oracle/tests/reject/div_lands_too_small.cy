@@ -1,4 +1,4 @@
-MAIN {
-    let $a: i8 = -128;
-    let $b: i8 = $a div.trunc -1;
-}
+!MAIN:
+    let $a: integer.signed.8_bit = negative 128;
+    let $b: integer.signed.8_bit = $a divide.truncate negative 1;
+!end of MAIN

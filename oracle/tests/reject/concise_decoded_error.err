@@ -1,1 +1,1 @@
-(concise file; decoded line 2: `std::print.useful("Hi", newln)`)
+(concise file; decoded line 2: `std::print.shortest("Hi", newline)`)

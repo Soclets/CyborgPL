@@ -1,4 +1,6 @@
-fn 🍕 [] -> i32 { return 1; }
-MAIN {
+function 🍕 [] -> integer.signed.32_bit:
+    return 1;
+end of function 🍕
+!MAIN:
     let $x := 🍕[];
-}
+!end of MAIN

@@ -1,5 +1,7 @@
-MAIN {
+!MAIN:
     let $s := "text";
-    let $f := fn [] -> i32 with [give $s] { return std::str.bytes(lend $s); };
+    let $f := function [] -> integer.signed.32_bit with [give $s]:
+        return std::string.bytes(lend $s);
+    end of function;
     std::print.stored($s);
-}
+!end of MAIN

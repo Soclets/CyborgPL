@@ -1,3 +1,3 @@
-MAIN {
-    let 'x' := oct 8;
-}
+!MAIN:
+    let $x := octal 8;
+!end of MAIN

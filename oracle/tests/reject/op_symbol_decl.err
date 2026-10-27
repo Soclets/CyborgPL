@@ -1,1 +1,1 @@
-`%` is an old spelling: write `mod.trunc`
+`%` is an old spelling: write `modulo.truncate` / `modulo.floor` / `modulo.ceiling` / `modulo.nearest`; a remainder says which division it follows

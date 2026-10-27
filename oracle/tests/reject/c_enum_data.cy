@@ -1,4 +1,6 @@
 # a C enum's case carries no data (2026-09-27)
-%layout.C enum K { a: i32 = 1 }
-MAIN {
-}
+%layout.C enumeration K:
+    a: integer.signed.32_bit = 1
+end of layout
+!MAIN:
+!end of MAIN

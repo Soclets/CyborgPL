@@ -1,6 +1,6 @@
-fn true [] -> i32 {
+function true [] -> integer.signed.32_bit:
     return 1;
-}
-MAIN {
+end of function true
+!MAIN:
     let $x := true();
-}
+!end of MAIN

@@ -2,27 +2,29 @@
 # replace it with its answer (here n(n+1)/2), drop it, or compute look-alike calls once; SIMD, cores and
 # inlining are still allowed. It goes in front of any statement or block, as `no_check` does, calls
 # included (owner, 2026-10-18: "(b)"), and in front of a `for`, never inside it (owner: "(a)").
-fn fib [$n: i64[min: 0, max: 92]] -> i64 {
-    if $n < 2 { return $n; }
-    return fib($n - 1) + fib($n - 2);
-}
+function fib [$n: integer.signed.64_bit[minimum: 0, maximum: 92]] -> integer.signed.64_bit:
+    if $n less_than 2:
+        return $n;
+    end of if
+    return fib($n minus 1) plus fib($n minus 2);
+end of function fib
 
-MAIN {
-    let mut $acc: i64 = 0;
-    no_cheat for $i: i64 [from: 1, to: 1000, by: 1] {
-        change $acc = $acc + $i;
-    }
-    let mut $more: i64 = 0;
-    no_cheat for seq $i: i64 [from: 1, to: 10, by: 1] {
-        change $more = $more + $i;
-    }
-    no_cheat let $f := fib(20);
-    let mut $both: i64 = 0;
-    no_cheat {
-        change $both = $acc + $more;
-    }
+!MAIN:
+    variable $acc: integer.signed.64_bit = 0;
+    no_skip for $i: integer.signed.64_bit [from: 1, to: 1000, by: 1]:
+        change $acc = $acc plus $i;
+    end of for
+    variable $more: integer.signed.64_bit = 0;
+    no_skip for sequential $i: integer.signed.64_bit [from: 1, to: 10, by: 1]:
+        change $more = $more plus $i;
+    end of for
+    no_skip let $f := fib(20);
+    variable $both: integer.signed.64_bit = 0;
+    no_skip:
+        change $both = $acc plus $more;
+    end of no_skip
     # beside `no_check`, `no_check` comes first: the stronger word, and the unchecked part seen first (owner, 2026-10-19)
-    let mut $last: i64 = 0;
-    no_check no_cheat change $last = $f;
-    std::print.useful.auto_newln($acc, " ", $more, " ", $f, " ", $both, " ", $last);
-}
+    variable $last: integer.signed.64_bit = 0;
+    !no_check no_skip change $last = $f;
+    std::print.shortest.auto_newline($acc, " ", $more, " ", $f, " ", $both, " ", $last);
+!end of MAIN

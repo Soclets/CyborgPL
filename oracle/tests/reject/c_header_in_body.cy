@@ -1,3 +1,3 @@
-MAIN {
-    incl.%C.system["stdio.h"];
-}
+!MAIN:
+    include.%C.system["stdio.h"];
+!end of MAIN

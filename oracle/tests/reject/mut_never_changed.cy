@@ -1,4 +1,4 @@
-MAIN {
-    let mut $total: i32 = 0;
+!MAIN:
+    variable $total: integer.signed.32_bit = 0;
     let $x := $total plus 1;
-}
+!end of MAIN

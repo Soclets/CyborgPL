@@ -1,1 +1,1 @@
-line 5: 's' is lent mutably here while the loop on line 4 of loop_list_changed.cy is going through it
+line 6: 's' is lent mutably here while the loop on line 4 of loop_list_changed.cy is going through it: a loop over `lend $s` borrows it until the loop ends

@@ -1,3 +1,5 @@
-%layout.c struct P { x: i32 }
-MAIN {
-}
+%layout.c record P:
+    x: integer.signed.32_bit
+end of layout
+!MAIN:
+!end of MAIN

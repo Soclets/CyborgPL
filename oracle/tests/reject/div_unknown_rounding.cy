@@ -1,3 +1,3 @@
-MAIN {
-    let $x := 7 div.round 2;
-}
+!MAIN:
+    let $x := 7 divide.round 2;
+!end of MAIN

@@ -1,6 +1,6 @@
-MAIN {
-    let mut $x: i32 = 1;
-    shadow $x: i32 = 2;
+!MAIN:
+    variable $x: integer.signed.32_bit = 1;
+    shadow $x: integer.signed.32_bit = 2;
     change $x = 3;
-    std::print.useful($x, newln);
-}
+    std::print.shortest($x, newline);
+!end of MAIN

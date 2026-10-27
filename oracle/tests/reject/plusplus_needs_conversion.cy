@@ -1,4 +1,4 @@
-MAIN {
+!MAIN:
     let $n := 1;
-    let $s := "n=" concat $n;
-}
+    let $s := "n=" concatenate $n;
+!end of MAIN

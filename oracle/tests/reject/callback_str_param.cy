@@ -1,3 +1,3 @@
-%extern.C fn f [$cb: fn[str.utf8] -> i32];
-MAIN {
-}
+%external.C procedure f [$cb: function[string.utf8] -> integer.signed.32_bit];
+!MAIN:
+!end of MAIN

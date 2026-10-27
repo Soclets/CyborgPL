@@ -1,4 +1,6 @@
-fn f [] -> fail[a] { fail a; }
-MAIN {
+function f [] -> fail[a]:
+    fail a;
+end of function f
+!MAIN:
     f() otherwise;
-}
+!end of MAIN

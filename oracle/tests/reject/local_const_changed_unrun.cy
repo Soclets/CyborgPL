@@ -1,7 +1,7 @@
-MAIN {
-    if false {
-        const $r: i32 = 3;
+!MAIN:
+    if false:
+        constant $r: integer.signed.32_bit = 3;
         change $r = 4;
-    }
-    std::print.useful("ran", newln);
-}
+    end of if
+    std::print.shortest("ran", newline);
+!end of MAIN

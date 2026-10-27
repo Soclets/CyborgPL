@@ -1,5 +1,5 @@
-MAIN {
+!MAIN:
     let $items := [1, 2];
-    loop.temp.for $i in lend $items {
-    }
-}
+    loop.temp.for $i in lend $items:
+    end of loop
+!end of MAIN

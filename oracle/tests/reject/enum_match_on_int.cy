@@ -1,4 +1,7 @@
-MAIN {
+!MAIN:
     let $n := 1;
-    match $n { a { } }
-}
+    match $n:
+        case a:
+        end of case a
+    end of match
+!end of MAIN

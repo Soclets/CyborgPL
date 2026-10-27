@@ -1,3 +1,4 @@
-%extern.C fn length = strlen [$s: ptr[u8]] -> u64;
+%external.C procedure length = strlen [$s: pointer[integer.unsigned.8_bit]] -> integer.unsigned.64_bit;
 
-MAIN { }
+!MAIN:
+!end of MAIN

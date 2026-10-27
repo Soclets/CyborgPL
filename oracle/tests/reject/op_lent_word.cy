@@ -1,3 +1,5 @@
-op <+> [lent $a: i32, $b: i32] -> i32 { return $a; }
-MAIN {
-}
+operator <+> [lent $a: integer.signed.32_bit, $b: integer.signed.32_bit] -> integer.signed.32_bit:
+    return $a;
+end of operator <+>
+!MAIN:
+!end of MAIN

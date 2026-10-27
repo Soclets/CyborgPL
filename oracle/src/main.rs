@@ -22,6 +22,7 @@ mod marks;
 mod parser;
 mod spellings;
 mod value;
+mod redesign;
 mod unicode_props;
 mod unicode_width;
 
@@ -34,6 +35,9 @@ fn parse_file(path: &Path, module: Vec<String>) -> Result<ast::Program, String> 
 }
 
 thread_local! {
+    /// every declaration the mutation walk saw, and whether something changes it: (line, name, changed), for
+    /// `oracle --redesign` (which `let`s become `variable`s)
+    pub static CHANGED: std::cell::RefCell<Vec<(usize, String, bool)>> = std::cell::RefCell::new(Vec::new());
     /// `oracle --generate <path>`: write the templates' generated parts instead of running
     static GENERATE: std::cell::Cell<bool> = std::cell::Cell::new(false);
     /// The first pass over a program's files reads only their `precedence` blocks (owner, 2026-10-03:
@@ -51,6 +55,8 @@ fn parse_file_in(path: &Path, module: Vec<String>, kit_root: Vec<String>) -> Res
         Some(Err(e)) => return Err(format!("{}: {e}", path.display())),
     };
     let at = |line: usize| if concise { concise::shown(&src, line) } else { String::new() };
+    // the module a function's written kind is recorded under (`function` or `procedure`, owner, 2026-10-27)
+    redesign::LEX_MODULE.with(|m| *m.borrow_mut() = module.clone());
     let mut toks = lexer::lex(&src).map_err(|e| format!("{}: line {}:{}: {}{}", path.display(), e.line, e.col, e.msg, at(e.line)))?;
     // `oracle --to-paren-calls`: a quoted name that needs no quotes becomes `$name` (owner, 2026-10-22: good practice)
     if parser::OLD_CALLS.with(|c| c.get()) {
@@ -159,7 +165,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     }
     // the base's `optional` (owner, 2026-10-08: "an iterator's next returns an Option-like value", named
     // `optional` with `value` and `none`): every program has it, as it has `list`
-    let prelude = lexer::lex("enum optional <T: any> { value: <T>, none }").map_err(|e| format!("the base's optional: {}", e.msg))?;
+    let prelude = lexer::lex_old("enum optional <T: any> { value: <T>, none }").map_err(|e| format!("the base's optional: {}", e.msg))?;
     let base = parser::Parser::new(prelude).program().map_err(|e| format!("the base's optional: {}", e.msg))?;
     if prog.enums.iter().any(|e| e.name == "optional") {
         return Err(format!("{}: `optional` is the base's (`optional.value(…)` / `optional.none`); an enum cannot take its name", path.display()));
@@ -167,7 +173,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     prog.enums.extend(base.enums);
     // std's `casing` (owner, 2026-10-20: "casing, go"): which language's case rules `str.upper.full` / `str.lower.full`
     // use, `lang: std::casing.tr`: std is another kit, so its path and the enum's name are written (owner, 2026-10-22)
-    let casing = lexer::lex("enum casing { tr, az, lt, root }").map_err(|e| format!("std's casing: {}", e.msg))?;
+    let casing = lexer::lex_old("enum casing { tr, az, lt, root }").map_err(|e| format!("std's casing: {}", e.msg))?;
     let casing = parser::Parser::new(casing).program().map_err(|e| format!("std's casing: {}", e.msg))?;
     // std's own `casing`, read by `--to-paren-calls` from std's folder, is the one this stands for
     if prog.enums.iter().any(|e| e.name == "casing") && !parser::OLD_CALLS.with(|c| c.get()) {
@@ -177,6 +183,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     check_powers(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     check_type_names(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     let unkept = check_redeclared(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
+    redesign::check_purity(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     check_widthless_shifts(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     check_return_literals(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     if let Some(m) = unkept { return Err(format!("{}: {m}", path.display())); }
@@ -812,7 +819,7 @@ fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
 fn check_redeclared(prog: &ast::Program) -> Result<Option<String>, String> {
     use ast::{Stmt, Expr, Handler, AsmBind, Mutability, Verb};
     type Entry = (String, bool, Option<usize>);   // (name, sealed, which `mut` it is)
-    struct W { sc: Vec<Vec<Entry>>, muts: Vec<(String, usize, bool)> }   // (name, line, changed)
+    struct W { sc: Vec<Vec<Entry>>, muts: Vec<(String, usize, bool, bool)>, fixed: Vec<usize> }   // (name, line, changed, written `mut`); the `let`s
     // a const sits in the outermost scope, its name marked `const:`
     fn find<'a>(sc: &'a [Vec<Entry>], n: &str) -> Option<&'a Entry> { sc.iter().rev().flat_map(|s| s.iter().rev()).find(|(m, _, _)| m == n || m.strip_prefix("const:") == Some(n)) }
     fn decl(w: &mut W, n: &str, shadow: bool, sealed: bool, is_mut: bool, line: usize) -> Result<(), String> {
@@ -823,7 +830,9 @@ fn check_redeclared(prog: &ast::Program) -> Result<Option<String>, String> {
             (Some((_, true, _)), true) => return Err(format!("line {line}: '{n}' cannot be shadowed: it is `no_shadow` (or a loop's own counter)")),
             _ => {}
         }
-        let m = if is_mut { w.muts.push((n.to_string(), line, false)); Some(w.muts.len() - 1) } else { None };
+        // every declaration is followed, for `oracle --redesign` (which `let`s change); only a `mut` one is a promise
+        w.muts.push((n.to_string(), line, false, is_mut));
+        let m = Some(w.muts.len() - 1);
         w.sc.last_mut().unwrap().push((n.to_string(), sealed, m));
         Ok(())
     }
@@ -910,7 +919,8 @@ fn check_redeclared(prog: &ast::Program) -> Result<Option<String>, String> {
                 let fresh = vec![caps.iter().map(|(_, n)| (n.clone(), false, None)).collect()];
                 let outer = std::mem::replace(&mut w.sc, fresh);
                 for p in &f.params {
-                    let m = if p.mutability == Some(Mutability::Mut) { w.muts.push((p.name.clone(), f.line, false)); Some(w.muts.len() - 1) } else { None };
+                    w.muts.push((p.name.clone(), f.line, false, p.mutability == Some(Mutability::Mut)));
+                    let m = Some(w.muts.len() - 1);
                     w.sc.last_mut().unwrap().push((p.name.clone(), false, m));
                 }
                 let r = block(w, &f.body, &[]);
@@ -922,7 +932,13 @@ fn check_redeclared(prog: &ast::Program) -> Result<Option<String>, String> {
     }
     fn stmt(w: &mut W, st: &Stmt) -> Result<(), String> {
         match st {
-            Stmt::Decl { name, mutability, value, shadow, sealed, line, .. } => { bracket(w, value)?; decl(w, name, *shadow, *sealed, *mutability == Some(Mutability::Mut), *line) }
+            Stmt::Decl { name, mutability, value, shadow, sealed, line, .. } => {
+                bracket(w, value)?;
+                decl(w, name, *shadow, *sealed, *mutability == Some(Mutability::Mut), *line)?;
+                // a `let` never changes (owner, 2026-10-27): checked once the walk has seen everything
+                if *mutability == Some(Mutability::Immut) { w.fixed.push(w.muts.len() - 1); }
+                Ok(())
+            }
             Stmt::LocalConst { name, value, line, .. } => {
                 bracket(w, value)?;
                 decl(w, name, false, true, false, *line)?;
@@ -975,14 +991,20 @@ fn check_redeclared(prog: &ast::Program) -> Result<Option<String>, String> {
     let consts = |module: &[String]| -> Vec<Entry> { prog.consts.iter().filter(|c| c.module == module).map(|c| (format!("const:{}", c.name), true, None)).collect() };
     let mut unkept = None;
     let mut walk = |sc: Vec<Vec<Entry>>, params: &[ast::Param], fline: usize, body: &[Stmt]| -> Result<(), String> {
-        let mut w = W { sc, muts: Vec::new() };
+        let mut w = W { sc, muts: Vec::new(), fixed: Vec::new() };
         for p in params {
-            let m = if p.mutability == Some(Mutability::Mut) { w.muts.push((p.name.clone(), fline, false)); Some(w.muts.len() - 1) } else { None };
+            w.muts.push((p.name.clone(), fline, false, p.mutability == Some(Mutability::Mut)));
+            let m = Some(w.muts.len() - 1);
             w.sc.last_mut().unwrap().push((p.name.clone(), false, m));
         }
         block(&mut w, body, &[])?;
+        CHANGED.with(|c| c.borrow_mut().extend(w.muts.iter().map(|(n, l, ch, _)| (*l, n.clone(), *ch))));
+        if let Some(&i) = w.fixed.iter().find(|&&i| w.muts[i].2) {
+            let (n, line, _, _) = &w.muts[i];
+            return Err(format!("line {line}: '{n}' is a `let`, which never changes, but something changes it: declare it `variable '{n}' := …;` (owner, 2026-10-27)"));
+        }
         if unkept.is_none() {
-            if let Some((n, line, _)) = w.muts.iter().find(|m| !m.2) {
+            if let Some((n, line, _, _)) = w.muts.iter().find(|m| m.3 && !m.2) {
                 unkept = Some(format!("line {line}: '{n}' is `mut`, but nothing changes it: drop `mut`, or change it (`mut` is a promise that it changes, as `immut` is that it does not)"));
             }
         }
@@ -1292,6 +1314,18 @@ fn main() {
         for t in &head[2..] { if let Err(m) = mark_limbs(Path::new(t)) { eprintln!("{m}"); bad = true; } }
         exit(if bad { 1 } else { 0 });
     }
+    // `oracle --redesign <file.cy | directory>…`: rewrites programs into the 2026-10-26/27 redesign's spellings, in
+    // place; `--redesign-show <file.cy>` prints the rewritten text instead (DECISIONS.md, "Redesign: …")
+    if head.len() >= 3 && (head[1] == "--redesign" || head[1] == "--redesign-show") {
+        let show = head[1] == "--redesign-show";
+        let targets: Vec<PathBuf> = head[2..].iter().map(PathBuf::from).collect();
+        let run = std::thread::Builder::new().stack_size(1 << 30).spawn(move || {
+            let mut bad = false;
+            for t in &targets { if let Err(m) = redesign_path(t, show) { eprintln!("{m}"); bad = true; } }
+            bad
+        }).expect("the oracle's thread");
+        exit(match run.join() { Ok(false) => 0, Ok(true) => 1, Err(_) => 101 });
+    }
     if let [_, flag, t] = head { if flag == "--to-paren-calls" {
         let target = PathBuf::from(t);
         let run = std::thread::Builder::new().stack_size(1 << 30).spawn(move || to_paren_calls(&target)).expect("the oracle's thread");
@@ -1337,5 +1371,43 @@ fn mark_limbs(path: &Path) -> Result<(), String> {
     for e in edits { chars.splice(e.at..e.at + e.remove, e.insert.chars()); }
     std::fs::write(path, chars.into_iter().collect::<String>()).map_err(|e| format!("{}: {e}", path.display()))?;
     println!("marked {}", path.display());
+    Ok(())
+}
+
+/// `oracle --redesign`: one file, or every `.cy` file under a directory, rewritten into the redesign's spellings.
+fn redesign_path(path: &Path, show: bool) -> Result<(), String> {
+    if path.is_dir() {
+        let mut entries: Vec<PathBuf> = std::fs::read_dir(path).map_err(|e| format!("{}: {e}", path.display()))?.filter_map(|e| e.ok().map(|e| e.path())).collect();
+        entries.sort();
+        let mut first = Ok(());
+        for p in entries { if p.is_dir() || p.extension().map_or(false, |x| x == "cy") { if let Err(m) = redesign_path(&p, show) { eprintln!("{m}"); first = Err(String::new()); } } }
+        return first.map_err(|_| format!("{}: some files were not rewritten", path.display()));
+    }
+    let raw = std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    // a concise file is rewritten as the text it spells, then spelled again
+    let (src, concise) = match concise::decode(&raw) { Some(Ok(text)) => (text, true), _ => (raw.clone(), false) };
+    let toks = lexer::lex_old(&src).map_err(|e| format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg))?;
+    // the same text with its limb marks kept as tokens, for the rewrite
+    lexer::KEEP_MARKS.with(|k| k.set(true));
+    let marked = lexer::lex_old(&src);
+    lexer::KEEP_MARKS.with(|k| k.set(false));
+    let marked = marked.map_err(|e| format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg))?;
+    // what the tokens do not say, from the program read as it is: which functions have effects, which `let`s change
+    CHANGED.with(|c| c.borrow_mut().clear());
+    let info = {
+        let mut ptoks = toks.clone();
+        case::rewrite(&mut ptoks, &[], &[]);
+        match parser::Parser::new(ptoks).program() {
+            Ok(prog) => { let _ = check_redeclared(&prog); Some(redesign::analyse(&prog)) }
+            Err(_) => None,
+        }
+    };
+    let out = redesign::convert(&src, &marked, info.as_ref()).map_err(|m| format!("{}: {m}", path.display()))?;
+    if show { print!("{out}"); return Ok(()); }
+    let out = if concise { concise::encode(&out) } else { out };
+    if out != raw {
+        std::fs::write(path, &out).map_err(|e| format!("{}: {e}", path.display()))?;
+        println!("rewrote {}{}", path.display(), if info.is_none() { " (not analysed: read on its own it does not parse)" } else { "" });
+    }
     Ok(())
 }

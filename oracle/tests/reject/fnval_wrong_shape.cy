@@ -1,5 +1,9 @@
-fn one [$a: i32] -> i32 { return $a; }
-fn apply [$f: fn[i32, i32] -> i32] -> i32 { return $f(1, 2); }
-MAIN {
+function one [$a: integer.signed.32_bit] -> integer.signed.32_bit:
+    return $a;
+end of function one
+function apply [$f: function[integer.signed.32_bit, integer.signed.32_bit] -> integer.signed.32_bit] -> integer.signed.32_bit:
+    return $f(1, 2);
+end of function apply
+!MAIN:
     let $x := apply(one);
-}
+!end of MAIN

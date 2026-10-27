@@ -1,14 +1,22 @@
 # A case says its value with `is` (owner, 2026-10-07; `#strict`'s `giveS` before), and may do
 # other work first.
-enum Status { empty, claimed: str.utf8, locked }
-fn label [$s: Status] -> str.utf8 {
-    let immut $text := match $s {
-        empty         { is "free"; }
-        claimed $who { let immut $prefix := "taken by "; is $prefix concat $who; }
-        locked        { is "locked"; }
-    };
+union.tagged Status:
+    empty; claimed: string.utf8; locked;
+end of union.tagged Status
+function label [$s: Status] -> string.utf8:
+    let $text := match $s:
+        case empty:
+            is "free";
+        end of case empty
+        case claimed $who:
+            let $prefix := "taken by "; is $prefix concatenate $who;
+        end of case claimed
+        case locked:
+            is "locked";
+        end of case locked
+    end of match;
     return give $text;
-}
-MAIN {
-    std::print.useful(label(Status.claimed("bo")), newln);
-}
+end of function label
+!MAIN:
+    std::print.shortest(label(Status.claimed("bo")), newline);
+!end of MAIN

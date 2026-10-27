@@ -1,4 +1,4 @@
-MAIN {
-    let $v: simd[i32, count: 4] = simd.fill(value: 1200000000);
-    let $s: i64 = simd.sum.lane($v);
-}
+!MAIN:
+    let $v: simd[integer.signed.32_bit, count: 4] = simd.fill(value: 1200000000);
+    let $s: integer.signed.64_bit = simd.sum.lane($v);
+!end of MAIN

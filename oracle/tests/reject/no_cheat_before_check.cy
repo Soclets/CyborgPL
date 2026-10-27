@@ -1,4 +1,4 @@
-MAIN {
-    let mut $a: i64 = 0;
-    no_cheat check change $a = 1;
-}
+!MAIN:
+    variable $a: integer.signed.64_bit = 0;
+    no_skip check change $a = 1;
+!end of MAIN

@@ -597,7 +597,7 @@ impl Parser {
                     }
                 }
                 let line = self.toks[i].line;
-                self.toks.splice(i..j, [Token { tok: Tok::Text(format!("power:{text}"), format!("power:{text}")), line, col: 0, mtm: None, paren: false, at: usize::MAX }]);
+                self.toks.splice(i..j, [Token { tok: Tok::Text(format!("power:{text}"), format!("power:{text}")), line, col: 0, mtm: None, paren: false, at: usize::MAX, end: usize::MAX }]);
             }
             i += 1;
         }
@@ -995,7 +995,7 @@ impl Parser {
                 // the `fn cum …` and `fn cum.quick …` items it stands for; `collection.handler h { … }`, named
                 // `otherwise` blocks, used as `otherwise h.member` and read as if written there
                 // `coll.fn` / `coll.handler` since 2026-10-19 (owner: "(b)"); `collection.` is the old spelling
-                Tok::Word(w) if w == "collection" => return self.err(crate::spellings::message(crate::spellings::old("collection."))),
+                Tok::Word(w) if w == "collection" => return self.err("a collection says its kind: `collection.function`, `collection.procedure`, `collection.handler` or `collection.bounded` (owner, 2026-10-27)"),
                 Tok::Word(w) if w == "coll" => {
                     match (self.peek_at(1).clone(), self.peek_at(2).clone()) {
                         // the collection's one `bare.` mark is written in the block (collections.md, owner 2026-10-13)
@@ -2100,7 +2100,7 @@ impl Parser {
     /// The type a lone word names, the cursor left on it (for `u8[bits: 3]`).
     fn ty_inner_word_only(&mut self) -> PResult<Ty> {
         let Tok::Word(w) = self.peek().clone() else { return self.err("expected a type") };
-        let toks = vec![self.toks[self.pos].clone(), Token { tok: Tok::Semi, line: self.line(), col: 0, mtm: None, paren: false, at: usize::MAX }];
+        let toks = vec![self.toks[self.pos].clone(), Token { tok: Tok::Semi, line: self.line(), col: 0, mtm: None, paren: false, at: usize::MAX, end: usize::MAX }];
         let mut p = Parser::new_in(toks, self.module.clone());
         let t = p.ty_inner().map_err(|e| ParseError { line: self.line(), col: 0, msg: e.msg })?;
         let _ = w;
@@ -2311,7 +2311,7 @@ impl Parser {
             if numeric && range_ahead && (!self.to_target || self.bracket_then_bracket()) {
                 let (lo, hi) = self.labelled_bounds(&format!("{head}[min: 0, max: 100]"))?;
                 self.expect(Tok::RBracket, "`]` after the bounds")?;
-                let base = Parser::new_in(vec![Token { tok: Tok::Word(head.to_string()), line: 0, col: 0, mtm: None, paren: false, at: usize::MAX }, Token { tok: Tok::Eof, line: 0, col: 0, mtm: None, paren: false, at: usize::MAX }], self.module.clone()).ty().map_err(|e| ParseError { line: self.line(), col: 0, msg: e.msg })?;
+                let base = Parser::new_in(vec![Token { tok: Tok::Word(head.to_string()), line: 0, col: 0, mtm: None, paren: false, at: usize::MAX, end: usize::MAX }, Token { tok: Tok::Eof, line: 0, col: 0, mtm: None, paren: false, at: usize::MAX, end: usize::MAX }], self.module.clone()).ty().map_err(|e| ParseError { line: self.line(), col: 0, msg: e.msg })?;
                 match (&base, &lo, &hi) {
                     (Ty::Int(_) | Ty::Uint(_), Bound::Bin(_), _) | (Ty::Int(_) | Ty::Uint(_), _, Bound::Bin(_)) => return self.err("an integer's bounds are integers"),
                     (Ty::Bin(_) | Ty::Deci(_), Bound::Int(_), _) | (Ty::Bin(_) | Ty::Deci(_), _, Bound::Int(_)) => return self.err("a bin's bounds are written as bins: `f64[0.0, 1.0]`"),
@@ -2893,7 +2893,7 @@ impl Parser {
                         let o = o.clone();
                         let at = self.pos;
                         let (l2, c2) = (self.toks[at].line, self.toks[at].col);
-                        let t = |tok: Tok| Token { tok, line: l2, col: c2, mtm: None, paren: false, at: usize::MAX };
+                        let t = |tok: Tok| Token { tok, line: l2, col: c2, mtm: None, paren: false, at: usize::MAX, end: usize::MAX };
                         let mut end = at + 1;
                         let mut new = vec![t(Tok::Word("change".into())), t(Tok::Var(name.clone())), t(Tok::Eq), t(Tok::Var(name.clone()))];
                         if o == "++" || o == "--" {
@@ -2939,7 +2939,7 @@ impl Parser {
                 j += 1;
             }
             let (l2, c2) = (self.toks[start].line, self.toks[start].col);
-            let t = |tok: Tok| Token { tok, line: l2, col: c2, mtm: None, paren: false, at: usize::MAX };
+            let t = |tok: Tok| Token { tok, line: l2, col: c2, mtm: None, paren: false, at: usize::MAX, end: usize::MAX };
             let mut new = vec![t(Tok::Word("ptr".into())), t(Tok::Dot), t(Tok::Word("write".into())), t(Tok::LBracket), self.toks[start + 1].clone(), t(Tok::Comma)];
             new.extend(self.toks[start + 3..j].iter().cloned());
             new.push(t(Tok::RBracket));
@@ -3361,7 +3361,7 @@ impl Parser {
                         }
                         let mut vt = self.toks[from..self.pos].to_vec();
                         let l = self.line();
-                        vt.push(Token { tok: Tok::Eof, line: l, col: 0, mtm: None, paren: false, at: usize::MAX });
+                        vt.push(Token { tok: Tok::Eof, line: l, col: 0, mtm: None, paren: false, at: usize::MAX, end: usize::MAX });
                         let e = Parser::new_in(vt, self.module.clone()).expr().map_err(|e| ParseError { line: l, col: 0, msg: e.msg })?;
                         if defaults.iter().any(|(q, _): &(String, Expr)| *q == p) { return self.err(format!("'{p}' has two defaults")); }
                         defaults.push((p, e));
@@ -3474,8 +3474,8 @@ impl Parser {
             COLL_LABELS.with(|c| c.borrow_mut().push((self.module.clone(), name.clone(), pairs, any, defaults.clone())));
         }
         let end = self.pos;
-        let tk = |t: Tok, l: usize| Token { tok: t, line: l, col: 0, mtm: None, paren: false, at: usize::MAX };
-        let w = |s: &str, l: usize| Token { tok: Tok::Word(s.to_string()), line: l, col: 0, mtm: None, paren: false, at: usize::MAX };
+        let tk = |t: Tok, l: usize| Token { tok: t, line: l, col: 0, mtm: None, paren: false, at: usize::MAX, end: usize::MAX };
+        let w = |s: &str, l: usize| Token { tok: Tok::Word(s.to_string()), line: l, col: 0, mtm: None, paren: false, at: usize::MAX, end: usize::MAX };
         let prefix = |l: usize| -> Vec<Token> {
             let mut p = Vec::new();
             match vis { Vis::Pub => p.push(w("pub", l)), Vis::Kit => { p.push(w("pub", l)); p.push(tk(Tok::Dot, l)); p.push(w("kit", l)); } Vis::Private => {} }
@@ -3722,7 +3722,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
         }
         let mut decl: Vec<Token> = Vec::new();
         let line = self.line();
-        let tk = |t: Tok| Token { tok: t, line, col: 0, mtm: None, paren: false, at: usize::MAX };
+        let tk = |t: Tok| Token { tok: t, line, col: 0, mtm: None, paren: false, at: usize::MAX, end: usize::MAX };
         for (p, ty) in &member.params {
             let Some((_, val)) = args.iter().find(|(a, _)| a == p) else { return self.err(format!("`{shown}` takes `{p}:`: `{shown}({p}: …)`")); };
             decl.push(tk(Tok::Word("let".into()))); decl.push(tk(Tok::Var(p.clone()))); decl.push(tk(Tok::Colon));
@@ -5109,7 +5109,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
                 return self.err(crate::spellings::message(crate::spellings::old("*'p'")));
                 #[allow(unreachable_code)]
                 let (l2, c2) = (self.toks[self.pos].line, self.toks[self.pos].col);
-                let t = |tok: Tok| Token { tok, line: l2, col: c2, mtm: None, paren: false, at: usize::MAX };
+                let t = |tok: Tok| Token { tok, line: l2, col: c2, mtm: None, paren: false, at: usize::MAX, end: usize::MAX };
                 let v = self.toks[self.pos + 1].clone();
                 self.toks.splice(self.pos..self.pos + 2, [t(Tok::Word("ptr".into())), t(Tok::Dot), t(Tok::Word("read".into())), t(Tok::LBracket), v, t(Tok::RBracket)]);
                 self.primary()
@@ -5568,7 +5568,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
                         _ if Parser::base_level(&op) != 0 || OP_WORDS.contains(&op.as_str()) || BIT_OPS.contains(&op.as_str()) || op == "-~" || op == "+~" => format!("fn ['a': <T>, 'b': <T>] -> <T> {{ return 'a' {op} 'b'; }}"),
                         _ => return Ok(Expr::OpValue(op, None, line)),
                     };
-                    let toks = crate::lexer::lex(&src).map_err(|e| ParseError { line, col: 0, msg: e.msg })?;
+                    let toks = crate::lexer::lex_old(&src).map_err(|e| ParseError { line, col: 0, msg: e.msg })?;
                     let mut p = Parser::new_in(toks, self.module.clone());
                     p.internal_ops = true;
                     // the oracle's own stand-in functions: their blanks take whatever the operator takes

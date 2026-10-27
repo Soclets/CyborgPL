@@ -1,4 +1,4 @@
-MAIN {
-    let mut $x: i32 = 1;
+!MAIN:
+    variable $x: integer.signed.32_bit = 1;
     !check change $x = 2;
-}
+!end of MAIN

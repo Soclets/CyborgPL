@@ -1,3 +1,3 @@
-MAIN {
-    let $v: i32[0, 100] = 5;
-}
+!MAIN:
+    let $v: integer.signed.32_bit[0, 100] = 5;
+!end of MAIN

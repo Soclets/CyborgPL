@@ -4,10 +4,10 @@
 # `fopen` gives a `ptr.mut[FILE]`, and another struct's pointer handed to `fclose` is refused.
 # A field named like a CyborgPL keyword keeps its name after the dot (`$b.size`); a function so named is
 # reached by path (`my.size(…)`).
-incl.%C.system["time.h", "stdio.h"];
-incl.%C["headers/shapes.h"];
+include.%C.system["time.h", "stdio.h"];
+include.%C["headers/shapes.h"];
 
-MAIN {
+!MAIN:
     let $b := buf[size = 42, count = 7];
-    std::print.useful("tm is ", size.of[tm], " bytes, buf ", size.of[buf], "; size ", $b.size, ", count ", $b.count, newln);
-}
+    std::print.shortest("tm is ", size.of[tm], " bytes, buf ", size.of[buf], "; size ", $b.size, ", count ", $b.count, newline);
+!end of MAIN

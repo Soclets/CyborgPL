@@ -1,4 +1,5 @@
-coll.fn c {
+collection.function c:
     c.q [$x = 1];
-}
-MAIN { }
+end of collection.function c
+!MAIN:
+!end of MAIN

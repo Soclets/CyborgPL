@@ -1,1 +1,1 @@
-`int32` is an old spelling: write `i32`
+`int32` is an old spelling: write `integer.signed.32_bit`; the number types are named by narrowing: `integer.signed.32_bit`

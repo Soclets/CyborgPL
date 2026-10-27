@@ -1,3 +1,6 @@
-%layout.C struct S { mode: u8[bits: 9] }
+%layout.C record S:
+    mode: integer.unsigned.8_bit[bits: 9]
+end of layout
 
-MAIN { }
+!MAIN:
+!end of MAIN

@@ -1,3 +1,5 @@
-fn f [$x: %not_std.int24] { }
+function f [$x: %not_std.int24]:
+end of function f
 
-MAIN { }
+!MAIN:
+!end of MAIN

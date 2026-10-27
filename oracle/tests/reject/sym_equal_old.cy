@@ -1,3 +1,3 @@
-MAIN {
+!MAIN:
     let $b := 1 == 2;
-}
+!end of MAIN

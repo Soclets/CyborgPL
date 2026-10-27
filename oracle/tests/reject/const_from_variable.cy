@@ -1,3 +1,3 @@
-MAIN {
-}
-const $x := $y;
+!MAIN:
+!end of MAIN
+constant $x := $y;

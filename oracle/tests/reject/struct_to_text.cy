@@ -1,8 +1,8 @@
-struct Point {
-    x: i32,
-    y: i32
-}
-MAIN {
+record Point:
+    x: integer.signed.32_bit;
+    y: integer.signed.32_bit;
+end of record Point
+!MAIN:
     let $p := Point[x = 3, y = 4];
-    let $t := to.str.utf8($p);
-}
+    let $t := to.string.utf8($p);
+!end of MAIN

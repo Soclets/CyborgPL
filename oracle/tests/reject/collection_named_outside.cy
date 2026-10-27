@@ -1,4 +1,5 @@
-coll.fn c {
+collection.function c:
     named "x";
-}
-MAIN { }
+end of collection.function c
+!MAIN:
+!end of MAIN

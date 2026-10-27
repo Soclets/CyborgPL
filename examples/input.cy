@@ -1,10 +1,10 @@
 # Input and range types (design/input.md). Try: echo 42 | oracle input.cy
-MAIN {
+!MAIN:
     let $text := std::input.line() otherwise "(no input)";     # a boundary: fails with `closed`
-    std::print.stored("got: ", $text, newln);
+    std::print.stored("got: ", $text, newline);
 
     # into a range type, the conversion fails on a bad number or an out-of-range one —
     # a failure to handle, never a crash; past it 'n' is provably 0..100
-    let $n := to.i32[min: 0, max: 100]($text) otherwise 50;
-    std::print.useful("n = ", $n, newln);
-}
+    let $n := to.integer.signed.32_bit[minimum: 0, maximum: 100]($text) otherwise 50;
+    std::print.shortest("n = ", $n, newline);
+!end of MAIN

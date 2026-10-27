@@ -1,15 +1,21 @@
 # A `return` inside a `match` arm lands in the function's return type, never in the declaration the
 # match sits in (found by check claude, seed 6868): the 64-bit shift below is a u64's, not a u16's.
-enum Pick { quick, slow }
+union.tagged Pick:
+    quick; slow;
+end of union.tagged Pick
 
-fn f [] -> u64 {
-    let $v: u16 = match Pick.quick {
-        quick { return 8997704354644785536 shr 42; }
-        slow { is 1; }
-    };
-    return to.u64($v);
-}
+function f [] -> integer.unsigned.64_bit:
+    let $v: integer.unsigned.16_bit = match Pick.quick:
+        case quick:
+            return 8997704354644785536 shift_right 42;
+        end of case quick
+        case slow:
+            is 1;
+        end of case slow
+    end of match;
+    return to.integer.unsigned.64_bit($v);
+end of function f
 
-MAIN {
-    std::print.stored(f(), newln);
-}
+!MAIN:
+    std::print.stored(f(), newline);
+!end of MAIN

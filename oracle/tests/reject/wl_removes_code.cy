@@ -1,4 +1,4 @@
-MAIN {
+!MAIN:
     let $b := 2; #wl
-    std::print.useful($b);
-}
+    std::print.shortest($b);
+!end of MAIN

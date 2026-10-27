@@ -1,1 +1,3 @@
-MAIN { std::print.useful.weird <- "hi"; }
+!MAIN:
+    std::print.shortest.weird <- "hi";
+!end of MAIN

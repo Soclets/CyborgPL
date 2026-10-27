@@ -1,2 +1,4 @@
-%extern.C fn strlen [$s: ptr[u8]] -> u64[min: 0, max: 10];
-MAIN { let $s := "x"; no_check let $a := strlen(lend $s); }
+%external.C procedure strlen [$s: pointer[integer.unsigned.8_bit]] -> integer.unsigned.64_bit[minimum: 0, maximum: 10];
+!MAIN:
+    let $s := "x"; !no_check let $a := strlen(lend $s);
+!end of MAIN

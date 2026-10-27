@@ -1,1 +1,3 @@
-MAIN { std::print.weird.stored["hi", newln]; }
+!MAIN:
+    std::print.arrows.stored["hi", newline];
+!end of MAIN

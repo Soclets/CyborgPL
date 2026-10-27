@@ -1,3 +1,3 @@
-MAIN {
-    const $t := incl.str.utf8["incl_assets/not_text.bin"];
-}
+!MAIN:
+    constant $t := include.string.utf8["incl_assets/not_text.bin"];
+!end of MAIN

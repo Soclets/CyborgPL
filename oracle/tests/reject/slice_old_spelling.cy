@@ -1,4 +1,4 @@
-MAIN {
-    let $xs: std::list[i32] = [1, 2, 3];
-    let $z := std::list.slice(lend $xs, pos: 1, pos: 2);
-}
+!MAIN:
+    let $xs: std::list[integer.signed.32_bit] = [1, 2, 3];
+    let $z := std::list.slice(lend $xs, position: 1, position: 2);
+!end of MAIN

@@ -1,5 +1,6 @@
-fn work [] { }
+function work []:
+end of function work
 
-MAIN {
-    %concur work[];
-}
+!MAIN:
+    %spawn.task work[];
+!end of MAIN

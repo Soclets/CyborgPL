@@ -1,3 +1,5 @@
-interface any <T> { op < [$a: <T>, $b: <T>] -> bool; }
-MAIN {
-}
+interface any <T>:
+    operator less_than [$a: <T>, $b: <T>] -> boolean;
+end of interface any
+!MAIN:
+!end of MAIN

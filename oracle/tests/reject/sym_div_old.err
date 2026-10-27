@@ -1,1 +1,1 @@
-`/` is an old spelling: write `div.trunc` / `div.floor`
+`/` is an old spelling: write `divide.truncate` / `divide.floor` / `divide.ceiling` / `divide.nearest`; a division says how it rounds

@@ -1,4 +1,4 @@
 # a base word is never marked
-MAIN {
-    let $x: %i32 = 1;
-}
+!MAIN:
+    let $x: %integer.signed.32_bit = 1;
+!end of MAIN

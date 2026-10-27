@@ -1,3 +1,3 @@
-MAIN {
-    let 'x' := 007;
-}
+!MAIN:
+    let $x := 007;
+!end of MAIN

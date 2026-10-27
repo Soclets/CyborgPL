@@ -1,2 +1,4 @@
-%extern.C $a: i32;
-MAIN { let $x := $a; }
+%external.C $a: integer.signed.32_bit;
+!MAIN:
+    let $x := $a;
+!end of MAIN

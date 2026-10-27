@@ -1,3 +1,3 @@
-MAIN {
-    let $p := ptr.null;
-}
+!MAIN:
+    let $p := pointer.null;
+!end of MAIN

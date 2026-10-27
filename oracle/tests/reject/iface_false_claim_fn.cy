@@ -1,5 +1,9 @@
-interface Printable <T> { fn show [lent $x: <T>] -> str.utf8; }
-struct V { x: i32 }
+interface Printable <T>:
+    function show [lent $x: <T>] -> string.utf8;
+end of interface Printable
+record V:
+    x: integer.signed.32_bit;
+end of record V
 V satisfies Printable;
-MAIN {
-}
+!MAIN:
+!end of MAIN

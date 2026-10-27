@@ -1,4 +1,4 @@
 # module `shapes`; `shapes/circle.cy` and `shapes/square.cy` nest under it.
-pub fn describe [] -> str.utf8 {
-    return my.helper() concat ", " concat circle.name() concat ", " concat square.name();
-}
+public function describe [] -> string.utf8:
+    return my.helper() concatenate ", " concatenate circle.name() concatenate ", " concatenate square.name();
+end of function describe

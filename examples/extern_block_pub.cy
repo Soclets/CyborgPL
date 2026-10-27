@@ -3,20 +3,20 @@
 # practice #5 says. A `pub` before the block would make every line public.
 
 
-module text {
-    %extern.C {
-        pub fn strlen [$s: ptr[u8]] -> u64;
-        fn write [$fd: i32, $buf: ptr[u8], $len: u64] -> i64;
-    }
-    pub fn say [lent $msg: str.utf8] {
-        no_check let $n := write(1, lend $msg, std::str.bytes(lend $msg));
-    }
-}
+module text:
+    %external.C:
+        public procedure strlen [$s: pointer[integer.unsigned.8_bit]] -> integer.unsigned.64_bit;
+        procedure write [$fd: integer.signed.32_bit, $buf: pointer[integer.unsigned.8_bit], $len: integer.unsigned.64_bit] -> integer.signed.64_bit;
+    end of %external.C
+    public procedure say [lent $msg: string.utf8]:
+        !no_check let $n := write(1, lend $msg, std::string.bytes(lend $msg));
+    end of procedure say
+end of module text
 
-MAIN {
+!MAIN:
     let $word := "hello";
-    no_check let $n := text.strlen(lend $word);
-    std::print.useful("strlen: ", $n, newln);
-    let $line := "written by the wrapper" concat newln;
+    !no_check let $n := text.strlen(lend $word);
+    std::print.shortest("strlen: ", $n, newline);
+    let $line := "written by the wrapper" concatenate newline;
     text.say(lend $line);
-}
+!end of MAIN

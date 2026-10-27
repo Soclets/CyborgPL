@@ -1,7 +1,7 @@
-fn touch [lent $text: str.utf8] {
+function touch [lent $text: string.utf8]:
     change $text = "b";
-}
-MAIN {
+end of function touch
+!MAIN:
     let $s := "a";
     touch(lend $s);
-}
+!end of MAIN

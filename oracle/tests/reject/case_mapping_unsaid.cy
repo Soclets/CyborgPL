@@ -1,4 +1,4 @@
-MAIN {
+!MAIN:
     let $s := "a";
-    let $t := std::str.upper(lend $s);
-}
+    let $t := std::string.uppercase(lend $s);
+!end of MAIN

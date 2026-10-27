@@ -1,3 +1,3 @@
-MAIN {
-    std::time.wait(1 sec);
-}
+!MAIN:
+    std::time.wait(1 second);
+!end of MAIN

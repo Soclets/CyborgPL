@@ -1,1 +1,2 @@
-fn f [] { }
+function f []:
+end of function f

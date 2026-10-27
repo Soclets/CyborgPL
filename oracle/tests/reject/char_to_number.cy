@@ -1,1 +1,3 @@
-MAIN { let $n := to.i32(`7`); }
+!MAIN:
+    let $n := to.integer.signed.32_bit(`7`);
+!end of MAIN

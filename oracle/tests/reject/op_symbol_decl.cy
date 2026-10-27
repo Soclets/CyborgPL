@@ -1,3 +1,8 @@
-struct V { a: i32 }
-op % [$p: V, $q: V] -> V { return $p; }
-MAIN { }
+record V:
+    a: integer.signed.32_bit;
+end of record V
+operator % [$p: V, $q: V] -> V:
+    return $p;
+end of operator %
+!MAIN:
+!end of MAIN

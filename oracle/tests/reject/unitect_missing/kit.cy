@@ -1,3 +1,3 @@
-MAIN {
-    let $c: char.%grapheme = `a`;
-}
+!MAIN:
+    let $c: character.%grapheme_cluster = `a`;
+!end of MAIN

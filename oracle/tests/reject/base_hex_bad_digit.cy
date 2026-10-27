@@ -1,3 +1,3 @@
-MAIN {
-    let 'x' := hex FG;
-}
+!MAIN:
+    let $x := hexadecimal FG;
+!end of MAIN

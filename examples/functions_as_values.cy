@@ -1,38 +1,54 @@
 # Functions as values (design/functions-as-values.md, 2026-09-21).
-struct Locker { number: i32, owner: str.utf8 }
+record Locker:
+    number: integer.signed.32_bit; owner: string.utf8;
+end of record Locker
 
-fn by_number [lent $a: Locker, lent $b: Locker] -> bool { return $a.number < $b.number; }
-fn by_owner  [lent $a: Locker, lent $b: Locker] -> bool { return std::str.bytes(lend $a.owner) < std::str.bytes(lend $b.owner); }
+function by_number [lent $a: Locker, lent $b: Locker] -> boolean:
+    return $a.number less_than $b.number;
+end of function by_number
+function by_owner  [lent $a: Locker, lent $b: Locker] -> boolean:
+    return std::string.bytes(lend $a.owner) less_than std::string.bytes(lend $b.owner);
+end of function by_owner
 
 # a function that takes a function: the type is the signature without the names
-fn first_by [lent $xs: std::list[Locker], $less: fn[lent Locker, lent Locker] -> bool] -> str.utf8 {
-    let $best := 1;
-    for $i [from: 2, to: std::list.length(lend $xs), by: 1] {
-        if $less(lend $xs[pos: $i], lend $xs[pos: $best]) { change $best = $i; }
-    }
-    let $winner := lend $xs[pos: $best];
+function first_by [lent $xs: std::list[Locker], $less: function[lent Locker, lent Locker] -> boolean] -> string.utf8:
+    variable $best := 1;
+    for $i [from: 2, to: std::list.length(lend $xs), by: 1]:
+        if $less(lend $xs[position: $i], lend $xs[position: $best]):
+            change $best = $i;
+        end of if
+    end of for
+    let $winner := lend $xs[position: $best];
     return copy $winner.owner;
-}
+end of function first_by
 
-fn keep [lent $xs: std::list[i32], $test: fn[i32] -> bool] -> std::list[i32] {
-    let $out: std::list[i32] = [];
-    for $x in lend $xs { if $test($x) { std::list.append(lend.mut $out, value: $x); } }
+function keep [lent $xs: std::list[integer.signed.32_bit], $test: function[integer.signed.32_bit] -> boolean] -> std::list[integer.signed.32_bit]:
+    variable $out: std::list[integer.signed.32_bit] = [];
+    for $x in lend $xs:
+        if $test($x):
+            std::list.append(lend.mutable $out, value: $x);
+        end of if
+    end of for
     return give $out;
-}
+end of function keep
 
-MAIN {
+!MAIN:
     let $lockers := [Locker[number = 7, owner = "Cy"], Locker[number = 2, owner = "Ann"], Locker[number = 5, owner = "Bo"]];
-    std::print.stored(first_by(lend $lockers, by_number), newln);          # a named function, as a value: its bare name
-    std::print.stored(first_by(lend $lockers, by_owner), newln);
+    std::print.stored(first_by(lend $lockers, by_number), newline);          # a named function, as a value: its bare name
+    std::print.stored(first_by(lend $lockers, by_owner), newline);
 
     let $f := by_number;                                                 # held in a variable
-    std::print.useful($f(lend $lockers[pos: 1], lend $lockers[pos: 2]), newln);   # called: 'f'[…]
+    std::print.shortest($f(lend $lockers[position: 1], lend $lockers[position: 2]), newline);   # called: 'f'[…]
 
     let $limit := 60;
     let $scores := [72, 40, 95, 55];
-    let $passing := keep(lend $scores, fn [$s: i32] -> bool with [lend $limit] { return $s at_least $limit; });
-    std::print.useful($passing, newln);
+    let $passing := keep(lend $scores, function [$s: integer.signed.32_bit] -> boolean with [lend $limit]:
+        return $s at_least $limit;
+    end of function);
+    std::print.shortest($passing, newline);
 
-    let $evens := keep(lend $scores, fn [$s: i32] -> bool { return ($s mod.floor 2) equal_to 0; });   # captures nothing
-    std::print.useful($evens, newln);
-}
+    let $evens := keep(lend $scores, function [$s: integer.signed.32_bit] -> boolean:
+        return ($s modulo.floor 2) equal_to 0;
+    end of function);   # captures nothing
+    std::print.shortest($evens, newline);
+!end of MAIN

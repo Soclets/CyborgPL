@@ -1,4 +1,4 @@
-MAIN {
-    let $b: std::list[u8] = [104, 105];
-    let $t := to.str.utf8($b);
-}
+!MAIN:
+    let $b: std::list[integer.unsigned.8_bit] = [104, 105];
+    let $t := to.string.utf8($b);
+!end of MAIN

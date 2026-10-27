@@ -1,12 +1,16 @@
 # An argument takes its parameter's type as its context, as a declaration's value does (owner,
 # 2026-09-29: a): show[0 minus.wrap 1] wraps at 8 bits, and list.append's value takes the element type.
-fn show [$b: u8] { std::print.useful($b, newln); }
-fn wide [$w: u32] -> u32 { return $w; }
-MAIN {
+procedure show [$b: integer.unsigned.8_bit]:
+    std::print.shortest($b, newline);
+end of procedure show
+function wide [$w: integer.unsigned.32_bit] -> integer.unsigned.32_bit:
+    return $w;
+end of function wide
+!MAIN:
     show(0 minus.wrap 1);
-    let $v: u64 = to.u64(wide(2 shl 3));
-    std::print.useful($v, " ", wide(not.bit 0), newln);
-    let mut $xs: std::list[u8] = [1,];
-    std::list.append(lend.mut $xs, value: 0 minus.wrap 2);
-    std::print.useful($xs[pos: 2], newln);
-}
+    let $v: integer.unsigned.64_bit = to.integer.unsigned.64_bit(wide(2 shift_left 3));
+    std::print.shortest($v, " ", wide(not.bit 0), newline);
+    variable $xs: std::list[integer.unsigned.8_bit] = [1,];
+    std::list.append(lend.mutable $xs, value: 0 minus.wrap 2);
+    std::print.shortest($xs[position: 2], newline);
+!end of MAIN

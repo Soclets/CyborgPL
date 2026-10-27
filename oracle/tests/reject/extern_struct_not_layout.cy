@@ -1,4 +1,6 @@
-struct P { x: i32 }
-%extern.C fn f [$a: ptr[P]];
-MAIN {
-}
+record P:
+    x: integer.signed.32_bit;
+end of record P
+%external.C procedure f [$a: pointer[P]];
+!MAIN:
+!end of MAIN

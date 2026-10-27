@@ -1,3 +1,3 @@
-MAIN {
-    let $x: i32 = [];
-}
+!MAIN:
+    let $x: integer.signed.32_bit = [];
+!end of MAIN

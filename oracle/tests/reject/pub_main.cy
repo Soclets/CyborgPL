@@ -1,2 +1,2 @@
-pub MAIN {
-}
+public !MAIN:
+!end of MAIN

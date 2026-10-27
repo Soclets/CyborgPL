@@ -1,5 +1,6 @@
-fn f [lent $s: str.utf8] {
-    let $n := str.bytes[lend $s];
-}
+function f [lent $s: string.utf8]:
+    let $n := string.bytes[lend $s];
+end of function f
 
-MAIN { }
+!MAIN:
+!end of MAIN

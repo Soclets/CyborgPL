@@ -1,3 +1,3 @@
-MAIN {
-    let $x := 1 < 2 < 3;
-}
+!MAIN:
+    let $x := 1 less_than 2 less_than 3;
+!end of MAIN

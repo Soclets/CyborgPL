@@ -5,41 +5,44 @@
 # many". With ('v17' plus 5) it runs, as it does for not.bit (5 plus 'v17') in a comparison or a
 # print: inside simd.fill it looks at the left operand only. kayo runs it.
 # check claude generator, seed 24126
-%extern.C fn write [$fd: i32, $buf: ptr[u8], $len: u64] -> i64;
+%external.C procedure write [$fd: integer.signed.32_bit, $buf: pointer[integer.unsigned.8_bit], $len: integer.unsigned.64_bit] -> integer.signed.64_bit;
 
-fn emit [$m: u64, $neg: bool] {
-    let mut $buf: std::list[u8] = [];
-    if $neg { std::list.append(lend.mut $buf, value: 45); }
-    let mut $v: u64 = $m;
-    let mut $ds: std::list[u8] = [];
-    std::list.append(lend.mut $ds, value: to.u8(48 + ($v mod.floor 10)));
-    change $v = $v div.floor 10;
-    while $v > 0 {
-        std::list.append(lend.mut $ds, value: to.u8(48 + ($v mod.floor 10)));
-        change $v = $v div.floor 10;
-    }
-    let mut $k: u64 = std::list.length(lend $ds);
-    while $k at_least 1 {
-        std::list.append(lend.mut $buf, value: $ds[pos: $k]);
-        change $k = $k - 1;
-    }
-    std::list.append(lend.mut $buf, value: 10);
-    no_check write(1, lend $buf, std::list.length(lend $buf));
-}
+procedure emit [$m: integer.unsigned.64_bit, $neg: boolean]:
+    variable $buf: std::list[integer.unsigned.8_bit] = [];
+    if $neg:
+        std::list.append(lend.mutable $buf, value: 45);
+    end of if
+    variable $v: integer.unsigned.64_bit = $m;
+    variable $ds: std::list[integer.unsigned.8_bit] = [];
+    std::list.append(lend.mutable $ds, value: to.integer.unsigned.8_bit(48 plus ($v modulo.floor 10)));
+    change $v = $v divide.floor 10;
+    while $v greater_than 0:
+        std::list.append(lend.mutable $ds, value: to.integer.unsigned.8_bit(48 plus ($v modulo.floor 10)));
+        change $v = $v divide.floor 10;
+    end of while
+    variable $k: integer.unsigned.64_bit = std::list.length(lend $ds);
+    while $k at_least 1:
+        std::list.append(lend.mutable $buf, value: $ds[position: $k]);
+        change $k = $k minus 1;
+    end of while
+    std::list.append(lend.mutable $buf, value: 10);
+    !no_check write(1, lend $buf, std::list.length(lend $buf));
+end of procedure emit
 
-fn put_u [$n: u64] {
+procedure put_u [$n: integer.unsigned.64_bit]:
     emit($n, false);
-}
+end of procedure put_u
 
-fn put_i [$n: i64] {
-    if $n < 0 {
-        emit(to.u64(0 - ($n + 1)) + 1, true);
-    } else {
-        emit(to.u64($n), false);
-    }
-}
-MAIN {
-    let $v17: u16 = 0;
-    let $s21: simd[u16, count: 8] = simd.fill(value: not.bit (5 + $v17));
-    put_u(to.u64(simd.max($s21)));
-}
+procedure put_i [$n: integer.signed.64_bit]:
+    if $n less_than 0:
+        emit(to.integer.unsigned.64_bit(0 minus ($n plus 1)) plus 1, true);
+    end of if
+    else:
+        emit(to.integer.unsigned.64_bit($n), false);
+    end of else
+end of procedure put_i
+!MAIN:
+    let $v17: integer.unsigned.16_bit = 0;
+    let $s21: simd[integer.unsigned.16_bit, count: 8] = simd.fill(value: not.bit (5 plus $v17));
+    put_u(to.integer.unsigned.64_bit(simd.max($s21)));
+!end of MAIN

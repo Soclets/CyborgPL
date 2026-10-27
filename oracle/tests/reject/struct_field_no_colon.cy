@@ -1,3 +1,5 @@
-struct P { times i32 }
-MAIN {
-}
+record P:
+    times integer.signed.32_bit;
+end of record P
+!MAIN:
+!end of MAIN

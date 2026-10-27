@@ -1,3 +1,3 @@
-MAIN {
-    let $n := to.i32[min: 0, max: 100]("42");
-}
+!MAIN:
+    let $n := to.integer.signed.32_bit[minimum: 0, maximum: 100]("42");
+!end of MAIN

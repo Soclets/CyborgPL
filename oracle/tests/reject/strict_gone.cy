@@ -1,2 +1,3 @@
 #strict
-MAIN { }
+!MAIN:
+!end of MAIN

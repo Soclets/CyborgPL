@@ -1,5 +1,8 @@
-coll.fn c {
-    c [$x: i32] -> i32 { return $x; }
+collection.function c:
+    c [$x: integer.signed.32_bit] -> integer.signed.32_bit:
+        return $x;
+    end of c
     c.q [$nope = 1];
-}
-MAIN { }
+end of collection.function c
+!MAIN:
+!end of MAIN

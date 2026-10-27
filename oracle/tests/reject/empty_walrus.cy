@@ -1,3 +1,3 @@
-MAIN {
+!MAIN:
     let $xs := [];
-}
+!end of MAIN

@@ -1,1 +1,1 @@
-cannot be assigned
+'xs' is a `let`, which never changes, but something changes it: declare it `variable $xs := …;`

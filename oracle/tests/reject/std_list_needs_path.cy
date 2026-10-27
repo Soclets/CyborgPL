@@ -1,3 +1,3 @@
-MAIN {
-    let mut $xs: list[i64] = [];
-}
+!MAIN:
+    variable $xs: list[integer.signed.64_bit] = [];
+!end of MAIN

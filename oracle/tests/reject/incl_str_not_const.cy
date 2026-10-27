@@ -1,3 +1,3 @@
-MAIN {
-    std::print.useful(incl.str.utf8["incl_assets/cafe.txt"]);
-}
+!MAIN:
+    std::print.shortest(include.string.utf8["incl_assets/cafe.txt"]);
+!end of MAIN

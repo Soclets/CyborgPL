@@ -1,3 +1,3 @@
-MAIN {
-    stdkit::print.useful["hi", newln];
-}
+!MAIN:
+    stdkit::print.shortest["hi", newline];
+!end of MAIN

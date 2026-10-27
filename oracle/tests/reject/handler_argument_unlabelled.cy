@@ -1,21 +1,29 @@
-fn half [$n: i32] -> i32 or fail[odd, negative: i32] {
-    if $n < 0 { fail negative[$n]; }
-    if ($n div.floor 2) x 2 not_equal $n { fail odd; }
-    return $n div.floor 2;
-}
+function half [$n: integer.signed.32_bit] -> integer.signed.32_bit or fail[odd, negative: integer.signed.32_bit]:
+    if $n less_than 0:
+        fail negative[$n];
+    end of if
+    if ($n divide.floor 2) times 2 not_equal_to $n:
+        fail odd;
+    end of if
+    return $n divide.floor 2;
+end of function half
 
-coll.handler half_failed {
-    half_failed.or_default [$default: i32, $label: str.utf8] {
-        odd { std::print.useful($label, ": odd, using ", $default, newln); return $default; }
-        negative $v { std::print.useful($label, ": ", $v, " is negative, using ", $default, newln); return $default; }
-    }
-}
+collection.handler half_failed:
+    half_failed.or_default [$default: integer.signed.32_bit, $label: string.utf8]:
+        !case odd:
+            std::print.shortest($label, ": odd, using ", $default, newline); return $default;
+        !end of case odd
+        !case negative $v:
+            std::print.shortest($label, ": ", $v, " is negative, using ", $default, newline); return $default;
+        !end of case negative
+    end of half_failed.or_default
+end of collection.handler half_failed
 
-fn half_or [$n: i32, $d: i32] -> i32 {
-    let $h := half($n) otherwise half_failed.or_default($d, "x");
+function half_or [$n: integer.signed.32_bit, $d: integer.signed.32_bit] -> integer.signed.32_bit:
+    let $h := half($n) otherwise half_failed.!or_default($d, "x");
     return $h;
-}
+end of function half_or
 
-MAIN {
-    std::print.useful(half_or(8, 0), " ", half_or(7, 100), " ", half_or(-4, 5 x 2), newln);
-}
+!MAIN:
+    std::print.shortest(half_or(8, 0), " ", half_or(7, 100), " ", half_or(negative 4, 5 times 2), newline);
+!end of MAIN

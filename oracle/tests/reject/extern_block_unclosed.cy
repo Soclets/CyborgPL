@@ -1,4 +1,4 @@
-%extern.C {
-    fn exit [$code: i32];
-MAIN {
-}
+%external.C:
+    procedure exit [$code: integer.signed.32_bit];
+!MAIN:
+!end of MAIN

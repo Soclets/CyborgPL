@@ -1,5 +1,5 @@
-case.insensitive [fn];
+case.insensitive [function];
 
-MAIN {
-    std::print.useful["x", newln];
-}
+!MAIN:
+    std::print.shortest["x", newline];
+!end of MAIN

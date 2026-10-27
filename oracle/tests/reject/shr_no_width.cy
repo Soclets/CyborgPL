@@ -1,3 +1,3 @@
-MAIN {
-    let $v7: bool = (0 shr 4) > 0;
-}
+!MAIN:
+    let $v7: boolean = (0 shift_right 4) greater_than 0;
+!end of MAIN

@@ -1,4 +1,4 @@
-MAIN {
-    let mut $xs := [1, 2, 3];
-    std::list.remove(lend.mut $xs, 1);
-}
+!MAIN:
+    variable $xs := [1, 2, 3];
+    std::list.remove(lend.mutable $xs, 1);
+!end of MAIN

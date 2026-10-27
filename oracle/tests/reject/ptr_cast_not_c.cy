@@ -1,8 +1,8 @@
-%extern.C fn malloc [$bytes: u64] -> ptr.mut[u8];
-struct Plain {
-    x: i32
-}
-MAIN {
-    no_check let $raw := malloc(4);
-    no_check let $p := ptr.cast[Plain]($raw);
-}
+%external.C procedure malloc [$bytes: integer.unsigned.64_bit] -> pointer.mutable[integer.unsigned.8_bit];
+record Plain:
+    x: integer.signed.32_bit;
+end of record Plain
+!MAIN:
+    !no_check let $raw := malloc(4);
+    !no_check let $p := pointer.cast[Plain]($raw);
+!end of MAIN

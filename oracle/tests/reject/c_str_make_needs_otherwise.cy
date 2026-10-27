@@ -1,4 +1,4 @@
-MAIN {
+!MAIN:
     let $s := "a";
-    let $c := %C.str.make(lend $s);
-}
+    let $c := %C.string.make(lend $s);
+!end of MAIN

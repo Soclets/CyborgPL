@@ -1,3 +1,3 @@
-MAIN {
-    print.useful.auto_newline.stdout["hi"];
-}
+!MAIN:
+    std::print.shortest.auto_newln("hi");
+!end of MAIN

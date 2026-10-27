@@ -1,3 +1,3 @@
-MAIN {
-    let $a: %d64[max_places: 2] = exactly 1.234;
-}
+!MAIN:
+    let $a: float.%decimal.64_bit[maximum_places: 2] = exactly 1.234;
+!end of MAIN

@@ -1,3 +1,5 @@
-%layout.C struct P { name: str.utf8 }
-MAIN {
-}
+%layout.C record P:
+    name: string.utf8
+end of layout
+!MAIN:
+!end of MAIN

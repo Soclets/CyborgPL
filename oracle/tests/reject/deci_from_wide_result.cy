@@ -1,7 +1,7 @@
-fn f [$a: i64] -> %d64 {
+function f [$a: integer.signed.64_bit] -> float.%decimal.64_bit:
     let $b := $a times 1000;
-    return to.%d64($b);
-}
-MAIN {
-    std::print.useful(f(5), newln);
-}
+    return to.float.%decimal.64_bit($b);
+end of function f
+!MAIN:
+    std::print.shortest(f(5), newline);
+!end of MAIN

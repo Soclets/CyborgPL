@@ -1,4 +1,6 @@
-pub.limb fn helper [] -> i32 { return 1; }
-MAIN {
-    std::print.useful[helper[], newln];
-}
+public.limb function helper [] -> integer.signed.32_bit:
+    return 1;
+end of function helper
+!MAIN:
+    std::print.shortest[helper[], newline];
+!end of MAIN

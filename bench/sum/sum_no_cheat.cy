@@ -5,29 +5,31 @@
 # code is the sum's low byte. N comes from the environment and must be 0 to
 # 1_000_000_000: `atoll`'s answer is checked at the door, and anything else
 # ends the program with exit code 2, as does no N at all.
-%extern.C fn exit [$code: i32];
-%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
-%extern.C fn atoll [$s: ptr[u8]] -> i64[min: 0, max: 1_000_000_000];
+%external.C procedure exit [$code: integer.signed.32_bit];
+%external.C procedure getenv [$name: pointer[integer.unsigned.8_bit]] -> pointer[integer.unsigned.8_bit];
+%external.C procedure atoll [$s: pointer[integer.unsigned.8_bit]] -> integer.signed.64_bit[minimum: 0, maximum: 1_000_000_000];
 
 # N, from the text in the environment: missing when there is none, and out
 # of range when it is not a number this program takes.
-fn read_n [$text: ptr[u8]] -> i64[min: 0, max: 1_000_000_000] or fail[missing, out_of_range] {
-    if ptr.is_null($text) { fail missing; }
-    no_check let $n := atoll($text) otherwise fail;
+procedure read_n [$text: pointer[integer.unsigned.8_bit]] -> integer.signed.64_bit[minimum: 0, maximum: 1_000_000_000] or fail[missing, out_of_range]:
+    if pointer.is_null($text):
+        fail missing;
+    end of if
+    !no_check let $n := atoll($text) otherwise fail;
     return $n;
-}
+end of procedure read_n
 
-fn run [] -> i32 or fail[missing, out_of_range] {
+procedure run [] -> integer.signed.32_bit or fail[missing, out_of_range]:
     let $key := "N";
-    no_check let $n := read_n(getenv(lend $key)) otherwise fail;
-    let mut $acc: i64 = 0;
-    for $i: i64 [from: 1, to: $n, by: 1] {
-        change $acc = $acc plus (($i times $i) mod.floor 7);
-    }
-    return to.i32(($acc mod.floor 1_000_000_007) mod.floor 256);
-}
+    !no_check let $n := read_n(getenv(lend $key)) otherwise fail;
+    variable $acc: integer.signed.64_bit = 0;
+    for $i: integer.signed.64_bit [from: 1, to: $n, by: 1]:
+        change $acc = $acc plus (($i times $i) modulo.floor 7);
+    end of for
+    return to.integer.signed.32_bit(($acc modulo.floor 1_000_000_007) modulo.floor 256);
+end of procedure run
 
-MAIN {
-    no_cheat let $code := run() otherwise 2;
-    no_check my.exit($code);
-}
+!MAIN:
+    no_skip let $code := run() otherwise 2;
+    !no_check my.exit($code);
+!end of MAIN

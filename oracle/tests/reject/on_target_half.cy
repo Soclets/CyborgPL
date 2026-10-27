@@ -1,3 +1,4 @@
-MAIN {
-    on.target aarch64 { }
-}
+!MAIN:
+    on.target aarch64:
+    end of on.target
+!end of MAIN

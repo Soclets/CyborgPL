@@ -1,6 +1,6 @@
-fn f <T: any> [$a: <T>] {
+function f <T: any> [$a: <T>]:
     let $n := size.of[<T>];
-}
-MAIN {
+end of function f
+!MAIN:
     f(1);
-}
+!end of MAIN

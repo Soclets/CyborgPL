@@ -1,4 +1,4 @@
 # `%` marks a limb's word, so a percentage is spelled out (owner, 2026-10-26)
-MAIN {
+!MAIN:
     let $r := 80%;
-}
+!end of MAIN

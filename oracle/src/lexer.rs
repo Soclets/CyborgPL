@@ -47,6 +47,9 @@ pub enum Tok {
     Op(String),     // + - ++ == !== < > </== >/==
     /// `%` glued to a word: the limb mark (owner, 2026-10-26), checked and taken out by `marks`
     Mark,
+    /// `!` glued to a word, what needs attention (owner, 2026-10-26): `!MAIN`, `!no_check`, `!case`, `!end of`; read and
+    /// taken out by `redesign::front`
+    Attention,
     Eof,
 }
 
@@ -64,8 +67,9 @@ impl fmt::Display for Tok {
             Tok::Newline => write!(f, "\\n"),
             Tok::LBracket => write!(f, "["),
             Tok::RBracket => write!(f, "]"),
-            Tok::LBrace => write!(f, "{{"),
-            Tok::RBrace => write!(f, "}}"),
+            // a block's `{` and `}` are its opening `:` and its `end of` line in what the writer wrote (2026-10-26)
+            Tok::LBrace => write!(f, "`:`"),
+            Tok::RBrace => write!(f, "`end of …`"),
             Tok::LParen => write!(f, "("),
             Tok::RParen => write!(f, ")"),
             Tok::ColonColon => write!(f, "::"),
@@ -79,6 +83,7 @@ impl fmt::Display for Tok {
             Tok::Colon => write!(f, ":"),
             Tok::Ellipsis => write!(f, "..."),
             Tok::Mark => write!(f, "%"),
+            Tok::Attention => write!(f, "!"),
             Tok::LeftArrow => write!(f, "<-"),
             Tok::BothArrow => write!(f, "<-->"),
             Tok::Raw(_) => write!(f, "assembly"),
@@ -109,6 +114,8 @@ pub struct Token {
     pub paren: bool,
     /// where the token starts, in characters from the file's start (`oracle --to-paren-calls` rewrites from it)
     pub at: usize,
+    /// where it ends, in characters, one past its last (`oracle --redesign` rewrites from it)
+    pub end: usize,
 }
 
 #[derive(Debug)]
@@ -116,6 +123,27 @@ pub struct LexError {
     pub line: usize,
     pub col: usize,
     pub msg: String,
+}
+
+thread_local! {
+    /// set while text in the spellings before the 2026-10-26/27 redesign is read: `oracle --redesign`'s input, and the
+    /// oracle's own built-in sources until they are rewritten
+    pub static OLD_SYNTAX: std::cell::Cell<bool> = std::cell::Cell::new(false);
+}
+
+/// Text in the spellings before the redesign, read as it always was
+pub fn lex_old(src: &str) -> Result<Vec<Token>, LexError> {
+    let was = OLD_SYNTAX.with(|o| o.replace(true));
+    let r = lex(src);
+    OLD_SYNTAX.with(|o| o.set(was));
+    r
+}
+
+fn old_syntax() -> bool { OLD_SYNTAX.with(|o| o.get()) }
+
+thread_local! {
+    /// `oracle --redesign` reads the marks as tokens, to move them where the new names want them
+    pub static KEEP_MARKS: std::cell::Cell<bool> = std::cell::Cell::new(false);
 }
 
 thread_local! {
@@ -137,7 +165,7 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
         let pre = counted.entry(line).or_insert_with(|| crate::interp::grapheme_prefixes(&l.chars().collect::<Vec<_>>()));
         pre[(col - 1).min(pre.len() - 1)] + 1
     };
-    match lex_points(src) {
+    match lex_points(src).and_then(finish) {
         Ok(mut toks) => { for t in &mut toks { t.col = to_graphemes(t.line, t.col); } Ok(toks) }
         Err(mut e) => { e.col = to_graphemes(e.line, e.col); Err(e) }
     }
@@ -150,20 +178,27 @@ fn name_char(c: char) -> bool { c.is_alphanumeric() || c == '_' || (!c.is_ascii(
 
 fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
     let chars: Vec<char> = src.chars().collect();
-    let mut toks = Vec::new();
+    let mut toks: Vec<Token> = Vec::new();
     let mut i = 0;
     let mut line = 1;
     let mut col = 1;
     // inside `inline.MSL …` before its code: the bracket depth, the code's `{` being the first at 0
     let mut msl_open: Option<i32> = None;
+    // after `inline.ASM` / `inline.%MSL` in the new spellings: the block's `end of` line, its code running up to it from the
+    // line after the opening `:` (owner, 2026-10-26: "a block of another language holds raw text up to its exact `end of`")
+    let mut raw_pending: Option<String> = None;
 
     let err = |line, col, msg: String| Err(LexError { line, col, msg });
 
+    // tokens pushed so far whose end is not yet known: it is where the scan stands when the next round begins
+    let mut ended = 0;
     while i < chars.len() {
+        let from = ended.min(toks.len()); for t in toks[from..].iter_mut() { if t.end == usize::MAX && t.at != usize::MAX { t.end = i; } }
+        ended = toks.len();
         let c = chars[i];
         let (tl, tc) = (line, col);
         let ti = i;
-        let push = |tok: Tok, toks: &mut Vec<Token>| toks.push(Token { tok, line: tl, col: tc, mtm: None, paren: false, at: ti });
+        let push = |tok: Tok, toks: &mut Vec<Token>| toks.push(Token { tok, line: tl, col: tc, mtm: None, paren: false, at: ti, end: usize::MAX });
 
         // whitespace
         if c == '\n' {
@@ -211,33 +246,19 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             continue;
         }
 
-        // 'variable'
+        // 'variable': the old spelling of `$'variable'` since 2026-10-27 (owner: "`''` just does the same thing as `$`, but
+        // for crazy names")
         if c == '\'' {
-            let mut s = String::new();
-            i += 1; col += 1;
-            loop {
-                if i >= chars.len() { return err(tl, tc, "unterminated variable name".into()); }
-                let d = chars[i];
-                if d == '\'' { i += 1; col += 1; break; }
-                if d == '\n' { return err(tl, tc, "a variable name cannot span lines".into()); }
-                // a quoted name holds any printable character (owner, 2026-10-16: "Yeah, allow it", then "Allow 1,
-                // 2, and 4"): `'80%'`, `'v1.2'`, `'total due'`, and `'it\'s'`, a `'` written `\'`; design claude's
-                // readings: `\\` is a `\`, one space at a time and none at the ends, no tab or control character
-                if d == '\\' {
-                    match chars.get(i + 1) {
-                        Some('\'') => { s.push('\''); i += 2; col += 2; continue; }
-                        Some('\\') => { s.push('\\'); i += 2; col += 2; continue; }
-                        _ => return err(tl, tc, "in a quoted name, `\\` comes before `'` or `\\`: `'it\\'s'`".into()),
-                    }
-                }
-                if d == ' ' && (s.is_empty() || s.ends_with(' ')) { return err(tl, tc, "a quoted name's spaces come one at a time, between words: `'total due'`".into()); }
-                if d.is_whitespace() && d != ' ' { return err(tl, tc, "a quoted name holds spaces, not tabs or other gaps".into()); }
-                if d.is_control() { return err(tl, tc, "a quoted name cannot hold a control character".into()); }
-                s.push(d);
-                i += 1; col += 1;
+            if !old_syntax() && !crate::spellings::loading() {
+                let mut k = i + 1;
+                while k < chars.len() && chars[k] != '\'' && chars[k] != '\n' { k += 1; }
+                let name: String = chars[i + 1..k.min(chars.len())].iter().collect();
+                let plain = name.chars().next().map_or(false, |c| c.is_alphabetic() || c == '_') && name.chars().all(|c| c.is_alphanumeric() || c == '_');
+                let shown = if plain { format!("${name}") } else { format!("$'{name}'") };
+                return err(tl, tc, format!("a variable's name starts with `$` since 2026-10-27, quoted or not: write `{shown}` (owner)"));
             }
-            if s.is_empty() { return err(tl, tc, "empty variable name ''".into()); }
-            if s.ends_with(' ') { return err(tl, tc, "a quoted name's spaces come one at a time, between words: `'total due'`".into()); }
+            i += 1; col += 1;
+            let s = quoted_name(&chars, &mut i, &mut col, tl, tc)?;
             push(Tok::Var(s), &mut toks);
             continue;
         }
@@ -259,6 +280,18 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             continue;
         }
 
+        // a segment after `.` that starts with digits, `integer.signed.32_bit` (owner, 2026-10-27: "and not `bits_32`")
+        let after_dot = matches!(toks.last().map(|t| &t.tok), Some(Tok::Dot)) || (matches!(toks.last().map(|t| &t.tok), Some(Tok::Mark)) && toks.len() >= 2 && toks[toks.len() - 2].tok == Tok::Dot);
+        if c.is_ascii_digit() && after_dot && !old_syntax() {
+            let mut j = i;
+            while j < chars.len() && (chars[j].is_ascii_alphanumeric() || chars[j] == '_') { j += 1; }
+            let w: String = chars[i..j].iter().collect();
+            if w.ends_with("_bit") && w[..w.len() - 4].chars().all(|d| d.is_ascii_digit()) {
+                push(Tok::Word(w), &mut toks);
+                col += j - i; i = j;
+                continue;
+            }
+        }
         // numbers: digits, `_` grouping, optional fraction; no leading zeros
         if c.is_ascii_digit() {
             if c == '0' && i + 1 < chars.len() && chars[i + 1].is_ascii_digit() {
@@ -336,13 +369,19 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             // `bin 1010_0101`, `hex FF00_00FF`, `oct 755` (owner, 2026-10-19: "(a)"; shortened 2026-10-20, owner: "(a)"):
             // a whole number in another base, the word in front as `exactly` is; the digits are read here, `_` grouping
             // as in decimals. `binary` and `octal` are old spellings (spellings.cyr)
-            if s == "bin" || s == "hex" || s == "oct" {
+            // since 2026-10-27 they are `binary`, `hexadecimal`, `octal` (owner: "No abbrevs, bro")
+            let radix_word = if old_syntax() { matches!(s.as_str(), "bin" | "hex" | "oct") } else { matches!(s.as_str(), "binary" | "hexadecimal" | "octal" | "bin" | "hex" | "oct") };
+            if radix_word {
                 let mut k = i;
                 while k < chars.len() && chars[k] == ' ' { k += 1; }
                 let run: String = chars[k..].iter().take_while(|c| c.is_ascii_alphanumeric() || **c == '_').collect();
-                let starts = run.chars().next().map_or(false, |c| c.is_ascii_digit() || c == '_' || (s == "hex" && c.is_ascii_hexdigit()));
+                let starts = run.chars().next().map_or(false, |c| c.is_ascii_digit() || c == '_' || ((s == "hex" || s == "hexadecimal") && c.is_ascii_hexdigit()));
                 if k > i && starts {
-                    let radix = match s.as_str() { "bin" => 2, "hex" => 16, _ => 8 };
+                    if !old_syntax() && matches!(s.as_str(), "bin" | "hex" | "oct") {
+                        let full = match s.as_str() { "bin" => "binary", "hex" => "hexadecimal", _ => "octal" };
+                        return err(tl, tc, format!("`{s} {run}` is an old spelling: write `{full} {run}` (owner, 2026-10-27)"));
+                    }
+                    let radix = match s.as_str() { "bin" | "binary" => 2, "hex" | "hexadecimal" => 16, _ => 8 };
                     let what = match radix { 2 => "a binary number has only the digits 0 and 1", 16 => "a hex number has only 0-9 and A-F", _ => "an octal number has only the digits 0 to 7" };
                     if let Some(bad) = run.chars().find(|c| *c != '_' && !c.is_digit(radix)) { return err(tl, tc, format!("{what}: `{bad}` in `{s} {run}`")); }
                     if run.starts_with('_') || run.ends_with('_') || run.contains("__") { return err(tl, tc, format!("`_` groups digits: one between two of them (`{s} {}`)", run.trim_matches('_').replace("__", "_"))); }
@@ -368,9 +407,13 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             let m = usize::from(toks.last().map_or(false, |t| t.tok == Tok::Mark));
             let after_inline = toks.len() >= 2 + m && toks[toks.len() - 1 - m].tok == Tok::Dot && matches!(&toks[toks.len() - 2 - m].tok, Tok::Word(w) if w == "inline");
             let is_asm = (s == "ASM" || s == "S" || s == "Assembly") && after_inline;
+            // `end of inline.ASM` names the block it closes; it opens none
+            let closing = toks.len() >= 3 + m && matches!(&toks[toks.len() - 3 - m].tok, Tok::Word(o) if o == "of");
             // `inline.MSL threads $n { … }` (owner, 2026-10-01): the count comes first, so the first `{` outside any
             // bracket after it opens the Metal code, taken verbatim
-            if (s == "MSL" || s == "Metal_Shading_Language") && after_inline { msl_open = Some(0); }
+            if (s == "MSL" || s == "Metal_Shading_Language") && after_inline {
+                if old_syntax() { msl_open = Some(0); } else if !closing { raw_pending = Some(format!("inline.{}{s}", if m == 1 { "%" } else { "" })); }
+            }
             // the words that replaced `!` and the comparison symbols (owner, 2026-10-07) are read as the
             // tokens the oracle has always used inside; the old spellings are kept, to be refused by name
             let after_bang = matches!(toks.last().map(|t| &t.tok), Some(Tok::Op(o)) if o == "!");
@@ -383,17 +426,22 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 // the words of `<` and `>` (owner, 2026-10-16: "the long"), read as the symbols inside
                 "less_than" => Some(Tok::Op("<".into())),
                 "greater_than" => Some(Tok::Op(">".into())),
-                "not_equal" => Some(Tok::Op("not_equal".into())),
+                "not_equal" if old_syntax() => Some(Tok::Op("not_equal".into())),
+                "not_equal_to" if !old_syntax() => Some(Tok::Op("not_equal".into())),
                 "at_most" => Some(Tok::Op("at_most".into())),
                 "at_least" => Some(Tok::Op("at_least".into())),
-                "newln" => Some(Tok::Newline),
+                "newln" if old_syntax() || crate::spellings::loading() => Some(Tok::Newline),
+                "newline" if !old_syntax() => Some(Tok::Newline),
                 _ => None,
             };
             if let Some(t) = inside { push(t, &mut toks); continue; }
             let written = if after_inline && main.is_some() { format!("inline.{s}") } else { s.clone() };
+            if is_asm && !old_syntax() && !closing { raw_pending = Some(format!("inline.{}{s}", if m == 1 { "%" } else { "" })); }
             push(Tok::Word(s), &mut toks);
             if let Some(m) = main { toks.last_mut().unwrap().mtm = Some((written, m)); }
-            if is_asm {
+            if is_asm && old_syntax() {
+                // the word ends here, before the code taken whole after it
+                if let Some(t) = toks.last_mut() { t.end = i; }
                 let mut j = i;
                 while j < chars.len() && chars[j].is_whitespace() && chars[j] != '\n' { j += 1; }
                 if j < chars.len() && chars[j] == '{' {
@@ -409,7 +457,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                     }
                     if k >= chars.len() { return err(bl, bc, "unclosed `asm {`".into()); }
                     for d in chars[i..=k].iter() { if *d == '\n' { line += 1; col = 1; } else { col += 1; } }
-                    toks.push(Token { tok: Tok::Raw(raw), line: bl, col: bc, mtm: None, paren: false, at: usize::MAX });
+                    toks.push(Token { tok: Tok::Raw(raw), line: bl, col: bc, mtm: None, paren: false, at: usize::MAX, end: usize::MAX });
                     i = k + 1;
                 }
             }
@@ -442,6 +490,13 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
         // `$total` is a variable, the same one as `'total'` (owner, 2026-10-22: "Why `$`? Even though, it requires a
         // shift, it's easier to write"): letters, digits and `_`; a name with spaces or symbols keeps its quotes
         if c == '$' {
+            // `$'total due'` (owner, 2026-10-27): the quotes only let a name hold spaces or symbols
+            if !old_syntax() && chars.get(i + 1) == Some(&'\'') {
+                i += 2; col += 2;
+                let s = quoted_name(&chars, &mut i, &mut col, tl, tc)?;
+                push(Tok::Var(s), &mut toks);
+                continue;
+            }
             let start = i + 1;
             let mut j = start;
             if j < chars.len() && (chars[j].is_alphabetic() || chars[j] == '_') {
@@ -454,7 +509,37 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
         }
         if two == "::" { push(Tok::ColonColon, &mut toks); i += 2; col += 2; continue; }
         if two == ":=" { push(Tok::Walrus, &mut toks); i += 2; col += 2; continue; }
-        if c == ':' { push(Tok::Colon, &mut toks); i += 1; col += 1; continue; }
+        if c == ':' {
+            push(Tok::Colon, &mut toks); i += 1; col += 1;
+            // the opening line of an inline block ends here: its code is the lines up to its `end of` line, kept whole
+            let rest_of_line: String = chars[i..].iter().take_while(|c| **c != '\n').collect();
+            let line_ends = rest_of_line.trim().is_empty() || rest_of_line.trim_start().starts_with('#');
+            if let (Some(kind), true) = (raw_pending.clone(), line_ends) {
+                raw_pending = None;
+                let close = format!("end of {kind}");
+                let mut k = i;
+                while k < chars.len() && chars[k] != '\n' { k += 1; }
+                let body_start = (k + 1).min(chars.len());
+                let mut p = body_start;
+                let mut found = None;
+                while p < chars.len() {
+                    let mut e = p;
+                    while e < chars.len() && chars[e] != '\n' { e += 1; }
+                    let text: String = chars[p..e].iter().collect();
+                    if text.trim() == close { found = Some(p); break; }
+                    p = e + 1;
+                }
+                let Some(end_at) = found else { return err(tl, tc, format!("this `{kind}` block has no `{close}` line")); };
+                let raw: String = chars[body_start..end_at].iter().collect();
+                // the code's lines are counted, and the scan goes on at the `end of` line
+                for d in chars[i..end_at].iter() { if *d == '\n' { line += 1; col = 1; } else { col += 1; } }
+                toks.push(Token { tok: Tok::Raw(raw), line: tl, col: tc, mtm: None, paren: false, at: usize::MAX, end: usize::MAX });
+                i = end_at;
+                // the column of the `end of` line's first character
+                while i < chars.len() && (chars[i] == ' ' || chars[i] == '\t') { i += 1; col += 1; }
+            }
+            continue;
+        }
         if rest.starts_with("...") { push(Tok::Ellipsis, &mut toks); i += 3; col += 3; continue; }
 
         // Operator characters (decided 2026-09-20): a maximal run is one operator —
@@ -462,7 +547,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
         // and the brackets are grammar, not operator characters.
         const OP_CHARS: &str = "!%&*+-/<>=?@^|~";
         // `%` glued to a word marks a limb's word (owner, 2026-10-26)
-        if c == '%' && chars.get(i + 1).map_or(false, |n| n.is_alphabetic() || *n == '_') {
+        if c == '%' && chars.get(i + 1).map_or(false, |n| n.is_alphabetic() || *n == '_' || (n.is_ascii_digit() && after_dot && !old_syntax())) {
             push(Tok::Mark, &mut toks); i += 1; col += 1; continue;
         }
         if OP_CHARS.contains(c) {
@@ -474,6 +559,10 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             // space reads as a rule"); a glued one is refused
             // `!std_int24` reads `!` then the word, as it always has
             let std_word = matches!(chars[j..].iter().take(4).collect::<String>().as_str(), "std_" | "std.");
+            // `!` glued to a word is what needs attention (owner, 2026-10-26): `!MAIN`, `!no_check`, `!case`, `!end of`
+            if run == "!" && !std_word && !old_syntax() && !crate::spellings::loading() && chars.get(j).map_or(false, |c| c.is_alphabetic() || *c == '_') {
+                push(Tok::Attention, &mut toks); i = j; col += 1; continue;
+            }
             if run == "!" && !std_word {
                 if chars.get(j).map_or(true, |c| c.is_whitespace()) { push(Tok::Word("not".into()), &mut toks); toks.last_mut().unwrap().mtm = mark("!"); i = j; col += 1; continue; }
                 return err(tl, tc, "`!` is not an operator since 2026-10-07: a value's not is `not $ready`".into());
@@ -496,7 +585,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                     if after_value { "*" }
                     else if starts_word("const") { "*const" }
                     else if starts_word("mut") { "*mut" }
-                    else if rest.starts_with('\'') { if matches!(toks.last().map(|t| &t.tok), Some(Tok::Word(c)) if c == "change") { "change *'p' =" } else { "*'p'" } }
+                    else if rest.starts_with('\'') || rest.starts_with('$') { if matches!(toks.last().map(|t| &t.tok), Some(Tok::Word(c)) if c == "change") { "change *'p' =" } else { "*'p'" } }
                     else if rest.starts_with(|c: char| c.is_ascii_digit()) { "*19.99" }
                     else { "*" }
                 } else if run == "&" && after_value { "'a' & 'b'" }
@@ -533,6 +622,8 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 ';' => msl_open = None,
                 '{' if d == 0 => {
                     msl_open = None;
+                    // the token before the code ends where it ended, not after the code
+                    if let Some(t) = toks.last_mut() { if t.end == usize::MAX { t.end = i; } }
                     let (bl, bc) = (line, col);
                     let mut k = i + 1;
                     let mut depth = 1;
@@ -545,7 +636,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                     }
                     if k >= chars.len() { return err(bl, bc, "an `inline.MSL {` is never closed".into()); }
                     for e in chars[i..=k].iter() { if *e == '\n' { line += 1; col = 1; } else { col += 1; } }
-                    toks.push(Token { tok: Tok::Raw(raw), line: bl, col: bc, mtm: None, paren: false, at: usize::MAX });
+                    toks.push(Token { tok: Tok::Raw(raw), line: bl, col: bc, mtm: None, paren: false, at: usize::MAX, end: usize::MAX });
                     i = k + 1;
                     continue;
                 }
@@ -581,7 +672,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                     // `#strict` (owner, 2026-09-27): every check site's proof written in its own
                     // function. A compile-time rule about proofs, which the oracle has none of, so
                     // here it is recognised and changes nothing.
-                    toks.push(Token { tok: Tok::Strict, line: tl, col: tc, mtm: None, paren: false, at: ti });
+                    toks.push(Token { tok: Tok::Strict, line: tl, col: tc, mtm: None, paren: false, at: ti, end: usize::MAX });
                     col += j - i; i = j; continue;
                 }
                 if word == "wl" {
@@ -614,12 +705,52 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
         push(single, &mut toks);
         i += 1; col += 1;
     }
-    toks.push(Token { tok: Tok::Eof, line, col, mtm: None, paren: false, at: chars.len() });
+    let from = ended.min(toks.len()); for t in toks[from..].iter_mut() { if t.end == usize::MAX && t.at != usize::MAX { t.end = i; } }
+    toks.push(Token { tok: Tok::Eof, line, col, mtm: None, paren: false, at: chars.len(), end: chars.len() });
+    Ok(toks)
+}
+
+/// The limb marks checked and taken out, after the new spellings are read into the parser's tokens
+fn finish(mut toks: Vec<Token>) -> Result<Vec<Token>, LexError> {
+    if KEEP_MARKS.with(|k| k.get()) { return Ok(toks); }
+    if !old_syntax() && !crate::spellings::loading() {
+        toks = crate::redesign::front(toks).map_err(|(line, col, msg)| LexError { line, col, msg })?;
+    }
     let mut fix = FIX_EDITS.with(|f| f.borrow_mut().take());
     let r = crate::marks::check(&mut toks, fix.as_mut());
     FIX_EDITS.with(|f| *f.borrow_mut() = fix);
     r.map_err(|(line, col, msg)| LexError { line, col, msg })?;
     Ok(toks)
+}
+
+/// A quoted name's characters, `i` just past its opening `'`: a quoted name holds any printable character (owner,
+/// 2026-10-16: "Yeah, allow it", then "Allow 1, 2, and 4"): `'80%'`, `'v1.2'`, `'total due'`, and `'it\'s'`, a `'`
+/// written `\'`; design claude's readings: `\\` is a `\`, one space at a time and none at the ends, no tab or control
+/// character
+fn quoted_name(chars: &[char], i: &mut usize, col: &mut usize, tl: usize, tc: usize) -> Result<String, LexError> {
+    let err = |msg: &str| Err(LexError { line: tl, col: tc, msg: msg.to_string() });
+    let mut s = String::new();
+    loop {
+        if *i >= chars.len() { return err("unterminated variable name"); }
+        let d = chars[*i];
+        if d == '\'' { *i += 1; *col += 1; break; }
+        if d == '\n' { return err("a variable name cannot span lines"); }
+        if d == '\\' {
+            match chars.get(*i + 1) {
+                Some('\'') => { s.push('\''); *i += 2; *col += 2; continue; }
+                Some('\\') => { s.push('\\'); *i += 2; *col += 2; continue; }
+                _ => return err("in a quoted name, `\\` comes before `'` or `\\`: `$'it\\'s'`"),
+            }
+        }
+        if d == ' ' && (s.is_empty() || s.ends_with(' ')) { return err("a quoted name's spaces come one at a time, between words: `$'total due'`"); }
+        if d.is_whitespace() && d != ' ' { return err("a quoted name holds spaces, not tabs or other gaps"); }
+        if d.is_control() { return err("a quoted name cannot hold a control character"); }
+        s.push(d);
+        *i += 1; *col += 1;
+    }
+    if s.is_empty() { return err("empty variable name ''"); }
+    if s.ends_with(' ') { return err("a quoted name's spaces come one at a time, between words: `$'total due'`"); }
+    Ok(s)
 }
 
 /// The old spelling `written` as the lexer marks it, unless the table itself is being read
@@ -630,6 +761,14 @@ fn mark(written: &str) -> Option<(String, &'static crate::spellings::Old)> {
 /// Text the oracle writes itself (a C header's lines, 2026-10-10): lexed with its limb words marked, as a writer marks
 /// them (owner, 2026-10-26), since the generator writes the words bare.
 pub fn lex_marking(src: &str) -> Result<Vec<Token>, LexError> {
+    // the generator writes the spellings before the redesign (until it is rewritten)
+    let was = OLD_SYNTAX.with(|o| o.replace(true));
+    let r = lex_marking_old(src);
+    OLD_SYNTAX.with(|o| o.set(was));
+    r
+}
+
+fn lex_marking_old(src: &str) -> Result<Vec<Token>, LexError> {
     FIX_EDITS.with(|f| *f.borrow_mut() = Some(Vec::new()));
     let first = lex(src);
     let mut edits = FIX_EDITS.with(|f| f.borrow_mut().take()).unwrap_or_default();

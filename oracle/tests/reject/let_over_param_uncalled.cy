@@ -1,4 +1,5 @@
-fn f [$x: i32] {
+function f [$x: integer.signed.32_bit]:
     let $x := 2;
-}
-MAIN { }
+end of function f
+!MAIN:
+!end of MAIN

@@ -1,3 +1,3 @@
-MAIN {
-    let $c: char.%point = `ab`;
-}
+!MAIN:
+    let $c: character.%code_point = `ab`;
+!end of MAIN

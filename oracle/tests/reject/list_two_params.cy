@@ -1,3 +1,3 @@
-MAIN {
-    let $xs: std::list[i32, i32] = [1, 2];
-}
+!MAIN:
+    let $xs: std::list[integer.signed.32_bit, integer.signed.32_bit] = [1, 2];
+!end of MAIN

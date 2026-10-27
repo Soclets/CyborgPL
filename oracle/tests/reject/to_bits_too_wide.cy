@@ -1,3 +1,3 @@
-MAIN {
-    let $a := to.i8.bits(256);
-}
+!MAIN:
+    let $a := to.integer.signed.8_bit.bits(256);
+!end of MAIN

@@ -1,1 +1,3 @@
-MAIN { let $m := std::map["a" = 1, "a" = 2]; }
+!MAIN:
+    let $m := std::map["a" = 1, "a" = 2];
+!end of MAIN

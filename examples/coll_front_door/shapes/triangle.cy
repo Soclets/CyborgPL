@@ -1,1 +1,3 @@
-pub.kit fn area [$b: i64, $h: i64] -> i64 { return ($b x $h) div.floor 2; }
+public.kit function area [$b: integer.signed.64_bit, $h: integer.signed.64_bit] -> integer.signed.64_bit:
+    return ($b times $h) divide.floor 2;
+end of function area

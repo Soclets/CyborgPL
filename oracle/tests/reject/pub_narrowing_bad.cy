@@ -1,3 +1,4 @@
-pub.crate fn f [] { }
-MAIN {
-}
+public.crate function f []:
+end of function f
+!MAIN:
+!end of MAIN

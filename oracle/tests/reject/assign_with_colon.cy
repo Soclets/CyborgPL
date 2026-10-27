@@ -1,4 +1,4 @@
-MAIN {
+!MAIN:
     let $x := 1;
-    let $x: i32 = 2;
-}
+    let $x: integer.signed.32_bit = 2;
+!end of MAIN

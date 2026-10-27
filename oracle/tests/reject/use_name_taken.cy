@@ -1,5 +1,5 @@
-use std::print.useful as say;
-fn say [] {
-}
-MAIN {
-}
+use std::print.shortest as say;
+function say []:
+end of function say
+!MAIN:
+!end of MAIN

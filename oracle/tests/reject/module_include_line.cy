@@ -1,3 +1,3 @@
 module a;
-MAIN {
-}
+!MAIN:
+!end of MAIN

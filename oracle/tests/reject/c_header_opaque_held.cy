@@ -1,7 +1,9 @@
-incl.%C.system["stdio.h"];
+include.%C.system["stdio.h"];
 
-fn f [$x: FILE] -> i32 { return 1; }
+function f [$x: FILE] -> integer.signed.32_bit:
+    return 1;
+end of function f
 
-MAIN {
-    std::print.useful("ran", newln);
-}
+!MAIN:
+    std::print.shortest("ran", newline);
+!end of MAIN

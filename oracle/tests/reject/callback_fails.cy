@@ -1,3 +1,3 @@
-%extern.C fn f [$cb: fn[i32] -> i32 or fail[x]];
-MAIN {
-}
+%external.C procedure f [$cb: function[integer.signed.32_bit] -> integer.signed.32_bit or fail[x]];
+!MAIN:
+!end of MAIN

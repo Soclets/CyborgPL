@@ -1,5 +1,7 @@
-on.machine.chip sve {
-    fn f [] { }
-}
+on.machine.chip sve:
+    function f []:
+    end of function f
+end of on.machine.chip
 
-MAIN { }
+!MAIN:
+!end of MAIN

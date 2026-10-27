@@ -1,12 +1,12 @@
 # a whole-line comment
-MAIN {
+!MAIN:
     let $a := 1;          # trailing: from here to the end of the line
-    let 'b' := 2; #wl this whole line is a comment, including the code before the #
+    let $b := 2; #wl this whole line is a comment, including the code before the #
     #3l these three lines
-    let 'c' := 3;
-    let 'd' := 4;
+    let $c := 3;
+    let $d := 4;
     let $e := 5; #2ld this line and two more down
-    let 'f' := 6;
-    let 'g' := 7;
-    std::print.useful($a, " ", $e, newln);
-}
+    let $f := 6;
+    let $g := 7;
+    std::print.shortest($a, " ", $e, newline);
+!end of MAIN

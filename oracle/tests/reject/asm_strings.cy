@@ -1,3 +1,3 @@
-MAIN {
-    no_check inline.ASM ["nop"];
-}
+!MAIN:
+    !no_check inline.ASM ["nop"];
+!end of MAIN

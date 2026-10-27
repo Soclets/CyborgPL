@@ -1,4 +1,4 @@
-MAIN {
-    let 'r': bool = true;
-    let 'b': bool = !'r';
-}
+!MAIN:
+    let $r: boolean = true;
+    let $b: boolean = !($r);
+!end of MAIN

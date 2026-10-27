@@ -1,3 +1,3 @@
-const mut $x := 1;
-MAIN {
-}
+constant mut $x := 1;
+!MAIN:
+!end of MAIN

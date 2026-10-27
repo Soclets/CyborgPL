@@ -1,3 +1,3 @@
-MAIN {
-    let $c: char = `a`;
-}
+!MAIN:
+    let $c: character = `a`;
+!end of MAIN

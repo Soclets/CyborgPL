@@ -1,1 +1,1 @@
-`d64` is the Money limb's, so it is marked: `to.%d64`
+`float.decimal.64_bit` is a limb's, so it is marked: `float.%decimal.64_bit`

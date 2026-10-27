@@ -1,3 +1,7 @@
-pub fn area [$s: f64] -> f64 { return $side x $s x $s; }
-pub.kit fn name [] -> str.utf8 { return "square"; }
-const $side := 1.0;
+public function area [$s: float.binary.64_bit] -> float.binary.64_bit:
+    return $side times $s times $s;
+end of function area
+public.kit function name [] -> string.utf8:
+    return "square";
+end of function name
+constant $side := 1.0;

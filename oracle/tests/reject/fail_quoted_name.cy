@@ -1,3 +1,4 @@
-fn f [] -> fail[$why] { }
-MAIN {
-}
+function f [] -> fail[$why]:
+end of function f
+!MAIN:
+!end of MAIN

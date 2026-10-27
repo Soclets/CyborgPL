@@ -1,2 +1,4 @@
-fn f [$v: nosuchtype] { }
-MAIN { }
+function f [$v: nosuchtype]:
+end of function f
+!MAIN:
+!end of MAIN

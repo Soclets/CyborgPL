@@ -1,3 +1,5 @@
-pub bare fn pow [$a: i32] -> i32 { return $a; }
-MAIN {
-}
+public bare function pow [$a: integer.signed.32_bit] -> integer.signed.32_bit:
+    return $a;
+end of function pow
+!MAIN:
+!end of MAIN

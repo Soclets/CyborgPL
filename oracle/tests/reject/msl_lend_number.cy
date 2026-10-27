@@ -1,10 +1,10 @@
-MAIN {
-    let mut $xs: std::list[i32] = [1, 2, 3, 4];
-    let $k: i32 = 2;
-    no_check inline.%MSL threads std::list.length(lend $xs) {
+!MAIN:
+    variable $xs: std::list[integer.signed.32_bit] = [1, 2, 3, 4];
+    let $k: integer.signed.32_bit = 2;
+    !no_check inline.%MSL threads std::list.length(lend $xs) with [lend.mutable $xs -> buffer(0), lend $k -> buffer(1)]:
         kernel void twice(device int *xs [[buffer(0)]], constant int &k [[buffer(1)]], uint id [[thread_position_in_grid]]) {
             xs[id] = xs[id] * k;
         }
-    } with [lend.mut $xs -> buffer(0), lend $k -> buffer(1)];
-    std::print.useful($xs, newln);
-}
+    end of inline.%MSL
+    std::print.shortest($xs, newline);
+!end of MAIN

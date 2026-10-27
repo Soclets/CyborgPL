@@ -1,3 +1,3 @@
-MAIN {
-    let $x := round.near[2.5: f64, decimals 1];
-}
+!MAIN:
+    let $x := round.nearest[2.5: float.binary.64_bit, decimals 1];
+!end of MAIN

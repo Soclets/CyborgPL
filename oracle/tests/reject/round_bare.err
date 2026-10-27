@@ -1,1 +1,1 @@
-`std::round` is an old spelling: write `round.near($x)` / `round.half_up($x)`
+`std::round` is an old spelling: write `round.nearest($x)` / `round.half_up($x)`; say how a tie rounds: `nearest` to even, `half_up` away from zero

@@ -1,4 +1,4 @@
-MAIN {
+!MAIN:
     let $p := "incl_assets/cafe.txt";
-    const $t := incl.bytes[$p];
-}
+    constant $t := include.bytes[$p];
+!end of MAIN

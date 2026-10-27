@@ -1,1 +1,1 @@
-line 6: 's' is lent mutably here while 'r' still depends on it and is used on line 7
+line 8: 's' is lent mutably here while 'r' still depends on it and is used on line 9 of borrow_after_append.cy: a borrow never aliases a change and never outlives its owner

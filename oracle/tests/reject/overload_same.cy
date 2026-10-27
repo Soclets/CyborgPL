@@ -1,7 +1,13 @@
-coll.fn f {
-    versions f {
-        [$a: i64] -> i64 { return 1; }
-        [$b: i64] -> i64 { return 2; }
-    }
-}
-MAIN { std::print.useful(f(1), newln); }
+collection.function f:
+    versions f:
+        [$a: integer.signed.64_bit] -> integer.signed.64_bit:
+            return 1;
+        end of version
+        [$b: integer.signed.64_bit] -> integer.signed.64_bit:
+            return 2;
+        end of version
+    end of versions f
+end of collection.function f
+!MAIN:
+    std::print.shortest(f(1), newline);
+!end of MAIN

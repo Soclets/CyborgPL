@@ -3,17 +3,17 @@
 # mixed with `{}`); `:` adds a shape: fill and alignment `< ^ >`, `+`, `0` padding, a width, `.places`,
 # and a kind — times X o b (bases), e (scientific), ? (the stored form). The format text has its own
 # escapes, read in one pass: newln \t \\ \" \{ \} and the rest. `%` is plain text.
-MAIN {
+!MAIN:
     let $name := "rope";
     let $count := 3;
-    let $price: f64 = 12.5;
-    let $pay: %d64 = 37.5 x 12.40;
-    let $tenth: f64 = 0.1;
-    std::print.format("{}: {} at ${places: 2}, 50% off\n", $name, $count, $price);
-    std::print.format("pay ${places: 2}, readable {}, stored {form: stored}\n", $pay, $pay, $pay);
-    std::print.format("tenth {} is really {form: stored}\n", $tenth, $tenth);
-    std::print.format("0x{base: hex} 0x{base: hex.upper, zeros, width: 4 cols} 0o{base: oct} 0b{base: bin, zeros, width: 8 cols}\n", 255, 255, 8, 10);
-    std::print.format("[{align: right, width: 6 cols}] [{align: left, width: 6 cols}] [{align: center, width: 7 cols, fill: `*`}] [{sign}] [{zeros, width: 5 cols}] {form: science, places: 2}\n", 42, 42, "ab", 5, 42, $price);
-    std::print.format("{2} vs {1}, and {2} wins\n", "a", "b");
-    std::print.format("\{ \"count\": {} \} in C:\\temp, tab[\t]\n", $count);
-}
+    let $price: float.binary.64_bit = 12.5;
+    let $pay: float.%decimal.64_bit = 37.5 times 12.40;
+    let $tenth: float.binary.64_bit = 0.1;
+    std::print.format("{}: {} at ${places: 2}, 50% off{newline}", $name, $count, $price);
+    std::print.format("pay ${places: 2}, readable {}, stored {form: stored}{newline}", $pay, $pay, $pay);
+    std::print.format("tenth {} is really {form: stored}{newline}", $tenth, $tenth);
+    std::print.format("0x{base: hexadecimal} 0x{base: hexadecimal.upper, zeros, width: 4 columns} 0o{base: octal} 0b{base: binary, zeros, width: 8 columns}{newline}", 255, 255, 8, 10);
+    std::print.format("[{align: right, width: 6 columns}] [{align: left, width: 6 columns}] [{align: center, width: 7 columns, fill: `*`}] [{sign}] [{zeros, width: 5 columns}] {form: science, places: 2}{newline}", 42, 42, "ab", 5, 42, $price);
+    std::print.format("{2} vs {1}, and {2} wins{newline}", "a", "b");
+    std::print.format("\{ \"count\": {} \} in C:\\temp, tab[{tab}]{newline}", $count);
+!end of MAIN

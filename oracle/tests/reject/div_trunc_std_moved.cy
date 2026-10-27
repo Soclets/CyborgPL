@@ -1,3 +1,3 @@
-MAIN {
-    std::print.useful(std::div.trunc(-7, 2), newln);
-}
+!MAIN:
+    std::print.shortest(std::divide.truncate(negative 7, 2), newline);
+!end of MAIN

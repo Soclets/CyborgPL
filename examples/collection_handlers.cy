@@ -2,49 +2,66 @@
 # after `otherwise` today, one per way the call can fail, and `otherwise half_failed.as_zero` reads them
 # as if they were written at the call: an arm may `return`, `break`, `continue` or `fail` from where it
 # is used, and a member that misses a way the call can fail is refused there.
-fn half [$n: i32] -> i32 or fail[odd, negative: i32] {
-    if $n < 0 { fail negative[$n]; }
-    if ($n div.floor 2) x 2 not_equal $n { fail odd; }
-    return $n div.floor 2;
-}
+function half [$n: integer.signed.32_bit] -> integer.signed.32_bit or fail[odd, negative: integer.signed.32_bit]:
+    if $n less_than 0:
+        fail negative[$n];
+    end of if
+    if ($n divide.floor 2) times 2 not_equal_to $n:
+        fail odd;
+    end of if
+    return $n divide.floor 2;
+end of function half
 
-coll.handler half_failed {
-    half_failed.as_zero {
-        odd { return 0; }
-        negative $v { std::print.useful("negative: ", $v, newln); return 0; }
-    }
-    half_failed.skip {
-        odd { continue; }
-        negative $v { continue; }
-    }
-    half_failed.stop {
-        odd { break; }
-        negative $v { break; }
-    }
-}
+collection.handler half_failed:
+    half_failed.as_zero:
+        !case odd:
+            return 0;
+        !end of case odd
+        !case negative $v:
+            std::print.shortest("negative: ", $v, newline); return 0;
+        !end of case negative
+    end of half_failed.as_zero
+    half_failed.skip:
+        !case odd:
+            continue;
+        !end of case odd
+        !case negative $v:
+            continue;
+        !end of case negative
+    end of half_failed.skip
+    half_failed.stop:
+        !case odd:
+            break;
+        !end of case odd
+        !case negative $v:
+            break;
+        !end of case negative
+    end of half_failed.stop
+end of collection.handler half_failed
 
-fn half_or_zero [$n: i32] -> i32 {
-    let $h := half($n) otherwise half_failed.as_zero;
+procedure half_or_zero [$n: integer.signed.32_bit] -> integer.signed.32_bit:
+    let $h := half($n) otherwise half_failed.!as_zero;
     return $h;
-}
+end of procedure half_or_zero
 
-fn sum_of_halves [lent $xs: std::list[i32], $until_bad: bool] -> i32 {
-    let $sum := 0;
-    for $x in lend $xs {
-        if $until_bad {
-            let $h := half($x) otherwise half_failed.stop;
-            change $sum = $sum + $h;
-        } else {
-            let $h := half($x) otherwise half_failed.skip;
-            change $sum = $sum + $h;
-        }
-    }
+function sum_of_halves [lent $xs: std::list[integer.signed.32_bit], $until_bad: boolean] -> integer.signed.32_bit:
+    variable $sum := 0;
+    for $x in lend $xs:
+        if $until_bad:
+            let $h := half($x) otherwise half_failed.!stop;
+            change $sum = $sum plus $h;
+        end of if
+        else:
+            let $h := half($x) otherwise half_failed.!skip;
+            change $sum = $sum plus $h;
+        end of else
+    end of for
     return $sum;
-}
+end of function sum_of_halves
 
-MAIN {
-    std::print.useful(half_or_zero(10), " ", half_or_zero(7), newln);
-    std::print.useful(half_or_zero(-4), newln);
-    let $xs: std::list[i32] = [2, 4, 5, 8, -2, 10];
-    std::print.useful(sum_of_halves(lend $xs, false), " ", sum_of_halves(lend $xs, true), newln);
-}
+!MAIN:
+    std::print.shortest(half_or_zero(10), " ", half_or_zero(7), newline);
+    std::print.shortest(half_or_zero(negative 4), newline);
+    let $xs: std::list[integer.signed.32_bit] = [2, 4, 5, 8, negative 2, 10];
+    std::print.shortest(sum_of_halves(lend $xs, false), " ", sum_of_halves(lend $xs, true), newline);
+!end of MAIN

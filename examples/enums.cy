@@ -1,34 +1,42 @@
 # An enum with a case that carries data, matched case by case.
-enum Status {
-    empty,
-    claimed: str.utf8,
-    locked
-}
+union.tagged Status:
+    empty;
+    claimed: string.utf8;
+    locked;
+end of union.tagged Status
 
-struct Locker {
-    number: i32,
-    status: Status
-}
+record Locker:
+    number: integer.signed.32_bit;
+    status: Status;
+end of record Locker
 
-fn describe [lent $l: Locker] -> str.utf8 {
-    match $l.status {
-        empty         { return "free"; }
-        claimed $who { return "taken by " concat $who; }
-        locked        { return "locked"; }
-    }
-}
+function describe [lent $l: Locker] -> string.utf8:
+    match $l.status:
+        case empty:
+            return "free";
+        end of case empty
+        case claimed $who:
+            return "taken by " concatenate $who;
+        end of case claimed
+        case locked:
+            return "locked";
+        end of case locked
+    end of match
+end of function describe
 
-MAIN {
+!MAIN:
     let $lockers := [
         Locker[number = 1, status = Status.empty],
         Locker[number = 2, status = Status.claimed("Tankun")],
         Locker[number = 3, status = Status.locked]
     ];
-    for $l in lend $lockers {
-        std::print.useful("#", $l.number, ": ", describe(lend $l), newln);
-    }
+    for $l in lend $lockers:
+        std::print.shortest("#", $l.number, ": ", describe(lend $l), newline);
+    end of for
     let $s := Status.locked;
-    if $s equal_to Status.locked { std::print.stored("== works on a case", newln); }
+    if $s equal_to Status.locked:
+        std::print.stored("== works on a case", newline);
+    end of if
     let $t := Status.claimed("Bo");
-    std::print.stored($t, newln);
-}
+    std::print.stored($t, newline);
+!end of MAIN

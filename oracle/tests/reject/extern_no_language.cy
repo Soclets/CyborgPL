@@ -1,3 +1,3 @@
-extern fn exit [$code: i32];
-MAIN {
-}
+external procedure exit [$code: integer.signed.32_bit];
+!MAIN:
+!end of MAIN

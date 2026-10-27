@@ -1,3 +1,3 @@
-pub $x := 1;
-MAIN {
-}
+public $x := 1;
+!MAIN:
+!end of MAIN

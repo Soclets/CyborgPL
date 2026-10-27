@@ -1,3 +1,9 @@
-fn add1 [lent.mut $out: std::list[i32]] { std::list.append(lend.mut $out, value: 1); }
-fn walk [lent.mut $out: std::list[i32]] { add1($out); std::list.append(lend.mut $out, value: 2); }
-MAIN { let mut $xs: std::list[i32] = []; walk(lend.mut $xs); std::print.useful(std::list.length(lend $xs), newln); }
+procedure add1 [lent.mutable $out: std::list[integer.signed.32_bit]]:
+    std::list.append(lend.mutable $out, value: 1);
+end of procedure add1
+procedure walk [lent.mutable $out: std::list[integer.signed.32_bit]]:
+    add1($out); std::list.append(lend.mutable $out, value: 2);
+end of procedure walk
+!MAIN:
+    variable $xs: std::list[integer.signed.32_bit] = []; walk(lend.mutable $xs); std::print.shortest(std::list.length(lend $xs), newline);
+!end of MAIN

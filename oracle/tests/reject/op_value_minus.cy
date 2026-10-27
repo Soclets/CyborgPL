@@ -1,4 +1,4 @@
 # `op -` subtracts; negation as a value is `op neg` (owner, 2026-09-29)
-MAIN {
-    let $k: fn[i32] -> i32 = op minus;
-}
+!MAIN:
+    let $k: function[integer.signed.32_bit] -> integer.signed.32_bit = operator minus;
+!end of MAIN

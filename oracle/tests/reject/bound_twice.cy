@@ -1,6 +1,7 @@
 # a name is given once
-coll.bound q {
-    q = i32[min: 1, max: 9];
-    q = i32[min: 1, max: 8];
-}
-MAIN { }
+collection.bounded q:
+    q = integer.signed.32_bit[minimum: 1, maximum: 9];
+    q = integer.signed.32_bit[minimum: 1, maximum: 8];
+end of collection.bounded q
+!MAIN:
+!end of MAIN

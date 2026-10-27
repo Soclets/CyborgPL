@@ -1,4 +1,4 @@
-MAIN {
-    let $xs: list[i32] = [];
-    list.append[lend.mut $xs, 2];
-}
+!MAIN:
+    variable $xs: list[integer.signed.32_bit] = [];
+    list.append[lend.mutable $xs, 2];
+!end of MAIN

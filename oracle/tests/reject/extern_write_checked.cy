@@ -1,2 +1,4 @@
-%extern.C mut $a: i32;
-MAIN { change $a = 2; }
+%external.C variable $a: integer.signed.32_bit;
+!MAIN:
+    change $a = 2;
+!end of MAIN

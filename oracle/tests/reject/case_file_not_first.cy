@@ -1,5 +1,7 @@
-fn f [] -> i32 { return 1; }
+function f [] -> integer.signed.32_bit:
+    return 1;
+end of function f
 case.any;
-MAIN {
+!MAIN:
     let $a := 1;
-}
+!end of MAIN

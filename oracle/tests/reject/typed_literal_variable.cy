@@ -1,4 +1,4 @@
-MAIN {
-    let $x: u8 = 5;
-    let $v := $x: u8;
-}
+!MAIN:
+    let $x: integer.unsigned.8_bit = 5;
+    let $v := $x: integer.unsigned.8_bit;
+!end of MAIN

@@ -1,6 +1,6 @@
-%extern.C fn getenv [$n: ptr[u8]] -> ptr[u8];
-MAIN {
+%external.C procedure getenv [$n: pointer[integer.unsigned.8_bit]] -> pointer[integer.unsigned.8_bit];
+!MAIN:
     let $k := "PATH";
-    no_check let $p := getenv(lend $k);
-    no_check ptr.write($p, value: 1);
-}
+    !no_check let $p := getenv(lend $k);
+    !no_check pointer.write($p, value: 1);
+!end of MAIN

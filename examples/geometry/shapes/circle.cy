@@ -1,4 +1,10 @@
-pub const $pi: f64 = 3.141_592_653_589_793;
-pub struct Circle { radius: f64 }
-pub fn area [$r: f64] -> f64 { return $pi x $r x $r; }
-pub.kit fn name [] -> str.utf8 { return "circle"; }
+public constant $pi: float.binary.64_bit = 3.141_592_653_589_793;
+public record Circle:
+    radius: float.binary.64_bit;
+end of record Circle
+public function area [$r: float.binary.64_bit] -> float.binary.64_bit:
+    return $pi times $r times $r;
+end of function area
+public.kit function name [] -> string.utf8:
+    return "circle";
+end of function name

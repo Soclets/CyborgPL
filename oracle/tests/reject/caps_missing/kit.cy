@@ -1,2 +1,3 @@
 case.any;
-MAIN { }
+!MAIN:
+!end of MAIN

@@ -1,4 +1,9 @@
-fn f [] -> fail[why] { fail why; }
-MAIN {
-    f() otherwise { why $w { } };
-}
+function f [] -> fail[why]:
+    fail why;
+end of function f
+!MAIN:
+    f() otherwise:
+        case why $w:
+        end of case why
+    end of otherwise;
+!end of MAIN

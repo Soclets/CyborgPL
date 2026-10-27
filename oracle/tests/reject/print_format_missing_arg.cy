@@ -1,1 +1,3 @@
-MAIN { std::print.format("{} {}\n", 1); }
+!MAIN:
+    std::print.format("{} {}{newline}", 1);
+!end of MAIN

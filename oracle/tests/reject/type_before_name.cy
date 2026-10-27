@@ -1,3 +1,3 @@
-MAIN {
-    i32 $x = 1;
-}
+!MAIN:
+    integer.signed.32_bit $x = 1;
+!end of MAIN

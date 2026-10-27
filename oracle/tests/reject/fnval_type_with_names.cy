@@ -1,3 +1,5 @@
-fn apply [$f: fn[$a: i32] -> i32] -> i32 { return $f[1]; }
-MAIN {
-}
+function apply [$f: function[$a: integer.signed.32_bit] -> integer.signed.32_bit] -> integer.signed.32_bit:
+    return $f[1];
+end of function apply
+!MAIN:
+!end of MAIN

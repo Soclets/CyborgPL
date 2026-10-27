@@ -1,3 +1,3 @@
-MAIN {
-    let $b := to.bool(1);
-}
+!MAIN:
+    let $b := to.boolean(1);
+!end of MAIN

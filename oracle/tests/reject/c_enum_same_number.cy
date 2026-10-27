@@ -1,4 +1,6 @@
 # each case of a C enum has its own number (2026-09-27)
-%layout.C enum K { a = 1, b = 1 }
-MAIN {
-}
+%layout.C enumeration K:
+    a = 1, b = 1
+end of layout
+!MAIN:
+!end of MAIN

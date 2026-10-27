@@ -1,8 +1,8 @@
 # `pow`, and how it groups (to the right).
-MAIN {
-    std::print.useful((2 xx (3 xx 2)), newln);
-    std::print.useful(((2 xx 3) xx 2), newln);
-    let $kilo := 2 xx 10;
-    std::print.useful($kilo, newln);
-    std::print.useful((10 - 3 - 2), newln);
-}
+!MAIN:
+    std::print.shortest((2 power (3 power 2)), newline);
+    std::print.shortest(((2 power 3) power 2), newline);
+    let $kilo := 2 power 10;
+    std::print.shortest($kilo, newline);
+    std::print.shortest((10 minus 3 minus 2), newline);
+!end of MAIN

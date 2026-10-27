@@ -1,3 +1,3 @@
-MAIN {
-    let $x := 7 mod 2;
-}
+!MAIN:
+    let $x := 7 modulo 2;
+!end of MAIN

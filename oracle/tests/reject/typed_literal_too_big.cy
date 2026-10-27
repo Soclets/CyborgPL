@@ -1,3 +1,3 @@
-MAIN {
-    let $v := 300: u8;
-}
+!MAIN:
+    let $v := 300: integer.unsigned.8_bit;
+!end of MAIN

@@ -1,3 +1,3 @@
 let $x := 1;
-MAIN {
-}
+!MAIN:
+!end of MAIN

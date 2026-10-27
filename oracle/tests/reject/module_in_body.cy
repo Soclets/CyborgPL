@@ -1,3 +1,4 @@
-MAIN {
-    module a { }
-}
+!MAIN:
+    module a:
+    end of module a
+!end of MAIN

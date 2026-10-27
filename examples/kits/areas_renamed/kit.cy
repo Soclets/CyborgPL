@@ -2,29 +2,41 @@
 # `kit.areas2.prefix = shapes` (owner, 2026-09-30); `my.` here is this kit's root.
 
 
-pub const $pi: f64 = 3.14159;
+public constant $pi: float.binary.64_bit = 3.14159;
 
-pub struct Circle { radius: f64 }
+public record Circle:
+    radius: float.binary.64_bit;
+end of record Circle
 
-pub fn circle [lent $c: Circle] -> f64 {
-    return $c.radius x $c.radius x my.$pi;
-}
+public function circle [lent $c: Circle] -> float.binary.64_bit:
+    return $c.radius times $c.radius times my.$pi;
+end of function circle
 
-pub.kit fn internal [] -> i32 { return 2; }
+public.kit function internal [] -> integer.signed.32_bit:
+    return 2;
+end of function internal
 
-fn hidden [] -> i32 { return 1; }
+function hidden [] -> integer.signed.32_bit:
+    return 1;
+end of function hidden
 
-pub module shapes {
-    pub fn square [$s: i32] -> i32 { return $s x $s; }
-}
+public module shapes:
+    public function square [$s: integer.signed.32_bit] -> integer.signed.32_bit:
+        return $s times $s;
+    end of function square
+end of module shapes
 
 # A kit's own word operator with a narrowed form (owner, 2026-10-02/03): users write it bare or
 # with this kit's path, `areas::mean.low`.
 # its levels apply wherever `mean` is used, in other kits too (owner, 2026-10-03)
-precedence.low_first {
-    level 1 { + } left_first
-    level 2 { times, mean, mean.low } left_first
-}
+precedence.low_first:
+    level 1 [ plus ] left_first
+    level 2 [ times, mean, mean.low ] left_first
+end of precedence.low_first
 
-pub op mean [$a: f64, $b: f64] -> f64 { return ($a + $b) div.near 2.0; }
-pub op mean.low [$a: f64, $b: f64] -> f64 { return ($a + $b) div.floor 2.0; }
+public operator mean [$a: float.binary.64_bit, $b: float.binary.64_bit] -> float.binary.64_bit:
+    return ($a plus $b) divide.nearest 2.0;
+end of operator mean
+public operator mean.low [$a: float.binary.64_bit, $b: float.binary.64_bit] -> float.binary.64_bit:
+    return ($a plus $b) divide.floor 2.0;
+end of operator mean.low

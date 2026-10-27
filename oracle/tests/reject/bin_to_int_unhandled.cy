@@ -1,1 +1,3 @@
-MAIN { let $y: f64 = 2.7; let $b := to.i32($y); }
+!MAIN:
+    let $y: float.binary.64_bit = 2.7; let $b := to.integer.signed.32_bit($y);
+!end of MAIN

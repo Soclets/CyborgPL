@@ -1,20 +1,20 @@
 # The two prints. Both are std's; the base language has no print.
-MAIN {
+!MAIN:
     let $name := "Ann";
     let $count := 6;
-    let $x: f64 = 0.1;
+    let $x: float.binary.64_bit = 0.1;
 
     # print: any values, each in its stored form, nothing between
-    std::print.stored("x is ", $x, newln);
+    std::print.stored("x is ", $x, newline);
 
     # print.useful: the same, each in its useful form
-    std::print.useful("x is ", $x, newln);
+    std::print.shortest("x is ", $x, newline);
 
     # a joined text is already text: print and print.useful agree on it
-    let $line := $name concat " scored " concat to.stored.str.utf8($count);
-    std::print.stored($line, newln);
-    std::print.useful($line, newln);
+    let $line := $name concatenate " scored " concatenate to.stored.string.utf8($count);
+    std::print.stored($line, newline);
+    std::print.shortest($line, newline);
 
     # stderr
-    std::print.useful.stderr("warning: ", $count, " is low", newln);
-}
+    std::print.shortest.stderr("warning: ", $count, " is low", newline);
+!end of MAIN

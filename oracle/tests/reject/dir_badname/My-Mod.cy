@@ -1,1 +1,2 @@
-pub fn f [] { }
+public function f []:
+end of function f

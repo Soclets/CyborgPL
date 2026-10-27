@@ -1,3 +1,3 @@
-MAIN {
-    let $x := 7 div 2;
-}
+!MAIN:
+    let $x := 7 divide 2;
+!end of MAIN

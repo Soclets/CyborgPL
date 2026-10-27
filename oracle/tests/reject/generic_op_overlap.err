@@ -1,1 +1,1 @@
-`~=` for i32 (line 8 of generic_op_overlap.cy) and the generic `~=` (line 7 of generic_op_overlap.cy) both cover i32
+`~=` for i32 (line 10 of generic_op_overlap.cy) and the generic `~=` (line 7 of generic_op_overlap.cy) both cover i32: two meanings of one operator for the same types; narrow the generic one's bound so i32 does not keep it, or drop one

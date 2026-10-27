@@ -1,2 +1,4 @@
 
-pub fn one [] -> i32 { give 1; }
+public function one [] -> integer.signed.32_bit:
+    give 1;
+end of function one

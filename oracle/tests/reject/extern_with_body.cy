@@ -1,3 +1,5 @@
-%extern.C fn f [$a: i32] -> i32 { return 1; }
-MAIN {
-}
+%external.C procedure f [$a: integer.signed.32_bit] -> integer.signed.32_bit:
+    return 1;
+end of %external.C
+!MAIN:
+!end of MAIN

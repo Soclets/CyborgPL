@@ -1,8 +1,8 @@
-enum Status {
-    empty,
-    claimed: str.utf8
-}
-MAIN {
+union.tagged Status:
+    empty;
+    claimed: string.utf8;
+end of union.tagged Status
+!MAIN:
     let $s := Status.claimed("Tankun");
-    let $t := to.str.utf8($s);
-}
+    let $t := to.string.utf8($s);
+!end of MAIN

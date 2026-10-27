@@ -1,1 +1,1 @@
-line 7: 't' is given away here while 'r' still depends on it and is used on line 8
+line 9: 't' is given away here while 'r' still depends on it and is used on line 10 of lifetime_group_given.cy: a borrow never aliases a change and never outlives its owner

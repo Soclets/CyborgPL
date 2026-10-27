@@ -3,24 +3,24 @@
 # IEEE's -0 where it is wanted ("yea"), and `negate.ieee` (was `neg.ieee`) is IEEE's negation ("yea"): `-.ieee $x`
 # "defeats the purpose of a symbol". Every operator that can make a -0 has its `.ieee` form, `mod`
 # and `pow` included ("yea").
-MAIN {
-    let $z: f64 = 0.0;
-    let $n: f64 = -2.0;
-    let $e30: f64 = 0.000000000000000000000000000001;
-    let $e60: f64 = $e30 x $e30;
-    let $e120: f64 = $e60 x $e60;
-    let $tiny: f64 = $e120 x $e120;
-    std::print.useful($z x $n, " ", $z times.ieee $n, newln);
-    std::print.useful(-$z, " ", negate.ieee $z, newln);
-    std::print.useful($tiny x (-$tiny), " ", $tiny times.ieee (-$tiny), newln);
-    std::print.useful($z div.near $n, " ", $z div.near.ieee $n, newln);
-    let $m: f64 = negate.ieee $z;
-    std::print.useful($m + $m, " ", $m plus.ieee $m, " ", $m - $z, " ", $m minus.ieee $z, newln);
-    let $b: %brain16 = 0.0;
-    let $c: %brain16 = -3.0;
-    std::print.useful($b x $c, " ", $b times.ieee $c, " ", -$b, " ", negate.ieee $b, newln);
-    let $w: f32 = $e30 x $e30 x (-1.0);
-    std::print.useful($w, " ", 3.0 mod.floor (-3.0), " ", 3.0 mod.floor.ieee (-3.0), " ", (-3.0) mod.trunc 3.0, " ", (-3.0) mod.trunc.ieee 3.0, newln);
+!MAIN:
+    let $z: float.binary.64_bit = 0.0;
+    let $n: float.binary.64_bit = negative 2.0;
+    let $e30: float.binary.64_bit = 0.000000000000000000000000000001;
+    let $e60: float.binary.64_bit = $e30 times $e30;
+    let $e120: float.binary.64_bit = $e60 times $e60;
+    let $tiny: float.binary.64_bit = $e120 times $e120;
+    std::print.shortest($z times $n, " ", $z times.ieee $n, newline);
+    std::print.shortest(negate $z, " ", negate.ieee $z, newline);
+    std::print.shortest($tiny times (negate $tiny), " ", $tiny times.ieee (negate $tiny), newline);
+    std::print.shortest($z divide.nearest $n, " ", $z divide.nearest.ieee $n, newline);
+    let $m: float.binary.64_bit = negate.ieee $z;
+    std::print.shortest($m plus $m, " ", $m plus.ieee $m, " ", $m minus $z, " ", $m minus.ieee $z, newline);
+    let $b: float.%brain.16_bit = 0.0;
+    let $c: float.%brain.16_bit = negative 3.0;
+    std::print.shortest($b times $c, " ", $b times.ieee $c, " ", negate $b, " ", negate.ieee $b, newline);
+    let $w: float.binary.32_bit = $e30 times $e30 times (negative 1.0);
+    std::print.shortest($w, " ", 3.0 modulo.floor (negative 3.0), " ", 3.0 modulo.floor.ieee (negative 3.0), " ", (negative 3.0) modulo.truncate 3.0, " ", (negative 3.0) modulo.truncate.ieee 3.0, newline);
     # `mod` and `pow` keep it too (owner, 2026-10-07: "yea")
-    std::print.useful((-$e120) xx 3, " ", (-$e120) pow.ieee 3, " ", (-$e120) std::pow.ieee 3, newln);
-}
+    std::print.shortest((negate $e120) power 3, " ", (negate $e120) pow.ieee 3, " ", (negate $e120) std::power.ieee 3, newline);
+!end of MAIN

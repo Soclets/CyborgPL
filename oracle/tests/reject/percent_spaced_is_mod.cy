@@ -1,4 +1,4 @@
 # a spaced `%` between values is still the old spelling of `mod`; only a `%` glued to a word is a mark
-MAIN {
+!MAIN:
     let $x := 1 %;
-}
+!end of MAIN

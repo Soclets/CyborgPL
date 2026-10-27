@@ -1,10 +1,10 @@
 # a root bound named from another file through `my.` checks as the type it names (owner, 2026-10-26)
-coll.bound quantity {
-    quantity = i32[min: 1, max: 99];
-    quantity.small = i32[min: 1, max: 9];
-}
+collection.bounded quantity:
+    quantity = integer.signed.32_bit[minimum: 1, maximum: 99];
+    quantity.small = integer.signed.32_bit[minimum: 1, maximum: 9];
+end of collection.bounded quantity
 
-MAIN {
+!MAIN:
     let $n: quantity = 12;
-    std::print.useful(shop.basket($n), " ", shop.sample(10), newln);
-}
+    std::print.shortest(shop.basket($n), " ", shop.sample(10), newline);
+!end of MAIN

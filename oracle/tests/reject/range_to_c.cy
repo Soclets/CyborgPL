@@ -1,3 +1,3 @@
-%extern.C fn f [$a: i32[min: 0, max: 10]];
-MAIN {
-}
+%external.C procedure f [$a: integer.signed.32_bit[minimum: 0, maximum: 10]];
+!MAIN:
+!end of MAIN

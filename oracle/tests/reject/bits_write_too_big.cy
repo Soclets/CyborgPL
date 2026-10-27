@@ -1,6 +1,8 @@
-%layout.C struct S { mode: u8[bits: 3] }
+%layout.C record S:
+    mode: integer.unsigned.8_bit[bits: 3]
+end of layout
 
-MAIN {
-    let mut $s := S[mode = 1];
+!MAIN:
+    variable $s := S[mode = 1];
     change $s.mode = 8;
-}
+!end of MAIN

@@ -1,3 +1,3 @@
-MAIN {
-    MAIN[];
-}
+!MAIN:
+    !MAIN[];
+!end of MAIN

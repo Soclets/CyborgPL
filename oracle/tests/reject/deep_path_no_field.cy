@@ -1,7 +1,11 @@
 # a deep path names fields its struct has
-struct In { k: i32 }
-struct Out { inn: In }
-MAIN {
+record In:
+    k: integer.signed.32_bit;
+end of record In
+record Out:
+    inn: In;
+end of record Out
+!MAIN:
     let $o := Out[inn = In[k = 1]];
-    std::print.useful($o.inn.j, newln);
-}
+    std::print.shortest($o.inn.j, newline);
+!end of MAIN

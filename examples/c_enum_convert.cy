@@ -2,15 +2,27 @@
 # converts it, failing `out_of_range` for a number no case has — here 302, a key a newer
 # library added — so the program decides what an unknown key means instead of hitting
 # undefined behaviour in the `match`. A callback, which C calls, takes the plain number.
-%layout.C enum Key { a = 65, b = 66, escape = 256 }
-fn on_key [$code: i32] -> i32 {
-    let $k := to.Key($code) otherwise { out_of_range { return 0; } };
-    match $k {
-        a { return 1; }
-        b { return 2; }
-        escape { return 3; }
-    }
-}
-MAIN {
-    std::print.useful(on_key(66), " ", on_key(302), " ", on_key(256), newln);
-}
+%layout.C enumeration Key:
+    a = 65, b = 66, escape = 256
+end of layout
+function on_key [$code: integer.signed.32_bit] -> integer.signed.32_bit:
+    let $k := to.Key($code) otherwise:
+        !case out_of_range:
+            return 0;
+        !end of case out_of_range
+    end of otherwise;
+    match $k:
+        case a:
+            return 1;
+        end of case a
+        case b:
+            return 2;
+        end of case b
+        case escape:
+            return 3;
+        end of case escape
+    end of match
+end of function on_key
+!MAIN:
+    std::print.shortest(on_key(66), " ", on_key(302), " ", on_key(256), newline);
+!end of MAIN

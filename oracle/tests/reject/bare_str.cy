@@ -1,3 +1,3 @@
-MAIN {
-    let $s: str = "a";
-}
+!MAIN:
+    let $s: string = "a";
+!end of MAIN

@@ -1,3 +1,3 @@
-MAIN {
-    let $c := %C.str.copy["a"];
-}
+!MAIN:
+    let $c := %C.string.copy["a"];
+!end of MAIN

@@ -1,3 +1,3 @@
-MAIN {
-    std::print("hi", newln);
-}
+!MAIN:
+    std::print("hi", newline);
+!end of MAIN

@@ -1,3 +1,3 @@
-MAIN {
-    let $x := bin 1__0;
-}
+!MAIN:
+    let $x := binary 1__0;
+!end of MAIN
