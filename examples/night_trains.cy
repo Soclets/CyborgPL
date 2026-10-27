@@ -48,8 +48,8 @@ end of rec Network
 # The longest trip the network sells: ten days and 100,000 km. A way past either is no way, and that limit is what
 # keeps every sum of minutes and km below provably inside an `i32`.
 coll.bounded trip:
-    trip.minutes = int.sign.32[min: 0, max: 14400];
-    trip.km = int.sign.32[min: 0, max: 100000];
+    member trip.minutes = int.sign.32[min: 0, max: 14400];
+    member trip.km = int.sign.32[min: 0, max: 100000];
 end of coll.bounded trip
 
 # The quickest known way to a station: when it is reached, how far it is, and where it came from.
@@ -571,7 +571,7 @@ end of proc book
 # whom it is explaining to. Its arms act as if written at the call, so `continue` moves on to the next
 # request there (owner, 2026-10-25).
 coll.handler booking_failed:
-    booking_failed.explain [$who: str.utf8]:
+    member booking_failed.explain [$who: str.utf8]:
         !case unknown_station $name:
             std::print.shortest("  ", $who, ": no station called ", $name, " on this network", newln);
             continue;
@@ -588,7 +588,7 @@ coll.handler booking_failed:
             std::print.shortest("  ", $who, ": no ", $kind, " left tonight", newln);
             continue;
         !end of case sold_out
-    end of booking_failed.explain
+    end of member booking_failed.explain
 end of coll.handler booking_failed
 
 proc show_booking [lent $b: Booking, $age: Age]:

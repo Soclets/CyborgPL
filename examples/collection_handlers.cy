@@ -13,30 +13,30 @@ fn half [$n: int.sign.32] -> int.sign.32 or fail[odd, negative: int.sign.32]:
 end of fn half
 
 coll.handler half_failed:
-    half_failed.as_zero:
+    member half_failed.as_zero:
         !case odd:
             ret 0;
         !end of case odd
         !case negative $v:
             std::print.shortest("negative: ", $v, newln); ret 0;
         !end of case negative
-    end of half_failed.as_zero
-    half_failed.skip:
+    end of member half_failed.as_zero
+    member half_failed.skip:
         !case odd:
             continue;
         !end of case odd
         !case negative $v:
             continue;
         !end of case negative
-    end of half_failed.skip
-    half_failed.stop:
+    end of member half_failed.skip
+    member half_failed.stop:
         !case odd:
             break;
         !end of case odd
         !case negative $v:
             break;
         !end of case negative
-    end of half_failed.stop
+    end of member half_failed.stop
 end of coll.handler half_failed
 
 proc half_or_zero [$n: int.sign.32] -> int.sign.32:

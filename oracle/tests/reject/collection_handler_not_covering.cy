@@ -5,11 +5,11 @@ fn half [$n: int.sign.32] -> int.sign.32 or fail[odd, negative: int.sign.32]:
     ret $n;
 end of fn half
 coll.handler h:
-    h.zero:
+    member h.zero:
         !case odd:
             ret 0;
         !end of case odd
-    end of h.zero
+    end of member h.zero
 end of coll.handler h
 fn f [] -> int.sign.32:
     let $v := half(3) otherwise h.!zero;

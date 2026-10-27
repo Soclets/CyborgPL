@@ -34,6 +34,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: every member of a collection says `member`, on both lines (owner: (b))
+
+A template's member had closed `end of named` (design claude's pick). Asked whether that is right ("what", then simpler),
+the owner: "is `named` the name?" (no: the word starting the line that makes the name), then, offered `end of member`,
+"member of what?" (of the collection the template sits in), then "Then, would `end of member` need to work with the other
+members?" Design claude offered (a) `member` only in the template, named members closing on their name, or (b) every
+member saying `member` on both lines, kind then name as every other block, recommended. Shown (b) whole ("let me see how
+(b) looks"), with design claude's readings that the collection's own function, a preset and a body written elsewhere say
+it too, and a `versions` entry stays `end of version`, the owner: "yes". So **`member greet.loud […] -> T:` … `end of
+member greet.loud`, `member greet.hi [$word = "hi"];`, `member area.square = shapes.square.area;`, and in a template
+`member [] -> $T:` … `end of member`**, the generator writing `member zero.of_int_sign_16 …` / `end of member
+zero.of_int_sign_16`; a member line without `member` is refused. In `coll.fn` and `coll.handler` alike. Built.
+
 ### 2026-10-27 — Redesign: one of a function's `versions` closes `end of version` (owner)
 
 Inside `versions area:` … `end of versions area`, each version opens on its parameters alone (`[$side: int.sign.64] ->

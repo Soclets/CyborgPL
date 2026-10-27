@@ -17,13 +17,13 @@ A collection writes a function and its dot narrowings (`cum`, `cum.quick`,
 
 ```
 pub coll.fn cum:
-    cum [$x: int.sign.32, $step: int.sign.32] -> int.sign.32:
+    member cum [$x: int.sign.32, $step: int.sign.32] -> int.sign.32:
         ret $x plus $step;
-    end of cum
-    cum.quick [$step = 2];
-    cum.double [$x: int.sign.32] -> int.sign.32:
+    end of member cum
+    member cum.quick [$step = 2];
+    member cum.double [$x: int.sign.32] -> int.sign.32:
         ret $x times 2;
-    end of cum.double
+    end of member cum.double
 end of coll.fn cum
 ```
 
@@ -57,12 +57,12 @@ A member may point at a function written elsewhere in the kit, so a kit's `kit.c
 
 ```
 pub coll.fn area:
-    area [$w: int.sign.64, $h: int.sign.64] -> int.sign.64:
+    member area [$w: int.sign.64, $h: int.sign.64] -> int.sign.64:
         ret $w times $h;
-    end of area
-    area.square = shapes.square.area;           # body in shapes/square.cy
-    area.triangle = shapes.triangle.area;
-    area.unit [$w = 1, $h = 1];               # a preset of the own function
+    end of member area
+    member area.square = shapes.square.area;           # body in shapes/square.cy
+    member area.triangle = shapes.triangle.area;
+    member area.unit [$w = 1, $h = 1];               # a preset of the own function
 end of coll.fn area
 # users write geometry::area.square[5]
 ```
@@ -114,9 +114,9 @@ A collection also says how its own function is called:
 pub coll.fn say:
     labels.in_order [$text as value, $times as count];
     defaults [$times = 1];
-    say [$n: int.sign.32, $text: str.utf8, $times: int.sign.32] -> str.utf8:
+    member say [$n: int.sign.32, $text: str.utf8, $times: int.sign.32] -> str.utf8:
         …
-    end of say
+    end of member say
 end of coll.fn say
 # say[2, value: "Hi"]               'times' is 1
 # say[2, value: "Hi", count: 3]
@@ -147,12 +147,12 @@ exist, a bare `std::print[…]` does not.
 
 ```
 coll.fn zero:
-    zero.of_int16 [] -> int.sign.16:
+    member zero.of_int16 [] -> int.sign.16:
         ret 0;
-    end of zero.of_int16
-    zero.of_int64 [] -> int.sign.64:
+    end of member zero.of_int16
+    member zero.of_int64 [] -> int.sign.64:
         ret 0;
-    end of zero.of_int64
+    end of member zero.of_int64
 end of coll.fn zero
 ```
 
@@ -169,17 +169,17 @@ member's signature, or no own function takes it.
 coll.fn zero:
     for $T in [int.sign.16, int.sign.64]:
         named "of_" concat std::str.replace(lend $T, from: ".", to: "_");
-        [] -> $T:
+        member [] -> $T:
             ret 0;
-        end of named
+        end of member
     end of for
     #generated_6_lines_below
-    zero.of_int_sign_16 [] -> int.sign.16:
+    member zero.of_int_sign_16 [] -> int.sign.16:
         ret 0;
-    end of zero.of_int_sign_16
-    zero.of_int_sign_64 [] -> int.sign.64:
+    end of member zero.of_int_sign_16
+    member zero.of_int_sign_64 [] -> int.sign.64:
         ret 0;
-    end of zero.of_int_sign_64
+    end of member zero.of_int_sign_64
 end of coll.fn zero
 ```
 
@@ -227,14 +227,14 @@ owner rules:
 
 ```
 coll.handler cum_failed:
-    cum_failed.flow_back_to_bladder:
+    member cum_failed.flow_back_to_bladder:
         !case odd:
             ret 0;
         !end of case odd
         !case negative $v:
             report($v); ret 0;
         !end of case negative
-    end of cum_failed.flow_back_to_bladder
+    end of member cum_failed.flow_back_to_bladder
 end of coll.handler cum_failed
 
 let $b := half(neg 4) otherwise cum_failed.!flow_back_to_bladder;

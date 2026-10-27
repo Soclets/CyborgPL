@@ -11,14 +11,14 @@ fn half [$n: int.sign.32] -> int.sign.32 or fail[odd, negative: int.sign.32]:
 end of fn half
 
 coll.handler half_failed:
-    half_failed.or_default [$default: int.sign.32, $label: str.utf8]:
+    member half_failed.or_default [$default: int.sign.32, $label: str.utf8]:
         !case odd:
             std::print.shortest($label, ": odd, using ", $default, newln); ret $default;
         !end of case odd
         !case negative $v:
             std::print.shortest($label, ": ", $v, " is negative, using ", $default, newln); ret $default;
         !end of case negative
-    end of half_failed.or_default
+    end of member half_failed.or_default
 end of coll.handler half_failed
 
 proc half_or [$n: int.sign.32, $d: int.sign.32] -> int.sign.32:

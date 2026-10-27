@@ -115,6 +115,8 @@ struct Open {
     levels: bool,
     /// a bare `{ … }`, which gets the word `block` on its opening line
     bare: bool,
+    /// a template's `for`, inside a collection: its `[ … ]` line is a member
+    template: bool,
     /// a `{ … }` that is a list (a precedence level's operators): kept, its braces become brackets
     list: bool,
 }
@@ -401,7 +403,7 @@ fn inline_blocks(toks: &[Token], chars: &[char], edits: &mut Vec<Edit>, line_ind
 
 /// The kind and name of the block a `{` opens, from its statement's tokens
 fn describe(toks: &[Token], start: usize, brace: usize, text: &dyn Fn(&Token) -> String, info: Option<&Info>, outer: Option<&Open>) -> Open {
-    let mut o = Open { close: String::new(), bang: false, indent: String::new(), arms: false, fields: false, members: None, handler: false, arm: false, levels: false, bare: false, list: false };
+    let mut o = Open { close: String::new(), bang: false, indent: String::new(), arms: false, fields: false, members: None, handler: false, arm: false, levels: false, bare: false, template: false, list: false };
     let s: Vec<&Token> = toks[start..brace].iter().collect();
     let word = |i: usize| -> Option<&str> { s.get(i).and_then(|t| if let Tok::Word(w) = &t.tok { Some(w.as_str()) } else { None }) };
     // inside a match or an otherwise: an arm
@@ -421,7 +423,11 @@ fn describe(toks: &[Token], start: usize, brace: usize, text: &dyn Fn(&Token) ->
             o.arm = true;
             return o;
         }
+        // a template's member, `[] -> $T {`, with or without its `named` line
+        if out.template && matches!(s.first().map(|t| &t.tok), Some(Tok::LBracket)) { o.close = "member".into(); return o; }
         if let Some(coll) = &out.members {
+            // a template's `for`
+            if word(0) == Some("for") { o.close = "for".into(); o.template = true; return o; }
             // a collection's member: `greet [ … ] -> T {`, `greet.loud [ … ] {`, `half_failed.as_zero {`, `versions area {`
             if word(0) == Some("versions") {
                 o.close = format!("versions {}", word(1).unwrap_or(""));
@@ -442,7 +448,10 @@ fn describe(toks: &[Token], start: usize, brace: usize, text: &dyn Fn(&Token) ->
             let mut segs: Vec<String> = Vec::new();
             let mut last_word = false;
             for t in &s { match &t.tok { Tok::Word(w) if !last_word => { let n = segs.last().and_then(|b| segment(b, w)).map(str::to_string).unwrap_or(w.clone()); segs.push(n); last_word = true; } Tok::Dot => { last_word = false; } _ => break } }
-            o.close = segs.join(".");
+            // every member says so, on both lines (owner, 2026-10-27: (b), then "yes")
+            // (a path not starting with the collection's name is refused by the parser, naming the right one)
+            let coll_name = coll.split(' ').nth(1).unwrap_or("");
+            o.close = if segs.first().map(String::as_str) == Some(coll_name) { format!("member {}", segs.join(".")) } else { segs.join(".") };
             if coll.starts_with("handler") { o.arms = true; o.handler = true; }
             return o;
         }
@@ -565,7 +574,7 @@ fn describe(toks: &[Token], start: usize, brace: usize, text: &dyn Fn(&Token) ->
             // a template's member, `[] -> $T {` under its `named` line: PROVISIONAL, `end of named`, which the generator writes
             // as the member's full name
             if matches!(rest.first().map(|t| &t.tok), Some(Tok::LBracket)) && start >= 1 && toks[..start].iter().rev().take_while(|t| t.tok != Tok::LBrace).any(|t| matches!(&t.tok, Tok::Word(w) if w == "named")) {
-                o.close = "named".into();
+                o.close = "member".into();
                 return o;
             }
             // a bare `{ … }`: `block:` … `end of block` (owner, 2026-10-27: "yes")
@@ -1151,6 +1160,8 @@ thread_local! {
     pub static KINDS_BY_MODULE: std::cell::RefCell<HashMap<(Vec<String>, usize), bool>> = std::cell::RefCell::new(HashMap::new());
     /// the module of the file being read
     pub static LEX_MODULE: std::cell::RefCell<Vec<String>> = std::cell::RefCell::new(Vec::new());
+    /// where a member line's word `member` stood: the token after it, by line and column
+    pub static MEMBERS: std::cell::RefCell<HashSet<(usize, usize)>> = std::cell::RefCell::new(HashSet::new());
 }
 
 /// A `function` has no effects and calls only functions (owner, 2026-10-27: "`function` is pure, possibly partial;
@@ -1343,6 +1354,7 @@ fn shown(t: &Tok) -> String {
 /// `end of` line and every `!` against the block it closes.
 pub fn front(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
     WRITTEN_KINDS.with(|k| k.borrow_mut().clear());
+    MEMBERS.with(|m| m.borrow_mut().clear());
     // redesign two's words read as redesign one's (owner, 2026-10-27: "It's done, build it"), then as the parser's
     let toks = lengthen(toks)?;
     let toks = words_back(toks).map_err(|(l, c, m)| (l, c, if m.contains("is an old spelling") { m } else { twos(&m) }))?;
@@ -1747,7 +1759,19 @@ fn check_blocks(toks: &[Token], closes: &[(String, bool, usize, usize)], arm_ban
     let mut stmt_start = 0;
     let mut depth = 0;
     let mut close_at = 0;
+    let members = MEMBERS.with(|m| m.borrow().clone());
     for (k, t) in toks.iter().enumerate() {
+        // a line inside a collection that is one of its members says `member` (owner, 2026-10-27)
+        if k == stmt_start && depth == 0 {
+            let in_coll = stack.last().is_some_and(|(o, _)| o.members.is_some());
+            let in_template = stack.len() >= 2 && stack[stack.len() - 2].0.members.is_some() && stack.last().is_some_and(|(o, _)| o.close == "for");
+            let coll = stack.iter().rev().find_map(|(o, _)| o.members.clone()).unwrap_or_default();
+            let coll_name = coll.split(' ').nth(1).unwrap_or("").to_string();
+            let is_member = (in_coll && matches!(&t.tok, Tok::Word(w) if *w == coll_name)) || (in_template && t.tok == Tok::LBracket);
+            if is_member && !members.contains(&(t.line, t.col)) {
+                return Err((t.line, t.col, format!("a collection's member says so: `member {}…` (owner, 2026-10-27)", if t.tok == Tok::LBracket { String::new() } else { format!("{coll_name}.") })));
+            }
+        }
         match t.tok { Tok::LBracket | Tok::LParen => depth += 1, Tok::RBracket | Tok::RParen => depth -= 1, _ => {} }
         match t.tok {
             Tok::LBrace => {
@@ -2016,6 +2040,72 @@ pub fn shorten(src: &str) -> Result<String, String> {
         }
         i += 1;
     }
+    // a collection's members say `member` on both lines (owner, 2026-10-27: "(b)", "yes")
+    {
+        #[derive(PartialEq, Clone)]
+        enum B { Coll(String), Member, TemplateFor, Other }
+        let mut stack: Vec<B> = Vec::new();
+        let mut k = 0;
+        while k < n {
+            let t = &toks[k];
+            if t.at == usize::MAX || (k > 0 && toks[k - 1].line == t.line) { k += 1; continue; }
+            // the line from k: its tokens
+            let mut e = k;
+            while e + 1 < n && toks[e + 1].line == t.line && toks[e + 1].tok != Tok::Eof { e += 1; }
+            let line: Vec<usize> = (k..=e).collect();
+            let at_end = |i: usize| -> bool { matches!(tok(i), Tok::Word(w) if w == "end") && is_word(i + 1, "of") };
+            let bang = toks[k].tok == Tok::Attention;
+            let first = if bang { k + 1 } else { k };
+            if at_end(first) {
+                let popped = stack.pop();
+                if popped == Some(B::Member) {
+                    let w = first + 2;
+                    if is_word(w, "named") { let x = &toks[w]; edits.push(Edit { at: x.at, end: x.end, text: "member".into() }); }
+                    else if !is_word(w, "member") && w <= e { let x = &toks[w]; edits.push(Edit { at: x.at, end: x.at, text: "member ".into() }); }
+                }
+                k = e + 1;
+                continue;
+            }
+            let opens = toks[e].tok == Tok::Colon || matches!(toks[e].tok, Tok::Raw(_));
+            // the first word past the marks in front (`pub`, `public`, `case.any`)
+            let mut f = first;
+            loop {
+                match tok(f) {
+                    Tok::Word(w) if w == "pub" || w == "public" => { f += 1; if *tok(f) == Tok::Dot { f += 2; } }
+                    Tok::Word(w) if (w == "case" || w == "bare") && *tok(f + 1) == Tok::Dot => { f += 3; while *tok(f) == Tok::Dot { f += 2; } }
+                    Tok::Mark => f += 1,
+                    _ => break,
+                }
+            }
+            let coll_name = stack.iter().rev().find_map(|b| if let B::Coll(c) = b { Some(c.clone()) } else { None });
+            let top = stack.last().cloned();
+            let starts_member = |i: usize| -> bool { matches!((tok(i), &coll_name), (Tok::Word(w), Some(c)) if w == c) };
+            if opens {
+                let is_coll = matches!(tok(f), Tok::Word(w) if w == "coll" || w == "collection") && *tok(f + 1) == Tok::Dot;
+                if is_coll {
+                    let name = if let Tok::Word(nm) = tok(f + 3) { nm.clone() } else { String::new() };
+                    stack.push(B::Coll(name));
+                } else if matches!(top, Some(B::Coll(_))) && starts_member(f) {
+                    let x = &toks[f]; edits.push(Edit { at: x.at, end: x.at, text: "member ".into() });
+                    stack.push(B::Member);
+                } else if matches!(top, Some(B::Coll(_))) && is_word(f, "member") {
+                    stack.push(B::Member);
+                } else if matches!(top, Some(B::Coll(_))) && is_word(f, "for") {
+                    stack.push(B::TemplateFor);
+                } else if top == Some(B::TemplateFor) && (*tok(f) == Tok::LBracket || is_word(f, "member")) {
+                    if *tok(f) == Tok::LBracket { let x = &toks[f]; edits.push(Edit { at: x.at, end: x.at, text: "member ".into() }); }
+                    stack.push(B::Member);
+                } else {
+                    stack.push(B::Other);
+                }
+            } else if matches!(top, Some(B::Coll(_))) && starts_member(f) {
+                // a preset, or a body written elsewhere: one line
+                let x = &toks[f]; edits.push(Edit { at: x.at, end: x.at, text: "member ".into() });
+            }
+            let _ = &line;
+            k = e + 1;
+        }
+    }
     // a record's fields each say whether they change (owner, 2026-10-27): a bare one is a `var`
     let mut in_rec = false;
     for k in 0..n {
@@ -2104,6 +2194,14 @@ fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
         }
         if t.mtm.is_some() { out.push(t.clone()); i += 1; continue; }
         if i > 0 && toks[i - 1].mtm.is_some() && matches!(&toks[i - 1].tok, Tok::Op(o) if o == "*" || o == "&") && toks[i - 1].end == t.at { out.push(t.clone()); i += 1; continue; }
+        // a collection's member line, `member greet.loud […]:` (owner, 2026-10-27): the word read and taken out
+        if matches!(&t.tok, Tok::Word(m) if m == "member") && (starts_line || matches!(toks.get(i.wrapping_sub(1)).map(|x| &x.tok), Some(Tok::Semi)))
+            && matches!(toks.get(i + 1).map(|x| &x.tok), Some(Tok::Word(_) | Tok::LBracket)) {
+            let nx = &toks[i + 1];
+            MEMBERS.with(|m| m.borrow_mut().insert((nx.line, nx.col)));
+            i += 1;
+            continue;
+        }
         let prev_i = { let mut k = i; while k > 0 && toks[k - 1].tok == Tok::Mark { k -= 1; } k.checked_sub(1) };
         let prev = prev_i.map(|k| toks[k].tok.clone()).unwrap_or(Tok::Eof);
         let after_dot = prev == Tok::Dot;

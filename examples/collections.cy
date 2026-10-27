@@ -5,7 +5,7 @@
 # `greet(lend $who, "hi", 1)`. Private here, so no `pub` and no `bare.` mark; a `pub coll.fn`
 # makes every member public under its one `bare.` mark.
 coll.fn greet:
-    greet [lent $who: str.utf8, $word: str.utf8, $times: int.sign.32[min: 1, max: 5]] -> str.utf8 or fail[too_long]:
+    member greet [lent $who: str.utf8, $word: str.utf8, $times: int.sign.32[min: 1, max: 5]] -> str.utf8 or fail[too_long]:
         if std::str.bytes(lend $who) greater_than 20:
             fail too_long;
         end of if
@@ -14,13 +14,13 @@ coll.fn greet:
             change $out = $out concat $word concat ", ";
         end of for
         ret $out concat $who;
-    end of greet
+    end of member greet
 
-    greet.hi [$word = "hi", $times = 1];
-    greet.cheer [$word = "hooray", $times = 3];
-    greet.loud [lent $who: str.utf8] -> str.utf8:
+    member greet.hi [$word = "hi", $times = 1];
+    member greet.cheer [$word = "hooray", $times = 3];
+    member greet.loud [lent $who: str.utf8] -> str.utf8:
         ret std::str.upper.full(lend $who);
-    end of greet.loud
+    end of member greet.loud
 end of coll.fn greet
 
 # A template (owner, 2026-10-13) makes members whose names follow a pattern. It loops with the usual
@@ -33,12 +33,12 @@ end of coll.fn greet
 const $big := 100;
 
 coll.fn scale:
-    scale [$x: int.sign.32, $by: int.sign.32] -> int.sign.32:
+    member scale [$x: int.sign.32, $by: int.sign.32] -> int.sign.32:
         ret $x times $by;
-    end of scale
-    scale.times_2 [$by = 2];
-    scale.times_10 [$by = 10];
-    scale.times_100 [$by = $big];
+    end of member scale
+    member scale.times_2 [$by = 2];
+    member scale.times_10 [$by = 10];
+    member scale.times_100 [$by = $big];
 end of coll.fn scale
 
 # A template over types: each member returns its own type, which no preset can do. A type's name is
@@ -50,17 +50,17 @@ end of fn name_word
 coll.fn zero:
     for $T in [int.sign.16, int.sign.64]:
         named "of_" concat name_word($T);
-        [] -> $T:
+        member [] -> $T:
             ret 0;
-        end of named
+        end of member
     end of for
     #generated_6_lines_below
-    zero.of_int_sign_16 [] -> int.sign.16:
+    member zero.of_int_sign_16 [] -> int.sign.16:
         ret 0;
-    end of zero.of_int_sign_16
-    zero.of_int_sign_64 [] -> int.sign.64:
+    end of member zero.of_int_sign_16
+    member zero.of_int_sign_64 [] -> int.sign.64:
         ret 0;
-    end of zero.of_int_sign_64
+    end of member zero.of_int_sign_64
 end of coll.fn zero
 
 # `named` may call a function, run while generating, when a name needs logic (owner, 2026-10-13:
@@ -75,17 +75,17 @@ end of fn width_name
 coll.fn twice:
     for $T in [int.sign.16, int.sign.64]:
         named width_name($T);
-        [$x: $T] -> $T:
+        member [$x: $T] -> $T:
             ret $x times 2;
-        end of named
+        end of member
     end of for
     #generated_6_lines_below
-    twice.small [$x: int.sign.16] -> int.sign.16:
+    member twice.small [$x: int.sign.16] -> int.sign.16:
         ret $x times 2;
-    end of twice.small
-    twice.big [$x: int.sign.64] -> int.sign.64:
+    end of member twice.small
+    member twice.big [$x: int.sign.64] -> int.sign.64:
         ret $x times 2;
-    end of twice.big
+    end of member twice.big
 end of coll.fn twice
 
 # A member whose body is written elsewhere (owner, 2026-10-19): `area.square = square_area;` is that function under
@@ -95,10 +95,10 @@ fn square_area [$s: int.sign.32] -> int.sign.32:
 end of fn square_area
 
 coll.fn area:
-    area [$w: int.sign.32, $h: int.sign.32] -> int.sign.32:
+    member area [$w: int.sign.32, $h: int.sign.32] -> int.sign.32:
         ret $w times $h;
-    end of area
-    area.square = square_area;
+    end of member area
+    member area.square = square_area;
 end of coll.fn area
 
 !MAIN:

@@ -197,9 +197,11 @@ fn expected(prog: &mut crate::ast::Program) -> Result<Vec<(usize, Vec<(Template,
                 let name = n.next().unwrap_or_default();
                 for (li, l) in t.member.iter().enumerate() {
                     let body = put(l.strip_prefix(base.as_str()).unwrap_or(l.trim_start()), &t.var, v);
-                    // the member's last line, `end of named` in the template, names what was made (PROVISIONAL)
-                    let body = if body.trim() == "end of named" { body.replace("end of named", &format!("end of {coll}.{name}")) } else { body };
-                    lines.push(if li == 0 { format!("{}{coll}.{name} {body}", t.indent) } else { format!("{}{body}", t.indent) });
+                    // the member says so on both lines, `member [] -> T:` … `end of member` in the template, and names what
+                    // was made in what is written (owner, 2026-10-27)
+                    let body = if body.trim() == "end of member" { body.replace("end of member", &format!("end of member {coll}.{name}")) } else { body };
+                    let first = |b: &str| match b.strip_prefix("member ") { Some(rest) => format!("member {coll}.{name} {rest}"), None => format!("{coll}.{name} {b}") };
+                    lines.push(if li == 0 { format!("{}{}", t.indent, first(&body)) } else { format!("{}{body}", t.indent) });
                 }
             }
             ts.push((t, lines));

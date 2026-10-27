@@ -1,7 +1,7 @@
 coll.fn greet:
-    greet [] -> int.sign.32:
+    member greet [] -> int.sign.32:
         ret 1;
-    end of greet
+    end of member greet
     hi [] -> int.sign.32:
         ret 2;
     end of hi
