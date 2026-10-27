@@ -34,6 +34,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): a block closes with `;` and its kind and name, `;fn total` (owner: (a))
+
+The owner, after "Let's do another redesign": "First, I'm feeling:" `MAIN:` / `;MAIN`, then "Btw, don't build yet. But
+should record, I'm just designing around currently, trying to figure out what I like". So these entries record a design
+in progress: nothing is built, and any of it may change before the owner settles it. Design claude: `:` opens and `;`
+already means "this ends here", so the pair reads consistently; the cost, a `;` at a line's start is smaller to the eye
+than `end of`. Asked what follows the `;`, (a) the kind and the name as `end of` has now (`;fn total`, `;if`, `;case
+calm`) or (b) the name only, the kind where there is none (`;total`, `;if`), design claude recommending (a) (the same rule
+with a new prefix; `;total` alone would not say whether a `fn` or a `rec` ends). The owner: "(a)". So, exploring:
+**`fn total […] -> int.sign.32:` … `;fn total`, `if $x gt 0:` … `;if`, `MAIN:` … `;MAIN`**. Open next: the `!` (the
+owner's sample wrote `MAIN:`, not `!MAIN:`).
+
 ### 2026-10-27 — Built: the case marks removed, "did you mean" for a case-only difference; collection members checked (owner: "also do the current and `coll`s getting checked")
 
 The owner, asking for compiler claude's conversion prompt: "also do the current and `coll`s getting checked", read by
