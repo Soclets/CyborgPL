@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): the `words` style closes with `end of`; `*` has no word (owner)
+
+Shown a sample of the redesign so far ("Let me see it currently, so far (not literally)"), its `words` version still
+closing with `;fn fare`, the owner: "Woah, wouldn't words use `end of`?" Design claude: it fits the rule that the style
+covers every short form, `;fn fare` being the short form of `end of fn fare`, and makes `words` free of punctuation
+standing for a word; asked for the handler mark's word. The owner: "yes, no word for `*`, it's just `*`. Just like how we
+don't say `Vx` in words, instead of `$x`". So, exploring: **`practical_concise` closes `;fn fare`, `words` closes `end of
+fn fare`**; **`*` is the same in both styles**, a mark like `$`, not a word's short form.
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): examples written once in `practical_concise`, their `words` twins made by a tool and tested (owner: (a))
 
 The owner: "I wonder what most CyPL would use". Design claude: almost certainly `practical_concise` (the default; habit
