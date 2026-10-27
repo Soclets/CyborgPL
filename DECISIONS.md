@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): examples written once in `practical_concise`, their `words` twins made by a tool and tested (owner: (a))
+
+The owner: "I wonder what most CyPL would use". Design claude: almost certainly `practical_concise` (the default; habit
+from other languages; C++, where symbols beat the word spellings outright), `words` living in teaching material and code
+for non-programmers; so std's and the examples' style matters most, being what every writer reads first. The owner: "Or
+we have two of the same example?" Offered (a) each example written once in `practical_concise`, a tool making its `words`
+twin and the tests running both, nothing extra kept; (b) the twins generated and committed, checked for drift; (c) two
+copies by hand (they would drift); design claude recommended (a), the website perhaps showing a style toggle. The owner:
+"(a)". So, exploring: **examples are written in `practical_concise`; the `words` twin of each is generated and run by the
+tests, and must print the same.**
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): practical concise is the default, saying it is allowed; the other style is `words` (owner)
 
 The owner: "pconcise is default, but state again is not refused. It could just be `words`, because I don't think some are
