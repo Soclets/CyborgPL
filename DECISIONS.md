@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: `no_cheat` becomes `no_skip` (owner; not built)
+
+`no_cheat` (2026-10-01; any statement since 2026-10-18) says every bit of the work really happens at run time: no
+loop folded to its answer, no rounds dropped as unused, no look-alike calls computed once; doing the same work faster
+(SIMD, cores) stays allowed. "Cheat" judges rather than says what is forbidden. Design claude offered `no_skip`
+(recommended: folding to the answer skips the work too, and doing it faster is not skipping), `no_shortcut` (SIMD
+could read as one) and `black_box` (Rust's; how the compiler sees a value, not what the writer wants); the owner:
+"yes". So **`no_skip for $i …`, `no_check no_skip let $f := fibonacci($n);`**, the check word still first. Not built.
+
 ### 2026-10-27 — Redesign: `print.weird` becomes `print.arrows` (owner; not built)
 
 `print.weird` (2026-10-01) was a joke name for the print shaped like C++'s `cout <<`; what sets it apart is only its
