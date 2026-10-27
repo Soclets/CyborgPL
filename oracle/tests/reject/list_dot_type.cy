@@ -1,3 +1,3 @@
 !MAIN:
-    let $xs: std::ls.int.sign.32 = [1, 2];
+    let $xs: std::ls.int.sign.32 := [1, 2];
 !end of MAIN

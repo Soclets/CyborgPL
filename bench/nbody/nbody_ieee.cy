@@ -17,9 +17,9 @@ incl.%C.system["stdio.h"];
 %extern.C proc atoll [let $s: ptr[int.unsign.8]] -> int.sign.64[min: 0, max: 1_000_000_000];
 %extern.C proc sqrt [let $x: float.bin.64] -> float.bin.64;
 
-const $pi: float.bin.64 = 3.141592653589793;
-const $solar_mass: float.bin.64 = 4.0 times.ieee $pi times.ieee $pi;
-const $days_per_year: float.bin.64 = 365.24;
+const $pi: float.bin.64 := 3.141592653589793;
+const $solar_mass: float.bin.64 := 4.0 times.ieee $pi times.ieee $pi;
+const $days_per_year: float.bin.64 := 365.24;
 
 rec Body:
     var x: float.bin.64;
@@ -46,41 +46,41 @@ proc advance [lent.mut $bodies: std::ls[Body], let $dt: float.bin.64]:
     for $i: int.unsign.64 [from: 1, to: $n, by: 1]:
         for $j: int.unsign.64 [from: $i plus 1, to: $n, by: 1]:
             !no_check:
-                let $dx: float.bin.64 = $bodies[pos: $i].x minus.ieee $bodies[pos: $j].x;
-                let $dy: float.bin.64 = $bodies[pos: $i].y minus.ieee $bodies[pos: $j].y;
-                let $dz: float.bin.64 = $bodies[pos: $i].z minus.ieee $bodies[pos: $j].z;
-                let $distance: float.bin.64 = sqrt($dx times.ieee $dx plus.ieee $dy times.ieee $dy plus.ieee $dz times.ieee $dz);
-                let $mag: float.bin.64 = $dt div.near.ieee ($distance times.ieee $distance times.ieee $distance);
-                change $bodies[pos: $i].vx = $bodies[pos: $i].vx minus.ieee $dx times.ieee $bodies[pos: $j].mass times.ieee $mag;
-                change $bodies[pos: $i].vy = $bodies[pos: $i].vy minus.ieee $dy times.ieee $bodies[pos: $j].mass times.ieee $mag;
-                change $bodies[pos: $i].vz = $bodies[pos: $i].vz minus.ieee $dz times.ieee $bodies[pos: $j].mass times.ieee $mag;
-                change $bodies[pos: $j].vx = $bodies[pos: $j].vx plus.ieee $dx times.ieee $bodies[pos: $i].mass times.ieee $mag;
-                change $bodies[pos: $j].vy = $bodies[pos: $j].vy plus.ieee $dy times.ieee $bodies[pos: $i].mass times.ieee $mag;
-                change $bodies[pos: $j].vz = $bodies[pos: $j].vz plus.ieee $dz times.ieee $bodies[pos: $i].mass times.ieee $mag;
+                let $dx: float.bin.64 := $bodies[pos: $i].x minus.ieee $bodies[pos: $j].x;
+                let $dy: float.bin.64 := $bodies[pos: $i].y minus.ieee $bodies[pos: $j].y;
+                let $dz: float.bin.64 := $bodies[pos: $i].z minus.ieee $bodies[pos: $j].z;
+                let $distance: float.bin.64 := sqrt($dx times.ieee $dx plus.ieee $dy times.ieee $dy plus.ieee $dz times.ieee $dz);
+                let $mag: float.bin.64 := $dt div.near.ieee ($distance times.ieee $distance times.ieee $distance);
+                change $bodies[pos: $i].vx to $bodies[pos: $i].vx minus.ieee $dx times.ieee $bodies[pos: $j].mass times.ieee $mag;
+                change $bodies[pos: $i].vy to $bodies[pos: $i].vy minus.ieee $dy times.ieee $bodies[pos: $j].mass times.ieee $mag;
+                change $bodies[pos: $i].vz to $bodies[pos: $i].vz minus.ieee $dz times.ieee $bodies[pos: $j].mass times.ieee $mag;
+                change $bodies[pos: $j].vx to $bodies[pos: $j].vx plus.ieee $dx times.ieee $bodies[pos: $i].mass times.ieee $mag;
+                change $bodies[pos: $j].vy to $bodies[pos: $j].vy plus.ieee $dy times.ieee $bodies[pos: $i].mass times.ieee $mag;
+                change $bodies[pos: $j].vz to $bodies[pos: $j].vz plus.ieee $dz times.ieee $bodies[pos: $i].mass times.ieee $mag;
             !end of no_check
         end of for
     end of for
     for $i: int.unsign.64 [from: 1, to: $n, by: 1]:
         !no_check:
-            change $bodies[pos: $i].x = $bodies[pos: $i].x plus.ieee $dt times.ieee $bodies[pos: $i].vx;
-            change $bodies[pos: $i].y = $bodies[pos: $i].y plus.ieee $dt times.ieee $bodies[pos: $i].vy;
-            change $bodies[pos: $i].z = $bodies[pos: $i].z plus.ieee $dt times.ieee $bodies[pos: $i].vz;
+            change $bodies[pos: $i].x to $bodies[pos: $i].x plus.ieee $dt times.ieee $bodies[pos: $i].vx;
+            change $bodies[pos: $i].y to $bodies[pos: $i].y plus.ieee $dt times.ieee $bodies[pos: $i].vy;
+            change $bodies[pos: $i].z to $bodies[pos: $i].z plus.ieee $dt times.ieee $bodies[pos: $i].vz;
         !end of no_check
     end of for
 end of proc advance
 
 fn energy [lent $bodies: std::ls[Body]] -> float.bin.64:
     let $n := std::ls.len(lend $bodies);
-    var $e: float.bin.64 = 0.0;
+    var $e: float.bin.64 := 0.0;
     for $i: int.unsign.64 [from: 1, to: $n, by: 1]:
-        !no_check change $e = $e plus.ieee 0.5 times.ieee $bodies[pos: $i].mass times.ieee ($bodies[pos: $i].vx times.ieee $bodies[pos: $i].vx plus.ieee $bodies[pos: $i].vy times.ieee $bodies[pos: $i].vy plus.ieee $bodies[pos: $i].vz times.ieee $bodies[pos: $i].vz);
+        !no_check change $e to $e plus.ieee 0.5 times.ieee $bodies[pos: $i].mass times.ieee ($bodies[pos: $i].vx times.ieee $bodies[pos: $i].vx plus.ieee $bodies[pos: $i].vy times.ieee $bodies[pos: $i].vy plus.ieee $bodies[pos: $i].vz times.ieee $bodies[pos: $i].vz);
         for $j: int.unsign.64 [from: $i plus 1, to: $n, by: 1]:
             !no_check:
-                let $dx: float.bin.64 = $bodies[pos: $i].x minus.ieee $bodies[pos: $j].x;
-                let $dy: float.bin.64 = $bodies[pos: $i].y minus.ieee $bodies[pos: $j].y;
-                let $dz: float.bin.64 = $bodies[pos: $i].z minus.ieee $bodies[pos: $j].z;
-                let $distance: float.bin.64 = sqrt($dx times.ieee $dx plus.ieee $dy times.ieee $dy plus.ieee $dz times.ieee $dz);
-                change $e = $e minus.ieee (($bodies[pos: $i].mass times.ieee $bodies[pos: $j].mass) div.near.ieee $distance);
+                let $dx: float.bin.64 := $bodies[pos: $i].x minus.ieee $bodies[pos: $j].x;
+                let $dy: float.bin.64 := $bodies[pos: $i].y minus.ieee $bodies[pos: $j].y;
+                let $dz: float.bin.64 := $bodies[pos: $i].z minus.ieee $bodies[pos: $j].z;
+                let $distance: float.bin.64 := sqrt($dx times.ieee $dx plus.ieee $dy times.ieee $dy plus.ieee $dz times.ieee $dz);
+                change $e to $e minus.ieee (($bodies[pos: $i].mass times.ieee $bodies[pos: $j].mass) div.near.ieee $distance);
             !end of no_check
         end of for
     end of for
@@ -88,27 +88,27 @@ fn energy [lent $bodies: std::ls[Body]] -> float.bin.64:
 end of fn energy
 
 proc offset_momentum [lent.mut $bodies: std::ls[Body]]:
-    var $px: float.bin.64 = 0.0;
-    var $py: float.bin.64 = 0.0;
-    var $pz: float.bin.64 = 0.0;
+    var $px: float.bin.64 := 0.0;
+    var $py: float.bin.64 := 0.0;
+    var $pz: float.bin.64 := 0.0;
     for $b in lend $bodies:
         !no_check:
-            change $px = $px plus.ieee $b.vx times.ieee $b.mass;
-            change $py = $py plus.ieee $b.vy times.ieee $b.mass;
-            change $pz = $pz plus.ieee $b.vz times.ieee $b.mass;
+            change $px to $px plus.ieee $b.vx times.ieee $b.mass;
+            change $py to $py plus.ieee $b.vy times.ieee $b.mass;
+            change $pz to $pz plus.ieee $b.vz times.ieee $b.mass;
         !end of no_check
     end of for
     !no_check:
-        change $bodies[pos: 1].vx = (0.0 minus.ieee $px) div.near.ieee $solar_mass;
-        change $bodies[pos: 1].vy = (0.0 minus.ieee $py) div.near.ieee $solar_mass;
-        change $bodies[pos: 1].vz = (0.0 minus.ieee $pz) div.near.ieee $solar_mass;
+        change $bodies[pos: 1].vx to (0.0 minus.ieee $px) div.near.ieee $solar_mass;
+        change $bodies[pos: 1].vy to (0.0 minus.ieee $py) div.near.ieee $solar_mass;
+        change $bodies[pos: 1].vz to (0.0 minus.ieee $pz) div.near.ieee $solar_mass;
     !end of no_check
 end of proc offset_momentum
 
 fn run [] -> int.sign.32 or fail[missing, out_of_range]:
     let $key := "N";
     !no_check let $n := read_n(getenv(lend $key)) otherwise fail;
-    var $bodies: std::ls[Body] = [
+    var $bodies: std::ls[Body] := [
         # the Sun
         Body[x = 0.0, y = 0.0, z = 0.0, vx = 0.0, vy = 0.0, vz = 0.0, mass = $solar_mass],
         # Jupiter

@@ -11,14 +11,14 @@ fn heaviest [var ...$items: Item] -> Item or fail[none]:
     var $best := std::ls.remove(lend.mut $items, pos: 1);
     for $it in lend $items:
         if $it.grams greater_than $best.grams:
-            change $best = copy $it;
+            change $best to copy $it;
         end of if
     end of for
     ret give $best;
 end of fn heaviest
 
 fn kilos [let $grams: int.sign.32] -> int.sign.32 or fail[not_whole, out_of_range]:
-    let $k: float.bin.64 = to.float.bin.64($grams) div.near 1000.0;
+    let $k: float.bin.64 := to.float.bin.64($grams) div.near 1000.0;
     ret to.int.sign.32($k) otherwise fail;
 end of fn kilos
 
@@ -32,13 +32,13 @@ fn initial [lent $name: str.utf8] -> char.%point:
 end of fn initial
 
 !MAIN:
-    var $shelf: std::ls[Item][min: 0, max: 4] = std::ls.empty;
+    var $shelf: std::ls[Item][min: 0, max: 4] := std::ls.empty;
     std::ls.append(lend.mut $shelf, value: Item[name = "rope", grams = 1_250]);
     std::ls.append(lend.mut $shelf, value: Item[name = "helmet", grams = 900]);
     std::ls.append(lend.mut $shelf, value: Item[name = "tent", grams = 4_000]);
 
     let $count := std::ls.len(lend $shelf);
-    let $left: int.sign.8 = 4 minus $count;
+    let $left: int.sign.8 := 4 minus $count;
     std::print.shortest($count, " items, room for ", $left, " more", newln);
 
     let $top := heaviest(...copy $shelf)-

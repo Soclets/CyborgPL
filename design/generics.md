@@ -37,7 +37,7 @@ union.tag Maybe <T: any>:
     some: <T>;
 end of union.tag Maybe
 
-let $p: Pair[int.sign.32, str.utf8] = Pair[left = 7, right = "seven"];   # filled at the use
+let $p: Pair[int.sign.32, str.utf8] := Pair[left = 7, right = "seven"];   # filled at the use
 let $m := Maybe.some[42];                                          # filled from the value
 ```
 

@@ -16,8 +16,8 @@ fn b2 [@x] [lent @x $a: std::ls[int.sign.32], lent @x $b: std::ls[int.sign.32]] 
 end of fn b2
 
 !MAIN:
-    let $o1: std::ls[int.sign.32] = [2, neg 16];
-    let $o2: std::ls[int.sign.32] = [7,];
+    let $o1: std::ls[int.sign.32] := [2, neg 16];
+    let $o2: std::ls[int.sign.32] := [7,];
     let $r := b2(lend $o1, lend $o2);
     let $s := b1(lend $o1, lend $r, lend $r);
     let $g := give $o2;

@@ -9,8 +9,8 @@ coll.fn mx:
     end of versions mx
 end of coll.fn mx
 !MAIN:
-    let $v: int.sign.32 = 4;
-    let $p: bool = to.int.sign.64(1) eq to.int.sign.64(2);
+    let $v: int.sign.32 := 4;
+    let $p: bool := to.int.sign.64(1) eq to.int.sign.64(2);
     std::print.shortest("before", newln);
     if $p:
         std::print.shortest(mx($v, 5), newln);

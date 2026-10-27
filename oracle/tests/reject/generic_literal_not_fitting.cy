@@ -1,5 +1,5 @@
 fn half_start <T: any> [let $x: <T>] -> <T>:
-    let $h: <T> = 0.5;
+    let $h: <T> := 0.5;
     ret $h;
 end of fn half_start
 !MAIN:

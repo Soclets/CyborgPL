@@ -10,7 +10,7 @@
     let $one := to.char.%point("Z") otherwise `?`;                 # text of exactly one point
     let $two := to.char.%point("ZZ") otherwise `?`;                # not_one_char
     std::print.shortest($one, $two, newln);                          # Z?
-    let $g: char.%cluster = `é`;
+    let $g: char.%cluster := `é`;
     let $p := to.char.%point($g) otherwise `?`;                   # this é is one point: fine
     let $y := to.char.byte($p) otherwise `?`;                    # é is two bytes: not_one_byte
     std::print.shortest($p, $y, newln);                              # é?

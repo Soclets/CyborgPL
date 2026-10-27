@@ -18,7 +18,7 @@ end of else
         std::print.shortest("built for aarch64-macos", newln);
     end of on.target
     else on.target.chip x86_64:
-        let $n: int.sign.64 = 5;
+        let $n: int.sign.64 := 5;
         !no_check inline.ASM with [$n -> rax, $n <- rax]:   # never compiled here: x86 assembly
             neg rax
         end of inline.ASM

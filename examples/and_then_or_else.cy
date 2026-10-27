@@ -7,12 +7,12 @@ proc loud [let $name: str.utf8, let $answer: bool] -> bool:
 end of proc loud
 !MAIN:
     let $xs := [3, 5, 8];
-    let $i: int.unsign.64 = 7;
+    let $i: int.unsign.64 := 7;
     # 'i' is past the end, so the list is never read
     if $i at_most std::ls.len(lend $xs) and.then $xs[pos: $i] eq 5:
         std::print.shortest("found", newln);
     end of if
-    let $n: int.sign.32 = 0;
+    let $n: int.sign.32 := 0;
     if $n eq 0 or.else 100 div.floor $n less_than 2:
         std::print.shortest("small or nothing", newln);
     end of if

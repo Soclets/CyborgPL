@@ -4,5 +4,5 @@ rec P:
 end of rec P
 !MAIN:
     var $p := P[id = 1, x = 2];
-    change $p.id = 5;
+    change $p.id to 5;
 !end of MAIN

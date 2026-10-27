@@ -23,7 +23,7 @@ end of fn origin
     let $p := origin();
     let $l := Light.lit;
     if ready() and.then false:
-        let $unused: int.sign.32 = 1;
+        let $unused: int.sign.32 := 1;
     end of if
     match $l:
         case lit:

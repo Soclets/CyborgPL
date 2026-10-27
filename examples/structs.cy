@@ -14,7 +14,7 @@ fn free_space [lent $l: Locker] -> int.sign.32:
 end of fn free_space
 
 proc claim [lent.mut $l: Locker]:
-    change $l.occupied = true;
+    change $l.occupied to true;
 end of proc claim
 
 !MAIN:
@@ -23,13 +23,13 @@ end of proc claim
     std::print.shortest("free: ", free_space(lend $mine), newln);
     claim(lend.mut $mine);
     std::print.shortest("free: ", free_space(lend $mine), newln);
-    change $mine.capacity = 20;
+    change $mine.capacity to 20;
     std::print.shortest($mine, newln);
     let $label := copy $mine.name;
     std::print.shortest($label, newln);
     let $taken := give $mine.name;
     std::print.shortest($taken, newln);
-    let $spare: Locker = Locker[name = "spare", number = 8, capacity = 4, occupied = false];
+    let $spare: Locker := Locker[name = "spare", number = 8, capacity = 4, occupied = false];
     let $lockers := [copy $spare, Locker[name = "third", number = 9, capacity = 4, occupied = true]];
     for $l in lend $lockers:
         std::print.shortest($l.number, " ");

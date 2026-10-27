@@ -6,7 +6,7 @@ fn ทักทาย [let $'ชื่อ': str.utf8] -> str.utf8:
 end of fn ทักทาย
 
 !MAIN:
-    let $'🍕': int.sign.32 = 3;
+    let $'🍕': int.sign.32 := 3;
     let $'नमस्ते' := ทักทาย("โลก");
     std::print.shortest($'नमस्ते', " ", $'🍕', newln);
 !end of MAIN

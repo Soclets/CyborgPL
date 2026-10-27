@@ -6,8 +6,8 @@
 end of rec Body
 
 !MAIN:
-    var $bodies: std::ls[Body] = [Body[x = 1.0, vx = 2.0], Body[x = 0.0, vx = neg 1.0]];
-    let $dt: float.bin.32 = 0.5;
+    var $bodies: std::ls[Body] := [Body[x = 1.0, vx = 2.0], Body[x = 0.0, vx = neg 1.0]];
+    let $dt: float.bin.32 := 0.5;
     !no_check inline.%MSL threads std::ls.len(lend $bodies) with [lend.mut $bodies -> buffer(0), copy $dt -> buffer(1)]:
         #include "shaders/common.metal"
         kernel void step(device Body *bodies [[buffer(0)]], constant float &dt [[buffer(1)]], uint id [[thread_position_in_grid]]) {

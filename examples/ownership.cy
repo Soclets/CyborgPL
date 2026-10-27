@@ -2,13 +2,13 @@
 fn count [lent $items: std::ls[str.utf8]] -> int.sign.32:
     var $n := 0;
     for $item in lend $items:
-        change $n = $n plus 1;
+        change $n to $n plus 1;
     end of for
     ret $n;
 end of fn count
 
 proc shout [lent.mut $text: str.utf8]:
-    change $text = copy $text concat "!";
+    change $text to copy $text concat "!";
 end of proc shout
 
 fn greet [let $name: str.utf8] -> str.utf8:

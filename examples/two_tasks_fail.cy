@@ -7,14 +7,14 @@ fn judge [let $n: int.sign.32] -> fail[small]:
     end of if
 end of fn judge
 !MAIN:
-    var $seen: int.sign.32 = 0;
+    var $seen: int.sign.32 := 0;
     block:
         %spawn.task:
             judge(3) otherwise fail;
         end of %spawn.task
         otherwise:
             case small:
-                change $seen = $seen plus 1;
+                change $seen to $seen plus 1;
             end of case small
         end of otherwise;
         %spawn.task:
@@ -22,7 +22,7 @@ end of fn judge
         end of %spawn.task
         otherwise:
             case small:
-                change $seen = $seen plus 10;
+                change $seen to $seen plus 10;
             end of case small
         end of otherwise;
     end of block

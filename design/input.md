@@ -8,8 +8,8 @@ take a value from outside, and no way to say what that value could be.
 ## One-ended ranges — `min` and `max` (owner, 2026-09-23)
 
 ```
-let $pos: int.sign.32[min: 1] = 1;         # at least 1; the ceiling is i32's own
-let $score: int.sign.32[max: 100] = 50;    # at most 100
+let $pos: int.sign.32[min: 1] := 1;         # at least 1; the ceiling is i32's own
+let $score: int.sign.32[max: 100] := 50;    # at most 100
 ```
 
 `min` and `max` stand for the base type's own limits, so a one-ended
@@ -62,14 +62,14 @@ shape. A value of that type is *provably* within the bounds, everywhere
 it goes.
 
 ```
-let $n: int.sign.32[min: 0, max: 100] = …;
+let $n: int.sign.32[min: 0, max: 100] := …;
 fn draw [let $x: int.sign.32[min: 0, max: 1023], let $y: int.sign.32[min: 0, max: 767]]:
     …
 end of fn draw
 rec Percent:
     var value: int.unsign.8[min: 0, max: 100];
 end of rec Percent
-let $unit: float.bin.64[min: 0.0, max: 1.0] = 0.25;
+let $unit: float.bin.64[min: 0.0, max: 1.0] := 0.25;
 ```
 
 - Bounds are numeric literals of the base type's family (`i32[min: 0.0,

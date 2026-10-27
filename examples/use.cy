@@ -7,7 +7,7 @@ use std::print.shortest as say;
 use std::print.stored as std::print;
 
 !MAIN:
-    var $xs: ls[int.sign.64] = [];
+    var $xs: ls[int.sign.64] := [];
     for $i: int.sign.64 [from: 1, to: 4, by: 1]:
         ls.append(lend.mut $xs, value: $i times $i);
     end of for

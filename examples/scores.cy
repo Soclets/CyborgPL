@@ -24,13 +24,13 @@ end of fn clamp
     var $best := 0;
 
     for $score in lend $scores:
-        change $count = $count plus 1;
-        change $total = $total plus $score;
+        change $count to $count plus 1;
+        change $total to $total plus $score;
         if is_even($score):
-            change $evens = $evens plus 1;
+            change $evens to $evens plus 1;
         end of if
         if $score greater_than $best:
-            change $best = $score;
+            change $best to $score;
         end of if
     end of for
 

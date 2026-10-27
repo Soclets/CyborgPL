@@ -24,10 +24,10 @@ end of fn count
 
 !MAIN:
     let $mine := Locker[name = "A", number = 7, occupied = false];
-    var $total: int.sign.32 = 0;
+    var $total: int.sign.32 := 0;
     for $i [from: 1, to: 10, by: 1]:
         if ($i mod.floor 2) eq 0:
-            change $total = $total plus $i;
+            change $total to $total plus $i;
         end of if
         else if $i eq 7:
             break;
@@ -45,10 +45,10 @@ end of fn count
 
 ```
 let $x := 1000;                 # Precog picks the best type
-let $x: float.bin.16 = 1000;           # explicit type; must be fully explicit
-var $n: int.sign.32 = 0;          # mutability, when stated, before the name
+let $x: float.bin.16 := 1000;           # explicit type; must be fully explicit
+var $n: int.sign.32 := 0;          # mutability, when stated, before the name
 let $limit := 10;
-let $r: std::uenr = 1000;        # a Kit-provided type: `::` crosses, `.` narrows
+let $r: std::uenr := 1000;        # a Kit-provided type: `::` crosses, `.` narrows
 pub const $max := 8;            # a Kit-level value: top level only, see kits.md
 ```
 

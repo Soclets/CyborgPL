@@ -1,7 +1,7 @@
 # Constants, worked out while building, `pub` and not, used in MAIN.
 
 pub const $max := 8;
-const $pi: float.bin.64 = 3.141_592_653_589_793;
+const $pi: float.bin.64 := 3.141_592_653_589_793;
 const $twice_max := $max times 2;
 const $greeting := "hello " concat "world";
 pub rec P:

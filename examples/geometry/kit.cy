@@ -18,6 +18,6 @@ end of module report
     report.line("square", shapes.square.area(3.0));
     report.line("unit circle", shapes.circle.area($unit));
     std::print.shortest(shapes.describe(), newln);
-    let $r: shapes.circle.Circle = shapes.circle.Circle[radius = 1.5];
+    let $r: shapes.circle.Circle := shapes.circle.Circle[radius = 1.5];
     std::print.shortest($r.radius, " ", shapes.circle.$pi, newln);
 !end of MAIN

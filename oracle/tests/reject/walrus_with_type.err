@@ -1,1 +1,1 @@
-the prover chooses
+a definition is `:=`, typed or not: `let $x: int.sign.32 := 5;`

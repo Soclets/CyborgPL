@@ -7,9 +7,9 @@
 incl.%C["headers/paint.h"];
 
 !MAIN:
-    let $n: %C.long = 40;
-    let $c: %C.char = neg 3;
-    let $d: %C.long_double = 1.5;
+    let $n: %C.long := 40;
+    let $c: %C.char := neg 3;
+    let $d: %C.long_double := 1.5;
     std::print.shortest(to.int.sign.32(color.BLUE), " ", to.int.sign.32(level_t.LOW), " ", $SEEK_B, newln);
     std::print.shortest($n plus 2, " ", $c, " ", $d, " ", size.of[%C.long], " ", size.of[%C.int], newln);
     # a header's last struct comes through whole too (compiler claude found it opaque once): 16 bytes

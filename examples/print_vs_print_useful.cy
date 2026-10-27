@@ -1,9 +1,9 @@
 # `print.stored` shows a value as stored; `print.useful` shows it for people.
 !MAIN:
-    let $x: float.bin.64 = 0.1;
+    let $x: float.bin.64 := 0.1;
     std::print.stored($x, newln);
     std::print.shortest($x, newln);
-    let $y: float.bin.16 = 1000;
+    let $y: float.bin.16 := 1000;
     std::print.shortest($y, newln);
     let $big := 1_000_000 times 1_000_000;
     std::print.stored($big, newln);

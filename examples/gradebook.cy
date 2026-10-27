@@ -12,7 +12,7 @@ fn average [lent $s: Student] -> int.sign.32 or fail[no_scores]:
     end of if
     var $total := 0;
     for $x in lend $s.scores:
-        change $total = $total plus $x;
+        change $total to $total plus $x;
     end of for
     check ret $total div.floor std::ls.len(lend $s.scores);     # the if above proves the divisor is not 0
 end of fn average
@@ -53,7 +53,7 @@ end of fn grade
         std::print.stored($s.name, ": ", grade(lend $s), newln);
         let $avg := average(lend $s) otherwise 0;
         if $avg at_least $passing:
-            change $passed = $passed plus 1;
+            change $passed to $passed plus 1;
         end of if
     end of for
     std::print.shortest($passed, " of ", std::ls.len(lend $students), " passed", newln);

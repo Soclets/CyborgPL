@@ -38,7 +38,7 @@ deliberately hidden with `shadow 'x' := …;` (owner, 2026-10-08; `$:=` / `$=` u
 let $x := 1;
 if true:
     let shadow $x := 2;        # shadows the outer 'x' until the block ends
-    let shadow $y: int.sign.32 = 3;  # error: there is no 'y' to shadow
+    let shadow $y: int.sign.32 := 3;  # error: there is no 'y' to shadow
 end of if
 ```
 

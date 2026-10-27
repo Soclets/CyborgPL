@@ -25,7 +25,7 @@ test proc wrong_reason []:
     must.fail.out_of_range to.int.sign.32("abc");
 end of test proc wrong_reason
 test proc guards []:
-    let $xs: std::ls[int.sign.32] = [1, 2, 3];
+    let $xs: std::ls[int.sign.32] := [1, 2, 3];
     must.stop $xs[pos: 99];
 end of test proc guards
 !MAIN:

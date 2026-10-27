@@ -80,7 +80,7 @@ stays. A named function has no short form (owner: "no"), its body always in `{ }
 let $sum     := fold(lend $xs, 0, op plus);
 let $product := fold(lend $xs, 1, op times);
 let $flipped := map(lend $xs, op neg);
-let $f: fn[int.sign.32, int.sign.32] -> int.sign.32 = op mod.floor;
+let $f: fn[int.sign.32, int.sign.32] -> int.sign.32 := op mod.floor;
 ```
 
 `op` — the word that defines an operator — before any operator makes it

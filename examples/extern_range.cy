@@ -6,7 +6,7 @@
     let $long := "this is longer than ten";
     !no_check let $a := strlen(lend $short) otherwise 99;
     !no_check let $b := strlen(lend $long) otherwise 99;    # 23 is outside 0..10: fails out_of_range
-    let $c: int.sign.8 = $a;                                    # proven by the bound: at most 10
+    let $c: int.sign.8 := $a;                                    # proven by the bound: at most 10
     std::print.shortest($a, " ", $b, " ", $c, newln);
     !no_check let $d := strlen(lend $long)-
     otherwise:

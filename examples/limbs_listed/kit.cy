@@ -11,9 +11,9 @@ proc hello []:
 end of proc hello
 
 !MAIN:
-    var $n: int.sign.64 = to.int.sign.64("41") otherwise 0;
-    check change $n = $n plus 1;
-    !no_check change $n = $n times 1;
+    var $n: int.sign.64 := to.int.sign.64("41") otherwise 0;
+    check change $n to $n plus 1;
+    !no_check change $n to $n times 1;
     std::print.shortest(first($n, 7), newln);
     %spawn.task hello();
 !end of MAIN

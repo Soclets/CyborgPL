@@ -2140,6 +2140,47 @@ pub fn shorten(src: &str) -> Result<String, String> {
             k = e + 1;
         }
     }
+    // a typed definition's `=` is `:=`, a change's `=` is `to` (owner, 2026-10-27)
+    {
+        let mut seen: HashSet<usize> = HashSet::new();
+        for i in 0..n {
+            if toks[i].at == usize::MAX { continue; }
+            let start = statement_start(&toks, i);
+            if !seen.insert(start) { continue; }
+            let mut f = start;
+            loop {
+                match tok(f) {
+                    Tok::Attention | Tok::Mark => f += 1,
+                    Tok::Word(w) if matches!(w.as_str(), "no_check" | "check" | "NO_FUCKING_CHECKS" | "no_skip" | "no_cheat" | "pub" | "public") => { f += 1; if *tok(f) == Tok::Dot { f += 2; } }
+                    _ => break,
+                }
+            }
+            let word = match tok(f) { Tok::Word(w) => w.clone(), _ => continue };
+            let is_def = matches!(word.as_str(), "let" | "var" | "const" | "variable" | "constant");
+            if !is_def && word != "change" { continue; }
+            let line = toks[f].line;
+            let mut d = 0i32;
+            let mut typed = false;
+            let mut k = f + 1;
+            while k < n && toks[k].line == line {
+                match &toks[k].tok {
+                    Tok::LBracket | Tok::LParen => d += 1,
+                    Tok::RBracket | Tok::RParen => d -= 1,
+                    Tok::Semi if d == 0 => break,
+                    Tok::Colon if d == 0 && is_def => typed = true,
+                    Tok::Walrus if d == 0 => break,
+                    Tok::Eq if d == 0 => {
+                        let t = &toks[k];
+                        if is_def && typed { edits.push(Edit { at: t.at, end: t.end, text: ":=".into() }); }
+                        if !is_def { edits.push(Edit { at: t.at, end: t.end, text: "to".into() }); }
+                        break;
+                    }
+                    _ => {}
+                }
+                k += 1;
+            }
+        }
+    }
     // a precedence level's line ends `;` (owner, 2026-10-27)
     for k in 0..n.saturating_sub(1) {
         if matches!(&toks[k].tok, Tok::Word(c) if c == "left_first" || c == "right_first" || c == "refused") && toks[k].at != usize::MAX
@@ -2231,6 +2272,7 @@ fn short_code(s: &str) -> String {
 /// redesign one's long words, and every older spelling still old, refused by name
 fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
     let n = toks.len();
+    let signs = signs_back(&toks)?;
     let mut out: Vec<Token> = Vec::with_capacity(n);
     let is_w = |i: usize, w: &str| matches!(toks.get(i).map(|t| &t.tok), Some(Tok::Word(x)) if x == w);
     let mut depth = 0i32;
@@ -2252,6 +2294,8 @@ fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
         }
         if t.mtm.is_some() { out.push(t.clone()); i += 1; continue; }
         if i > 0 && toks[i - 1].mtm.is_some() && matches!(&toks[i - 1].tok, Tok::Op(o) if o == "*" || o == "&") && toks[i - 1].end == t.at { out.push(t.clone()); i += 1; continue; }
+        // a definition's `:=` with a type, a change's `to`: the parser's `=`
+        if let Some(sign) = signs.get(&i) { out.push(tok_like(sign.clone(), t)); i += 1; continue; }
         // a collection's member line, `member greet.loud […]:` (owner, 2026-10-27): the word read and taken out
         if matches!(&t.tok, Tok::Word(m) if m == "member") && (starts_line || matches!(toks.get(i.wrapping_sub(1)).map(|x| &x.tok), Some(Tok::Semi)))
             && matches!(toks.get(i + 1).map(|x| &x.tok), Some(Tok::Word(_) | Tok::LBracket)) {
@@ -2519,4 +2563,64 @@ pub fn param_list_at(toks: &[Token], i: usize) -> bool {
         }
     }
     j == i
+}
+
+/// Where a statement starts, for the token at `i`: after the last `;` outside brackets on its line, or the line's start
+fn statement_start(toks: &[Token], i: usize) -> usize {
+    let line = toks[i].line;
+    let mut d = 0i32;
+    let mut j = i;
+    while j > 0 && toks[j - 1].line == line {
+        match toks[j - 1].tok { Tok::RBracket | Tok::RParen => d += 1, Tok::LBracket | Tok::LParen => d -= 1, Tok::Semi if d == 0 => break, _ => {} }
+        j -= 1;
+    }
+    j
+}
+
+/// The definitions' and changes' signs (owner, 2026-10-27): a definition is `:=`, typed or not (`let $x: T := 5;`), read
+/// as the parser's typed `=`; a change is `change $x to 6;`, read as its `=`. The old signs refused by name. Gives the
+/// tokens to read differently, by index.
+fn signs_back(toks: &[Token]) -> Result<HashMap<usize, Tok>, Fault> {
+    let mut out = HashMap::new();
+    let mut seen_starts: HashSet<usize> = HashSet::new();
+    for i in 0..toks.len() {
+        let start = statement_start(toks, i);
+        if !seen_starts.insert(start) { continue; }
+        // the word that makes the statement, past the marks in front
+        let mut f = start;
+        loop {
+            match &toks.get(f).map(|t| t.tok.clone()) {
+                Some(Tok::Attention) | Some(Tok::Mark) => f += 1,
+                Some(Tok::Word(w)) if matches!(w.as_str(), "no_check" | "check" | "NO_FUCKING_CHECKS" | "no_skip" | "pub" | "public") => { f += 1; if toks.get(f).is_some_and(|t| t.tok == Tok::Dot) { f += 2; } }
+                _ => break,
+            }
+        }
+        let word = match toks.get(f).map(|t| &t.tok) { Some(Tok::Word(w)) => w.clone(), _ => continue };
+        let is_def = matches!(word.as_str(), "let" | "var" | "const");
+        if !is_def && word != "change" { continue; }
+        // the first sign at depth 0 on the statement's line
+        let line = toks[f].line;
+        let mut d = 0i32;
+        let mut typed = false;
+        let mut k = f + 1;
+        while k < toks.len() && toks[k].line == line {
+            let t = &toks[k];
+            match &t.tok {
+                Tok::LBracket | Tok::LParen => d += 1,
+                Tok::RBracket | Tok::RParen => d -= 1,
+                Tok::Semi if d == 0 => break,
+                Tok::Colon if d == 0 && is_def => typed = true,
+                Tok::Walrus if d == 0 && is_def => { if typed { out.insert(k, Tok::Eq); } break; }
+                Tok::Eq if d == 0 && is_def => {
+                    if typed { return Err((t.line, t.col, "a definition is `:=`, typed or not: `let $x: int.sign.32 := 5;` (owner, 2026-10-27)".into())); }
+                    break;
+                }
+                Tok::Eq if d == 0 => return Err((t.line, t.col, "a change is `change $x to 6;` (owner, 2026-10-27)".into())),
+                Tok::Word(w) if d == 0 && w == "to" && word == "change" && !matches!(toks.get(k + 1).map(|x| &x.tok), Some(Tok::Dot | Tok::Colon)) => { out.insert(k, Tok::Eq); break; }
+                _ => {}
+            }
+            k += 1;
+        }
+    }
+    Ok(out)
 }

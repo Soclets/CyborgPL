@@ -127,7 +127,7 @@ default tier, proven away by the prover where it can be.
 **Element assignment** (decided 2026-09-17) is the same shape on the left of `=`:
 
 ```
-change $xs[pos: 2] = 5;
+change $xs[pos: 2] to 5;
 ```
 
 The list must be assignable (not `!mut`, not a shared `lent`); the position
@@ -144,7 +144,7 @@ for perm $i [from: 1, to: std::ls.len(lend $xs), by: 1]:
         break;
     end of if
 end of for
-change $xs[pos: $i] = 5;
+change $xs[pos: $i] to 5;
 ```
 
 — which the `perm` counter makes three plain lines.
@@ -155,7 +155,7 @@ the loop's element is the list's own: changing it changes the list. Over
 
 ```
 for $x in lend.mut $prices:
-    change $x = $x times 2;
+    change $x to $x times 2;
 end of for
 ```
 
@@ -195,9 +195,9 @@ is fastest.
 ## A length bound — `list[T][lo, hi]`
 
 ```
-var $ys: std::ls[int.sign.32][min: 0, max: 1000] = read_numbers() otherwise std::ls.empty;
+var $ys: std::ls[int.sign.32][min: 0, max: 1000] := read_numbers() otherwise std::ls.empty;
 let $n := std::ls.len(lend $ys);      # a u64[min: 0, max: 1000]
-let $m: int.sign.32 = $n;                   # proven by the bound; no check
+let $m: int.sign.32 := $n;                   # proven by the bound; no check
 ```
 
 Decided 2026-09-21: the thing, then its bounds — the same shape as
@@ -228,7 +228,7 @@ fresh value, a `copy`, or a `give` — never a lend.
 ## The empty list (decided 2026-09-17)
 
 ```
-let $xs: std::ls[int.sign.32] = [];             # typed: the type says list, [] is empty
+let $xs: std::ls[int.sign.32] := [];             # typed: the type says list, [] is empty
 let $ys := std::ls.empty;                # best-type: the value says list; Precog picks the
                                        # element type from what is appended later
 ```
@@ -260,7 +260,7 @@ reading, not asked). Proposed alternative: leave it, looping over
 
 ```
 var $scores := std::ls.fill(value: 0, count: 10);              # ten 0s
-let $flags: std::ls[bool] = std::ls.fill(value: false, count: $n);   # 'n' falses
+let $flags: std::ls[bool] := std::ls.fill(value: false, count: $n);   # 'n' falses
 ```
 
 The value, then the count, as `simd.fill[7]` fills every lane. A count

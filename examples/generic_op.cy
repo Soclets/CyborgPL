@@ -24,7 +24,7 @@ op <+> [$a: B, $b: B] -> int.sign.32:
     ret $a.y times $b.y;
 end of op <+>
 !MAIN:
-    let $m: int.sign.32 = 100;
+    let $m: int.sign.32 := 100;
     std::print.shortest(95 ~= $m, " ", 50 ~= $m, newln);
     let $p := A[x = 3];
     let $q := B[y = 3];

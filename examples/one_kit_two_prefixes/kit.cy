@@ -4,8 +4,8 @@
 # (owner, 2026-10-02: the path settles it; 2026-10-06: a clash is refused where it is written).
 
 !MAIN:
-    let $a: areas::Circle = areas::Circle[radius = 1.0];
-    let $b: shapes::Circle = shapes::Circle[radius = 2.0];
+    let $a: areas::Circle := areas::Circle[radius = 1.0];
+    let $b: shapes::Circle := shapes::Circle[radius = 2.0];
     std::print.shortest(areas::circle(lend $a), " ", shapes::circle(lend $b), newln);
     std::print.shortest(1.0 areas::mean 3.0, " ", 1.0 shapes::mean.low 4.0, newln);
 !end of MAIN

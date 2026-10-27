@@ -22,7 +22,7 @@
     let $back := %C.str.read(lend $cs) otherwise "?";
     std::print.shortest($n, " ", $back, newln);
     # a C string's type is `C.str`; a bounded one says whether its 0 counts (owner, 2026-10-19)
-    let $fits: %C.str[max: 6 bytes, exclude zero] = %C.str.make(lend $name)-
+    let $fits: %C.str[max: 6 bytes, exclude zero] := %C.str.make(lend $name)-
     otherwise:
         case has_zero_byte:
             std::exit(code: 1);
@@ -31,7 +31,7 @@
             std::exit(code: 2);
         end of case out_of_range
     end of otherwise;
-    let $buffer: %C.str[max: 6 bytes, include zero] = %C.str.make(lend $name)-
+    let $buffer: %C.str[max: 6 bytes, include zero] := %C.str.make(lend $name)-
     otherwise:
         case has_zero_byte:
             std::exit(code: 1);

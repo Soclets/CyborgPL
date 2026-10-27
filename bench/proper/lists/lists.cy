@@ -18,14 +18,14 @@ end of proc read_n
 fn run [] -> int32 or fail[missing, out_of_range]:
     let $key := "N";
     !no_check let $n := read_n[getenv[lend $key]] otherwise fail;
-    var $xs: ls[int64] = [];
+    var $xs: ls[int64] := [];
     for $i: int64 from 1 to $n by 1:
         ls.append[lend.mut $xs, value $i mod.floor 1000];
     end of for
-    var $acc: int64 = 0;
+    var $acc: int64 := 0;
     for $r: int64 from 1 to 10 by 1:
         for $x in lend $xs:
-            change $acc = $acc plus $x;
+            change $acc to $acc plus $x;
         end of for
     end of for
     ret to.int32[$acc mod.floor 256];

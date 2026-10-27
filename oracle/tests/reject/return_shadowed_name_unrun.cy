@@ -1,6 +1,6 @@
 fn g [let $p: int.unsign.8] -> int.unsign.8:
     if false:
-        let shadow $p: bool = true;
+        let shadow $p: bool := true;
         ret $p;
     end of if
     ret $p;

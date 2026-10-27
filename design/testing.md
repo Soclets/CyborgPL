@@ -11,7 +11,7 @@ test proc adds_up []:
     must $n eq 42;
     must.fail to.int.sign.32["abc"];                  # it must fail
     must.fail.not_a_number to.int.sign.32("abc");     # …with exactly this reason
-    let $xs: std::ls[int.sign.32] = [1, 2, 3];
+    let $xs: std::ls[int.sign.32] := [1, 2, 3];
     must.stop $xs[pos: 99];                      # a check site must fire
 end of test proc adds_up
 ```

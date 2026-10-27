@@ -7,12 +7,12 @@ end of proc draw
     # so the narrowing below is proven and `check` says so. A name never changes numeric
     # family (`types.md`), so the value is a bin from the start — `to.f16` would be the
     # way to cross from an integer, and it would fail rather than round silently.
-    let $x: float.bin.32 = 70000.0;
+    let $x: float.bin.32 := 70000.0;
     if $x greater_than 65_504.0:
         std::print.stored("too big", newln);
     end of if
     else:
-        check let $y: float.bin.16 = $x;
+        check let $y: float.bin.16 := $x;
         draw($y);
     end of else
     var $xs := [1, 2, 3];
@@ -22,10 +22,10 @@ end of proc draw
         end of for
     end of check
     std::print.stored(newln);
-    !no_check change $xs[pos: 2] = 9;
+    !no_check change $xs[pos: 2] to 9;
     # crossing families is spelled, and it fails rather than rounds (`types.md`)
     check if $x greater_than 0.0:
-        change $xs[pos: 1] = to.int.sign.32($x div.near 2.0) otherwise 0;
+        change $xs[pos: 1] to to.int.sign.32($x div.near 2.0) otherwise 0;
     end of if
     std::print.shortest($xs, newln);
 !end of MAIN

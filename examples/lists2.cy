@@ -2,13 +2,13 @@
 fn sum [lent $items: std::ls[int.sign.32]] -> int.sign.32:
     var $total := 0;
     for $n in lend $items:
-        change $total = $total plus $n;
+        change $total to $total plus $n;
     end of for
     ret $total;
 end of fn sum
 
 !MAIN:
-    var $xs: std::ls[int.sign.32] = [10, 20, 30];
+    var $xs: std::ls[int.sign.32] := [10, 20, 30];
     std::print.shortest("first ", $xs[pos: 1], ", last ", $xs[pos: 3], newln);
     let $n := std::ls.len(lend $xs);
     std::print.shortest("length ", $n, newln);
@@ -20,7 +20,7 @@ end of fn sum
         std::print.shortest($xs[pos: $i], " ");
     end of for
     std::print.stored(newln);
-    let $days: arr[str.utf8] = ["mon", "tue"];
+    let $days: arr[str.utf8] := ["mon", "tue"];
     std::print.stored($days[pos: 2], " of ", arr.len(lend $days), newln);
     let $grid := [[1, 2], [3, 4]];
     std::print.shortest($grid[pos: 2], newln);
@@ -29,6 +29,6 @@ end of fn sum
             break;
         end of if
     end of for
-    change $xs[pos: $i] = 33;
+    change $xs[pos: $i] to 33;
     std::print.shortest($xs, newln);
 !end of MAIN

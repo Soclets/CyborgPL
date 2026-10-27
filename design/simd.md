@@ -12,7 +12,7 @@ algorithm.
 fn is_ascii [lent $bytes: arr[int.unsign.8]] -> bool:
     var $acc := simd.fill(value: 0);                          # simd[u8, count 16]
     for $i [from: 1, to: arr.len(lend $bytes), by: 16]:
-        change $acc = $acc or.bit simd.load(lend $bytes, pos: $i);
+        change $acc to $acc or.bit simd.load(lend $bytes, pos: $i);
     end of for
     ret simd.max($acc) less_than 128;
 end of fn is_ascii
@@ -108,7 +108,7 @@ against a vector (`'v' plus 1`), and `simd.sum` is a check site while
 fn all_on [let $m: simd[bool, count: 4]] -> bool:
     ret simd.all($m);
 end of fn all_on
-let $m: simd[bool, count: 4] = $a greater_than simd.fill(value: 10);
+let $m: simd[bool, count: 4] := $a greater_than simd.fill(value: 10);
 let $flip := not $m;
 ```
 
@@ -122,7 +122,7 @@ on the spot. `examples/simd_mask.cy`.
 ## The leftover end: `simd.load.some` / `simd.store.some` (owner, 2026-09-27: a)
 
 ```
-let $v: simd[int.sign.32, count: 4] = simd.load.some(lend $xs, pos: 9, count: 2);   # 2 items; lanes 3–4 are zero
+let $v: simd[int.sign.32, count: 4] := simd.load.some(lend $xs, pos: 9, count: 2);   # 2 items; lanes 3–4 are zero
 simd.store.some(lend.mut $xs, pos: 9, count: 2, value: $v);               # writes lanes 1–2 only
 ```
 
@@ -143,7 +143,7 @@ rec Particle:
     var place: simd[float.bin.32, count: 4];
     var vel: simd[float.bin.32, count: 4];
 end of rec Particle
-let $history: std::ls[simd[float.bin.32, count: 4]] = [];
+let $history: std::ls[simd[float.bin.32, count: 4]] := [];
 ```
 
 Struct fields, list elements, parameters and returns. It is a plain,

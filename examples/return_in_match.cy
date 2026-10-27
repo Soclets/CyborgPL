@@ -6,7 +6,7 @@ union.tag Pick:
 end of union.tag Pick
 
 fn f [] -> int.unsign.64:
-    let $v: int.unsign.16 = match Pick.quick:
+    let $v: int.unsign.16 := match Pick.quick:
         case quick:
             ret 8997704354644785536 shr 42;
         end of case quick

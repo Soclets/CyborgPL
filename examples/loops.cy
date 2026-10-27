@@ -3,11 +3,11 @@
     var $i := 0;
     while $i less_than 3:
         std::print.shortest("while ", $i, newln);
-        change $i = $i plus 1;
+        change $i to $i plus 1;
     end of while
     var $n := 0;
     loop:
-        change $n = $n plus 1;
+        change $n to $n plus 1;
         if $n eq 2:
             continue;
         end of if

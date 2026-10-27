@@ -4,22 +4,22 @@
 # examples/args.args holds the words the test passes: apples, 3, hello world.
 !MAIN [$argc: int.sign.32, $argv: ptr[ptr[int.unsign.8]]]:
     std::print.stored("argc = ", $argc, newln);
-    var $i: int.sign.32 = 1;
+    var $i: int.sign.32 := 1;
     while $i less_than $argc:
         !no_check let $word := ptr.read(ptr.at($argv, by: $i));
-        var $k: int.sign.32 = 0;
-        var $bytes: std::ls[int.unsign.8] = [];
+        var $k: int.sign.32 := 0;
+        var $bytes: std::ls[int.unsign.8] := [];
         loop:
             !no_check let $b := ptr.read(ptr.at($word, by: $k));
             if $b eq 0:
                 break;
             end of if
             std::ls.append(lend.mut $bytes, value: $b);
-            change $k = $k plus 1;
+            change $k to $k plus 1;
         end of loop
         let $text := to.str.utf8($bytes) otherwise "(not UTF-8)";      # bytes into text (owner, 2026-09-30)
         std::print.stored("argument ", $i, ": ", $text, newln);
-        change $i = $i plus 1;
+        change $i to $i plus 1;
     end of while
     !no_check let $end := ptr.read(ptr.at($argv, by: $argc));
     std::print.stored("argv[argc] is null: ", ptr.is_null($end), newln);

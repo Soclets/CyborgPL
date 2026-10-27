@@ -5,5 +5,5 @@ rec Box <T: Number>:
     var item: <T>;
 end of rec Box
 !MAIN:
-    let $b: Box[str.utf8] = Box[item = "x"];
+    let $b: Box[str.utf8] := Box[item = "x"];
 !end of MAIN

@@ -2,7 +2,7 @@
 # literal right before it, as it covers only the name in `$x: u8`; a variable is converted with `to.…[…]`.
 !MAIN:
     # a shift's count gives nothing inside it a width, so the inner shift says its own
-    let $r: int.sign.64 = to.int.sign.64(1) shl (5: int.unsign.8 shr 1);
+    let $r: int.sign.64 := to.int.sign.64(1) shl (5: int.unsign.8 shr 1);
     std::print.shortest($r, newln);
     let $a := 200: int.unsign.8;
     std::print.shortest($a plus 55, newln);

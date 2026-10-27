@@ -14,7 +14,7 @@ end of proc mul_add_asm
 
 # how many zero bits before the first 1, counting from the top
 proc leading_zeros_asm [let $n: int.unsign.64] -> int.unsign.64:
-    var $z: int.unsign.64 = $n;
+    var $z: int.unsign.64 := $n;
     !no_check inline.ASM with [$z <-> x0]:
         clz x0, x0
     end of inline.ASM
@@ -22,18 +22,18 @@ proc leading_zeros_asm [let $n: int.unsign.64] -> int.unsign.64:
 end of proc leading_zeros_asm
 
 fn leading_zeros_zag [let $n: int.unsign.64] -> int.unsign.64:
-    var $z: int.unsign.64 = 0;
-    var $mask: int.unsign.64 = 9223372036854775808;   # the top bit
+    var $z: int.unsign.64 := 0;
+    var $mask: int.unsign.64 := 9223372036854775808;   # the top bit
     while $mask not_eq 0 and ($n and.bit $mask) eq 0:
-        change $mask = $mask shr 1;
-        change $z = $z plus 1;
+        change $mask to $mask shr 1;
+        change $z to $z plus 1;
     end of while
     ret $z;
 end of fn leading_zeros_zag
 
 !MAIN:
     std::print.shortest("6 times 7 plus 3: assembly ", mul_add_asm(6, 7, 3), ", CyborgPL ", 6 times 7 plus 3, newln);
-    let $xs: std::ls[int.unsign.64] = [1, 255, 65536, 9223372036854775808, 0];
+    let $xs: std::ls[int.unsign.64] := [1, 255, 65536, 9223372036854775808, 0];
     for $n in lend $xs:
         std::print.shortest($n, " has ", leading_zeros_asm($n), " leading zeros (CyborgPL: ", leading_zeros_zag($n), ")", newln);
     end of for

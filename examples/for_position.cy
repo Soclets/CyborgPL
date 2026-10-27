@@ -6,11 +6,11 @@
         std::print.shortest($i, ". ", $x, newln);
     end of for
     let $scores := [70, 95, 88];
-    var $best_at: int.unsign.64 = 0;
-    var $best: int.sign.32 = 0;
+    var $best_at: int.unsign.64 := 0;
+    var $best: int.sign.32 := 0;
     for $i, $s in lend $scores:
         if $s greater_than $best:
-            change $best = $s; change $best_at = $i;
+            change $best to $s; change $best_at to $i;
         end of if
     end of for
     std::print.shortest("best is ", $best, " at position ", $best_at, newln);

@@ -10,7 +10,7 @@ end of fn tries
 
 !MAIN:
     const $retries := 3;
-    const $greeting: str.utf8 = "hi";
+    const $greeting: str.utf8 := "hi";
     const $limit := $base times $retries;
     std::print.shortest($greeting, " ", $retries, " ", $limit, " ", tries($retries), newln);
 !end of MAIN

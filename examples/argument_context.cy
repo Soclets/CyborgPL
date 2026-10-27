@@ -8,9 +8,9 @@ fn wide [let $w: int.unsign.32] -> int.unsign.32:
 end of fn wide
 !MAIN:
     show(0 minus.wrap 1);
-    let $v: int.unsign.64 = to.int.unsign.64(wide(2 shl 3));
+    let $v: int.unsign.64 := to.int.unsign.64(wide(2 shl 3));
     std::print.shortest($v, " ", wide(not.bit 0), newln);
-    var $xs: std::ls[int.unsign.8] = [1,];
+    var $xs: std::ls[int.unsign.8] := [1,];
     std::ls.append(lend.mut $xs, value: 0 minus.wrap 2);
     std::print.shortest($xs[pos: 2], newln);
 !end of MAIN

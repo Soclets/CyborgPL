@@ -13,8 +13,8 @@ Handing an **owned** value (heap types: `str`, lists, `char.grapheme`,
 `change 's' = 't';` on an owned value is a compile error.
 
 ```
-change $s = give $t;          # ownership transfers; 't' is dead after this
-change $s = copy $t;          # a second, independent value; an allocation
+change $s to give $t;          # ownership transfers; 't' is dead after this
+change $s to copy $t;          # a second, independent value; an allocation
 process(lend $s);       # temporary shared access; 's' still owns
 process(lend.mut $s);   # temporary exclusive access, may modify
 ```
@@ -82,7 +82,7 @@ question: a parameter receives whatever the caller wrote.
 fn total [lent $xs: std::ls[int.sign.32]] -> int.sign.64:
     …
 end of fn total
-let $big: std::ls[int.sign.64] = [1, 2, 3];
+let $big: std::ls[int.sign.64] := [1, 2, 3];
 total(lend $big);          # error: a list[i64] lent where a list[i32] is looked at
 ```
 
@@ -102,7 +102,7 @@ whether `'x'` is ever reassigned, so nothing needs saying. The programmer
 a chain segment, `var.!mut.i32`), and the compiler then holds them to it:
 
 ```
-let $limit: int.sign.32 = 10;      # assigning to 'limit' later is an error
+let $limit: int.sign.32 := 10;      # assigning to 'limit' later is an error
 var $counter := 0;             # a promise that it changes: refused if nothing does (2026-10-10)
 fn twice [let $n: int.sign.32] -> int.sign.32:
     …

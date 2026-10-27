@@ -20,7 +20,7 @@ proc mode_at [let $p: ptr[Mode]] -> int.sign.32:
     end of match
 end of proc mode_at
 !MAIN:
-    !no_check change $edit_mode = to.int.sign.32(Mode.vi);
+    !no_check change $edit_mode to to.int.sign.32(Mode.vi);
     !no_check let $raw := $edit_mode;
     let $current := to.Mode($raw) otherwise Mode.emacs;
     !no_check let $mem := malloc(8);

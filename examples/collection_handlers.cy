@@ -49,11 +49,11 @@ fn sum_of_halves [lent $xs: std::ls[int.sign.32], let $until_bad: bool] -> int.s
     for $x in lend $xs:
         if $until_bad:
             let $h := half($x) otherwise half_failed.!stop;
-            change $sum = $sum plus $h;
+            change $sum to $sum plus $h;
         end of if
         else:
             let $h := half($x) otherwise half_failed.!skip;
-            change $sum = $sum plus $h;
+            change $sum to $sum plus $h;
         end of else
     end of for
     ret $sum;
@@ -62,6 +62,6 @@ end of fn sum_of_halves
 !MAIN:
     std::print.shortest(half_or_zero(10), " ", half_or_zero(7), newln);
     std::print.shortest(half_or_zero(neg 4), newln);
-    let $xs: std::ls[int.sign.32] = [2, 4, 5, 8, neg 2, 10];
+    let $xs: std::ls[int.sign.32] := [2, 4, 5, 8, neg 2, 10];
     std::print.shortest(sum_of_halves(lend $xs, false), " ", sum_of_halves(lend $xs, true), newln);
 !end of MAIN

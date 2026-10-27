@@ -7,10 +7,10 @@
 end of union Un
 
 !MAIN:
-    let $a: float.bin.32 = neg 0.0;
+    let $a: float.bin.32 := neg 0.0;
     let $b := neg 0.0: float.bin.64;
     var $un := Un[i = 1];
-    change $un.f = neg 0.0;
+    change $un.f to neg 0.0;
     !no_check let $u := $un.u;
     std::print.stored($a, " ", $b, " ", $u, newln);
 !end of MAIN

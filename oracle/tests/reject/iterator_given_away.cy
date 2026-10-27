@@ -6,7 +6,7 @@ proc Counter.next [lent.mut $c: Counter] -> optional[int.sign.32]:
     if $c.now eq $c.stop:
         ret optional.none;
     end of if
-    change $c.now = $c.now plus 1;
+    change $c.now to $c.now plus 1;
     ret optional.value($c.now);
 end of proc Counter.next
 !MAIN:

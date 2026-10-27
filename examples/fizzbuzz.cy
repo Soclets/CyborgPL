@@ -17,10 +17,10 @@ proc say [let $n: int.sign.32]:
 end of proc say
 
 !MAIN:
-    let $limit: int.sign.32 = 15;
+    let $limit: int.sign.32 := 15;
     var $i := 1;
     while $i at_most $limit:
         say($i);
-        change $i = $i plus 1;
+        change $i to $i plus 1;
     end of while
 !end of MAIN

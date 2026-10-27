@@ -134,7 +134,7 @@ A literal may carry its type after `:`, as a name does in `'x': u8`. The `:` cov
 before it, so no brackets are needed inside maths (owner: "(a)", over brackets required):
 
 ```
-let $r: int.sign.64 = to.int.sign.64(1) shl (5: int.unsign.8 shr 1);   # the count gives no width, so the literal says it
+let $r: int.sign.64 := to.int.sign.64(1) shl (5: int.unsign.8 shr 1);   # the count gives no width, so the literal says it
 let $a := 200: int.unsign.8;
 let $p := 5: int.unsign.64[min: 1];
 let $d := exactly 0.1: float.%deci.64;

@@ -26,11 +26,11 @@ end of fn label
 !MAIN:
     var $mine := Locker[number = 7, owner = "Tankun", items = std::ls.empty];
     let $names := ["helmet", "gloves", "rope"];
-    var $stored: int.sign.32 = 0;
+    var $stored: int.sign.32 := 0;
 
     for $n in lend $names:
         if stash(lend.mut $mine, copy $n):
-            change $stored = $stored plus 1;
+            change $stored to $stored plus 1;
         end of if
     end of for
     std::print.shortest(label(lend $mine), ": ", $stored, " stored, ", free_slots(lend $mine), " free", newln);
@@ -39,7 +39,7 @@ end of fn label
         check std::print.shortest($i, ". ", $mine.items[pos: $i], newln);
     end of for
 
-    let $x: float.bin.64 = 0.1;
+    let $x: float.bin.64 := 0.1;
     std::print.stored($x, newln);
     std::print.shortest($x, newln);
 

@@ -8,22 +8,22 @@
 %extern.C proc write [let $fd: int.sign.32, let $buf: ptr[int.unsign.8], let $len: int.unsign.64] -> int.sign.64;
 
 proc emit [let $m: int.unsign.64, let $neg: bool]:
-    var $buf: std::ls[int.unsign.8] = [];
+    var $buf: std::ls[int.unsign.8] := [];
     if $neg:
         std::ls.append(lend.mut $buf, value: 45);
     end of if
-    var $v: int.unsign.64 = $m;
-    var $ds: std::ls[int.unsign.8] = [];
+    var $v: int.unsign.64 := $m;
+    var $ds: std::ls[int.unsign.8] := [];
     std::ls.append(lend.mut $ds, value: to.int.unsign.8(48 plus ($v mod.floor 10)));
-    change $v = $v div.floor 10;
+    change $v to $v div.floor 10;
     while $v greater_than 0:
         std::ls.append(lend.mut $ds, value: to.int.unsign.8(48 plus ($v mod.floor 10)));
-        change $v = $v div.floor 10;
+        change $v to $v div.floor 10;
     end of while
-    var $k: int.unsign.64 = std::ls.len(lend $ds);
+    var $k: int.unsign.64 := std::ls.len(lend $ds);
     while $k at_least 1:
         std::ls.append(lend.mut $buf, value: $ds[pos: $k]);
-        change $k = $k minus 1;
+        change $k to $k minus 1;
     end of while
     std::ls.append(lend.mut $buf, value: 10);
     !no_check write(1, lend $buf, std::ls.len(lend $buf));
@@ -42,7 +42,7 @@ proc put_i [let $n: int.sign.64]:
     end of else
 end of proc put_i
 !MAIN:
-    let $v17: int.unsign.16 = 0;
-    let $s21: simd[int.unsign.16, count: 8] = simd.fill(value: not.bit (5 plus $v17));
+    let $v17: int.unsign.16 := 0;
+    let $s21: simd[int.unsign.16, count: 8] := simd.fill(value: not.bit (5 plus $v17));
     put_u(to.int.unsign.64(simd.max($s21)));
 !end of MAIN

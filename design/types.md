@@ -91,8 +91,8 @@ and `deci`/`uenr` are ours to write rather than vendored.
 ## Integers of any width: `!std.int24` (owner, 2026-10-03; the `.` since 2026-10-06)
 
 ```
-let $sample: %not_std.i24 = neg 8_000_000;     # Rust-style: !std.i24
-let $flags: %not_std.u4 = 9;               # !std.u4
+let $sample: %not_std.i24 := neg 8_000_000;     # Rust-style: !std.i24
+let $flags: %not_std.u4 := 9;               # !std.u4
 ```
 
 Any width LLVM takes (from 1 bit to its own limit, about 8 million),
@@ -111,9 +111,9 @@ bits (`operators.md`). `examples/any_width.cy`,
 ## A whole number in another base: `binary`, `hex`, `octal` (owner, 2026-10-19)
 
 ```
-let $flags: int.unsign.8 = bin 1010_0101;    # 165
-let $mask: int.unsign.32 = hex FF00_00FF;       # A-F in either case
-let $mode: int.unsign.16 = oct 755;
+let $flags: int.unsign.8 := bin 1010_0101;    # 165
+let $mask: int.unsign.32 := hex FF00_00FF;       # A-F in either case
+let $mode: int.unsign.16 := oct 755;
 ```
 
 A word in front, as `exactly` is (owner: "Should we make it a word infront? Like `format` or `exactly`?", then "(a)"),

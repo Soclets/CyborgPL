@@ -9,7 +9,7 @@ over cores or a GPU, the programmer writes nothing). Concurrency is
 download beside a keyboard — where the waiting is the point.
 
 ```
-let $results: %channel[str.utf8] = %channel.empty;
+let $results: %channel[str.utf8] := %channel.empty;
 let $a := "a.com";
 %spawn.task with [lend $results, give $a]:
     %channel.send(lend $results, value: fetch(lend $a));
@@ -114,8 +114,8 @@ while the program carries on.
 ## Channels
 
 ```
-let $c: %channel[str.utf8] = %channel.empty;                    # hand-off: send waits for a taker
-let $q: %channel[str.utf8][max: 100] = %channel.empty;            # a buffer: send waits only when full
+let $c: %channel[str.utf8] := %channel.empty;                    # hand-off: send waits for a taker
+let $q: %channel[str.utf8][max: 100] := %channel.empty;            # a buffer: send waits only when full
 %channel.send(lend $c, value: give $line);             # a value is given, never lent
 let $v := %channel.take(lend $c) otherwise …;   # waits; fails `closed` when no sender is left
 ```

@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: a change is `change $x to 6;` (owner); built with every definition `:=`
+
+Asked how `change $x = 6;` reads in the maths sense (it claims `$x` equals 6, false a moment before), design claude
+offered `change $x <- 6;` (recommended: maths pseudocode's arrow, and "goes into" wherever CyborgPL uses `<-`), `change $x
+to 6;`, or as it is. The owner: "I think the arrow looks a bit weird, so `to`". So **`change $x to 6;`, `change $l.occupied
+to true;`, `change $xs[pos: 2] to 5;`**; `change … =` is refused naming `to`. Built together with the morning's ruling
+above, every definition `:=` (`let $x: int.sign.32 := 5;`, a typed `=` refused): the oracle, its converter, examples,
+tests, the notes' code, and `spellings.cyr`'s hints (`+=` is `change $x to $x plus …;`).
+
 ### 2026-10-27 — Redesign: every definition is `:=`, typed or not, `let $x: int.sign.32 := 5;` (owner; not built)
 
 The owner: "Anyways, you never asked me about the `:=` `=` accuracy". Design claude: in maths `:=` is "is defined as",
@@ -43,7 +52,7 @@ or argument is in the thing made, an equation, and stay. Asked first whether a t
 the owner: "yes, so that means type inference is only visible via the absence of the type" (design claude: yes; before,
 the sign and the type said it twice). So **every definition is `:=`: `let $x := 5;`, `let $x: int.sign.32 := 5;`**, and
 so `var`, `const`, `let shadow` / `var shadow` (design claude's reading); a typed `=` becomes an old spelling. This
-reverses 2026-09-19's "`:=` only without a type, `=` only with one". Not built: built with the update's answer.
+reverses 2026-09-19's "`:=` only without a type, `=` only with one". Built with the change's `to` (entry above).
 
 ### 2026-10-27 — Redesign: a lambda with a body closes on its kind alone, `end of fn` / `end of proc` (owner)
 

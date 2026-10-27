@@ -3,6 +3,6 @@ fn grow [let $xs: std::ls[int.sign.32]] -> int.unsign.64:
     ret std::ls.len(lend $xs);
 end of fn grow
 !MAIN:
-    let $f: arr[int.sign.32] = [1, 2];
+    let $f: arr[int.sign.32] := [1, 2];
     let $n := grow(give $f);
 !end of MAIN

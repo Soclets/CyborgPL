@@ -1,4 +1,4 @@
-pub const $pi: float.bin.64 = 3.141_592_653_589_793;
+pub const $pi: float.bin.64 := 3.141_592_653_589_793;
 pub rec Circle:
     var radius: float.bin.64;
 end of rec Circle

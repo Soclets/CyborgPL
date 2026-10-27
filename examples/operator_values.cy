@@ -11,7 +11,7 @@ end of op dot
 fn fold [lent $xs: std::ls[int.sign.32], let $start: int.sign.32, let $f: fn[int.sign.32, int.sign.32] -> int.sign.32] -> int.sign.32:
     var $acc := $start;
     for $x in lend $xs:
-        change $acc = $f($acc, $x);
+        change $acc to $f($acc, $x);
     end of for
     ret $acc;
 end of fn fold
@@ -25,13 +25,13 @@ fn both [lent $a: Vec, lent $b: Vec, let $f: fn[lent Vec, lent Vec] -> float.bin
     ret $f(lend $a, lend $b);
 end of fn both
 !MAIN:
-    let $xs: std::ls[int.sign.32] = [1, 2, 3, 4];
+    let $xs: std::ls[int.sign.32] := [1, 2, 3, 4];
     let $sum := fold(lend $xs, 0, op plus);
     let $product := fold(lend $xs, 1, op times);
     let $down := fold(lend $xs, 0, op minus);
     let $n := apply1(5, op neg);
     let $le := test2(3, 3, op at_most );
-    let $f: fn[int.sign.32, int.sign.32] -> int.sign.32 = op mod.floor;
+    let $f: fn[int.sign.32, int.sign.32] -> int.sign.32 := op mod.floor;
     let $m := $f(neg 7, 3);
     let $u := Vec[x = 1.0, y = 2.0];
     let $v := Vec[x = 3.0, y = 4.0];

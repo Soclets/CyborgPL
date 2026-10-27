@@ -19,9 +19,9 @@ end of proc read_n
 fn run [] -> int32 or fail[missing, out_of_range]:
     let $key := "N";
     !no_check let $n := read_n[getenv[lend $key]] otherwise fail;
-    var $acc: int64 = 0;
+    var $acc: int64 := 0;
     for $i: int64 from 1 to $n by 1:
-        change $acc = $acc plus (($i times $i) mod.floor 7);
+        change $acc to $acc plus (($i times $i) mod.floor 7);
     end of for
     ret to.int32[($acc mod.floor 1_000_000_007) mod.floor 256];
 end of fn run

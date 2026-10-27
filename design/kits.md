@@ -48,9 +48,9 @@ other kits, own stays bare."): its functions, types, enums and enum values, std'
 
 ```
 std::print.shortest(greet::hello(), newln);
-var $xs: std::ls[int.sign.64] = [];
+var $xs: std::ls[int.sign.64] := [];
 std::ls.append(lend.mut $xs, value: 3);
-let $b: greet::Note = greet::Note[text = "hi"];
+let $b: greet::Note := greet::Note[text = "hi"];
 let $up := std::str.upper.full(lend $s, lang: std::casing.tr);
 ```
 
@@ -108,7 +108,7 @@ pub rec Locker:
     …;
 end of rec Locker
 pub const $max_players := 8;
-const $pi: float.bin.64 = 3.141_592_653_589_793;      # private to the Kit
+const $pi: float.bin.64 := 3.141_592_653_589_793;      # private to the Kit
 ```
 
 - **`pub`** is a bare word before `fn`, `struct`, or `const` at the top

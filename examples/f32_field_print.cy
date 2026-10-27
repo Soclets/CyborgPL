@@ -5,9 +5,9 @@ rec Pr:
     var b: float.bin.32;
 end of rec Pr
 !MAIN:
-    let $v: float.bin.32 = neg 3080.765625;
+    let $v: float.bin.32 := neg 3080.765625;
     let $p := Pr[a = $v, b = 1.5];
     std::print.shortest($v, " ", $p.a, newln);
-    let $t: float.bin.32 = 5305.65625;
+    let $t: float.bin.32 := 5305.65625;
     std::print.shortest($t, newln);
 !end of MAIN

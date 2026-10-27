@@ -22,11 +22,11 @@ end of fn hash
 User satisfies Key;
 
 !MAIN:
-    var $grid: std::map[Point, str.utf8] = std::map.empty;
+    var $grid: std::map[Point, str.utf8] := std::map.empty;
     std::map.set(lend.mut $grid, key: Point[x = 1, y = 2], value: "tree");
     let $at := std::map.get(lend $grid, key: Point[x = 1, y = 2]) otherwise "nothing";
     std::print.shortest($at, newln);
-    var $users: std::map[User, int.sign.32] = std::map.empty;
+    var $users: std::map[User, int.sign.32] := std::map.empty;
     std::map.set(lend.mut $users, key: User[name = "Ann"], value: 1);
     let $n := std::map.get(lend $users, key: User[name = "ANN"]) otherwise 0;     # same key by User's own equal_to 
     std::print.shortest($n, newln);

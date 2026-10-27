@@ -6,8 +6,8 @@
     let $msg := "hello";
     !NO_FUCKING_CHECKS let $n := write(1, lend $msg, std::str.bytes(lend $msg));
     !NO_FUCKING_CHECKS:
-        let $a: int.sign.32 = 10;
-        let $b: int.sign.32 = 2;
+        let $a: int.sign.32 := 10;
+        let $b: int.sign.32 := 2;
         let $q := $a div.floor $b;
         std::print.shortest(newln, $q, newln);
     !end of NO_FUCKING_CHECKS

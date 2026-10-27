@@ -20,6 +20,6 @@ end of fn describe
     let $v := $t <+> $u;
     let $w := $t greet::<+> $u;
     std::print.shortest($t.n, " ", $u.n, " ", $v.n, " ", $w.n, newln);
-    let $b: greet::Note = greet::Note[text = "with the path"];
+    let $b: greet::Note := greet::Note[text = "with the path"];
     std::print.shortest($b.text, ", ", describe(greet::Tone.loud), newln);
 !end of MAIN

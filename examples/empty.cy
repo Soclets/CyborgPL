@@ -1,6 +1,6 @@
 # Empty lists: `[]` with a type, and `list.empty`, then filled with `list.append`.
 !MAIN:
-    var $xs: std::ls[int.sign.32] = [];
+    var $xs: std::ls[int.sign.32] := [];
     std::ls.append(lend.mut $xs, value: 7);
     std::ls.append(lend.mut $xs, value: 8);
     std::print.shortest($xs, " ", std::ls.len(lend $xs), newln);

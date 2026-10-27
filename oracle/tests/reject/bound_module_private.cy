@@ -8,7 +8,7 @@ module till:
     end of fn show
 end of module till
 !MAIN:
-    let $c: till.coin = 50;
+    let $c: till.coin := 50;
     std::print.shortest(till.show($c), newln);
-    let $bad: till.coin = 500;
+    let $bad: till.coin := 500;
 !end of MAIN

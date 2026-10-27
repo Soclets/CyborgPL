@@ -52,7 +52,7 @@ let $mine := Locker[name = "field kit", number = 7,
 
 ```
 let $n := $mine.number;           # read
-change $mine.number = 8;                  # write
+change $mine.number to 8;                  # write
 ```
 
 A quoted name followed by `.` is field access — a new shape, unambiguous

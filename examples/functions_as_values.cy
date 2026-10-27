@@ -16,7 +16,7 @@ fn first_by [lent $xs: std::ls[Locker], let $less: fn[lent Locker, lent Locker] 
     var $best := 1;
     for $i [from: 2, to: std::ls.len(lend $xs), by: 1]:
         if $less(lend $xs[pos: $i], lend $xs[pos: $best]):
-            change $best = $i;
+            change $best to $i;
         end of if
     end of for
     let $winner := lend $xs[pos: $best];
@@ -24,7 +24,7 @@ fn first_by [lent $xs: std::ls[Locker], let $less: fn[lent Locker, lent Locker] 
 end of fn first_by
 
 fn keep [lent $xs: std::ls[int.sign.32], let $test: fn[int.sign.32] -> bool] -> std::ls[int.sign.32]:
-    var $out: std::ls[int.sign.32] = [];
+    var $out: std::ls[int.sign.32] := [];
     for $x in lend $xs:
         if $test($x):
             std::ls.append(lend.mut $out, value: $x);

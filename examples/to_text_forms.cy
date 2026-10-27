@@ -6,9 +6,9 @@ union.tag Size:
 end of union.tag Size
 
 !MAIN:
-    let $x: float.bin.64 = 0.1;
-    let $d: float.%deci.64 = 1.50;
-    let $n: int.sign.32 = 42;
+    let $x: float.bin.64 := 0.1;
+    let $d: float.%deci.64 := 1.50;
+    let $n: int.sign.32 := 42;
     let $ok := true;
     let $s := Size.big;
     std::print.stored(to.stored.str.utf8($x), " | ", to.shortest.str.utf8($x), newln);

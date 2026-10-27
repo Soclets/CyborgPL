@@ -44,6 +44,6 @@ end of rec Box
     std::print.shortest(bigger(3, 9), " ", bigger(2.5, 1.5), " ", smaller(3, 9), newln);
     let $xs := ["a", "b"];
     std::print.shortest(whole(lend $xs), newln);
-    let $b: Box[int.sign.32] = Box[item = 4];
+    let $b: Box[int.sign.32] := Box[item = 4];
     std::print.shortest($b.item, newln);
 !end of MAIN

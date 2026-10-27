@@ -10,7 +10,7 @@ fn b2 [@x, @y] [lent @x $a: std::ls[int.sign.8], lent @y $c: std::ls[int.sign.8]
     ret b1(lend $c, lend $a);
 end of fn b2
 !MAIN:
-    let $u: std::ls[int.sign.8] = [1, 2];
-    let $v: std::ls[int.sign.8] = [3,];
+    let $u: std::ls[int.sign.8] := [1, 2];
+    let $v: std::ls[int.sign.8] := [3,];
     std::print.shortest(b2(lend $u, lend $v), newln);
 !end of MAIN

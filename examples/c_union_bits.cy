@@ -13,9 +13,9 @@ end of rec Status
 !MAIN:
     var $n := Number[f = 1.0];
     !no_check let $raw := $n.i;
-    change $n.i = 7;
+    change $n.i to 7;
     !no_check let $back := $n.i;
     var $s := Status[mode = 5, ready = true, level = neg 8];
-    change $s.mode = 7;
+    change $s.mode to 7;
     std::print.shortest($raw, " ", $back, " ", $s.mode, " ", $s.level, newln);
 !end of MAIN

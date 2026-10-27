@@ -11,7 +11,7 @@ end of fn step
 !MAIN:
     let $p := Particle[place = simd.fill(value: 0.0), vel = simd.fill(value: 0.5)];
     let $q := step(give $p);
-    var $history: std::ls[simd[float.bin.32, count: 4]] = [];
+    var $history: std::ls[simd[float.bin.32, count: 4]] := [];
     std::ls.append(lend.mut $history, value: $q.place);
     std::ls.append(lend.mut $history, value: $q.place plus $q.vel);
     std::print.shortest(simd.sum($q.place), " ", std::ls.len(lend $history), " ", simd.sum($history[pos: 2]), newln);

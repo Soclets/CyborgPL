@@ -10,11 +10,11 @@ fn biggest <T: any> [let $a: <T>, let $b: <T>, let $pick_a: bool] -> <T>:
 end of fn biggest
 
 !MAIN:
-    let $a: int.sign.32 = 2;
-    let $b: int.sign.32 = $a plus 3 times 4;
+    let $a: int.sign.32 := 2;
+    let $b: int.sign.32 := $a plus 3 times 4;
     let $small := to.int.sign.8($b);                     # proven to fit: 14
-    let $level: int.sign.32[min: 0, max: 10] = 7;
-    let $wrapped: int.unsign.8 = 250 plus.wrap 10;
+    let $level: int.sign.32[min: 0, max: 10] := 7;
+    let $wrapped: int.unsign.8 := 250 plus.wrap 10;
     let $bigger := biggest($b, $a, $b greater_than $a);
     let $same := $bigger eq $b and not ($small less_than 0);
 !end of MAIN

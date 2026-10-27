@@ -1,7 +1,7 @@
 # map[K, V] — a language collection beside list and array (decided 2026-09-22).
 # A missing key is a failure, not a check site: `otherwise` says what happens.
 !MAIN:
-    var $phones: std::map[str.utf8, int.sign.32] = std::map["ann" = 5551, "bob" = 5552];   # a literal: key = value
+    var $phones: std::map[str.utf8, int.sign.32] := std::map["ann" = 5551, "bob" = 5552];   # a literal: key = value
     std::map.set(lend.mut $phones, key: "ann", value: 5553);                          # same key: replaced
     std::print.shortest(std::map.count(lend $phones), " entries", newln);
     let $a := std::map.get(lend $phones, key: "ann") otherwise 0;
@@ -27,7 +27,7 @@
         std::print.shortest($e.key, "=", $e.value, " ");
     end of for
     std::print.stored(newln);
-    var $fast: std::map.unordered[str.utf8, int.sign.32] = std::map.empty;                     # chosen: never walked
+    var $fast: std::map.unordered[str.utf8, int.sign.32] := std::map.empty;                     # chosen: never walked
     std::map.set(lend.mut $fast, key: "x", value: 1);
     std::print.shortest(std::map.has(lend $fast, key: "x"), newln);
     let $who := std::map.get(lend $phones, key: "zed")-

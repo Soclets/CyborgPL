@@ -12,21 +12,21 @@ proc pi_digits [let $n: int.sign.32]:
         for $i [from: $len, to: 1, by: neg 1]:
             let $x := (10 times $a[pos: $i]) plus ($q times $i);
             let $den := (2 times $i) minus 1;
-            change $a[pos: $i] = $x mod.floor $den;
-            change $q = $x div.floor $den;
+            change $a[pos: $i] to $x mod.floor $den;
+            change $q to $x div.floor $den;
         end of for
-        change $a[pos: 1] = $q mod.floor 10;
-        change $q = $q div.floor 10;
+        change $a[pos: 1] to $q mod.floor 10;
+        change $q to $q div.floor 10;
         if $q eq 9:
-            change $nines = $nines plus 1;
+            change $nines to $nines plus 1;
         end of if
         else if $q eq 10:
             std::print.shortest($predigit plus 1);
             for $k [from: 1, to: $nines, by: 1]:
                 std::print.shortest(0);
             end of for
-            change $predigit = 0;
-            change $nines = 0;
+            change $predigit to 0;
+            change $nines to 0;
         end of else if
         else:
             if $j greater_than 1:
@@ -35,11 +35,11 @@ proc pi_digits [let $n: int.sign.32]:
             if $j eq 2:
                 std::print.shortest(".");
             end of if
-            change $predigit = $q;
+            change $predigit to $q;
             for $k [from: 1, to: $nines, by: 1]:
                 std::print.shortest(9);
             end of for
-            change $nines = 0;
+            change $nines to 0;
         end of else
     end of for
     std::print.shortest($predigit, newln);

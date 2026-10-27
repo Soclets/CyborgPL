@@ -5,6 +5,6 @@ precedence.low_first:
     level 1 [eq, ~=] refused;
 end of precedence.low_first
 !MAIN:
-    let $x: float.bin.64 = 1.0;
+    let $x: float.bin.64 := 1.0;
     let $k := $x ~= $x ~= $x;
 !end of MAIN

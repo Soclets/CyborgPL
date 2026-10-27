@@ -2,7 +2,7 @@
 # another kit; `pub.kit` and private ones stay home. `my.` here is this kit's root.
 
 
-pub const $pi: float.bin.64 = 3.14159;
+pub const $pi: float.bin.64 := 3.14159;
 
 pub rec Circle:
     var radius: float.bin.64;

@@ -39,7 +39,7 @@ end of fn describe
     let $nums := [4, 5, 6];
     let $f := first(lend $nums) otherwise 0;
     std::print.shortest($f, newln);
-    let $p: Pair[int.sign.32, str.utf8] = Pair[left = 7, right = "seven"];
+    let $p: Pair[int.sign.32, str.utf8] := Pair[left = 7, right = "seven"];
     std::print.shortest(describe(lend $p), newln);
     let $m := Maybe.some(42);
     match $m:

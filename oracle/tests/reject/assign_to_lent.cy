@@ -1,5 +1,5 @@
 fn touch [lent $text: str.utf8]:
-    change $text = "b";
+    change $text to "b";
 end of fn touch
 !MAIN:
     let $s := "a";

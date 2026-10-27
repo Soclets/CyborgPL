@@ -74,7 +74,7 @@ until `para` joined it.
 
 ```
 no_skip for $i: int.sign.64 [from: 1, to: $n, by: 1]:
-    change $acc = $acc plus $i;
+    change $acc to $acc plus $i;
 end of for
 no_skip for seq $i in lend $xs:
     …

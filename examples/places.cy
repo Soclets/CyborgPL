@@ -2,11 +2,11 @@
 # refuses a literal with more and asks a result that could have more to be rounded on purpose; `min_places` only
 # pads when printing (5 as `5.00`). A percent's places count as written: `7.5%` has 1.
 !MAIN:
-    let $price: float.%deci.64[min: 0.0, max: 1000000.0, max_places: 2] = exactly 19.99;
+    let $price: float.%deci.64[min: 0.0, max: 1000000.0, max_places: 2] := exactly 19.99;
     let $tax := exactly 7 percent;
-    let $total: float.%deci.64[max_places: 2] = std::round.near($price times to.float.%deci.64($tax), places: 2);
-    let $sum: float.%deci.64[max_places: 2] = $price plus $total;
-    let $shown: float.%deci.64[min_places: 2] = exactly 5;
-    let $rate: percent[float.%deci.32][min: 0 percent, max: 100 percent, max_places: 1] = exactly 7.5 percent;
+    let $total: float.%deci.64[max_places: 2] := std::round.near($price times to.float.%deci.64($tax), places: 2);
+    let $sum: float.%deci.64[max_places: 2] := $price plus $total;
+    let $shown: float.%deci.64[min_places: 2] := exactly 5;
+    let $rate: percent[float.%deci.32][min: 0 percent, max: 100 percent, max_places: 1] := exactly 7.5 percent;
     std::print.shortest($price, " ", $total, " ", $sum, " ", $shown, " ", $rate, newln);
 !end of MAIN

@@ -14,27 +14,27 @@ end of rec Header
 
 # FNV-1a: the wrap *is* the algorithm, so `x~`, never a check
 fn fnv1a [lent $bytes: arr[int.unsign.8]] -> int.unsign.64:
-    var $h: int.unsign.64 = 14695981039346656037;
+    var $h: int.unsign.64 := 14695981039346656037;
     for $b in lend $bytes:
-        change $h = ($h xor to.int.unsign.64($b)) times.wrap 1099511628211;
+        change $h to ($h xor to.int.unsign.64($b)) times.wrap 1099511628211;
     end of for
     ret $h;
 end of fn fnv1a
 
 # count the 1 bits, one shift at a time
 fn popcount [let $x: int.unsign.32] -> int.unsign.32:
-    var $n: int.unsign.32 = $x;
-    var $count: int.unsign.32 = 0;
+    var $n: int.unsign.32 := $x;
+    var $count: int.unsign.32 := 0;
     while $n greater_than 0:
-        change $count = $count plus ($n and.bit 1);
-        change $n = $n shr 1;
+        change $count to $count plus ($n and.bit 1);
+        change $n to $n shr 1;
     end of while
     ret $count;
 end of fn popcount
 
 # 16 bytes at once: is every byte ASCII (below 128)?
 fn all_ascii [lent $bytes: arr[int.unsign.8]] -> bool:
-    let $v: simd[int.unsign.8, count: 16] = simd.load(lend $bytes, pos: 1);
+    let $v: simd[int.unsign.8, count: 16] := simd.load(lend $bytes, pos: 1);
     ret simd.all($v less_than simd.fill(value: 128));
 end of fn all_ascii
 
@@ -47,7 +47,7 @@ end of fn all_ascii
     !no_check let $third := ptr.read(ptr.at($raw, by: 2));
     !no_check free($raw);
 
-    let $text: arr[int.unsign.8] = [104, 101, 108, 108, 111, 44, 32, 108, 111, 119, 32, 108, 101, 118, 101, 108];
+    let $text: arr[int.unsign.8] := [104, 101, 108, 108, 111, 44, 32, 108, 111, 119, 32, 108, 101, 118, 101, 108];
     let $msg := "straight to fd 1 via write(2)";
     !no_check let $n := write(1, lend $msg, std::str.bytes(lend $msg));
 

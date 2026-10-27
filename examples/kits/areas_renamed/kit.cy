@@ -2,7 +2,7 @@
 # `kit.areas2.prefix = shapes` (owner, 2026-09-30); `my.` here is this kit's root.
 
 
-pub const $pi: float.bin.64 = 3.14159;
+pub const $pi: float.bin.64 := 3.14159;
 
 pub rec Circle:
     var radius: float.bin.64;

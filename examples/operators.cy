@@ -16,8 +16,8 @@ end of op dot
 
 # operands are lent unless the op says give; then the caller says give too
 op <*> [give $a: Vec, $b: float.bin.64] -> Vec:
-    change $a.x = $a.x times $b;
-    change $a.y = $a.y times $b;
+    change $a.x to $a.x times $b;
+    change $a.y to $a.y times $b;
     ret give $a;
 end of op <*>
 

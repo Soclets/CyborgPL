@@ -4,7 +4,7 @@ union.tag S:
     b;
 end of union.tag S
 !MAIN:
-    let $x: int.sign.32 = match S.a:
+    let $x: int.sign.32 := match S.a:
         case a:
             gives 1;
         end of case a

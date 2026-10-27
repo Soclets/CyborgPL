@@ -7,8 +7,8 @@ fn fetch [lent $url: str.utf8] -> str.utf8 or fail[no_network]:
 end of fn fetch
 
 !MAIN:
-    let $inbox: %channel[str.utf8][max: 10] = %channel.empty;
-    let $shutdown: %channel[bool] = %channel.empty;
+    let $inbox: %channel[str.utf8][max: 10] := %channel.empty;
+    let $shutdown: %channel[bool] := %channel.empty;
     %spawn.task with [lend $inbox]:
         %channel.send(lend $inbox, value: "first"); %channel.send(lend $inbox, value: "second");
     end of %spawn.task

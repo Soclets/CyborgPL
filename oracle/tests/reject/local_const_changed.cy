@@ -1,4 +1,4 @@
 !MAIN:
     const $r := 3;
-    change $r = 4;
+    change $r to 4;
 !end of MAIN

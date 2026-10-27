@@ -243,7 +243,7 @@ design claude's recommendation with a, not asked separately.
 %extern.C var $lib_verbose: int.sign.32;    # C: extern int lib_verbose;   may be written
 
 !no_check let $v := $lib_version;       # reading C's variable is a no_check site
-!no_check change $lib_verbose = 1;              # so is writing one
+!no_check change $lib_verbose to 1;              # so is writing one
 ```
 
 A C library's variables, named the way `extern.C fn` names its functions.
@@ -421,14 +421,14 @@ incl.%C.system["stdio.h"];                                        # printf comes
     f: float.bin.32;
 end of union Number        # one of them at a time; C knows which
 !no_check let $x := $n.i;                          # reading a field: on your word, listed in the build report
-change $n.f = 1.5;                                 # writing: always safe
+change $n.f to 1.5;                                 # writing: always safe
 
 %layout.C rec Status:
     var mode: int.unsign.8[bits: 3];
     var ready: bool[bits: 1];
     var level: int.unsign.8[bits: 4];
 end of rec Status
-change $s.mode = 5;                                # checked to fit: 3 bits hold 0 to 7
+change $s.mode to 5;                                # checked to fit: 3 bits hold 0 to 7
 ```
 
 - A union's read is a `no_check` site (owner: a); a write needs nothing.

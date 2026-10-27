@@ -2,6 +2,6 @@
 # shit in one line, it should", then "Yes"); one alone may go bare or in brackets.
 use [std::print.shortest as printu, std::ls as ls, std::str.join as join];
 !MAIN:
-    let $xs: ls[str.utf8] = ["a", "b"];
+    let $xs: ls[str.utf8] := ["a", "b"];
     printu(join(lend $xs, between: "+"), newln);
 !end of MAIN

@@ -11,7 +11,7 @@ coll.fn greet:
         end of if
         var $out := str.empty;
         for $i [from: 1, to: $times, by: 1]:
-            change $out = $out concat $word concat ", ";
+            change $out to $out concat $word concat ", ";
         end of for
         ret $out concat $who;
     end of member greet

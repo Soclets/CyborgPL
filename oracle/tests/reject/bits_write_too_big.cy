@@ -4,5 +4,5 @@ end of rec S
 
 !MAIN:
     var $s := S[mode = 1];
-    change $s.mode = 8;
+    change $s.mode to 8;
 !end of MAIN

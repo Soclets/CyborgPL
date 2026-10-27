@@ -2,7 +2,7 @@
 !MAIN:
     let $name := "Ann";
     let $count := 6;
-    let $x: float.bin.64 = 0.1;
+    let $x: float.bin.64 := 0.1;
 
     # print: any values, each in its stored form, nothing between
     std::print.stored("x is ", $x, newln);

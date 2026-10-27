@@ -54,16 +54,16 @@ coll.fn area:
 end of coll.fn area
 
 !MAIN:
-    let $n: int.sign.64 = 7;
-    let $x: float.bin.64 = 2.5;
+    let $n: int.sign.64 := 7;
+    let $x: float.bin.64 := 2.5;
     let $name := "Ann";
     std::print.shortest(describe($n), newln);
     std::print.shortest(describe($x), newln);
     std::print.shortest(describe(lend $name), newln);
     std::print.shortest(area.rect(3), " ", area.rect(3, 4), newln);
-    let $small: int.sign.16 = 5;
-    let $half: float.bin.32 = 0.5;
-    let $y: float.bin.64 = 2.5;
+    let $small: int.sign.16 := 5;
+    let $half: float.bin.32 := 0.5;
+    let $y: float.bin.64 := 2.5;
     std::print.shortest(which(0.0 minus $y), " ", which(neg $half), " ", which(($half times 2.0)), newln);
     std::print.shortest(width($small), ", ", width($n), ", ", width($half), ", ", width($x), ", ", width(2.5: float.bin.32), newln);
 !end of MAIN

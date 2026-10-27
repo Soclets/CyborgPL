@@ -1,4 +1,4 @@
 # every piece a limb adds is marked `%` (owner, 2026-10-26)
 !MAIN:
-    let $x: float.deci.64 = 1.5;
+    let $x: float.deci.64 := 1.5;
 !end of MAIN

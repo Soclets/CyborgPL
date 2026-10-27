@@ -5,7 +5,7 @@
 !MAIN:
     !no_check let $v := $lib_version;
     std::print.shortest("version ", $v, newln);
-    !no_check change $lib_verbose = 1;
+    !no_check change $lib_verbose to 1;
     !no_check let $on := $lib_verbose;
     std::print.shortest("verbose ", $on, newln);
 !end of MAIN

@@ -119,8 +119,8 @@ word in front of a statement, covering every check site inside it. A `{ }`
 block is a statement, so a region is `check { … }` with no second rule.
 
 ```
-check change $xs[$i] = $total plus $score;     # prove: index in range, add fits
-!no_check change $hash = $hash times 31 plus $c;          # I want the wrap; on my word
+check change $xs[$i] to $total plus $score;     # prove: index in range, add fits
+!no_check change $hash to $hash times 31 plus $c;          # I want the wrap; on my word
 check:
     for $i [from: 1, to: $n, by: 1]:
         …

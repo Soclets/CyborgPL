@@ -5,8 +5,8 @@ end of fn fetch
 
 !MAIN:
     # Each task sends on its own channel, so the pages print in the same order whichever finishes first.
-    let $from_a: %channel[str.utf8] = %channel.empty;
-    let $from_b: %channel[str.utf8] = %channel.empty;
+    let $from_a: %channel[str.utf8] := %channel.empty;
+    let $from_b: %channel[str.utf8] := %channel.empty;
     let $a := "a.com";
     %spawn.task with [lend $from_a, give $a]:
         %channel.send(lend $from_a, value: fetch(lend $a));

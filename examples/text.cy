@@ -9,7 +9,7 @@
     var $vowels := 0;
     for $g in std::str.each.cluster(lend $s):
         if $g eq `o` or $g eq `e`:
-            change $vowels = $vowels plus 1;
+            change $vowels to $vowels plus 1;
         end of if
     end of for
     std::print.shortest($vowels, " vowels", newln);

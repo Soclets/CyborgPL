@@ -10,7 +10,7 @@ end of proc loud
     let $ok := loud("first", false) and loud("second", true);    # both print
     std::print.shortest($ok, newln);
     let $xs := [3, 5, 8];
-    let $i: int.unsign.64 = 7;
+    let $i: int.unsign.64 := 7;
     if $i at_most std::ls.len(lend $xs):
         if $xs[pos: $i] eq 5:
             std::print.shortest("found", newln);

@@ -6,9 +6,9 @@
 !MAIN:
     let $name := "rope";
     let $count := 3;
-    let $price: float.bin.64 = 12.5;
-    let $pay: float.%deci.64 = 37.5 times 12.40;
-    let $tenth: float.bin.64 = 0.1;
+    let $price: float.bin.64 := 12.5;
+    let $pay: float.%deci.64 := 37.5 times 12.40;
+    let $tenth: float.bin.64 := 0.1;
     std::print.format("{}: {} at ${places: 2}, 50% off{newln}", $name, $count, $price);
     std::print.format("pay ${places: 2}, readable {}, stored {form: stored}{newln}", $pay, $pay, $pay);
     std::print.format("tenth {} is really {form: stored}{newln}", $tenth, $tenth);

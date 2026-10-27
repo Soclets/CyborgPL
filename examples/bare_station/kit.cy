@@ -42,12 +42,12 @@ end of module board
 
 const $log := incl.bytes["data/log.txt"];
 
-const $newline: int.unsign.8 = 10;
-const $space: int.unsign.8 = 32;
-const $hash: int.unsign.8 = 35;
-const $minus: int.unsign.8 = 45;
-const $zero: int.unsign.8 = 48;
-const $nine: int.unsign.8 = 57;
+const $newline: int.unsign.8 := 10;
+const $space: int.unsign.8 := 32;
+const $hash: int.unsign.8 := 35;
+const $minus: int.unsign.8 := 45;
+const $zero: int.unsign.8 := 48;
+const $nine: int.unsign.8 := 57;
 
 # A temperature in tenths of a degree Celsius, as far as the sensor reads: -50.0 to 60.0.
 coll.bounded temp:
@@ -55,7 +55,7 @@ coll.bounded temp:
 end of coll.bounded temp
 
 # A day is 24 hourly readings, so every count and sum of one has a bound the prover can see.
-const $hours: int.sign.32 = 24;
+const $hours: int.sign.32 := 24;
 coll.bounded day:
     day.hour = int.sign.32[min: 0, max: 23];
     day.count = int.sign.32[min: 0, max: 24];
@@ -74,7 +74,7 @@ end of rec Cursor
 proc next_reading [lent.mut $c: Cursor] -> temp or fail[done, bad_byte: int.unsign.64]:
     let $n := arr.len($log);
     var $at := $c.at;
-    var $first: int.unsign.8 = 0;
+    var $first: int.unsign.8 := 0;
     loop:
         if $at greater_than $n:
             fail done;
@@ -82,21 +82,21 @@ proc next_reading [lent.mut $c: Cursor] -> temp or fail[done, bad_byte: int.unsi
         let $b := $log[pos: $at];
         if $b eq $hash:
             while $at at_most $n and.then $log[pos: $at] not_eq $newline:
-                change $at = $at plus 1;
+                change $at to $at plus 1;
             end of while
             continue;
         end of if
         if $b eq $newline or $b eq $space:
-            change $at = $at plus 1; continue;
+            change $at to $at plus 1; continue;
         end of if
-        change $first = $b;
+        change $first to $b;
         break;
     end of loop
     let $negative := $first eq $minus;
     if $negative:
-        change $at = $at plus 1;
+        change $at to $at plus 1;
     end of if
-    var $value: int.sign.32 = 0;
+    var $value: int.sign.32 := 0;
     while $at at_most $n and.then $log[pos: $at] not_eq $newline:
         let $b := $log[pos: $at];
         if $b less_than $zero:
@@ -108,12 +108,12 @@ proc next_reading [lent.mut $c: Cursor] -> temp or fail[done, bad_byte: int.unsi
         if $value greater_than 600:
             fail bad_byte[$at];
         end of if
-        change $value = $value times 10 plus to.int.sign.32($b minus $zero);
-        change $at = $at plus 1;
+        change $value to $value times 10 plus to.int.sign.32($b minus $zero);
+        change $at to $at plus 1;
     end of while
-    change $c.at = $at;
+    change $c.at to $at;
     if $negative:
-        change $value = neg $value;
+        change $value to neg $value;
     end of if
     if $value less_than neg 500:
         fail bad_byte[$at];
@@ -121,7 +121,7 @@ proc next_reading [lent.mut $c: Cursor] -> temp or fail[done, bad_byte: int.unsi
     if $value greater_than 600:
         fail bad_byte[$at];
     end of if
-    let $t: temp = $value;
+    let $t: temp := $value;
     ret $t;
 end of proc next_reading
 
@@ -142,15 +142,15 @@ end of proc log_ends
 # The CRC-32 of the whole log (the one zlib and PNG use, reflected, polynomial 0xEDB8_8320), bit by bit: no table,
 # so no memory beyond the program's own.
 fn crc32 [] -> int.unsign.32:
-    var $crc: int.unsign.32 = hex FFFF_FFFF;
+    var $crc: int.unsign.32 := hex FFFF_FFFF;
     for $i [from: 1, to: arr.len($log), by: 1]:
-        change $crc = $crc xor to.int.unsign.32($log[pos: $i]);
+        change $crc to $crc xor to.int.unsign.32($log[pos: $i]);
         for $k [from: 1, to: 8, by: 1]:
             if ($crc and.bit 1) eq 1:
-                change $crc = ($crc shr 1) xor hex EDB8_8320;
+                change $crc to ($crc shr 1) xor hex EDB8_8320;
             end of if
             else:
-                change $crc = $crc shr 1;
+                change $crc to $crc shr 1;
             end of else
         end of for
     end of for
@@ -166,7 +166,7 @@ proc show_tenths [let $t: day.tenths]:
     var $a := $t;
     if $t less_than 0:
         std::print.shortest("-");
-        change $a = neg $t;
+        change $a to neg $t;
     end of if
     std::print.shortest($a div.floor 10, ".", $a mod.floor 10);
 end of proc show_tenths
@@ -294,17 +294,17 @@ end of rec Day
 
 proc read_day [] -> Day:
     var $c := Cursor[at = 1];
-    var $sum: day.sum = 0;
-    var $low: temp = 600;
-    var $low_hour: day.hour = 0;
-    var $high: temp = neg 500;
-    var $high_hour: day.hour = 0;
-    var $rise: day.step = 0;
-    var $rise_hour: day.hour = 1;
-    var $warm: day.count = 0;
-    var $hot: day.count = 0;
-    var $changes: day.count = 0;
-    var $prev: temp = 0;
+    var $sum: day.sum := 0;
+    var $low: temp := 600;
+    var $low_hour: day.hour := 0;
+    var $high: temp := neg 500;
+    var $high_hour: day.hour := 0;
+    var $rise: day.step := 0;
+    var $rise_hour: day.hour := 1;
+    var $warm: day.count := 0;
+    var $hot: day.count := 0;
+    var $changes: day.count := 0;
+    var $prev: temp := 0;
     var $alarm := Alarm.calm;
     std::print.shortest("alarm:  ");
     show_alarm(copy $alarm);
@@ -321,34 +321,34 @@ proc read_day [] -> Day:
             end of case bad_byte
         end of otherwise;
         if $t less_than $low:
-            change $low = $t; change $low_hour = $hour;
+            change $low to $t; change $low_hour to $hour;
         end of if
         if $t greater_than $high:
-            change $high = $t; change $high_hour = $hour;
+            change $high to $t; change $high_hour to $hour;
         end of if
         if $hour greater_than 0:
             let $step := $t minus $prev;
             if larger($step, neg $step) greater_than larger($rise, neg $rise):
-                change $rise = $step; change $rise_hour = $hour;
+                change $rise to $step; change $rise_hour to $hour;
             end of if
         end of if
         let $now := alarm_for($t);
         if rank(copy $now) at_least 1:
-            change $warm = $warm plus 1;
+            change $warm to $warm plus 1;
         end of if
         if rank(copy $now) eq 2:
-            change $hot = $hot plus 1;
+            change $hot to $hot plus 1;
         end of if
         if rank(copy $now) not_eq rank(copy $alarm):
             std::print.shortest(" -> ");
             show_alarm(copy $now);
             std::print.shortest(" at ");
             show_hour($hour);
-            change $changes = $changes plus 1;
-            change $alarm = copy $now;
+            change $changes to $changes plus 1;
+            change $alarm to copy $now;
         end of if
-        change $sum = $sum plus $t;
-        change $prev = $t;
+        change $sum to $sum plus $t;
+        change $prev to $t;
     end of for
     std::print.shortest(newln);
     # a day is exactly its readings: one more would be another day's
@@ -362,9 +362,9 @@ end of proc read_day
 # A status word for a control panel, four bytes from the top: readings, warm hours, hot hours, alarm changes.
 fn status_word [lent $d: Day] -> int.unsign.32:
     var $w := to.int.unsign.32($hours) shl 24;
-    change $w = $w or.bit (to.int.unsign.32($d.warm_hours) shl 16);
-    change $w = $w or.bit (to.int.unsign.32($d.hot_hours) shl 8);
-    change $w = $w or.bit to.int.unsign.32($d.changes);
+    change $w to $w or.bit (to.int.unsign.32($d.warm_hours) shl 16);
+    change $w to $w or.bit (to.int.unsign.32($d.hot_hours) shl 8);
+    change $w to $w or.bit to.int.unsign.32($d.changes);
     ret $w;
 end of fn status_word
 
