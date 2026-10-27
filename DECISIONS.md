@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): `?` is `practical_concise`'s `otherwise fail`, only where that can go (owner: (a))
+
+The owner: "What about adding Rust's `?` to concise". Design claude: it is exactly `otherwise fail;` (pass the failure up
+unchanged, 2026-09-19), so it has its `words` twin already; the enclosing function still lists what it passes up. Asked
+where it may stand, (a) only where `otherwise fail` can (ending a call that is the whole statement or right-hand side, the
+rule against a failing call buried in an expression) or (b) anywhere in an expression as in Rust (`a()?.b()? + 1`, which
+its twin could not say), design claude recommending (a). The owner: "(a)". So, exploring: **`let $km :=
+parse_km(lend $row)?;`**, under `words` **`let $km := parse_km(lend $row) otherwise fail;`**.
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): the `words` style closes with `end of`; `*` has no word (owner)
 
 Shown a sample of the redesign so far ("Let me see it currently, so far (not literally)"), its `words` version still
