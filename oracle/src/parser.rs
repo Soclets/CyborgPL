@@ -4998,6 +4998,8 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
 
     fn validate(&self, e: &Expr) -> PResult<()> {
         let bad = |line: usize, msg: String| Err(ParseError { line, col: 0, msg });
+        // an operator as the writer spells it today (redesign two, 2026-10-27), not the parser's internal name
+        let said = |o: &str| -> String { match o { "x" => "times", "xx" => "pow", "+" => "plus", "-" => "minus", "<" => "lt", ">" => "gt", "equal_to" => "eq", "not_equal" => "not_eq", other => other }.to_string() };
         match e {
             Expr::Binary(op, l, r, line) => {
                 let is_cmp = |o: &str| matches!(o, "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least");
@@ -5005,19 +5007,19 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
                     match child {
                         Expr::Binary(cop, ..) => {
                             if cop.starts_with("mod") || op.starts_with("mod") {
-                                return bad(*line, format!("`{cop}` next to `{op}`: mathematics has no settled reading for mod beside another operator — parenthesise"));
+                                return bad(*line, format!("`{}` next to `{}`: mathematics has no settled reading for mod beside another operator — parenthesise", said(cop), said(op)));
                             }
                             let muly = |o: &str| o == "x" || o.starts_with("div.") || o.starts_with("mod.");
                             let both_mul = muly(op) && muly(cop);
                             if both_mul && !(op == "x" && cop == "x") {
-                                return bad(*line, format!("`{cop}` next to `{op}`: mathematics has no settled reading here (6 div 2 x 3, or anything with mod) — parenthesise one side"));
+                                return bad(*line, format!("`{}` next to `{}`: mathematics has no settled reading here (6 div.floor 2 times 3, or anything with mod) — parenthesise one side", said(cop), said(op)));
                             }
                             if is_cmp(op) && is_cmp(cop) {
-                                return bad(*line, format!("`{cop}` next to `{op}`: comparisons do not chain — write `[(a {cop} b) and (b {op} c)]`, or parenthesise"));
+                                return bad(*line, format!("`{}` next to `{}`: comparisons do not chain — write `($a {} $b) and ($b {} $c)`, or parenthesise", said(cop), said(op), said(cop), said(op)));
                             }
                         }
                         Expr::Unary(u, ..) if u == "not" && is_cmp(op) => {
-                            return bad(*line, "`not` next to a comparison: no settled reading — write `[not (a == b)]` or `[(not a) == b]`".into());
+                            return bad(*line, "`not` next to a comparison: no settled reading — write `not ($a eq $b)` or `(not $a) eq $b`".into());
                         }
                         _ => {}
                     }
