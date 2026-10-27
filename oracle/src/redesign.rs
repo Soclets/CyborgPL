@@ -623,8 +623,9 @@ fn fn_kind(info: Option<&Info>, line: usize, toks: &[Token], brace: usize) -> &'
 }
 
 /// A collection of functions is a `collection.procedure` when any member has an effect
-fn coll_kind(info: Option<&Info>, _line: usize, toks: &[Token], brace: usize) -> &'static str {
-    let _ = info;
+fn coll_kind(info: Option<&Info>, line: usize, toks: &[Token], brace: usize) -> &'static str {
+    // as written, when it was (redesign two): its members are checked as written too
+    if let Some(i) = info { if i.procedures.contains(&line) { return "procedure"; } if i.functions.contains(&line) { return "function"; } }
     if body_has_effect_word(toks, brace) { "procedure" } else { "function" }
 }
 
@@ -1281,6 +1282,10 @@ pub fn check_purity(prog: &ast::Program) -> Result<(), String> {
         let shown = f.name.clone();
         if f.is_extern { return Err(format!("line {}: `{shown}` is C's, reached by a `proc`: `%extern.C proc {shown} […]` (owner, 2026-10-27)", f.line)); }
         let (effect, called) = effects_of(f);
+        let member = MEMBERS.with(|m| m.borrow().iter().any(|(l, _)| *l == f.line));
+        if effect && member {
+            return Err(format!("line {}: the member `{shown}` is in a `coll.fn`, which has no effects, but it prints, reads, waits, starts a task, changes what it was lent, or reaches C or another language: make the collection a `coll.proc` (owner, 2026-10-27)", f.line));
+        }
         if effect {
             return Err(format!("line {}: `{shown}` is a `fn`, which has no effects, but it prints, reads, waits, starts a task, changes what it was lent, or reaches C or another language: make it a `proc` (owner, 2026-10-27)", f.line));
         }
@@ -2566,6 +2571,7 @@ fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
     let mut depth = 0i32;
     let mut i = 0;
     // the word each path segment was written as, so the next reads it
+    let mut coll_kind: Option<bool> = None;
     let mut seg_before = String::new();
     while i < n {
         let t = &toks[i];
@@ -2585,10 +2591,20 @@ fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
         // a definition's `:=` with a type, a change's `to`: the parser's `=`
         if let Some(sign) = signs.get(&i) { out.push(tok_like(sign.clone(), t)); i += 1; continue; }
         // a collection's member line, `member greet.loud […]:` (owner, 2026-10-27): the word read and taken out
+        // the kind a collection's members take: `coll.fn` or `coll.proc` (owner, 2026-10-27: checked as any `fn` / `proc`)
+        if matches!(&t.tok, Tok::Word(c) if c == "coll") && toks.get(i + 1).is_some_and(|x| x.tok == Tok::Dot) {
+            coll_kind = match toks.get(i + 2).map(|x| &x.tok) { Some(Tok::Word(k)) if k == "fn" => Some(false), Some(Tok::Word(k)) if k == "proc" => Some(true), _ => None };
+            if let Some(p) = coll_kind { WRITTEN_KINDS.with(|k| { k.borrow_mut().insert(t.line, p); }); }
+        }
         if matches!(&t.tok, Tok::Word(m) if m == "member") && (starts_line || matches!(toks.get(i.wrapping_sub(1)).map(|x| &x.tok), Some(Tok::Semi)))
             && matches!(toks.get(i + 1).map(|x| &x.tok), Some(Tok::Word(_) | Tok::LBracket)) {
             let nx = &toks[i + 1];
             MEMBERS.with(|m| m.borrow_mut().insert((nx.line, nx.col)));
+            if let Some(p) = coll_kind {
+                let module = LEX_MODULE.with(|m| m.borrow().clone());
+                KINDS_BY_MODULE.with(|k| { k.borrow_mut().insert((module, nx.line), p); });
+                WRITTEN_KINDS.with(|k| { k.borrow_mut().insert(nx.line, p); });
+            }
             i += 1;
             continue;
         }
