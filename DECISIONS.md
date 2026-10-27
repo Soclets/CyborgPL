@@ -34,6 +34,12 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: a block alone, for its own scope, is `block:` … `end of block` (owner)
+
+A `{ … }` standing alone, to give a few lines their own variables, had no spelling once blocks became words; the build
+used `block:` … `end of block` (design claude's pick). Shown it ("what", then simpler), with `scope` as the other choice,
+the owner: "yes". So **`block:` … `end of block`**. Already built.
+
 ### 2026-10-27 — Redesign two: every field of a record says `let` or `var` (owner)
 
 A field that never changes had been `immut number: i32`; the build read it as `let number: …;` (design claude's pick).

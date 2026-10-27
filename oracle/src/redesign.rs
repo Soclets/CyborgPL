@@ -568,7 +568,7 @@ fn describe(toks: &[Token], start: usize, brace: usize, text: &dyn Fn(&Token) ->
                 o.close = "named".into();
                 return o;
             }
-            // a bare `{ … }`: PROVISIONAL, `block:` … `end of block`
+            // a bare `{ … }`: `block:` … `end of block` (owner, 2026-10-27: "yes")
             o.close = if rest.is_empty() || matches!(&rest[0].tok, Tok::Word(b) if b == "block") { "block".into() } else { text(rest[0]) };
             o.bare = rest.is_empty();
         }
@@ -1497,7 +1497,7 @@ fn words_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     "collection" if toks.get(i + 1).is_some_and(|x| x.tok == Tok::Dot) => out.push(word_tok("coll", t)),
                     "include" if toks.get(i + 1).is_some_and(|x| x.tok == Tok::Dot) => out.push(word_tok("incl", t)),
                     "incl" if toks.get(i + 1).is_some_and(|x| x.tok == Tok::Dot) => return fault("`incl.` is an old spelling: write `include.` (owner, 2026-10-27)".into()),
-                    // a bare block's word, `block:` (PROVISIONAL)
+                    // a bare block's word, `block:` (owner, 2026-10-27)
                     "block" if toks.get(i + 1).is_some_and(|x| x.tok == Tok::Colon) && toks.get(i + 2).map_or(true, |x| x.line > toks[i + 1].line) && (i == 0 || toks[i - 1].line < t.line) => {}
                     "mut" if out.iter().rev().take(4).any(|x| matches!(&x.tok, Tok::Word(e) if e == "extern")) => return fault("`mut` is an old spelling: a C variable written to is `%external.C variable $x: C.int;` (owner, 2026-10-27)".into()),
                     "negative" if matches!(toks.get(i + 1).map(|x| &x.tok), Some(Tok::Int(_) | Tok::Bin(..) | Tok::BigInt(_) | Tok::PercentLit(..))) => out.push(tok_like(Tok::Op("-".into()), t)),
