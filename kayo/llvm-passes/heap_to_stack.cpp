@@ -9,8 +9,9 @@
 // "Never leaves" is read from every use of the pointer, through the
 // addresses made from it: loads from it and stores into it, copies and
 // fills of it, the runtime's `cyborg_out_*` (which read bytes out and keep
-// nothing), and the one `cyborg_free` of it. Anything else — stored as a
-// value, passed to another function, returned, compared, joined in a phi —
+// nothing), the program's own functions it is lent to that LLVM found keep
+// nothing of it, and the one `cyborg_free` of it. Anything else — stored as
+// a value, passed to anything else, returned, compared, joined in a phi —
 // and it stays on the heap.
 //
 // And a text's free whose length says it was never allocated (the `STATIC`
@@ -43,6 +44,28 @@ constexpr uint64_t STATIC = uint64_t(1) << 63;
 bool calls(const CallBase *cb, StringRef name) {
     const Function *callee = cb->getCalledFunction();
     return callee && callee->getName() == name;
+}
+
+/// Whether `cb` hands `v` only to parameters of a function defined here
+/// that LLVM has found keep nothing of it (`captures(none)`): a lent array,
+/// `ba_sum5(lend $ar5)`. Freeing it would be keeping it, so such a callee
+/// never frees it either.
+bool lent_only(const CallBase *cb, const Value *v) {
+    const Function *callee = cb->getCalledFunction();
+    if (!callee || callee->isDeclaration()) {
+        return false;
+    }
+    bool handed = false;
+    for (unsigned i = 0; i < cb->arg_size(); i++) {
+        if (cb->getArgOperand(i) != v) {
+            continue;
+        }
+        if (!cb->doesNotCapture(i)) {
+            return false;
+        }
+        handed = true;
+    }
+    return handed;
 }
 
 /// Whether every use of `p`, and of every address made from it, keeps it
@@ -85,6 +108,9 @@ bool stays(Value *p, std::vector<CallBase *> &frees) {
                 } else if (cb->getCalledFunction() && cb->getCalledFunction()->getName().starts_with("cyborg_out_")) {
                     // Bytes read out of it into a print; the pointer is not kept.
                 } else if (auto *ii = dyn_cast<IntrinsicInst>(cb); ii && ii->isLifetimeStartOrEnd()) {
+                } else if (lent_only(cb, v)) {
+                    // Lent to one of the program's own functions, which
+                    // keeps nothing of it.
                 } else {
                     return false;
                 }

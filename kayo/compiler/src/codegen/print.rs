@@ -245,7 +245,7 @@ impl<'ctx> Cg<'_, 'ctx> {
             // runtime's `BARE_SCRATCH`), which a number, a truth or one
             // character never fills; text and collections, which can, are
             // not built there yet.
-            if crate::target::bare() && !matches!(ty.base(), Ty::Int(_) | Ty::Bin(BinW::Fixed(16 | 32 | 64) | BinW::Free(_)) | Ty::Deci(_) | Ty::Brain | Ty::Bool | Ty::Char(Unit::Point)) {
+            if crate::target::bare() && !matches!(ty.base(), Ty::Int(_) | Ty::Bin(BinW::Fixed(16 | 32 | 64) | BinW::Free(_)) | Ty::Deci(_) | Ty::Brain | Ty::Bool | Ty::Char(Unit::Point | Unit::Byte)) {
                 self.cannot("a format hole holding text, a collection or a wide `bin` with no OS is not built yet: numbers, truths and characters are", None);
                 return None;
             }

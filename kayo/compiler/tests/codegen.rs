@@ -694,7 +694,7 @@ fn bare_metal_runs_in_qemu() {
         assert!(ended, "{}'s `std::exit` did not power QEMU off; it printed:\n{}", name, printed);
         let want = if name == "fixed_values" {
             // A fixed array, a text literal and format holes, with no heap.
-            "7 [5, 7, 9, 1]\nabc 5\n0000beef 2.50|true |\n".to_string()
+            "7 [5, 7, 9, 1]\nabc 5\n0000beef 2.50|true |\n9516 a|a  |\n".to_string()
         } else {
             format!("hello from a bare chip\nPoint[x = 3, y = -4] 0.1 42\n0.1000000000000000055511151231257827021181583404541015625\n{}", if name == "uses_board" { "4 7\n" } else { "" })
         };
