@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): `change $total += …`, the short form of `change $total to $total + …` (owner: (a))
+
+Shown the redesign beside Swift (design claude's sample first passed a record, a tagged union and text bare; the owner:
+"Where's `lent`?", and it was corrected to `fare(lend $t, copy $r.age)`, `lent $who`), the owner: "How would `+=` look
+like in CyPL?" Offered (a) `change $total += fare(…);`, keeping `change`, or (b) `$total += fare(…);` as in C, Swift and
+Rust, each a short form of `change $total to $total plus fare(…)`; the family following the chosen symbols, `+=`, `-=`,
+`x=`, `^=`, `++=`; design claude recommended (a): every change to a value starts with `change`, so one search finds them
+all and the left edge shows them. The owner: "(a)". So, exploring: **`change $total += fare(lend $t, copy $r.age);`**,
+under `words` `change $total to $total plus fare(…);`.
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): `??` is `practical_concise`'s `otherwise <value>` (owner)
 
 Asked whether `otherwise <value>` gets a short form too, the owner: "Where is it used?" Design claude counted the
