@@ -102,8 +102,8 @@ fn read_templates(src: &str, lines_at: &[usize]) -> Result<Vec<Template>, String
 
 fn is_type(item: &str) -> bool {
     let w = item.trim_start_matches('%').split(['[', '.']).next().unwrap_or("");
-    // the types by their names since 2026-10-27: `integer.signed.32_bit`, `float.binary.64_bit`, `boolean`, `string.utf8`
-    ["boolean", "string", "character", "C", "list", "array", "map", "pointer", "integer", "float", "std"].contains(&w)
+    // the types by their names since redesign two (2026-10-27): `int.sign.32`, `float.bin.64`, `bool`, `str.utf8`
+    ["bool", "str", "char", "C", "ls", "arr", "map", "ptr", "int", "float", "std"].contains(&w)
         || w.starts_with(|c: char| c.is_ascii_uppercase())
 }
 
@@ -165,9 +165,9 @@ fn expected(prog: &mut crate::ast::Program) -> Result<Vec<(usize, Vec<(Template,
                 let fname = format!("generated_name_{k}");
                 k += 1;
                 let src_fn = if is_type(v) {
-                    format!("function {fname} [] -> string.utf8:\n    return {};\nend of function {fname}\n", put(&t.named, &t.var, &format!("\"{v}\"")))
+                    format!("fn {fname} [] -> str.utf8:\n    ret {};\nend of fn {fname}\n", put(&t.named, &t.var, &format!("\"{v}\"")))
                 } else {
-                    format!("function {fname} [] -> string.utf8:\n    let ${} := {v};\n    return {};\nend of function {fname}\n", t.var, t.named)
+                    format!("fn {fname} [] -> str.utf8:\n    let ${} := {v};\n    ret {};\nend of fn {fname}\n", t.var, t.named)
                 };
                 let toks = crate::lexer::lex(&src_fn).map_err(|e| format!("{}: line {}: the `named` line: {}", path.display(), t.for_line, e.msg))?;
                 let part = crate::parser::Parser::new_in_kit(toks, module.clone(), root.clone()).program().map_err(|e| format!("{}: line {}: the `named` line: {}", path.display(), t.for_line, e.msg))?;

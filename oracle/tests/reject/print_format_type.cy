@@ -1,3 +1,3 @@
 !MAIN:
-    std::print.format("{base: hexadecimal}{newline}", "text");
+    std::print.format("{base: hex}{newln}", "text");
 !end of MAIN

@@ -1,3 +1,3 @@
 !MAIN:
-    let $x: %not_std.integer.signed.32_bit = 1;
+    let $x: %not_std.int.sign.32 = 1;
 !end of MAIN

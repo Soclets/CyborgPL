@@ -1,4 +1,4 @@
 # `places:` counts digits after the point (owner, 2026-10-25)
 !MAIN:
-    std::print.format("{places: 2}{newline}", "abc");
+    std::print.format("{places: 2}{newln}", "abc");
 !end of MAIN

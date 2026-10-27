@@ -1,3 +1,3 @@
 !MAIN:
-    let $b: boolean = ! true;
+    let $b: bool = ! true;
 !end of MAIN

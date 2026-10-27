@@ -13,6 +13,8 @@ notes = os.path.join(repo, "design")
 # history, kept in the spellings of its day
 SKIP = {"revision-2026-10-07.md", "lilith-session.md", "synthia-session.md", "synthia-manifest.md", "rrx2-lang-session.md", "rrx2-tv-session.md"}
 write = "--write" in sys.argv
+# `--shorten`: blocks already in redesign one's spellings, into redesign two's (2026-10-27)
+shorten = "--shorten" in sys.argv
 fence = re.compile(r'^(```[a-z]*)\n(.*?)^```', re.S | re.M)
 def fields_and_counts(code):
     """A record's fields one per line, and each `#generated_N_lines_below` counting the lines under it now"""
@@ -55,10 +57,15 @@ for name in sorted(os.listdir(notes)):
         if lang in ("```", "```cy", "```cyborgpl") and looks_like_code:
             with tempfile.NamedTemporaryFile("w", suffix=".cy", delete=False) as f:
                 f.write(code)
-            r = subprocess.run([oracle, "--redesign-show", f.name], capture_output=True, text=True)
+            if shorten:
+                r = subprocess.run([oracle, "--redesign-shorten", f.name], capture_output=True, text=True)
+                shortened = open(f.name).read()
+            else:
+                r = subprocess.run([oracle, "--redesign-show", f.name], capture_output=True, text=True)
+                shortened = r.stdout
             os.unlink(f.name)
             if r.returncode == 0:
-                new = fields_and_counts(r.stdout)
+                new = fields_and_counts(shortened)
             else:
                 left.append(f"{name}: line {text[:m.start()].count(chr(10)) + 1}: {r.stderr.strip().split(': ', 1)[-1][:120]}")
         if new != code:

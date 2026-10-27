@@ -1,4 +1,4 @@
 !MAIN:
     let $s := "abc";
-    let $t := std::string.slice.byte(lend $s, from: position 1, to: position 2) otherwise string.empty;
+    let $t := std::str.slice.byte(lend $s, from: pos 1, to: pos 2) otherwise str.empty;
 !end of MAIN

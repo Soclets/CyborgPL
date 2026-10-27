@@ -1,5 +1,5 @@
-function f [] -> fail[why]:
+fn f [] -> fail[why]:
     fail why["x"];
-end of function f
+end of fn f
 !MAIN:
 !end of MAIN

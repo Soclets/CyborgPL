@@ -3,14 +3,14 @@
 # A bare `str.upper` is refused naming the three.
 !MAIN:
     let $s := "straße in istanbul, café";
-    std::print.shortest(std::string.uppercase.ascii(lend $s), newline);
-    std::print.shortest(std::string.uppercase.simple(lend $s), newline);
-    std::print.shortest(std::string.uppercase.full(lend $s), newline);
-    std::print.shortest(std::string.uppercase.full(lend $s, lang: std::casing.tr), newline);
+    std::print.shortest(std::str.upper.ascii(lend $s), newln);
+    std::print.shortest(std::str.upper.simple(lend $s), newln);
+    std::print.shortest(std::str.upper.full(lend $s), newln);
+    std::print.shortest(std::str.upper.full(lend $s, lang: std::casing.tr), newln);
     let $tag := "tr-TR";
     let $l := to.casing($tag);
     let $city := "ISTANBUL";
-    std::print.shortest(std::string.lowercase.full(lend $city, lang: lend $l), " ", std::string.lowercase.full(lend $city, lang: std::casing.root), newline);
+    std::print.shortest(std::str.lower.full(lend $city, lang: lend $l), " ", std::str.lower.full(lend $city, lang: std::casing.root), newln);
     let $shop := "CAFÉ";
-    std::print.shortest(std::string.lowercase.ascii(lend $shop), " ", std::string.lowercase.full(lend $shop), newline);
+    std::print.shortest(std::str.lower.ascii(lend $shop), " ", std::str.lower.full(lend $shop), newln);
 !end of MAIN

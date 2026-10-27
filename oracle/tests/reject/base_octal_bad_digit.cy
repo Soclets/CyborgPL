@@ -1,3 +1,3 @@
 !MAIN:
-    let $x := octal 8;
+    let $x := oct 8;
 !end of MAIN

@@ -2,17 +2,17 @@
 # literal right before it, as it covers only the name in `$x: u8`; a variable is converted with `to.…[…]`.
 !MAIN:
     # a shift's count gives nothing inside it a width, so the inner shift says its own
-    let $r: integer.signed.64_bit = to.integer.signed.64_bit(1) shift_left (5: integer.unsigned.8_bit shift_right 1);
-    std::print.shortest($r, newline);
-    let $a := 200: integer.unsigned.8_bit;
-    std::print.shortest($a plus 55, newline);
-    let $n := negative 128: integer.signed.8_bit;
-    std::print.shortest($n, newline);
-    std::print.shortest(3: integer.unsigned.8_bit times 2, newline);
-    let $d := exactly 0.1: float.%decimal.64_bit;
-    std::print.shortest($d plus exactly 0.2, newline);
-    let $small := exactly 2.5: float.%decimal.32_bit;
-    std::print.shortest($small, newline);
-    let $p := 5: integer.unsigned.64_bit[minimum: 1];
-    std::print.shortest($p, newline);
+    let $r: int.sign.64 = to.int.sign.64(1) shl (5: int.unsign.8 shr 1);
+    std::print.shortest($r, newln);
+    let $a := 200: int.unsign.8;
+    std::print.shortest($a plus 55, newln);
+    let $n := neg 128: int.sign.8;
+    std::print.shortest($n, newln);
+    std::print.shortest(3: int.unsign.8 times 2, newln);
+    let $d := exactly 0.1: float.%deci.64;
+    std::print.shortest($d plus exactly 0.2, newln);
+    let $small := exactly 2.5: float.%deci.32;
+    std::print.shortest($small, newln);
+    let $p := 5: int.unsign.64[min: 1];
+    std::print.shortest($p, newln);
 !end of MAIN

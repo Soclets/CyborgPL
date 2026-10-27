@@ -1,3 +1,3 @@
-use std::list.append;
+use std::ls.append;
 !MAIN:
 !end of MAIN

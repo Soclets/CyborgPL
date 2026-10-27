@@ -1,4 +1,4 @@
-%external.C $a: integer.signed.32_bit;
+%extern.C $a: int.sign.32;
 !MAIN:
     let $x := $a;
 !end of MAIN

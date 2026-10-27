@@ -50,8 +50,8 @@ A loop that is parallel-safe but must run in order for an external reason
 (writing lines to a file, driving a device) opts out with one word before the name (revised 2026-09-19; it was the chain segment `loop.temp.seq.for`):
 
 ```
-for sequential $line in lend $lines:
-    std::print.stored($line, newline);
+for seq $line in lend $lines:
+    std::print.stored($line, newln);
 end of for
 ```
 
@@ -73,13 +73,13 @@ until `para` joined it.
 ## No cheating: `no_cheat` (owner, 2026-10-01; any statement since 2026-10-18)
 
 ```
-no_skip for $i: integer.signed.64_bit [from: 1, to: $n, by: 1]:
+no_skip for $i: int.sign.64 [from: 1, to: $n, by: 1]:
     change $acc = $acc plus $i;
 end of for
-no_skip for sequential $i in lend $xs:
+no_skip for seq $i in lend $xs:
     …
 end of for
-no_skip for %parallel $i [from: 1, to: $n, by: 1]:
+no_skip for %para $i [from: 1, to: $n, by: 1]:
     …
 end of for
 ```

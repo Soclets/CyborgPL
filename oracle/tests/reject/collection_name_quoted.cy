@@ -1,4 +1,4 @@
-collection.function "cum":
-end of collection.function "cum"
+coll.fn "cum":
+end of coll.fn "cum"
 !MAIN:
 !end of MAIN

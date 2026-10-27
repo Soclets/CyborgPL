@@ -1,3 +1,3 @@
 !MAIN:
-    let $x: integer.signed.8_bit = 300;
+    let $x: int.sign.8 = 300;
 !end of MAIN

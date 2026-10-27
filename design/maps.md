@@ -6,13 +6,13 @@ Decided 2026-09-22, one question at a time. The third collection, beside
 `list` and `array` (`lists.md`): look a value up by a key.
 
 ```
-variable $phones: std::map[string.utf8, integer.signed.32_bit] = std::map.empty;
-std::map.set(lend.mutable $phones, key: "ann", value: 5551);                 # add, or replace an existing key's value
+var $phones: std::map[str.utf8, int.sign.32] = std::map.empty;
+std::map.set(lend.mut $phones, key: "ann", value: 5551);                 # add, or replace an existing key's value
 let $n := std::map.get(lend $phones, key: "ann") otherwise 0;    # a missing key is a failure
 if std::map.has(lend $phones, key: "bob"):
     …
 end of if
-let $v := std::map.remove(lend.mutable $phones, key: "bob") otherwise 0;   # hands the value back, like list.remove
+let $v := std::map.remove(lend.mut $phones, key: "bob") otherwise 0;   # hands the value back, like list.remove
 let $count := std::map.count(lend $phones);                # u64
 ```
 
@@ -23,7 +23,7 @@ only look at the key, so it may be lent:
 
 ```
 let $n := std::map.get(lend $phones, key: lend $name) otherwise 0;   # no copy of the text, nothing kept
-std::map.set(lend.mutable $phones, key: copy $name, value: 5551);        # the map keeps this one
+std::map.set(lend.mut $phones, key: copy $name, value: 5551);        # the map keeps this one
 ```
 
 Until then every operation took `set`'s rule (design claude's, 2026-09-22, never asked), so a lookup copied its key.
@@ -91,7 +91,7 @@ a compile error. Proposed alternatives: a list of two-element lists
 ## A count bound, and bounds inside (owner: yes)
 
 ```
-variable $small: std::map[string.utf8[minimum: 1, maximum: 3 bytes], integer.signed.32_bit[minimum: 0, maximum: 10]][minimum: 0, maximum: 2] = std::map.empty;
+var $small: std::map[str.utf8[min: 1, max: 3 bytes], int.sign.32[min: 0, max: 10]][min: 0, max: 2] = std::map.empty;
 ```
 
 `map[K, V][lo, hi]` bounds the number of entries, as `list[T][lo, hi]`

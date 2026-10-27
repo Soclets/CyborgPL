@@ -1,3 +1,3 @@
 !MAIN:
-    let $x := binary 102;
+    let $x := bin 102;
 !end of MAIN

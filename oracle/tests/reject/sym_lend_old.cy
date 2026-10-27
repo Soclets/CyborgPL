@@ -1,6 +1,6 @@
-function n [lent $s: string.utf8] -> integer.unsigned.64_bit:
-    return string.bytes[lend $s];
-end of function n
+fn n [lent $s: str.utf8] -> int.unsign.64:
+    ret str.bytes[lend $s];
+end of fn n
 !MAIN:
     let $h := "hi";
     let $k := n[&$h];

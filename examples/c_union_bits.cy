@@ -1,21 +1,21 @@
 # A C union holds one field at a time, and only C knows which: reading a field is `no_check`, writing is always
 # safe (owner, 2026-10-19). A bit-field is `bits N` in a `layout.C` field's bracket, holding what N bits hold.
 %layout.C union Number:
-    i: integer.signed.32_bit;
-    f: float.binary.32_bit;
+    i: int.sign.32;
+    f: float.bin.32;
 end of union Number
-%layout.C record Status:
-    mode: integer.unsigned.8_bit[bits: 3];
-    ready: boolean[bits: 1];
-    level: integer.signed.8_bit[bits: 4];
-end of record Status
+%layout.C rec Status:
+    mode: int.unsign.8[bits: 3];
+    ready: bool[bits: 1];
+    level: int.sign.8[bits: 4];
+end of rec Status
 
 !MAIN:
-    variable $n := Number[f = 1.0];
+    var $n := Number[f = 1.0];
     !no_check let $raw := $n.i;
     change $n.i = 7;
     !no_check let $back := $n.i;
-    variable $s := Status[mode = 5, ready = true, level = negative 8];
+    var $s := Status[mode = 5, ready = true, level = neg 8];
     change $s.mode = 7;
-    std::print.shortest($raw, " ", $back, " ", $s.mode, " ", $s.level, newline);
+    std::print.shortest($raw, " ", $back, " ", $s.mode, " ", $s.level, newln);
 !end of MAIN

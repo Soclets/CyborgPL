@@ -1,3 +1,3 @@
 !MAIN:
-    let $s: string.utf8[minimum: 1, maximum: 2 %grapheme_clusters] = "เกี่ยวข้อง";
+    let $s: str.utf8[min: 1, max: 2 %clusters] = "เกี่ยวข้อง";
 !end of MAIN

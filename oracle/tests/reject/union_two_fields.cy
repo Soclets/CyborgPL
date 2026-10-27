@@ -1,6 +1,6 @@
 %layout.C union Number:
-    i: integer.signed.32_bit;
-    f: float.binary.32_bit;
+    i: int.sign.32;
+    f: float.bin.32;
 end of union Number
 
 !MAIN:

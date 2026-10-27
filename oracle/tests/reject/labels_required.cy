@@ -1,9 +1,9 @@
-collection.function say:
+coll.fn say:
     labels [$t as value];
-    say [$n: integer.signed.32_bit, $t: integer.signed.32_bit] -> integer.signed.32_bit:
-        return $t;
+    say [$n: int.sign.32, $t: int.sign.32] -> int.sign.32:
+        ret $t;
     end of say
-end of collection.function say
+end of coll.fn say
 !MAIN:
     let $x := say(1);
 !end of MAIN

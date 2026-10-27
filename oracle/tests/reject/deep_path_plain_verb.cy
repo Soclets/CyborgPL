@@ -1,10 +1,10 @@
 # a plain value at the end of a path owns nothing, so it takes no verb
-record In:
-    k: integer.signed.32_bit;
-end of record In
-record Out:
+rec In:
+    k: int.sign.32;
+end of rec In
+rec Out:
     inn: In;
-end of record Out
+end of rec Out
 !MAIN:
     let $o := Out[inn = In[k = 1]];
     let $n := copy $o.inn.k;

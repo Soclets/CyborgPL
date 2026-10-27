@@ -1,1 +1,1 @@
-a shadow says whether it changes, as every declaration does: `let shadow $x := …;` or `variable shadow $x := …;`
+a shadow says whether it changes, as every declaration does: `let shadow $x := …;` or `var shadow $x := …;`

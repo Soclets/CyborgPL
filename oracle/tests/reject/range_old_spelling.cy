@@ -1,4 +1,4 @@
 !MAIN:
-    for $i in range.integer.signed.32_bit[minimum: 0, maximum: 3]:
+    for $i in range.int.sign.32[min: 0, max: 3]:
     end of for
 !end of MAIN

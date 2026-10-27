@@ -1,8 +1,8 @@
-union.tagged Status:
+union.tag Status:
     empty;
-    claimed: string.utf8;
-end of union.tagged Status
+    claimed: str.utf8;
+end of union.tag Status
 !MAIN:
     let $s := Status.empty;
-    let $t := to.string.utf8($s);
+    let $t := to.str.utf8($s);
 !end of MAIN

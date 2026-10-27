@@ -1,38 +1,38 @@
 # Structs: building one, reading and changing its fields, an `immut` field.
-record Locker:
-    name: string.utf8;
-    let number: integer.signed.32_bit;
-    capacity: integer.signed.32_bit;
-    occupied: boolean;
-end of record Locker
+rec Locker:
+    name: str.utf8;
+    let number: int.sign.32;
+    capacity: int.sign.32;
+    occupied: bool;
+end of rec Locker
 
-function free_space [lent $l: Locker] -> integer.signed.32_bit:
+fn free_space [lent $l: Locker] -> int.sign.32:
     if $l.occupied:
-        return 0;
+        ret 0;
     end of if
-    return $l.capacity;
-end of function free_space
+    ret $l.capacity;
+end of fn free_space
 
-procedure claim [lent.mutable $l: Locker]:
+proc claim [lent.mut $l: Locker]:
     change $l.occupied = true;
-end of procedure claim
+end of proc claim
 
 !MAIN:
-    variable $mine := Locker[name = "field kit", number = 7, capacity = 12, occupied = false];
-    std::print.shortest($mine.name, " is #", $mine.number, newline);
-    std::print.shortest("free: ", free_space(lend $mine), newline);
-    claim(lend.mutable $mine);
-    std::print.shortest("free: ", free_space(lend $mine), newline);
+    var $mine := Locker[name = "field kit", number = 7, capacity = 12, occupied = false];
+    std::print.shortest($mine.name, " is #", $mine.number, newln);
+    std::print.shortest("free: ", free_space(lend $mine), newln);
+    claim(lend.mut $mine);
+    std::print.shortest("free: ", free_space(lend $mine), newln);
     change $mine.capacity = 20;
-    std::print.shortest($mine, newline);
+    std::print.shortest($mine, newln);
     let $label := copy $mine.name;
-    std::print.shortest($label, newline);
+    std::print.shortest($label, newln);
     let $taken := give $mine.name;
-    std::print.shortest($taken, newline);
+    std::print.shortest($taken, newln);
     let $spare: Locker = Locker[name = "spare", number = 8, capacity = 4, occupied = false];
     let $lockers := [copy $spare, Locker[name = "third", number = 9, capacity = 4, occupied = true]];
     for $l in lend $lockers:
         std::print.shortest($l.number, " ");
     end of for
-    std::print.stored(newline);
+    std::print.stored(newln);
 !end of MAIN

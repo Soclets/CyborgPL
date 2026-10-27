@@ -1,3 +1,3 @@
 !MAIN:
-    let $xs := [pointer.null, pointer.null];
+    let $xs := [ptr.null, ptr.null];
 !end of MAIN

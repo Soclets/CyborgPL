@@ -1,3 +1,3 @@
 !MAIN:
-    let $c := to.character.%code_point("AB");
+    let $c := to.char.%point("AB");
 !end of MAIN

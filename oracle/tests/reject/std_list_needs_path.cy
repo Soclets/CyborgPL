@@ -1,3 +1,3 @@
 !MAIN:
-    variable $xs: list[integer.signed.64_bit] = [];
+    var $xs: ls[int.sign.64] = [];
 !end of MAIN

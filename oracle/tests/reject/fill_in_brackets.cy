@@ -1,3 +1,3 @@
 !MAIN:
-    let $xs := std::list.fill[value: 0, count: 3];
+    let $xs := std::ls.fill[value: 0, count: 3];
 !end of MAIN

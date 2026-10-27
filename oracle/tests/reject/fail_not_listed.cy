@@ -1,5 +1,5 @@
-function f [] -> integer.signed.32_bit or fail[oops]:
+fn f [] -> int.sign.32 or fail[oops]:
     fail other;
-end of function f
+end of fn f
 !MAIN:
 !end of MAIN

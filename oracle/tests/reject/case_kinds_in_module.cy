@@ -1,5 +1,5 @@
 module m:
-    case.any [function];
+    case.any [fn];
 end of module m
 !MAIN:
     let $a := 1;

@@ -1,3 +1,3 @@
 !MAIN:
-    let $c := %channel[integer.signed.32_bit];
+    let $c := %channel[int.sign.32];
 !end of MAIN

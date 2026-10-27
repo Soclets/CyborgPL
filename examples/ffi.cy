@@ -1,43 +1,43 @@
 # The door to the OS (design/ffi.md). The oracle cannot link C; it emulates
 # write, exit, getenv, strlen, malloc, free so this runs.
-%external.C procedure write [$fd: integer.signed.32_bit, $buf: pointer[integer.unsigned.8_bit], $len: integer.unsigned.64_bit] -> integer.signed.64_bit;
-%external.C procedure strlen [$s: pointer[integer.unsigned.8_bit]] -> integer.unsigned.64_bit;
-%external.C procedure getenv [$name: pointer[integer.unsigned.8_bit]] -> pointer[integer.unsigned.8_bit];
-%external.C procedure malloc [$bytes: integer.unsigned.64_bit] -> pointer.mutable[integer.unsigned.8_bit];
-%external.C procedure free [$p: pointer.mutable[integer.unsigned.8_bit]];
+%extern.C proc write [$fd: int.sign.32, $buf: ptr[int.unsign.8], $len: int.unsign.64] -> int.sign.64;
+%extern.C proc strlen [$s: ptr[int.unsign.8]] -> int.unsign.64;
+%extern.C proc getenv [$name: ptr[int.unsign.8]] -> ptr[int.unsign.8];
+%extern.C proc malloc [$bytes: int.unsign.64] -> ptr.mut[int.unsign.8];
+%extern.C proc free [$p: ptr.mut[int.unsign.8]];
 
-%layout.C record Timeval:
-    sec: integer.signed.64_bit;
-    usec: integer.signed.64_bit;
-end of record Timeval
+%layout.C rec Timeval:
+    sec: int.sign.64;
+    usec: int.sign.64;
+end of rec Timeval
 
-procedure say [lent $text: string.utf8] -> fail[io]:
+proc say [lent $text: str.utf8] -> fail[io]:
     !no_check let $n := write(1, lend $text, strlen(lend $text));   # a lend is the pointer; the call is a no_check site
     if $n less_than 0:
         fail io;
     end of if
-end of procedure say
+end of proc say
 
 !MAIN:
-    say("hello from write" concatenate newline) otherwise std::exit(code: 1);
-    say("hello again" concatenate newline) otherwise std::exit(code: 1);
+    say("hello from write" concat newln) otherwise std::exit(code: 1);
+    say("hello again" concat newln) otherwise std::exit(code: 1);
 
     let $key := "HOME";                            # the lent text ends where C expects a 0
     !no_check let $home := getenv(lend $key);
-    if pointer.is_null($home):
-        std::print.stored("no HOME", newline);
+    if ptr.is_null($home):
+        std::print.stored("no HOME", newln);
     end of if
     else:
         !no_check if strlen($home) greater_than 0:
-            std::print.stored("HOME is set", newline);
+            std::print.stored("HOME is set", newln);
         end of if
     end of else
 
     !no_check let $buf := malloc(4);                 # bytes nobody owns
-    !no_check pointer.write($buf, value: 72);
-    !no_check pointer.write(pointer.at($buf, by: 1), value: 105);
-    !no_check std::print.shortest(pointer.read($buf), " ", pointer.read(pointer.at($buf, by: 1)), newline);
+    !no_check ptr.write($buf, value: 72);
+    !no_check ptr.write(ptr.at($buf, by: 1), value: 105);
+    !no_check std::print.shortest(ptr.read($buf), " ", ptr.read(ptr.at($buf, by: 1)), newln);
     !no_check free($buf);
 
-    std::print.shortest(size.of[integer.signed.32_bit], " ", size.of[Timeval], " ", align.of[integer.signed.64_bit], " ", size.of[pointer[integer.unsigned.8_bit]], newline);
+    std::print.shortest(size.of[int.sign.32], " ", size.of[Timeval], " ", align.of[int.sign.64], " ", size.of[ptr[int.unsign.8]], newln);
 !end of MAIN

@@ -1,3 +1,3 @@
 !MAIN:
-    let $x: %C.string[maximum: 6 %grapheme_clusters, exclude zero] = %C.string.make["hi"];
+    let $x: %C.str[max: 6 %clusters, exclude zero] = %C.str.make["hi"];
 !end of MAIN

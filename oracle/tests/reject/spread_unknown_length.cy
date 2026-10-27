@@ -1,8 +1,8 @@
-function sum [...$nums: integer.signed.32_bit] -> integer.signed.32_bit:
-    return 0;
-end of function sum
+fn sum [...$nums: int.sign.32] -> int.sign.32:
+    ret 0;
+end of fn sum
 !MAIN:
-    variable $zs := [1, 2];
-    std::list.append(lend.mutable $zs, value: 3);      # no bound: length no longer known here
+    var $zs := [1, 2];
+    std::ls.append(lend.mut $zs, value: 3);      # no bound: length no longer known here
     let $t := sum(...$zs);
 !end of MAIN

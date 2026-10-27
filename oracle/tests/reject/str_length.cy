@@ -1,4 +1,4 @@
 !MAIN:
     let $s := "abc";
-    let $n := string.length[lend $s];
+    let $n := str.len[lend $s];
 !end of MAIN

@@ -2,10 +2,10 @@
 # run itself, and is ignored when another kit uses it (examples/uses_a_kit).
 
 
-public function seven [] -> integer.signed.32_bit:
-    return 7;
-end of function seven
+pub fn seven [] -> int.sign.32:
+    ret 7;
+end of fn seven
 
 !MAIN:
-    std::print.stored("runnable on its own", newline);
+    std::print.stored("runnable on its own", newln);
 !end of MAIN

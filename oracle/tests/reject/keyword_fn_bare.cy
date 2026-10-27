@@ -1,5 +1,5 @@
-function perm []:
-end of function perm
+fn perm []:
+end of fn perm
 !MAIN:
     perm();
 !end of MAIN

@@ -761,7 +761,7 @@ impl<'p> Interp<'p> {
     fn declare_shadow(&mut self, name: &str, mut slot: Slot, shadow: bool, line: usize) -> Result<(), RuntimeError> {
         if matches!(slot.kind, SlotKind::Lent | SlotKind::LentMut) { slot.since = self.write_count; slot.deps = std::mem::take(&mut self.pending_deps); }
         match (self.lookup(name), shadow) {
-            (Some(_), false) => return rt(line, format!("'{name}' is already declared in an enclosing scope; to shadow it deliberately write `let shadow '{name}' := …;` (or `variable shadow`) (owner, 2026-10-08)")),
+            (Some(_), false) => return rt(line, format!("'{name}' is already declared in an enclosing scope; to shadow it deliberately write `let shadow '{name}' := …;` (or `var shadow`) (owner, 2026-10-08)")),
             (None, true) => return rt(line, format!("`shadow` declares over an existing '{name}', but none is visible here")),
             (Some(existing), true) if existing.kind == SlotKind::Const => return rt(line, format!("'{name}' is a const and cannot be shadowed")),
             // `immut` only forbids `change` now; `!$` forbids shadowing (owner, 2026-09-25)
@@ -3343,7 +3343,7 @@ impl<'p> Interp<'p> {
                     ("-", Value::Brain(b)) => Ok((Value::Brain(-b + 0.0), keep)),
                     ("negate.ieee", Value::Bin(b)) => Ok((Value::Bin(-b), keep)),
                     ("negate.ieee", Value::Brain(b)) => Ok((Value::Brain(-b), keep)),
-                    ("negate.ieee", o) => rt(line, format!("`negate.ieee` keeps a -0, which only a bin or brain16 has, and {} {} has none: write `-$x`", if o.kind().starts_with(['a', 'e', 'i', 'o', 'u']) { "an" } else { "a" }, o.kind())),
+                    ("negate.ieee", o) => rt(line, format!("`neg.ieee` keeps a -0, which only a bin or brain16 has, and {} {} has none: write `neg $x`", if o.kind().starts_with(['a', 'e', 'i', 'o', 'u']) { "an" } else { "a" }, o.kind())),
                     // a deci has no -0 (2026-10-07): a zero negated stays 0
                     ("-", Value::Deci(d)) => Ok((Value::Deci(if d.is_zero() { d } else { d.neg() }), keep)),
                     // a percent negates as its fraction (`-5%`)

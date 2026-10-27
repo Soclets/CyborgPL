@@ -1,4 +1,4 @@
 !MAIN:
-    let $r: boolean = true;
-    let $b: boolean = !($r);
+    let $r: bool = true;
+    let $b: bool = !($r);
 !end of MAIN

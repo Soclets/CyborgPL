@@ -1,3 +1,3 @@
 !MAIN:
-    let $s: string.utf8[minimum: 0, maximum: 20] = "x";
+    let $s: str.utf8[min: 0, max: 20] = "x";
 !end of MAIN

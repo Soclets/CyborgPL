@@ -20,20 +20,20 @@ and may carry a payload of any type. The reasons are listed **inline, in the
 function's own signature** (owner: option 1, over a named reusable type):
 
 ```
-procedure stash [lent.mutable $l: Locker, $item: string.utf8] -> boolean or fail[full, bad_item: string.utf8]:
-    if free_slots(lend $l) equal_to 0:
+proc stash [lent.mut $l: Locker, $item: str.utf8] -> bool or fail[full, bad_item: str.utf8]:
+    if free_slots(lend $l) eq 0:
         fail full;
     end of if
-    if $item equal_to "":
+    if $item eq "":
         fail bad_item[copy $item];
     end of if
-    std::list.append(lend.mutable $l.items, value: give $item);
-    return true;
-end of procedure stash
+    std::ls.append(lend.mut $l.items, value: give $item);
+    ret true;
+end of proc stash
 
-function save [lent $l: Locker] -> fail[disk_full, no_permission]:
+fn save [lent $l: Locker] -> fail[disk_full, no_permission]:
     …
-end of function save   # nothing on success, or a failure
+end of fn save   # nothing on success, or a failure
 ```
 
 - `-> T or fail[…]`: "returns a T, or fails one of these ways."
@@ -58,20 +58,22 @@ call buried in a larger expression is an error — declare it on its own
 line first (`let 'v' := f[…] otherwise 0;`).
 
 ```
-let $ok := stash(lend.mutable $mine, copy $n) otherwise false;          # a fallback value
-let $ok := stash(lend.mutable $mine, copy $n) otherwise return false;   # leave, whatever the reason
-let $ok := stash(lend.mutable $mine, copy $n) otherwise fail;           # pass it up unchanged
-let $ok := stash(lend.mutable $mine, copy $n) otherwise:               # one arm per reason
+let $ok := stash(lend.mut $mine, copy $n) otherwise false;          # a fallback value
+let $ok := stash(lend.mut $mine, copy $n) otherwise ret false;   # leave, whatever the reason
+let $ok := stash(lend.mut $mine, copy $n) otherwise fail;           # pass it up unchanged
+let $ok := stash(lend.mut $mine, copy $n)-
+otherwise:               # one arm per reason
     !case full:
         break;
     !end of case full
     !case bad_item $why:
-        std::print.stored("bad: ", $why, newline); continue;
+        std::print.stored("bad: ", $why, newln); continue;
     !end of case bad_item
 end of otherwise;
-save(lend $mine) otherwise:
+save(lend $mine)-
+otherwise:
     case disk_full:
-        std::print.stored("not saved", newline);
+        std::print.stored("not saved", newln);
     end of case disk_full
 end of otherwise;
 ```

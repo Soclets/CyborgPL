@@ -1,7 +1,7 @@
 !MAIN:
     let $limit := 60;
-    let $f := function [$s: integer.signed.32_bit] -> boolean:
-        return $s at_least $limit;
-    end of function;
+    let $f := fn [$s: int.sign.32] -> bool:
+        ret $s at_least $limit;
+    end of fn;
     let $b := $f(70);
 !end of MAIN

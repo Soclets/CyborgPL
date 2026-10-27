@@ -1,3 +1,3 @@
-%external.C $a: string.utf8;
+%extern.C $a: str.utf8;
 !MAIN:
 !end of MAIN

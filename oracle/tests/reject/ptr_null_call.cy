@@ -1,4 +1,4 @@
-%external.C procedure free [$p: pointer.mutable[integer.unsigned.8_bit]];
+%extern.C proc free [$p: ptr.mut[int.unsign.8]];
 !MAIN:
-    !no_check free(pointer.null[]);
+    !no_check free(ptr.null[]);
 !end of MAIN

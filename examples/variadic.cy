@@ -1,28 +1,28 @@
 # Functions that take any number of arguments, typed or not.
-function sum [...$nums] -> float.binary.64_bit:
-    variable $total: float.binary.64_bit = 0;
+fn sum [...$nums] -> float.bin.64:
+    var $total: float.bin.64 = 0;
     for $n in lend $nums:
-        change $total = $total plus to.float.binary.64_bit($n);
+        change $total = $total plus to.float.bin.64($n);
     end of for
-    return $total;
-end of function sum
+    ret $total;
+end of fn sum
 
-function count_ints [...$nums: integer.signed.32_bit] -> integer.unsigned.64_bit:
-    return std::list.length(lend $nums);
-end of function count_ints
+fn count_ints [...$nums: int.sign.32] -> int.unsign.64:
+    ret std::ls.len(lend $nums);
+end of fn count_ints
 
-procedure show [lent $label: string.utf8, lent ...$parts]:
+proc show [lent $label: str.utf8, lent ...$parts]:
     std::print.shortest($label, ": ");
     for $p in lend $parts:
         std::print.shortest($p, " ");
     end of for
-    std::print.stored(newline);
-end of procedure show
+    std::print.stored(newln);
+end of proc show
 
 !MAIN:
-    std::print.shortest(sum(1, 2.5, 3), newline);
-    std::print.shortest(sum(), newline);
-    std::print.shortest(count_ints(4, 5, 6), newline);
+    std::print.shortest(sum(1, 2.5, 3), newln);
+    std::print.shortest(sum(), newln);
+    std::print.shortest(count_ints(4, 5, 6), newln);
     let $name := "Ann";
     show("mixed", lend $name, 7, true, `x`);
     show("none");

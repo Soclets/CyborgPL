@@ -1,4 +1,4 @@
-include.%C["incl_assets/mylib.h"];
+incl.%C["incl_assets/mylib.h"];
 !MAIN:
     !no_check let $n := mylib_add(1, 2);
 !end of MAIN

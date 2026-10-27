@@ -1,6 +1,6 @@
 # `pub.strike` is the Zag mark (2026-10-15)
-public.strike function one -> integer.signed.32_bit:
-    return 1;
-end of function one
+pub.strike fn one -> int.sign.32:
+    ret 1;
+end of fn one
 !MAIN:
 !end of MAIN

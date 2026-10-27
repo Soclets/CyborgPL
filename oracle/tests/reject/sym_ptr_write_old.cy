@@ -1,4 +1,4 @@
-%external.C procedure malloc [$bytes: integer.unsigned.64_bit] -> pointer.mutable[integer.unsigned.8_bit];
+%extern.C proc malloc [$bytes: int.unsign.64] -> ptr.mut[int.unsign.8];
 !MAIN:
     !no_check let $p := malloc(4);
     !no_check change *$p = 65;

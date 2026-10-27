@@ -2,32 +2,32 @@
 # or a type's own `op equal_to ` and `fn hash` (it satisfies `Key`), with "equal keys hash the same"
 # a check site the compiler must prove.
 interface Key <T>:
-    operator equal_to [$a: <T>, $b: <T>] -> boolean;  function hash [lent $v: <T>] -> integer.unsigned.64_bit;
+    op eq [$a: <T>, $b: <T>] -> bool;  fn hash [lent $v: <T>] -> int.unsign.64;
 end of interface Key
 
-record Point:
-    x: integer.signed.32_bit;
-    y: integer.signed.32_bit;
-end of record Point                      # structural: fields decide
+rec Point:
+    x: int.sign.32;
+    y: int.sign.32;
+end of rec Point                      # structural: fields decide
 
-record User:
-    name: string.utf8;
-end of record User                           # its own rule: names compare lowercased
-operator equal_to [$a: User, $b: User] -> boolean:
-    return std::string.lowercase.full(lend $a.name) equal_to std::string.lowercase.full(lend $b.name);
-end of operator equal_to
-function hash [lent $v: User] -> integer.unsigned.64_bit:
-    let $low := std::string.lowercase.full(lend $v.name); return std::string.bytes(lend $low);
-end of function hash
+rec User:
+    name: str.utf8;
+end of rec User                           # its own rule: names compare lowercased
+op eq [$a: User, $b: User] -> bool:
+    ret std::str.lower.full(lend $a.name) eq std::str.lower.full(lend $b.name);
+end of op eq
+fn hash [lent $v: User] -> int.unsign.64:
+    let $low := std::str.lower.full(lend $v.name); ret std::str.bytes(lend $low);
+end of fn hash
 User satisfies Key;
 
 !MAIN:
-    variable $grid: std::map[Point, string.utf8] = std::map.empty;
-    std::map.set(lend.mutable $grid, key: Point[x = 1, y = 2], value: "tree");
+    var $grid: std::map[Point, str.utf8] = std::map.empty;
+    std::map.set(lend.mut $grid, key: Point[x = 1, y = 2], value: "tree");
     let $at := std::map.get(lend $grid, key: Point[x = 1, y = 2]) otherwise "nothing";
-    std::print.shortest($at, newline);
-    variable $users: std::map[User, integer.signed.32_bit] = std::map.empty;
-    std::map.set(lend.mutable $users, key: User[name = "Ann"], value: 1);
+    std::print.shortest($at, newln);
+    var $users: std::map[User, int.sign.32] = std::map.empty;
+    std::map.set(lend.mut $users, key: User[name = "Ann"], value: 1);
     let $n := std::map.get(lend $users, key: User[name = "ANN"]) otherwise 0;     # same key by User's own equal_to 
-    std::print.shortest($n, newline);
+    std::print.shortest($n, newln);
 !end of MAIN

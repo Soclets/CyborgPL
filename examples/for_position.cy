@@ -3,18 +3,18 @@
 !MAIN:
     let $xs := ["ann", "bob", "cy"];
     for $i, $x in lend $xs:
-        std::print.shortest($i, ". ", $x, newline);
+        std::print.shortest($i, ". ", $x, newln);
     end of for
     let $scores := [70, 95, 88];
-    variable $best_at: integer.unsigned.64_bit = 0;
-    variable $best: integer.signed.32_bit = 0;
+    var $best_at: int.unsign.64 = 0;
+    var $best: int.sign.32 = 0;
     for $i, $s in lend $scores:
         if $s greater_than $best:
             change $best = $s; change $best_at = $i;
         end of if
     end of for
-    std::print.shortest("best is ", $best, " at position ", $best_at, newline);
-    for permanent $n, $y in lend $xs:
+    std::print.shortest("best is ", $best, " at position ", $best_at, newln);
+    for perm $n, $y in lend $xs:
     end of for
-    std::print.shortest("after: ", $n, " ", $y, newline);
+    std::print.shortest("after: ", $n, " ", $y, newln);
 !end of MAIN

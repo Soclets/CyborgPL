@@ -1,5 +1,5 @@
-record P:
-    integer.signed.32_bit $x;
-end of record P
+rec P:
+    int.sign.32 $x;
+end of rec P
 !MAIN:
 !end of MAIN

@@ -2,28 +2,28 @@
 # gives it, no data. It is a CyborgPL enum in every other way — `match` covers every
 # case, and it is owned like every enum (2026-09-20) — and C-shaped, so `extern.C fn`
 # can take and return it. A number C hands back that no case has fails `out_of_range`.
-%layout.C enumeration Key:
+%layout.C enum Key:
     a = 65;
     b = 66;
     escape = 256;
-end of enumeration Key
-%external.C procedure IsKeyDown [$key: Key] -> boolean;
+end of enum Key
+%extern.C proc IsKeyDown [$key: Key] -> bool;
 
-function name [$k: Key] -> string.utf8:
+fn name [$k: Key] -> str.utf8:
     match $k:
         case a:
-            return "A";
+            ret "A";
         end of case a
         case b:
-            return "B";
+            ret "B";
         end of case b
         case escape:
-            return "Esc";
+            ret "Esc";
         end of case escape
     end of match
-end of function name
+end of fn name
 
 !MAIN:
     let $k := Key.escape;
-    std::print.shortest(name(copy $k), " ", name(Key.a), newline);
+    std::print.shortest(name(copy $k), " ", name(Key.a), newln);
 !end of MAIN

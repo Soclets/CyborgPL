@@ -1,5 +1,5 @@
 # one narrowing becomes the other only by a conversion (owner, 2026-10-25)
 !MAIN:
-    let $a: std::list.page_aligned[integer.signed.32_bit] = [5, 6];
-    let $b: std::list.not_page_aligned[integer.signed.32_bit] = copy $a;
+    let $a: std::ls.page_aligned[int.sign.32] = [5, 6];
+    let $b: std::ls.not_page_aligned[int.sign.32] = copy $a;
 !end of MAIN

@@ -3,52 +3,52 @@
 # the iterator with `lend.mut` (it remains, used up as far as the loop went) or `give` (gone after)
 # ("`c`"). `optional` is the base's: `optional.value(…)` / `optional.none`, matched bare.
 
-record Counter:
-    now: integer.signed.32_bit;
-    stop: integer.signed.32_bit;
-end of record Counter
+rec Counter:
+    now: int.sign.32;
+    stop: int.sign.32;
+end of rec Counter
 
-procedure Counter.next [lent.mutable $c: Counter] -> optional[integer.signed.32_bit]:
-    if $c.now equal_to $c.stop:
-        return optional.none;
+proc Counter.next [lent.mut $c: Counter] -> optional[int.sign.32]:
+    if $c.now eq $c.stop:
+        ret optional.none;
     end of if
     change $c.now = $c.now plus 1;
-    return optional.value($c.now);
-end of procedure Counter.next
+    ret optional.value($c.now);
+end of proc Counter.next
 
-record Forever:
-    n: integer.signed.32_bit;
-end of record Forever
+rec Forever:
+    n: int.sign.32;
+end of rec Forever
 
-procedure Forever.next [lent.mutable $f: Forever] -> optional[integer.signed.32_bit]:
+proc Forever.next [lent.mut $f: Forever] -> optional[int.sign.32]:
     change $f.n = $f.n plus 1;
-    return optional.value($f.n);
-end of procedure Forever.next
+    ret optional.value($f.n);
+end of proc Forever.next
 
 !MAIN:
-    variable $c := Counter[now = 0, stop = 5];
-    match Counter.next(lend.mutable $c):
+    var $c := Counter[now = 0, stop = 5];
+    match Counter.next(lend.mut $c):
         case value $x:
-            std::print.shortest("by hand: ", $x, newline);
+            std::print.shortest("by hand: ", $x, newln);
         end of case value
         case none:
-            std::print.shortest("empty", newline);
+            std::print.shortest("empty", newln);
         end of case none
     end of match
-    for $x in lend.mutable $c:
-        if $x equal_to 4:
+    for $x in lend.mut $c:
+        if $x eq 4:
             break;
         end of if
-        std::print.shortest("lent: ", $x, newline);
+        std::print.shortest("lent: ", $x, newln);
     end of for
     for $x in give $c:
-        std::print.shortest("given: ", $x, newline);
+        std::print.shortest("given: ", $x, newln);
     end of for
-    variable $f := Forever[n = 0];
-    for permanent $y in lend.mutable $f:
-        if $y equal_to 3:
+    var $f := Forever[n = 0];
+    for perm $y in lend.mut $f:
+        if $y eq 3:
             break;
         end of if
     end of for
-    std::print.shortest("stopped at ", $y, newline);
+    std::print.shortest("stopped at ", $y, newln);
 !end of MAIN

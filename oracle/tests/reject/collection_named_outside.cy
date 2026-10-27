@@ -1,5 +1,5 @@
-collection.function c:
+coll.fn c:
     named "x";
-end of collection.function c
+end of coll.fn c
 !MAIN:
 !end of MAIN

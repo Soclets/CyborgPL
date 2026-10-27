@@ -1,19 +1,19 @@
 # Testing — `test fn` and `must` (owner, 2026-09-29)
 
 ```
-function add [$a: integer.signed.32_bit, $b: integer.signed.32_bit] -> integer.signed.32_bit:
-    return $a plus $b;
-end of function add
+fn add [$a: int.sign.32, $b: int.sign.32] -> int.sign.32:
+    ret $a plus $b;
+end of fn add
 
-test procedure adds_up []:
-    must add(2, 3) equal_to 5;                        # what must hold
-    let $n := to.integer.signed.32_bit("42") otherwise 0;
-    must $n equal_to 42;
-    must.fail to.integer.signed.32_bit["abc"];                  # it must fail
-    must.fail.not_a_number to.integer.signed.32_bit("abc");     # …with exactly this reason
-    let $xs: std::list[integer.signed.32_bit] = [1, 2, 3];
-    must.stop $xs[position: 99];                      # a check site must fire
-end of test procedure adds_up
+test proc adds_up []:
+    must add(2, 3) eq 5;                        # what must hold
+    let $n := to.int.sign.32("42") otherwise 0;
+    must $n eq 42;
+    must.fail to.int.sign.32["abc"];                  # it must fail
+    must.fail.not_a_number to.int.sign.32("abc");     # …with exactly this reason
+    let $xs: std::ls[int.sign.32] = [1, 2, 3];
+    must.stop $xs[pos: 99];                      # a check site must fire
+end of test proc adds_up
 ```
 
 `synapse test` (kayo runs and tests on its own, 2026-09-29) runs every `test fn`

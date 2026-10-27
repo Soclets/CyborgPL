@@ -1,5 +1,5 @@
-function f <T: any> @x [lent @x $a: std::list[<T>]] -> lent @x std::list[<T>]:
-    return lend $a;
-end of function f
+fn f <T: any> @x [lent @x $a: std::ls[<T>]] -> lent @x std::ls[<T>]:
+    ret lend $a;
+end of fn f
 !MAIN:
 !end of MAIN

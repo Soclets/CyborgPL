@@ -1,4 +1,4 @@
-%external.C procedure strlen [$s: pointer[integer.unsigned.8_bit]] -> integer.unsigned.32_bit;
-include.%C.system["string.h"];
+%extern.C proc strlen [$s: ptr[int.unsign.8]] -> int.unsign.32;
+incl.%C.system["string.h"];
 !MAIN:
 !end of MAIN

@@ -1,6 +1,6 @@
 # every member line writes its full name (owner, 2026-10-19)
-collection.bounded q:
-    small = integer.signed.32_bit[minimum: 1, maximum: 9];
-end of collection.bounded q
+coll.bounded q:
+    small = int.sign.32[min: 1, max: 9];
+end of coll.bounded q
 !MAIN:
 !end of MAIN

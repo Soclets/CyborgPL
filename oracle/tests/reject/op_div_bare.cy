@@ -1,3 +1,3 @@
 !MAIN:
-    let $f: function[integer.signed.32_bit, integer.signed.32_bit] -> integer.signed.32_bit = operator divide;
+    let $f: fn[int.sign.32, int.sign.32] -> int.sign.32 = op divide;
 !end of MAIN

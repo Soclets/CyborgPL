@@ -1,4 +1,4 @@
 !MAIN:
-    let $n: integer.signed.32_bit = 4;
-    let $m: integer.signed.32_bit = negate.ieee $n;
+    let $n: int.sign.32 = 4;
+    let $m: int.sign.32 = neg.ieee $n;
 !end of MAIN

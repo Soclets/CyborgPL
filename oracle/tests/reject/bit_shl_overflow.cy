@@ -1,4 +1,4 @@
 !MAIN:
-    let $a: integer.unsigned.8_bit = 200;
-    let $x := $a shift_left 1;
+    let $a: int.unsign.8 = 200;
+    let $x := $a shl 1;
 !end of MAIN

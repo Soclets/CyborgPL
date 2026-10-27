@@ -1,20 +1,20 @@
-function half [$n: integer.signed.32_bit] -> integer.signed.32_bit or fail[odd, negative: integer.signed.32_bit]:
+fn half [$n: int.sign.32] -> int.sign.32 or fail[odd, negative: int.sign.32]:
     if $n less_than 0:
         fail negative[$n];
     end of if
-    return $n;
-end of function half
-collection.handler h:
+    ret $n;
+end of fn half
+coll.handler h:
     h.zero:
         !case odd:
-            return 0;
+            ret 0;
         !end of case odd
     end of h.zero
-end of collection.handler h
-function f [] -> integer.signed.32_bit:
+end of coll.handler h
+fn f [] -> int.sign.32:
     let $v := half(3) otherwise h.!zero;
-    return $v;
-end of function f
+    ret $v;
+end of fn f
 !MAIN:
-    std::print.shortest(f(), newline);
+    std::print.shortest(f(), newln);
 !end of MAIN

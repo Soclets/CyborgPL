@@ -1,8 +1,8 @@
 # a lend hands over the value where it is, so its sizes must match the parameter's (owner, 2026-09-24: a)
-function total [lent $xs: std::list[integer.signed.32_bit]] -> integer.unsigned.64_bit:
-    return std::list.length(lend $xs);
-end of function total
+fn total [lent $xs: std::ls[int.sign.32]] -> int.unsign.64:
+    ret std::ls.len(lend $xs);
+end of fn total
 !MAIN:
-    let $big: std::list[integer.signed.64_bit] = [1, 2, 3];
+    let $big: std::ls[int.sign.64] = [1, 2, 3];
     let $n := total(lend $big);
 !end of MAIN

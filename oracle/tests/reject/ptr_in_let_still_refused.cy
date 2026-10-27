@@ -1,3 +1,3 @@
 !MAIN:
-    let $p: pointer[integer.signed.32_bit] = 1;
+    let $p: ptr[int.sign.32] = 1;
 !end of MAIN

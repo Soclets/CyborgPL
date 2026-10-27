@@ -1,1 +1,1 @@
-'x' is a `let`, which never changes, but something changes it: declare it `variable $x := …;`
+'x' is a `let`, which never changes, but something changes it: declare it `var $x := …;`

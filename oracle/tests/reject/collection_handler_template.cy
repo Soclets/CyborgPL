@@ -1,7 +1,7 @@
-collection.handler h:
+coll.handler h:
     for $n in [1, 2]:
         named "x";
     end of for
-end of collection.handler h
+end of coll.handler h
 !MAIN:
 !end of MAIN

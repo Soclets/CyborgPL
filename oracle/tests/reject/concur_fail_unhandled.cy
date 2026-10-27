@@ -1,6 +1,6 @@
-function f [] -> integer.signed.32_bit or fail[bad]:
+fn f [] -> int.sign.32 or fail[bad]:
     fail bad;
-end of function f
+end of fn f
 !MAIN:
     %spawn.task:
         let $v := f() otherwise fail;

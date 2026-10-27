@@ -1,4 +1,4 @@
-constant $g := "a" concatenate "b";
+const $g := "a" concat "b";
 !MAIN:
     let $s := copy $g;
 !end of MAIN

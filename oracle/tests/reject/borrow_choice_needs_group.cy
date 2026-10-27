@@ -1,5 +1,5 @@
-function longer [lent $a: string.utf8, lent $b: string.utf8] -> lent string.utf8:
-    return lend $a;
-end of function longer
+fn longer [lent $a: str.utf8, lent $b: str.utf8] -> lent str.utf8:
+    ret lend $a;
+end of fn longer
 !MAIN:
 !end of MAIN

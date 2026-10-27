@@ -1,9 +1,9 @@
 
 module text:
-    %external.C:
-        public procedure strlen [$s: pointer[integer.unsigned.8_bit]] -> integer.unsigned.64_bit;
-        procedure write [$fd: integer.signed.32_bit, $buf: pointer[integer.unsigned.8_bit], $len: integer.unsigned.64_bit] -> integer.signed.64_bit;
-    end of %external.C
+    %extern.C:
+        pub proc strlen [$s: ptr[int.unsign.8]] -> int.unsign.64;
+        proc write [$fd: int.sign.32, $buf: ptr[int.unsign.8], $len: int.unsign.64] -> int.sign.64;
+    end of %extern.C
 end of module text
 !MAIN:
     let $msg := "hi";

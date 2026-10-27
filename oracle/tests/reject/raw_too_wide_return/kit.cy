@@ -1,6 +1,6 @@
-function f [] -> integer.unsigned.16_bit:
-    return 65536;
-end of function f
+fn f [] -> int.unsign.16:
+    ret 65536;
+end of fn f
 
 !MAIN:
     let $x := f();

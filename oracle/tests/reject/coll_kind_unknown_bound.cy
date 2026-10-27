@@ -1,5 +1,5 @@
 # the collection kinds are `fn`, `handler` and `bound`
-collection.box q:
-end of collection.box q
+coll.box q:
+end of coll.box q
 !MAIN:
 !end of MAIN

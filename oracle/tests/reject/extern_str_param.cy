@@ -1,3 +1,3 @@
-%external.C procedure f [$a: string.utf8];
+%extern.C proc f [$a: str.utf8];
 !MAIN:
 !end of MAIN

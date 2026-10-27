@@ -1,8 +1,9 @@
-function f [] -> integer.signed.32_bit or fail[a]:
+fn f [] -> int.sign.32 or fail[a]:
     fail a;
-end of function f
+end of fn f
 !MAIN:
-    let $x := f() otherwise:
+    let $x := f()-
+    otherwise:
         case a:
             std::print.stored("hm");
         end of case a

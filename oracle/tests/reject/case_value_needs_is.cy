@@ -1,7 +1,7 @@
-union.tagged S:
+union.tag S:
     a;
     b;
-end of union.tagged S
+end of union.tag S
 !MAIN:
     let $x := match S.a:
         case a:

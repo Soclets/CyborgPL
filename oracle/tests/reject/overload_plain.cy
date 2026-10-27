@@ -1,9 +1,9 @@
-function f [$a: integer.signed.64_bit] -> integer.signed.64_bit:
-    return 1;
-end of function f
-function f [$b: float.binary.64_bit] -> integer.signed.64_bit:
-    return 2;
-end of function f
+fn f [$a: int.sign.64] -> int.sign.64:
+    ret 1;
+end of fn f
+fn f [$b: float.bin.64] -> int.sign.64:
+    ret 2;
+end of fn f
 !MAIN:
-    std::print.shortest(f(1), newline);
+    std::print.shortest(f(1), newln);
 !end of MAIN

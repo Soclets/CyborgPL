@@ -1,5 +1,5 @@
-operator <+> [lent $a: integer.signed.32_bit, $b: integer.signed.32_bit] -> integer.signed.32_bit:
-    return $a;
-end of operator <+>
+op <+> [lent $a: int.sign.32, $b: int.sign.32] -> int.sign.32:
+    ret $a;
+end of op <+>
 !MAIN:
 !end of MAIN

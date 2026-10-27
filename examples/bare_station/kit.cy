@@ -19,86 +19,86 @@
 
 module board:
     # The serial port is a PL011 at 0x0900_0000: a byte written to its data register goes out.
-    public.kit procedure write [$b: integer.unsigned.8_bit]:
+    pub.kit proc write [$b: int.unsign.8]:
         !no_check inline.ASM with [$b -> x0, clobber x9]:
             mov x9, #0x09000000
             strb w0, [x9]
         end of inline.ASM
-    end of procedure write
+    end of proc write
 
     # Power off through PSCI's SYSTEM_OFF (0x8400_0008), over `hvc`; QEMU ends with it.
-    public.kit procedure off [$code: integer.unsigned.8_bit]:
+    pub.kit proc off [$code: int.unsign.8]:
         !no_check inline.ASM with [$code -> x1, clobber x0]:
             movz x0, #0x0008
             movk x0, #0x8400, lsl #16
             hvc #0
         end of inline.ASM
-    end of procedure off
+    end of proc off
 end of module board
 
 # ---------------------------------------------------------------------------------------------------
 # The log, baked in, and the bytes it is read by
 # ---------------------------------------------------------------------------------------------------
 
-constant $log := include.bytes["data/log.txt"];
+const $log := incl.bytes["data/log.txt"];
 
-constant $newline: integer.unsigned.8_bit = 10;
-constant $space: integer.unsigned.8_bit = 32;
-constant $hash: integer.unsigned.8_bit = 35;
-constant $minus: integer.unsigned.8_bit = 45;
-constant $zero: integer.unsigned.8_bit = 48;
-constant $nine: integer.unsigned.8_bit = 57;
+const $newline: int.unsign.8 = 10;
+const $space: int.unsign.8 = 32;
+const $hash: int.unsign.8 = 35;
+const $minus: int.unsign.8 = 45;
+const $zero: int.unsign.8 = 48;
+const $nine: int.unsign.8 = 57;
 
 # A temperature in tenths of a degree Celsius, as far as the sensor reads: -50.0 to 60.0.
-collection.bounded temp:
-    temp = integer.signed.32_bit[minimum: negative 500, maximum: 600];
-end of collection.bounded temp
+coll.bounded temp:
+    temp = int.sign.32[min: neg 500, max: 600];
+end of coll.bounded temp
 
 # A day is 24 hourly readings, so every count and sum of one has a bound the prover can see.
-constant $hours: integer.signed.32_bit = 24;
-collection.bounded day:
-    day.hour = integer.signed.32_bit[minimum: 0, maximum: 23];
-    day.count = integer.signed.32_bit[minimum: 0, maximum: 24];
-    day.sum = integer.signed.32_bit[minimum: negative 12000, maximum: 14400];
-    day.step = integer.signed.32_bit[minimum: negative 1100, maximum: 1100];
-    day.tenths = integer.signed.32_bit[minimum: negative 2000, maximum: 2000];
-end of collection.bounded day
+const $hours: int.sign.32 = 24;
+coll.bounded day:
+    day.hour = int.sign.32[min: 0, max: 23];
+    day.count = int.sign.32[min: 0, max: 24];
+    day.sum = int.sign.32[min: neg 12000, max: 14400];
+    day.step = int.sign.32[min: neg 1100, max: 1100];
+    day.tenths = int.sign.32[min: neg 2000, max: 2000];
+end of coll.bounded day
 
 # Where the reading of the log has got to: a position in it, from 1 (one past the end when it is done).
-record Cursor:
-    at: integer.unsigned.64_bit[minimum: 1];
-end of record Cursor
+rec Cursor:
+    at: int.unsign.64[min: 1];
+end of rec Cursor
 
 # The next reading, past comment lines (`#` to the line's end) and blank ones; `done` at the log's end, and
 # `bad_byte` with its position for a byte no reading has, or a number past what the sensor reads.
-procedure next_reading [lent.mutable $c: Cursor] -> temp or fail[done, bad_byte: integer.unsigned.64_bit]:
-    let $n := array.length($log);
-    variable $at := $c.at;
-    variable $first: integer.unsigned.8_bit = 0;
+proc next_reading [lent.mut $c: Cursor] -> temp or fail[done, bad_byte: int.unsign.64]:
+    let $n := arr.len($log);
+    var $at := $c.at;
+    var $first: int.unsign.8 = 0;
     loop:
         if $at greater_than $n:
             fail done;
         end of if
-        let $b := $log[position: $at];
-        if $b equal_to $hash:
-            while $at at_most $n and.then $log[position: $at] not_equal_to $newline:
+        let $b := $log[pos: $at];
+        if $b eq $hash:
+            while $at at_most $n and.then $log[pos: $at] not_eq $newline:
                 change $at = $at plus 1;
             end of while
             continue;
         end of if
-        if $b equal_to $newline or $b equal_to $space:
+        if $b eq $newline or $b eq $space:
             change $at = $at plus 1; continue;
         end of if
         change $first = $b;
         break;
     end of loop
-    let $negative := $first equal_to $minus;
+    let $negative := $first eq $minus;
     if $negative:
         change $at = $at plus 1;
     end of if
-    variable $value: integer.signed.32_bit = 0;
-    while $at at_most $n and.then $log[position: $at] not_equal_to $newline:
-        let $b := $log[position: $at];
+    var $value: int.sign.32 = 0;
+    while $at at_most $n and.then $log[pos: $at] not_eq $newline:
+        let $b := $log[pos: $at];
         if $b less_than $zero:
             fail bad_byte[$at];
         end of if
@@ -108,131 +108,132 @@ procedure next_reading [lent.mutable $c: Cursor] -> temp or fail[done, bad_byte:
         if $value greater_than 600:
             fail bad_byte[$at];
         end of if
-        change $value = $value times 10 plus to.integer.signed.32_bit($b minus $zero);
+        change $value = $value times 10 plus to.int.sign.32($b minus $zero);
         change $at = $at plus 1;
     end of while
     change $c.at = $at;
     if $negative:
-        change $value = negate $value;
+        change $value = neg $value;
     end of if
-    if $value less_than negative 500:
+    if $value less_than neg 500:
         fail bad_byte[$at];
     end of if
     if $value greater_than 600:
         fail bad_byte[$at];
     end of if
     let $t: temp = $value;
-    return $t;
-end of procedure next_reading
+    ret $t;
+end of proc next_reading
 
 # Whether the log has nothing left to read.
-procedure log_ends [lent.mutable $c: Cursor] -> boolean:
-    let $next := next_reading(lend.mutable $c) otherwise:
+proc log_ends [lent.mut $c: Cursor] -> bool:
+    let $next := next_reading(lend.mut $c)-
+    otherwise:
         !case done:
-            return true;
+            ret true;
         !end of case done
         !case bad_byte $at:
-            return false;
+            ret false;
         !end of case bad_byte
     end of otherwise;
-    return false;
-end of procedure log_ends
+    ret false;
+end of proc log_ends
 
 # The CRC-32 of the whole log (the one zlib and PNG use, reflected, polynomial 0xEDB8_8320), bit by bit: no table,
 # so no memory beyond the program's own.
-function crc32 [] -> integer.unsigned.32_bit:
-    variable $crc: integer.unsigned.32_bit = hexadecimal FFFF_FFFF;
-    for $i [from: 1, to: array.length($log), by: 1]:
-        change $crc = $crc xor to.integer.unsigned.32_bit($log[position: $i]);
+fn crc32 [] -> int.unsign.32:
+    var $crc: int.unsign.32 = hex FFFF_FFFF;
+    for $i [from: 1, to: arr.len($log), by: 1]:
+        change $crc = $crc xor to.int.unsign.32($log[pos: $i]);
         for $k [from: 1, to: 8, by: 1]:
-            if ($crc and.bit 1) equal_to 1:
-                change $crc = ($crc shift_right 1) xor hexadecimal EDB8_8320;
+            if ($crc and.bit 1) eq 1:
+                change $crc = ($crc shr 1) xor hex EDB8_8320;
             end of if
             else:
-                change $crc = $crc shift_right 1;
+                change $crc = $crc shr 1;
             end of else
         end of for
     end of for
-    return $crc xor hexadecimal FFFF_FFFF;
-end of function crc32
+    ret $crc xor hex FFFF_FFFF;
+end of fn crc32
 
 # ---------------------------------------------------------------------------------------------------
 # Printing with no heap: every figure goes out as numbers and literal text, never as built text
 # ---------------------------------------------------------------------------------------------------
 
 # Tenths of a degree as degrees: `-3.5`, `21.0`.
-procedure show_tenths [$t: day.tenths]:
-    variable $a := $t;
+proc show_tenths [$t: day.tenths]:
+    var $a := $t;
     if $t less_than 0:
         std::print.shortest("-");
-        change $a = negate $t;
+        change $a = neg $t;
     end of if
-    std::print.shortest($a divide.floor 10, ".", $a modulo.floor 10);
-end of procedure show_tenths
+    std::print.shortest($a div.floor 10, ".", $a mod.floor 10);
+end of proc show_tenths
 
 # An hour of the day as a clock time, `07:00`.
-procedure show_hour [$h: day.hour]:
+proc show_hour [$h: day.hour]:
     if $h less_than 10:
         std::print.shortest("0");
     end of if
     std::print.shortest($h, ":00");
-end of procedure show_hour
+end of proc show_hour
 
-procedure show_digit [$d: integer.unsigned.32_bit]:
+proc show_digit [$d: int.unsign.32]:
     if $d less_than 10:
-        std::print.shortest($d); return;
+        std::print.shortest($d); ret;
     end of if
-    if $d equal_to 10:
-        std::print.shortest("a"); return;
+    if $d eq 10:
+        std::print.shortest("a"); ret;
     end of if
-    if $d equal_to 11:
-        std::print.shortest("b"); return;
+    if $d eq 11:
+        std::print.shortest("b"); ret;
     end of if
-    if $d equal_to 12:
-        std::print.shortest("c"); return;
+    if $d eq 12:
+        std::print.shortest("c"); ret;
     end of if
-    if $d equal_to 13:
-        std::print.shortest("d"); return;
+    if $d eq 13:
+        std::print.shortest("d"); ret;
     end of if
-    if $d equal_to 14:
-        std::print.shortest("e"); return;
+    if $d eq 14:
+        std::print.shortest("e"); ret;
     end of if
     std::print.shortest("f");
-end of procedure show_digit
+end of proc show_digit
 
 # A 32-bit word in hex, its eight digits from the top: `0x0018_0803`.
-procedure show_hex [$x: integer.unsigned.32_bit]:
+proc show_hex [$x: int.unsign.32]:
     std::print.shortest("0x");
     for $k [from: 1, to: 8, by: 1]:
-        let $shift := to.integer.unsigned.32_bit(32 minus 4 times $k);
-        show_digit(($x shift_right $shift) and.bit 15);
-        if $k equal_to 4:
+        let $shift := to.int.unsign.32(32 minus 4 times $k);
+        show_digit(($x shr $shift) and.bit 15);
+        if $k eq 4:
             std::print.shortest("_");
         end of if
     end of for
-end of procedure show_hex
+end of proc show_hex
 
 # ---------------------------------------------------------------------------------------------------
 # The alarm: calm, warm over 22.0, hot over 25.0
 # ---------------------------------------------------------------------------------------------------
 
-union.tagged Alarm:
+union.tag Alarm:
     calm;
     warm;
     hot;
-end of union.tagged Alarm
+end of union.tag Alarm
 
-function alarm_for [$t: temp] -> Alarm:
+fn alarm_for [$t: temp] -> Alarm:
     if $t greater_than 250:
-        return Alarm.hot;
+        ret Alarm.hot;
     end of if
     if $t greater_than 220:
-        return Alarm.warm;
+        ret Alarm.warm;
     end of if
-    return Alarm.calm;
-end of function alarm_for
+    ret Alarm.calm;
+end of fn alarm_for
 
-function rank [$a: Alarm] -> integer.signed.32_bit:
+fn rank [$a: Alarm] -> int.sign.32:
     let $r := match $a:
         case calm:
             is 0;
@@ -244,10 +245,10 @@ function rank [$a: Alarm] -> integer.signed.32_bit:
             is 2;
         end of case hot
     end of match;
-    return $r;
-end of function rank
+    ret $r;
+end of fn rank
 
-procedure show_alarm [$a: Alarm]:
+proc show_alarm [$a: Alarm]:
     match $a:
         case calm:
             std::print.shortest("calm");
@@ -259,26 +260,26 @@ procedure show_alarm [$a: Alarm]:
             std::print.shortest("hot");
         end of case hot
     end of match
-end of procedure show_alarm
+end of proc show_alarm
 
 # ---------------------------------------------------------------------------------------------------
 # The day
 # ---------------------------------------------------------------------------------------------------
 
 interface Number:
-    integer.signed.32_bit;
-    integer.unsigned.32_bit;
+    int.sign.32;
+    int.unsign.32;
 end of interface Number
 
-function larger <T: Number> [$a: <T>, $b: <T>] -> <T>:
+fn larger <T: Number> [$a: <T>, $b: <T>] -> <T>:
     if $a greater_than $b:
-        return $a;
+        ret $a;
     end of if
-    return $b;
-end of function larger
+    ret $b;
+end of fn larger
 
 # Everything the day comes to, worked out in one pass over its 24 readings.
-record Day:
+rec Day:
     sum: day.sum;
     low: temp;
     low_hour: day.hour;
@@ -289,32 +290,33 @@ record Day:
     warm_hours: day.count;
     hot_hours: day.count;
     changes: day.count;
-end of record Day
+end of rec Day
 
-procedure read_day [] -> Day:
-    variable $c := Cursor[at = 1];
-    variable $sum: day.sum = 0;
-    variable $low: temp = 600;
-    variable $low_hour: day.hour = 0;
-    variable $high: temp = negative 500;
-    variable $high_hour: day.hour = 0;
-    variable $rise: day.step = 0;
-    variable $rise_hour: day.hour = 1;
-    variable $warm: day.count = 0;
-    variable $hot: day.count = 0;
-    variable $changes: day.count = 0;
-    variable $prev: temp = 0;
-    variable $alarm := Alarm.calm;
+proc read_day [] -> Day:
+    var $c := Cursor[at = 1];
+    var $sum: day.sum = 0;
+    var $low: temp = 600;
+    var $low_hour: day.hour = 0;
+    var $high: temp = neg 500;
+    var $high_hour: day.hour = 0;
+    var $rise: day.step = 0;
+    var $rise_hour: day.hour = 1;
+    var $warm: day.count = 0;
+    var $hot: day.count = 0;
+    var $changes: day.count = 0;
+    var $prev: temp = 0;
+    var $alarm := Alarm.calm;
     std::print.shortest("alarm:  ");
     show_alarm(copy $alarm);
     for $hour [from: 0, before: $hours, by: 1]:
-        let $t := next_reading(lend.mutable $c) otherwise:
+        let $t := next_reading(lend.mut $c)-
+        otherwise:
             case done:
-                std::print.shortest(newline, "the log ends after ", $hour, " readings of a day's ", $hours, "; stopping", newline);
+                std::print.shortest(newln, "the log ends after ", $hour, " readings of a day's ", $hours, "; stopping", newln);
                 std::exit(code: 2);
             end of case done
             case bad_byte $at:
-                std::print.shortest(newline, "the log has a byte no reading has, at ", $at, "; stopping", newline);
+                std::print.shortest(newln, "the log has a byte no reading has, at ", $at, "; stopping", newln);
                 std::exit(code: 2);
             end of case bad_byte
         end of otherwise;
@@ -326,7 +328,7 @@ procedure read_day [] -> Day:
         end of if
         if $hour greater_than 0:
             let $step := $t minus $prev;
-            if larger($step, negate $step) greater_than larger($rise, negate $rise):
+            if larger($step, neg $step) greater_than larger($rise, neg $rise):
                 change $rise = $step; change $rise_hour = $hour;
             end of if
         end of if
@@ -334,10 +336,10 @@ procedure read_day [] -> Day:
         if rank(copy $now) at_least 1:
             change $warm = $warm plus 1;
         end of if
-        if rank(copy $now) equal_to 2:
+        if rank(copy $now) eq 2:
             change $hot = $hot plus 1;
         end of if
-        if rank(copy $now) not_equal_to rank(copy $alarm):
+        if rank(copy $now) not_eq rank(copy $alarm):
             std::print.shortest(" -> ");
             show_alarm(copy $now);
             std::print.shortest(" at ");
@@ -348,40 +350,40 @@ procedure read_day [] -> Day:
         change $sum = $sum plus $t;
         change $prev = $t;
     end of for
-    std::print.shortest(newline);
+    std::print.shortest(newln);
     # a day is exactly its readings: one more would be another day's
-    if not log_ends(lend.mutable $c):
-        std::print.shortest("the log holds more than a day's ", $hours, " readings; stopping", newline);
+    if not log_ends(lend.mut $c):
+        std::print.shortest("the log holds more than a day's ", $hours, " readings; stopping", newln);
         std::exit(code: 2);
     end of if
-    return Day[sum = $sum, low = $low, low_hour = $low_hour, high = $high, high_hour = $high_hour, rise = $rise, rise_hour = $rise_hour, warm_hours = $warm, hot_hours = $hot, changes = $changes];
-end of procedure read_day
+    ret Day[sum = $sum, low = $low, low_hour = $low_hour, high = $high, high_hour = $high_hour, rise = $rise, rise_hour = $rise_hour, warm_hours = $warm, hot_hours = $hot, changes = $changes];
+end of proc read_day
 
 # A status word for a control panel, four bytes from the top: readings, warm hours, hot hours, alarm changes.
-function status_word [lent $d: Day] -> integer.unsigned.32_bit:
-    variable $w := to.integer.unsigned.32_bit($hours) shift_left 24;
-    change $w = $w or.bit (to.integer.unsigned.32_bit($d.warm_hours) shift_left 16);
-    change $w = $w or.bit (to.integer.unsigned.32_bit($d.hot_hours) shift_left 8);
-    change $w = $w or.bit to.integer.unsigned.32_bit($d.changes);
-    return $w;
-end of function status_word
+fn status_word [lent $d: Day] -> int.unsign.32:
+    var $w := to.int.unsign.32($hours) shl 24;
+    change $w = $w or.bit (to.int.unsign.32($d.warm_hours) shl 16);
+    change $w = $w or.bit (to.int.unsign.32($d.hot_hours) shl 8);
+    change $w = $w or.bit to.int.unsign.32($d.changes);
+    ret $w;
+end of fn status_word
 
-procedure report [lent $d: Day]:
-    std::print.shortest("readings: ", $hours, ", in tenths of a degree", newline);
+proc report [lent $d: Day]:
+    std::print.shortest("readings: ", $hours, ", in tenths of a degree", newln);
     std::print.shortest("lowest:  ");
     show_tenths($d.low);
     std::print.shortest(" C at ");
     show_hour($d.low_hour);
-    std::print.shortest(newline, "highest: ");
+    std::print.shortest(newln, "highest: ");
     show_tenths($d.high);
     std::print.shortest(" C at ");
     show_hour($d.high_hour);
-    let $mean := $d.sum divide.nearest $hours;
-    std::print.shortest(newline, "mean:    ");
+    let $mean := $d.sum div.near $hours;
+    std::print.shortest(newln, "mean:    ");
     show_tenths($mean);
     std::print.shortest(" C, ");
-    show_tenths(($mean times 9) divide.nearest 5 plus 320);
-    std::print.shortest(" F", newline, "steepest hour: ");
+    show_tenths(($mean times 9) div.near 5 plus 320);
+    std::print.shortest(" F", newln, "steepest hour: ");
     if $d.rise greater_than 0:
         std::print.shortest("+");
     end of if
@@ -390,18 +392,18 @@ procedure report [lent $d: Day]:
     show_hour($d.rise_hour minus 1);
     std::print.shortest(" to ");
     show_hour($d.rise_hour);
-    std::print.shortest(newline, "warm for ", $d.warm_hours, " hours, hot for ", $d.hot_hours, newline);
-end of procedure report
+    std::print.shortest(newln, "warm for ", $d.warm_hours, " hours, hot for ", $d.hot_hours, newln);
+end of proc report
 
 !MAIN:
-    std::print.shortest("station 7, booting on a chip with no operating system", newline);
-    std::print.shortest("log: ", array.length($log), " bytes, CRC-32 ");
+    std::print.shortest("station 7, booting on a chip with no operating system", newln);
+    std::print.shortest("log: ", arr.len($log), " bytes, CRC-32 ");
     show_hex(crc32());
-    std::print.shortest(newline);
+    std::print.shortest(newln);
     let $day := read_day();
     report(lend $day);
     std::print.shortest("status word: ");
     show_hex(status_word(lend $day));
-    std::print.shortest(newline, "switching off", newline);
+    std::print.shortest(newln, "switching off", newln);
     std::exit(code: 0);
 !end of MAIN

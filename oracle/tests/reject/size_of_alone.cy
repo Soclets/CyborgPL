@@ -1,3 +1,3 @@
 !MAIN:
-    let $n := size[integer.signed.32_bit];
+    let $n := size[int.sign.32];
 !end of MAIN

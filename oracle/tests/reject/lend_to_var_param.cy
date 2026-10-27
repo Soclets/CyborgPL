@@ -1,5 +1,5 @@
-function keep [$text: string.utf8]:
-end of function keep
+fn keep [$text: str.utf8]:
+end of fn keep
 !MAIN:
     let $s := "a";
     keep(lend $s);

@@ -3,14 +3,14 @@
 # carrying nothing, or only lends, copies by itself like a number.
 !MAIN:
     let $xs := [1, 2, 3];
-    let $count := function [] -> integer.unsigned.64_bit with [copy $xs]:
-        return std::list.length(lend $xs);
-    end of function;
+    let $count := fn [] -> int.unsign.64 with [copy $xs]:
+        ret std::ls.len(lend $xs);
+    end of fn;
     let $again := copy $count;        # its own copy of the list inside
     let $moved := give $count;        # 'count' is gone after this
-    let $inc := function [$a: integer.signed.32_bit] -> integer.signed.32_bit:
-        return $a plus 1;
-    end of function;
+    let $inc := fn [$a: int.sign.32] -> int.sign.32:
+        ret $a plus 1;
+    end of fn;
     let $inc2 := $inc;                # carries nothing: no word needed
-    std::print.shortest($again(), " ", $moved(), " ", $inc2(41), newline);
+    std::print.shortest($again(), " ", $moved(), " ", $inc2(41), newln);
 !end of MAIN

@@ -6,6 +6,6 @@
 !MAIN:
     let $a: areas::Circle = areas::Circle[radius = 1.0];
     let $b: shapes::Circle = shapes::Circle[radius = 2.0];
-    std::print.shortest(areas::circle(lend $a), " ", shapes::circle(lend $b), newline);
-    std::print.shortest(1.0 areas::mean 3.0, " ", 1.0 shapes::mean.low 4.0, newline);
+    std::print.shortest(areas::circle(lend $a), " ", shapes::circle(lend $b), newln);
+    std::print.shortest(1.0 areas::mean 3.0, " ", 1.0 shapes::mean.low 4.0, newln);
 !end of MAIN

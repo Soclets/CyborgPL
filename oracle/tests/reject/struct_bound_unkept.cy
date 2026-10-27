@@ -1,9 +1,9 @@
 interface Number:
-    integer.signed.32_bit;
+    int.sign.32;
 end of interface Number
-record Box <T: Number>:
+rec Box <T: Number>:
     item: <T>;
-end of record Box
+end of rec Box
 !MAIN:
-    let $b: Box[string.utf8] = Box[item = "x"];
+    let $b: Box[str.utf8] = Box[item = "x"];
 !end of MAIN

@@ -18,26 +18,26 @@ comptime and Rust's monomorphisation do the same.
 ## Spelling (revised 2026-10-02)
 
 ```
-function max <T: Number> [$a: <T>, $b: <T>] -> <T>:
+fn max <T: Number> [$a: <T>, $b: <T>] -> <T>:
     …
-end of function max           # announced after the name, with what it accepts
-function first <T: any> [lent $xs: std::list[<T>]] -> <T> or fail[empty]:
+end of fn max           # announced after the name, with what it accepts
+fn first <T: any> [lent $xs: std::ls[<T>]] -> <T> or fail[empty]:
     …
-end of function first
-function pick <T: any> [@x] [lent @x $xs: std::list[<T>]] -> lent @x <T>:
+end of fn first
+fn pick <T: any> [@x] [lent @x $xs: std::ls[<T>]] -> lent @x <T>:
     …
-end of function pick   # then the lifetime groups, after a `|`
+end of fn pick   # then the lifetime groups, after a `|`
 
-record Pair <A: any, B: any>:
+rec Pair <A: any, B: any>:
     left: <A>;
     right: <B>;
-end of record Pair         # blanks in the order announced
-union.tagged Maybe <T: any>:
+end of rec Pair         # blanks in the order announced
+union.tag Maybe <T: any>:
     none;
     some: <T>;
-end of union.tagged Maybe
+end of union.tag Maybe
 
-let $p: Pair[integer.signed.32_bit, string.utf8] = Pair[left = 7, right = "seven"];   # filled at the use
+let $p: Pair[int.sign.32, str.utf8] = Pair[left = 7, right = "seven"];   # filled at the use
 let $m := Maybe.some[42];                                          # filled from the value
 ```
 

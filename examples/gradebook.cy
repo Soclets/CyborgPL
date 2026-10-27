@@ -1,59 +1,60 @@
 # A small gradebook: structs, a failure for no scores, and a proven division.
-public constant $passing := 60;
+pub const $passing := 60;
 
-record Student:
-    name: string.utf8;
-    scores: std::list[integer.signed.32_bit];
-end of record Student
+rec Student:
+    name: str.utf8;
+    scores: std::ls[int.sign.32];
+end of rec Student
 
-function average [lent $s: Student] -> integer.signed.32_bit or fail[no_scores]:
-    if std::list.length(lend $s.scores) equal_to 0:
+fn average [lent $s: Student] -> int.sign.32 or fail[no_scores]:
+    if std::ls.len(lend $s.scores) eq 0:
         fail no_scores;
     end of if
-    variable $total := 0;
+    var $total := 0;
     for $x in lend $s.scores:
         change $total = $total plus $x;
     end of for
-    check return $total divide.floor std::list.length(lend $s.scores);     # the if above proves the divisor is not 0
-end of function average
+    check ret $total div.floor std::ls.len(lend $s.scores);     # the if above proves the divisor is not 0
+end of fn average
 
-procedure add_score [lent.mutable $s: Student, $score: integer.signed.32_bit] -> fail[out_of_range: integer.signed.32_bit]:
+proc add_score [lent.mut $s: Student, $score: int.sign.32] -> fail[out_of_range: int.sign.32]:
     if $score less_than 0 or $score greater_than 100:
         fail out_of_range[$score];
     end of if
-    std::list.append(lend.mutable $s.scores, value: $score);
-end of procedure add_score
+    std::ls.append(lend.mut $s.scores, value: $score);
+end of proc add_score
 
-function grade [lent $s: Student] -> string.utf8:
-    let $avg := average(lend $s) otherwise return to.stored.string.utf8($passing) concatenate "? no scores";
+fn grade [lent $s: Student] -> str.utf8:
+    let $avg := average(lend $s) otherwise ret to.stored.str.utf8($passing) concat "? no scores";
     if $avg at_least $passing:
-        return "pass (" concatenate to.stored.string.utf8($avg) concatenate ")";
+        ret "pass (" concat to.stored.str.utf8($avg) concat ")";
     end of if
-    return "fail (" concatenate to.stored.string.utf8($avg) concatenate ")";
-end of function grade
+    ret "fail (" concat to.stored.str.utf8($avg) concat ")";
+end of fn grade
 
 !MAIN:
-    variable $a := Student[name = "Ann", scores = std::list.empty];
-    variable $b := Student[name = "Bo", scores = [40, 55]];
+    var $a := Student[name = "Ann", scores = std::ls.empty];
+    var $b := Student[name = "Bo", scores = [40, 55]];
     let $marks := [72, 130, 88];
 
     for $m in lend $marks:
-        add_score(lend.mutable $a, $m) otherwise:
+        add_score(lend.mut $a, $m)-
+        otherwise:
             case out_of_range $bad:
-                std::print.shortest("skipping ", $bad, newline);
+                std::print.shortest("skipping ", $bad, newln);
             end of case out_of_range
         end of otherwise;
     end of for
-    add_score(lend.mutable $b, 65) otherwise std::exit(code: 1);
+    add_score(lend.mut $b, 65) otherwise std::exit(code: 1);
 
-    let $students := [give $a, give $b, Student[name = "Cy", scores = std::list.empty]];
-    variable $passed := 0;
+    let $students := [give $a, give $b, Student[name = "Cy", scores = std::ls.empty]];
+    var $passed := 0;
     for $s in lend $students:
-        std::print.stored($s.name, ": ", grade(lend $s), newline);
+        std::print.stored($s.name, ": ", grade(lend $s), newln);
         let $avg := average(lend $s) otherwise 0;
         if $avg at_least $passing:
             change $passed = $passed plus 1;
         end of if
     end of for
-    std::print.shortest($passed, " of ", std::list.length(lend $students), " passed", newline);
+    std::print.shortest($passed, " of ", std::ls.len(lend $students), " passed", newln);
 !end of MAIN

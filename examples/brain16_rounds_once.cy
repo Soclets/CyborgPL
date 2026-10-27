@@ -2,19 +2,19 @@
 # 179 x 2^47 and 180 x 2^47, just below half way, so it rounds down. Through f32 first it would land
 # exactly half way and tie up (check claude, 2026-10-15).
 !MAIN:
-    let $v: integer.signed.64_bit = 25262379159781017;
-    let $w := to.float.%brain.16_bit($v);
-    let $l: float.%brain.16_bit = 25262379159781017.0;
-    std::print.stored($w, newline);
-    std::print.stored($l, newline);
+    let $v: int.sign.64 = 25262379159781017;
+    let $w := to.float.%brain.16($v);
+    let $l: float.%brain.16 = 25262379159781017.0;
+    std::print.stored($w, newln);
+    std::print.stored($l, newln);
     # a f64 into a brain16 rounds once too: 1 + 2^-8 + 2^-30 is nearest 1 + 2^-7, where 32 bits
     # would drop the 2^-30 and tie down to 1 (compiler claude's case)
-    let $x: float.binary.64_bit = 1.0039062509313226;
-    std::print.stored(to.float.%brain.16_bit($x), newline);
+    let $x: float.bin.64 = 1.0039062509313226;
+    std::print.stored(to.float.%brain.16($x), newln);
     # a decimal rounds from its exact value: just below the half step 1.01171875 rounds down, though as
     # a f64 it would be the half step itself and tie up (check claude, 2026-10-15); the half step ties to even
-    let $below: float.%brain.16_bit = 1.01171874999999999999;
-    let $tie: float.%brain.16_bit = 1.01171875;
-    let $text := to.float.%brain.16_bit("1.01171874999999999999") otherwise 1.0;
-    std::print.stored($below, " ", $tie, " ", $text, newline);
+    let $below: float.%brain.16 = 1.01171874999999999999;
+    let $tie: float.%brain.16 = 1.01171875;
+    let $text := to.float.%brain.16("1.01171874999999999999") otherwise 1.0;
+    std::print.stored($below, " ", $tie, " ", $text, newln);
 !end of MAIN

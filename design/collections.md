@@ -16,15 +16,15 @@ A collection writes a function and its dot narrowings (`cum`, `cum.quick`,
 ## The shape
 
 ```
-public collection.function cum:
-    cum [$x: integer.signed.32_bit, $step: integer.signed.32_bit] -> integer.signed.32_bit:
-        return $x plus $step;
+pub coll.fn cum:
+    cum [$x: int.sign.32, $step: int.sign.32] -> int.sign.32:
+        ret $x plus $step;
     end of cum
     cum.quick [$step = 2];
-    cum.double [$x: integer.signed.32_bit] -> integer.signed.32_bit:
-        return $x times 2;
+    cum.double [$x: int.sign.32] -> int.sign.32:
+        ret $x times 2;
     end of cum.double
-end of collection.function cum
+end of coll.fn cum
 ```
 
 - `coll.fn`, then the name, bare as a function's is (`cum`, never
@@ -56,14 +56,14 @@ naming `cum.quick`. Generated members are written the same way.
 A member may point at a function written elsewhere in the kit, so a kit's `kit.cy` can be its front door:
 
 ```
-public collection.function area:
-    area [$w: integer.signed.64_bit, $h: integer.signed.64_bit] -> integer.signed.64_bit:
-        return $w times $h;
+pub coll.fn area:
+    area [$w: int.sign.64, $h: int.sign.64] -> int.sign.64:
+        ret $w times $h;
     end of area
     area.square = shapes.square.area;           # body in shapes/square.cy
     area.triangle = shapes.triangle.area;
     area.unit [$w = 1, $h = 1];               # a preset of the own function
-end of collection.function area
+end of coll.fn area
 # users write geometry::area.square[5]
 ```
 
@@ -111,13 +111,13 @@ are, each line its full name.
 A collection also says how its own function is called:
 
 ```
-public collection.function say:
+pub coll.fn say:
     labels.in_order [$text as value, $times as count];
     defaults [$times = 1];
-    say [$n: integer.signed.32_bit, $text: string.utf8, $times: integer.signed.32_bit] -> string.utf8:
+    say [$n: int.sign.32, $text: str.utf8, $times: int.sign.32] -> str.utf8:
         …
     end of say
-end of collection.function say
+end of coll.fn say
 # say[2, value: "Hi"]               'times' is 1
 # say[2, value: "Hi", count: 3]
 ```
@@ -146,14 +146,14 @@ as `std::print` does: `std::print.useful[…]` and `std::print.stored[…]`
 exist, a bare `std::print[…]` does not.
 
 ```
-collection.function zero:
-    zero.of_int16 [] -> integer.signed.16_bit:
-        return 0;
+coll.fn zero:
+    zero.of_int16 [] -> int.sign.16:
+        ret 0;
     end of zero.of_int16
-    zero.of_int64 [] -> integer.signed.64_bit:
-        return 0;
+    zero.of_int64 [] -> int.sign.64:
+        ret 0;
     end of zero.of_int64
-end of collection.function zero
+end of coll.fn zero
 ```
 
 `zero.of_int16[]` exists, `zero[…]` does not. Such a collection has no
@@ -166,21 +166,21 @@ cannot do (Good practice 14, `style.md`): where the value changes a
 member's signature, or no own function takes it.
 
 ```
-collection.function zero:
-    for $T in [integer.signed.16_bit, integer.signed.64_bit]:
-        named "of_" concatenate std::string.replace(lend $T, from: ".", to: "_");
+coll.fn zero:
+    for $T in [int.sign.16, int.sign.64]:
+        named "of_" concat std::str.replace(lend $T, from: ".", to: "_");
         [] -> $T:
-            return 0;
+            ret 0;
         end of named
     end of for
     #generated_6_lines_below
-    zero.of_integer_signed_16_bit [] -> integer.signed.16_bit:
-        return 0;
-    end of zero.of_integer_signed_16_bit
-    zero.of_integer_signed_64_bit [] -> integer.signed.64_bit:
-        return 0;
-    end of zero.of_integer_signed_64_bit
-end of collection.function zero
+    zero.of_int_sign_16 [] -> int.sign.16:
+        ret 0;
+    end of zero.of_int_sign_16
+    zero.of_int_sign_64 [] -> int.sign.64:
+        ret 0;
+    end of zero.of_int_sign_64
+end of coll.fn zero
 ```
 
 - **The loop is the usual `for`** (owner: "(a)"): over a list, `for 'n' in
@@ -226,18 +226,18 @@ owner rules:
 ## `coll.handler` (owner, 2026-10-13; built in the oracle)
 
 ```
-collection.handler cum_failed:
+coll.handler cum_failed:
     cum_failed.flow_back_to_bladder:
         !case odd:
-            return 0;
+            ret 0;
         !end of case odd
         !case negative $v:
-            report($v); return 0;
+            report($v); ret 0;
         !end of case negative
     end of cum_failed.flow_back_to_bladder
-end of collection.handler cum_failed
+end of coll.handler cum_failed
 
-let $b := half(negative 4) otherwise cum_failed.!flow_back_to_bladder;
+let $b := half(neg 4) otherwise cum_failed.!flow_back_to_bladder;
 ```
 
 - A member is a **named `otherwise` block**: the arms written inline today,

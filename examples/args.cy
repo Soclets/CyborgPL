@@ -2,25 +2,25 @@
 # take 'argc' and 'argv', the program's name first, each word NUL-ended, a null pointer after the last.
 # Reading them is C's world, so it is no_check; a friendly list will be written in CyborgPL on top.
 # examples/args.args holds the words the test passes: apples, 3, hello world.
-!MAIN [$argc: integer.signed.32_bit, $argv: pointer[pointer[integer.unsigned.8_bit]]]:
-    std::print.stored("argc = ", $argc, newline);
-    variable $i: integer.signed.32_bit = 1;
+!MAIN [$argc: int.sign.32, $argv: ptr[ptr[int.unsign.8]]]:
+    std::print.stored("argc = ", $argc, newln);
+    var $i: int.sign.32 = 1;
     while $i less_than $argc:
-        !no_check let $word := pointer.read(pointer.at($argv, by: $i));
-        variable $k: integer.signed.32_bit = 0;
-        variable $bytes: std::list[integer.unsigned.8_bit] = [];
+        !no_check let $word := ptr.read(ptr.at($argv, by: $i));
+        var $k: int.sign.32 = 0;
+        var $bytes: std::ls[int.unsign.8] = [];
         loop:
-            !no_check let $b := pointer.read(pointer.at($word, by: $k));
-            if $b equal_to 0:
+            !no_check let $b := ptr.read(ptr.at($word, by: $k));
+            if $b eq 0:
                 break;
             end of if
-            std::list.append(lend.mutable $bytes, value: $b);
+            std::ls.append(lend.mut $bytes, value: $b);
             change $k = $k plus 1;
         end of loop
-        let $text := to.string.utf8($bytes) otherwise "(not UTF-8)";      # bytes into text (owner, 2026-09-30)
-        std::print.stored("argument ", $i, ": ", $text, newline);
+        let $text := to.str.utf8($bytes) otherwise "(not UTF-8)";      # bytes into text (owner, 2026-09-30)
+        std::print.stored("argument ", $i, ": ", $text, newln);
         change $i = $i plus 1;
     end of while
-    !no_check let $end := pointer.read(pointer.at($argv, by: $argc));
-    std::print.stored("argv[argc] is null: ", pointer.is_null($end), newline);
+    !no_check let $end := ptr.read(ptr.at($argv, by: $argc));
+    std::print.stored("argv[argc] is null: ", ptr.is_null($end), newln);
 !end of MAIN

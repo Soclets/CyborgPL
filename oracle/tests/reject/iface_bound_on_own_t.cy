@@ -1,5 +1,5 @@
 interface O <T: any>:
-    operator less_than [$a: <T>, $b: <T>] -> boolean;
+    op less_than [$a: <T>, $b: <T>] -> bool;
 end of interface O
 !MAIN:
 !end of MAIN

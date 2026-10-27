@@ -1,13 +1,13 @@
 # A keyword may name a function, reached by path, never bare (2026-09-19):
 # bare `to` is the conversion and bare `true` the boolean, so these are `my.to()`, `my.true()`.
-function to [] -> integer.signed.32_bit:
-    return 5;
-end of function to
-function true [] -> integer.signed.32_bit:
-    return 1;
-end of function true
+fn to [] -> int.sign.32:
+    ret 5;
+end of fn to
+fn true [] -> int.sign.32:
+    ret 1;
+end of fn true
 !MAIN:
     let $x := my.to();
     let $y := my.true();
-    std::print.shortest($x, " ", $y, newline);
+    std::print.shortest($x, " ", $y, newln);
 !end of MAIN

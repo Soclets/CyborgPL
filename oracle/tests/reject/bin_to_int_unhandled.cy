@@ -1,3 +1,3 @@
 !MAIN:
-    let $y: float.binary.64_bit = 2.7; let $b := to.integer.signed.32_bit($y);
+    let $y: float.bin.64 = 2.7; let $b := to.int.sign.32($y);
 !end of MAIN

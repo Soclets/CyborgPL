@@ -1,11 +1,11 @@
 # Empty lists: `[]` with a type, and `list.empty`, then filled with `list.append`.
 !MAIN:
-    variable $xs: std::list[integer.signed.32_bit] = [];
-    std::list.append(lend.mutable $xs, value: 7);
-    std::list.append(lend.mutable $xs, value: 8);
-    std::print.shortest($xs, " ", std::list.length(lend $xs), newline);
-    variable $ys := std::list.empty;
-    std::print.shortest(std::list.length(lend $ys), newline);
-    std::list.append(lend.mutable $ys, value: "a");
-    std::print.shortest($ys, newline);
+    var $xs: std::ls[int.sign.32] = [];
+    std::ls.append(lend.mut $xs, value: 7);
+    std::ls.append(lend.mut $xs, value: 8);
+    std::print.shortest($xs, " ", std::ls.len(lend $xs), newln);
+    var $ys := std::ls.empty;
+    std::print.shortest(std::ls.len(lend $ys), newln);
+    std::ls.append(lend.mut $ys, value: "a");
+    std::print.shortest($ys, newln);
 !end of MAIN

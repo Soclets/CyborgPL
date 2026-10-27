@@ -1,8 +1,8 @@
-public collection.function say:
+pub coll.fn say:
     labels [$t as value];
-    say [$t: integer.signed.32_bit] -> integer.signed.32_bit:
-        return $t;
+    say [$t: int.sign.32] -> int.sign.32:
+        ret $t;
     end of say
-end of collection.function say
+end of coll.fn say
 !MAIN:
 !end of MAIN

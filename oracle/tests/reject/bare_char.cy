@@ -1,3 +1,3 @@
 !MAIN:
-    let $c: character = `a`;
+    let $c: char = `a`;
 !end of MAIN

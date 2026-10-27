@@ -1,6 +1,6 @@
-function one [$a: integer.signed.32_bit] -> integer.signed.32_bit:
-    return $a;
-end of function one
+fn one [$a: int.sign.32] -> int.sign.32:
+    ret $a;
+end of fn one
 !MAIN:
     let $x := one(1, 2);
 !end of MAIN

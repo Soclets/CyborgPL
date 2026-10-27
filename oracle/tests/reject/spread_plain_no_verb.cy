@@ -1,6 +1,6 @@
-function sum [...$n: integer.signed.32_bit] -> integer.signed.32_bit:
-    return 0;
-end of function sum
+fn sum [...$n: int.sign.32] -> int.sign.32:
+    ret 0;
+end of fn sum
 !MAIN:
     let $x := [1, 2]; let $t := sum(...copy $x);
 !end of MAIN

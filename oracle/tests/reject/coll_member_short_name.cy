@@ -1,11 +1,11 @@
-collection.function greet:
-    greet [] -> integer.signed.32_bit:
-        return 1;
+coll.fn greet:
+    greet [] -> int.sign.32:
+        ret 1;
     end of greet
-    hi [] -> integer.signed.32_bit:
-        return 2;
+    hi [] -> int.sign.32:
+        ret 2;
     end of hi
-end of collection.function greet
+end of coll.fn greet
 
 !MAIN:
 !end of MAIN

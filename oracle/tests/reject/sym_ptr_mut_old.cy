@@ -1,3 +1,3 @@
-%external.C procedure free [$p: *mut integer.unsigned.8_bit];
+%extern.C proc free [$p: *mut int.unsign.8];
 !MAIN:
 !end of MAIN

@@ -1,3 +1,3 @@
 !MAIN:
-    std::print.arrows.stored["hi", newline];
+    std::print.arrows.stored["hi", newln];
 !end of MAIN

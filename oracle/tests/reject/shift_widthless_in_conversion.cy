@@ -1,6 +1,6 @@
 !MAIN:
-    let $b: boolean = false;
+    let $b: bool = false;
     if $b:
-        let $r := to.integer.signed.64_bit(5 shift_right to.integer.unsigned.8_bit(1));
+        let $r := to.int.sign.64(5 shr to.int.unsign.8(1));
     end of if
 !end of MAIN

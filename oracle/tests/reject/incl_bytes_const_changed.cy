@@ -1,4 +1,4 @@
 !MAIN:
-    constant $b := include.bytes["incl_assets/cafe.txt"];
-    change $b[position: 1] = 0;
+    const $b := incl.bytes["incl_assets/cafe.txt"];
+    change $b[pos: 1] = 0;
 !end of MAIN

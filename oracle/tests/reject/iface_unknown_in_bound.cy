@@ -1,6 +1,6 @@
-function f <T: Nope> [$a: <T>] -> <T>:
-    return $a;
-end of function f
+fn f <T: Nope> [$a: <T>] -> <T>:
+    ret $a;
+end of fn f
 !MAIN:
     let $x := f(1);
 !end of MAIN

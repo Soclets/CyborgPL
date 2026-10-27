@@ -1,2 +1,2 @@
-public function f []:
-end of function f
+pub fn f []:
+end of fn f

@@ -1,9 +1,9 @@
 interface Ordered <T>:
-    operator less_than [$a: <T>, $b: <T>] -> boolean;
+    op less_than [$a: <T>, $b: <T>] -> bool;
 end of interface Ordered
-record V:
-    x: integer.signed.32_bit;
-end of record V
+rec V:
+    x: int.sign.32;
+end of rec V
 V satisfies Ordered;
 !MAIN:
 !end of MAIN

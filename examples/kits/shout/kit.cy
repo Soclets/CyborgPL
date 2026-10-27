@@ -1,17 +1,17 @@
 # A kit whose writer made its names case-insensitive, in its own code and as reached from other
 # kits (owner, 2026-10-06: "`a`, and `c`. Would depend on their respective writers"), kind by kind.
-case.any [function, record, field, constant];
+case.any [fn, rec, field, const];
 
-public constant $Volume := 11;
+pub const $Volume := 11;
 
-public function Shout [$s: string.utf8] -> string.utf8:
-    return $s concatenate "!";
-end of function Shout
+pub fn Shout [$s: str.utf8] -> str.utf8:
+    ret $s concat "!";
+end of fn Shout
 
-public function Whisper [] -> string.utf8:
-    return "psst, " concatenate shout("volume " concatenate to.shortest.string.utf8(my.$VOLUME));
-end of function Whisper
+pub fn Whisper [] -> str.utf8:
+    ret "psst, " concat shout("volume " concat to.shortest.str.utf8(my.$VOLUME));
+end of fn Whisper
 
-public record Level:
-    Loud: boolean;
-end of record Level
+pub rec Level:
+    Loud: bool;
+end of rec Level

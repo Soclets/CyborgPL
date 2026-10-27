@@ -1,3 +1,3 @@
 !MAIN:
-    let $x: integer.signed.8_bit[minimum: 1] = 0;
+    let $x: int.sign.8[min: 1] = 0;
 !end of MAIN

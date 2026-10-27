@@ -1,4 +1,4 @@
 !MAIN:
     let $n := 1;
-    let $s := $n newline;
+    let $s := $n newln;
 !end of MAIN

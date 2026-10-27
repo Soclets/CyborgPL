@@ -1,9 +1,9 @@
-record V:
-    x: integer.signed.32_bit;
-end of record V
-operator plus [$a: V, $b: V] -> V:
-    return V[x = $a.x plus $b.x];
-end of operator plus
+rec V:
+    x: int.sign.32;
+end of rec V
+op plus [$a: V, $b: V] -> V:
+    ret V[x = $a.x plus $b.x];
+end of op plus
 !MAIN:
     let $u := V[x = 1];
     let $w := $u plus 1;

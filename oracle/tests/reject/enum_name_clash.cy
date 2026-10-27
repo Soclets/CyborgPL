@@ -1,8 +1,8 @@
-record S:
-    x: integer.signed.32_bit;
-end of record S
-union.tagged S:
+rec S:
+    x: int.sign.32;
+end of rec S
+union.tag S:
     a;
-end of union.tagged S
+end of union.tag S
 !MAIN:
 !end of MAIN

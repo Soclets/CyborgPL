@@ -1,3 +1,3 @@
 !MAIN:
-    let $x := hexadecimal FG;
+    let $x := hex FG;
 !end of MAIN

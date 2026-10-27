@@ -1,24 +1,24 @@
 # FizzBuzz.
-procedure say [$n: integer.signed.32_bit]:
-    let $by3 := ($n modulo.floor 3) equal_to 0;
-    let $by5 := ($n modulo.floor 5) equal_to 0;
+proc say [$n: int.sign.32]:
+    let $by3 := ($n mod.floor 3) eq 0;
+    let $by5 := ($n mod.floor 5) eq 0;
     if $by3 and $by5:
-        std::print.stored("FizzBuzz", newline);
+        std::print.stored("FizzBuzz", newln);
     end of if
     else if $by3:
-        std::print.stored("Fizz", newline);
+        std::print.stored("Fizz", newln);
     end of else if
     else if $by5:
-        std::print.stored("Buzz", newline);
+        std::print.stored("Buzz", newln);
     end of else if
     else:
-        std::print.stored($n, newline);
+        std::print.stored($n, newln);
     end of else
-end of procedure say
+end of proc say
 
 !MAIN:
-    let $limit: integer.signed.32_bit = 15;
-    variable $i := 1;
+    let $limit: int.sign.32 = 15;
+    var $i := 1;
     while $i at_most $limit:
         say($i);
         change $i = $i plus 1;

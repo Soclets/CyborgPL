@@ -3,5 +3,5 @@
     std::print.shortest.auto_newline("Hello, World!");
     let $n := 3;
     std::print.shortest.auto_newline("n is ", $n);
-    std::print.shortest("the same, by hand: ", $n, newline);
+    std::print.shortest("the same, by hand: ", $n, newln);
 !end of MAIN

@@ -1,6 +1,6 @@
-function touch [lent $text: string.utf8]:
+fn touch [lent $text: str.utf8]:
     change $text = "b";
-end of function touch
+end of fn touch
 !MAIN:
     let $s := "a";
     touch(lend $s);

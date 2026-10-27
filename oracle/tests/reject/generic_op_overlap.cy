@@ -1,14 +1,14 @@
 # A generic operator and a specific one for a type it covers: two meanings, an error — the specific
 # one does not quietly win (owner, 2026-09-29: a).
 interface Number <T>:
-    operator minus [$a: <T>, $b: <T>] -> <T>;
-    operator less_than [$a: <T>, $b: <T>] -> boolean;
+    op minus [$a: <T>, $b: <T>] -> <T>;
+    op less_than [$a: <T>, $b: <T>] -> bool;
 end of interface Number
-operator ~= <T: Number> [$a: <T>, $b: <T>] -> boolean:
-    return $a less_than $b;
-end of operator ~=
-operator ~= [$a: integer.signed.32_bit, $b: integer.signed.32_bit] -> boolean:
-    return true;
-end of operator ~=
+op ~= <T: Number> [$a: <T>, $b: <T>] -> bool:
+    ret $a less_than $b;
+end of op ~=
+op ~= [$a: int.sign.32, $b: int.sign.32] -> bool:
+    ret true;
+end of op ~=
 !MAIN:
 !end of MAIN

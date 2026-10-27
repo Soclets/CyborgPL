@@ -1,5 +1,5 @@
 !MAIN:
     let $s := "a,b";
-    let $e := string.empty;
-    let $p := std::string.split(lend $s, at: lend $e);
+    let $e := str.empty;
+    let $p := std::str.split(lend $s, at: lend $e);
 !end of MAIN

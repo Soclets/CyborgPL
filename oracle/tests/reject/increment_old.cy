@@ -1,4 +1,4 @@
 !MAIN:
-    variable $i: integer.signed.32_bit = 1;
+    var $i: int.sign.32 = 1;
     $i++;
 !end of MAIN

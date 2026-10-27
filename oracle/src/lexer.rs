@@ -144,7 +144,11 @@ fn old_syntax() -> bool { OLD_SYNTAX.with(|o| o.get()) }
 thread_local! {
     /// `oracle --redesign` reads the marks as tokens, to move them where the new names want them
     pub static KEEP_MARKS: std::cell::Cell<bool> = std::cell::Cell::new(false);
+    /// `oracle --redesign`'s second step reads each word as written, none read as the token it stands for
+    pub static RAW_WORDS: std::cell::Cell<bool> = std::cell::Cell::new(false);
 }
+
+fn raw_words() -> bool { RAW_WORDS.with(|r| r.get()) }
 
 thread_local! {
     /// `oracle --mark-limbs`: the edits that would mark a file's limb words and spell its percentages out, gathered
@@ -286,7 +290,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             let mut j = i;
             while j < chars.len() && (chars[j].is_ascii_alphanumeric() || chars[j] == '_') { j += 1; }
             let w: String = chars[i..j].iter().collect();
-            if w.ends_with("_bit") && w[..w.len() - 4].chars().all(|d| d.is_ascii_digit()) {
+            if (w.ends_with("_bit") && w[..w.len() - 4].chars().all(|d| d.is_ascii_digit())) || (w.chars().all(|d| d.is_ascii_digit()) && matches!(toks.iter().rev().find(|t| t.tok != Tok::Mark && t.tok != Tok::Dot).map(|t| &t.tok), Some(Tok::Word(_)))) {
                 push(Tok::Word(w), &mut toks);
                 col += j - i; i = j;
                 continue;
@@ -370,16 +374,16 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             // a whole number in another base, the word in front as `exactly` is; the digits are read here, `_` grouping
             // as in decimals. `binary` and `octal` are old spellings (spellings.cyr)
             // since 2026-10-27 they are `binary`, `hexadecimal`, `octal` (owner: "No abbrevs, bro")
-            let radix_word = if old_syntax() { matches!(s.as_str(), "bin" | "hex" | "oct") } else { matches!(s.as_str(), "binary" | "hexadecimal" | "octal" | "bin" | "hex" | "oct") };
+            let radix_word = matches!(s.as_str(), "binary" | "hexadecimal" | "octal" | "bin" | "hex" | "oct");
             if radix_word {
                 let mut k = i;
                 while k < chars.len() && chars[k] == ' ' { k += 1; }
                 let run: String = chars[k..].iter().take_while(|c| c.is_ascii_alphanumeric() || **c == '_').collect();
                 let starts = run.chars().next().map_or(false, |c| c.is_ascii_digit() || c == '_' || ((s == "hex" || s == "hexadecimal") && c.is_ascii_hexdigit()));
                 if k > i && starts {
-                    if !old_syntax() && matches!(s.as_str(), "bin" | "hex" | "oct") {
-                        let full = match s.as_str() { "bin" => "binary", "hex" => "hexadecimal", _ => "octal" };
-                        return err(tl, tc, format!("`{s} {run}` is an old spelling: write `{full} {run}` (owner, 2026-10-27)"));
+                    if !raw_words() && matches!(s.as_str(), "binary" | "hexadecimal" | "octal") {
+                        let short = match s.as_str() { "binary" => "bin", "hexadecimal" => "hex", _ => "oct" };
+                        return err(tl, tc, format!("`{s} {run}` is an old spelling: write `{short} {run}` (owner, 2026-10-27, redesign two)"));
                     }
                     let radix = match s.as_str() { "bin" | "binary" => 2, "hex" | "hexadecimal" => 16, _ => 8 };
                     let what = match radix { 2 => "a binary number has only the digits 0 and 1", 16 => "a hex number has only 0-9 and A-F", _ => "an octal number has only the digits 0 to 7" };
@@ -420,20 +424,21 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             // an old spelling, from `spellings.cyr` (owner, 2026-10-13): kept as written, to be refused by name
             let in_path = matches!(toks.last().map(|t| &t.tok), Some(Tok::Dot | Tok::ColonColon));
             let main: Option<&'static crate::spellings::Old> = if after_bang { None } else { crate::spellings::old_at(&s, after_inline, in_path) };
-            let inside: Option<Tok> = match s.as_str() {
+            let inside: Option<Tok> = if raw_words() { None } else { match s.as_str() {
                 "no_shadow" => Some(Tok::NoShadow),
-                "equal_to" => Some(Tok::Op("equal_to".into())),
+                // `eq` / `not_eq` since redesign two (owner, 2026-10-27); `equal_to` / `not_equal` before it
+                "equal_to" if old_syntax() || crate::spellings::loading() => Some(Tok::Op("equal_to".into())),
+                "eq" if !old_syntax() => Some(Tok::Op("equal_to".into())),
                 // the words of `<` and `>` (owner, 2026-10-16: "the long"), read as the symbols inside
                 "less_than" => Some(Tok::Op("<".into())),
                 "greater_than" => Some(Tok::Op(">".into())),
                 "not_equal" if old_syntax() => Some(Tok::Op("not_equal".into())),
-                "not_equal_to" if !old_syntax() => Some(Tok::Op("not_equal".into())),
+                "not_eq" if !old_syntax() => Some(Tok::Op("not_equal".into())),
                 "at_most" => Some(Tok::Op("at_most".into())),
                 "at_least" => Some(Tok::Op("at_least".into())),
-                "newln" if old_syntax() || crate::spellings::loading() => Some(Tok::Newline),
-                "newline" if !old_syntax() => Some(Tok::Newline),
+                "newln" => Some(Tok::Newline),
                 _ => None,
-            };
+            } };
             if let Some(t) = inside { push(t, &mut toks); continue; }
             let written = if after_inline && main.is_some() { format!("inline.{s}") } else { s.clone() };
             if is_asm && !old_syntax() && !closing { raw_pending = Some(format!("inline.{}{s}", if m == 1 { "%" } else { "" })); }

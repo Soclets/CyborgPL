@@ -1,5 +1,5 @@
-function twice [$d: duration] -> std::duration:
-    return $d plus $d;
-end of function twice
+fn twice [$d: duration] -> std::duration:
+    ret $d plus $d;
+end of fn twice
 !MAIN:
 !end of MAIN

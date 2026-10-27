@@ -1,17 +1,17 @@
-record Counter:
-    now: integer.signed.32_bit;
-    stop: integer.signed.32_bit;
-end of record Counter
-procedure Counter.next [lent.mutable $c: Counter] -> optional[integer.signed.32_bit]:
-    if $c.now equal_to $c.stop:
-        return optional.none;
+rec Counter:
+    now: int.sign.32;
+    stop: int.sign.32;
+end of rec Counter
+proc Counter.next [lent.mut $c: Counter] -> optional[int.sign.32]:
+    if $c.now eq $c.stop:
+        ret optional.none;
     end of if
     change $c.now = $c.now plus 1;
-    return optional.value($c.now);
-end of procedure Counter.next
+    ret optional.value($c.now);
+end of proc Counter.next
 !MAIN:
-    variable $c := Counter[now = 0, stop = 2];
+    var $c := Counter[now = 0, stop = 2];
     for $x in give $c:
     end of for
-    let $again := Counter.next(lend.mutable $c);
+    let $again := Counter.next(lend.mut $c);
 !end of MAIN

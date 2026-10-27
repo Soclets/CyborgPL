@@ -1,3 +1,3 @@
-%external.C $a: integer.signed.32_bit = 1;
+%extern.C $a: int.sign.32 = 1;
 !MAIN:
 !end of MAIN

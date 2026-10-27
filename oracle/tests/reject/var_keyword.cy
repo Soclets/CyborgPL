@@ -1,3 +1,3 @@
 !MAIN:
-    var $x := 1;
+    variable $x := 1;
 !end of MAIN

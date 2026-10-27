@@ -1,6 +1,6 @@
-union.tagged optional:
+union.tag optional:
     yes;
     no;
-end of union.tagged optional
+end of union.tag optional
 !MAIN:
 !end of MAIN

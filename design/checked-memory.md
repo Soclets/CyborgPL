@@ -24,11 +24,11 @@ The layers, then:
 ## The handle: `manual[T]` (owner, 2026-10-13: "Manual it is")
 
 ```
-record Node:
-    $value: integer.signed.32_bit;
+rec Node:
+    $value: int.sign.32;
     $left: manual[Node];
     $right: manual[Node];
-end of record Node
+end of rec Node
 ```
 
 - `T` is any type: `manual[Node]`, `manual[i32]`, `manual[array[u8, 64]]`.

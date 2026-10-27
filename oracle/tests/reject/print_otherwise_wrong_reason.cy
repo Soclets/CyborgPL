@@ -1,5 +1,6 @@
 !MAIN:
-    std::print.shortest("x", newline) otherwise:
+    std::print.shortest("x", newln)-
+    otherwise:
         case closed:
             std::exit(code: 1);
         end of case closed

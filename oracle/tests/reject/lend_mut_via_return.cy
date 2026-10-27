@@ -1,10 +1,10 @@
-procedure grow [@y] [lent.mutable @y $xs: std::list[integer.signed.32_bit]] -> lent.mutable @y std::list[integer.signed.32_bit]:
-    std::list.append(lend.mutable $xs, value: 9); return lend.mutable $xs;
-end of procedure grow
-procedure two [lent.mutable $a: std::list[integer.signed.32_bit], lent $b: std::list[integer.signed.32_bit]]:
-    std::print.shortest(std::list.length(lend $a) plus std::list.length(lend $b), newline);
-end of procedure two
+proc grow [@y] [lent.mut @y $xs: std::ls[int.sign.32]] -> lent.mut @y std::ls[int.sign.32]:
+    std::ls.append(lend.mut $xs, value: 9); ret lend.mut $xs;
+end of proc grow
+proc two [lent.mut $a: std::ls[int.sign.32], lent $b: std::ls[int.sign.32]]:
+    std::print.shortest(std::ls.len(lend $a) plus std::ls.len(lend $b), newln);
+end of proc two
 !MAIN:
-    variable $u: std::list[integer.signed.32_bit] = [1, 2];
-    two(grow(lend.mutable $u), lend $u);
+    var $u: std::ls[int.sign.32] = [1, 2];
+    two(grow(lend.mut $u), lend $u);
 !end of MAIN

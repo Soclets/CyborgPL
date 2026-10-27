@@ -1,3 +1,3 @@
 !MAIN:
-    std::print.shortest["hi", newline];
+    std::print.shortest["hi", newln];
 !end of MAIN

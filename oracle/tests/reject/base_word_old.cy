@@ -1,3 +1,3 @@
 !MAIN:
-    let $x: integer.unsigned.8_bit = bin 1010;
+    let $x: int.unsign.8 = binary 1010;
 !end of MAIN

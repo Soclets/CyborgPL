@@ -1,10 +1,10 @@
-function g [$p: integer.unsigned.8_bit] -> integer.unsigned.8_bit:
+fn g [$p: int.unsign.8] -> int.unsign.8:
     if false:
-        let shadow $p: boolean = true;
-        return $p;
+        let shadow $p: bool = true;
+        ret $p;
     end of if
-    return $p;
-end of function g
+    ret $p;
+end of fn g
 !MAIN:
     let $x := g(1);
 !end of MAIN

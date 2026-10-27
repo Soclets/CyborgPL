@@ -1,6 +1,6 @@
-%external.C procedure p_one = %C.printf [$format: pointer[integer.unsigned.8_bit], ...$n: integer.signed.32_bit] -> integer.signed.32_bit;
+%extern.C proc p_one = %C.printf [$format: ptr[int.unsign.8], ...$n: int.sign.32] -> int.sign.32;
 
 !MAIN:
-    let $f := %C.string.make("%d %d");
+    let $f := %C.str.make("%d %d");
     !no_check p_one(lend $f, 1, 2);
 !end of MAIN

@@ -16,16 +16,16 @@ enforced; the oracle cannot link C, so it emulates `write`, `exit`,
 ## `extern.C` — a function whose body is somewhere else
 
 ```
-%external.C procedure write [$fd: integer.signed.32_bit, $buf: pointer[integer.unsigned.8_bit], $len: integer.unsigned.64_bit] -> integer.signed.64_bit;
-%external.C procedure exit [$code: integer.signed.32_bit];
-%external.C procedure printf [$fmt: pointer[integer.unsigned.8_bit], ...$args] -> integer.signed.32_bit;      # C's own varargs
+%extern.C proc write [$fd: int.sign.32, $buf: ptr[int.unsign.8], $len: int.unsign.64] -> int.sign.64;
+%extern.C proc exit [$code: int.sign.32];
+%extern.C proc printf [$fmt: ptr[int.unsign.8], ...$args] -> int.sign.32;      # C's own varargs
 
-%external.C:                                  # a library's worth at once
-    procedure malloc [$bytes: integer.unsigned.64_bit] -> pointer.mutable[integer.unsigned.8_bit];
-    procedure free [$p: pointer.mutable[integer.unsigned.8_bit]];
-    $lib_version: integer.signed.32_bit;
-    variable $lib_verbose: integer.signed.32_bit;
-end of %external.C
+%extern.C:                                  # a library's worth at once
+    proc malloc [$bytes: int.unsign.64] -> ptr.mut[int.unsign.8];
+    proc free [$p: ptr.mut[int.unsign.8]];
+    $lib_version: int.sign.32;
+    var $lib_verbose: int.sign.32;
+end of %extern.C
 ```
 
 **`extern` names its language, `extern.C`, and may be a block** (owner,
@@ -102,13 +102,13 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
 ## Callbacks — a Cyborg function C calls (decided 2026-09-21)
 
 ```
-%external.C procedure qsort [$base: pointer.mutable[integer.signed.32_bit], $n: integer.unsigned.64_bit, $size: integer.unsigned.64_bit,
-                 $cmp: function[pointer[integer.signed.32_bit], pointer[integer.signed.32_bit]] -> integer.signed.32_bit];
+%extern.C proc qsort [$base: ptr.mut[int.sign.32], $n: int.unsign.64, $size: int.unsign.64,
+                 $cmp: fn[ptr[int.sign.32], ptr[int.sign.32]] -> int.sign.32];
 
-procedure ascending [$a: pointer[integer.signed.32_bit], $b: pointer[integer.signed.32_bit]] -> integer.signed.32_bit:
-    !no_check return pointer.read($a) minus pointer.read($b);
-end of procedure ascending
-!no_check qsort(lend.mutable $nums, 5, size.of[integer.signed.32_bit], ascending);
+proc ascending [$a: ptr[int.sign.32], $b: ptr[int.sign.32]] -> int.sign.32:
+    !no_check ret ptr.read($a) minus ptr.read($b);
+end of proc ascending
+!no_check qsort(lend.mut $nums, 5, size.of[int.sign.32], ascending);
 ```
 
 - **Only capture-free functions cross** (owner: a, over smuggling captures
@@ -129,7 +129,7 @@ end of procedure ascending
 ## A ranged return — C's contract, checked at the door (decided 2026-09-22)
 
 ```
-%external.C procedure strlen [$s: pointer[integer.unsigned.8_bit]] -> integer.unsigned.64_bit[minimum: 0, maximum: 1_000_000];
+%extern.C proc strlen [$s: ptr[int.unsign.8]] -> int.unsign.64[min: 0, max: 1_000_000];
 !no_check let $n := strlen(lend $s) otherwise fail too_long;    # can fail out_of_range
 ```
 
@@ -170,9 +170,10 @@ type is the request to check. To skip the check, write the plain type
 (`i32`), and convert when you want the enum:
 
 ```
-let $k := to.Key($code) otherwise:
+let $k := to.Key($code)-
+otherwise:
     !case out_of_range:
-        return;
+        ret;
     !end of case out_of_range
 end of otherwise;
 ```
@@ -196,10 +197,10 @@ tier trusting C's answers too. The owner asked whether `no_check` was then
 ## A range type as a C struct's field (owner, 2026-09-27: a)
 
 ```
-%layout.C record Rect:
-    w: integer.signed.32_bit[minimum: 0, maximum: 4096];
-    h: integer.signed.32_bit[minimum: 0, maximum: 4096];
-end of record Rect
+%layout.C rec Rect:
+    w: int.sign.32[min: 0, max: 4096];
+    h: int.sign.32[min: 0, max: 4096];
+end of rec Rect
 ```
 
 C sees the plain number, so the layout is unchanged (`Rect` is 8 bytes).
@@ -238,8 +239,8 @@ design claude's recommendation with a, not asked separately.
 ## `extern.C 'x': T` — a C global (decided 2026-09-21; `let` dropped 2026-09-25)
 
 ```
-%external.C $lib_version: integer.signed.32_bit;        # C: extern int lib_version;   read-only
-%external.C variable $lib_verbose: integer.signed.32_bit;    # C: extern int lib_verbose;   may be written
+%extern.C $lib_version: int.sign.32;        # C: extern int lib_version;   read-only
+%extern.C var $lib_verbose: int.sign.32;    # C: extern int lib_verbose;   may be written
 
 !no_check let $v := $lib_version;       # reading C's variable is a no_check site
 !no_check change $lib_verbose = 1;              # so is writing one
@@ -274,10 +275,10 @@ naming `layout.C`.
 kayo compiling the block with Clang; it is CNC's (owner: "Yup"). Not designed yet.
 
 ```
-%layout.C record Timeval:
-    sec: integer.signed.64_bit;
-    usec: integer.signed.64_bit;
-end of record Timeval
+%layout.C rec Timeval:
+    sec: int.sign.64;
+    usec: int.sign.64;
+end of rec Timeval
 ```
 
 Only a `layout.C` struct may cross to C (in a signature or a `ptr[…]`); a
@@ -350,13 +351,15 @@ A C string is bytes ending in a 0 byte; a `str.utf8` knows its own length. Two w
 `C.int` (owner: "Isn't it `str`?"):
 
 ```
-%external.C procedure puts [$s: pointer[integer.unsigned.8_bit]] -> integer.signed.32_bit;
-let $name := %C.string.read($p) otherwise:
+%extern.C proc puts [$s: ptr[int.unsign.8]] -> int.sign.32;
+let $name := %C.str.read($p)-
+otherwise:
     case not_utf8:
         …
     end of case not_utf8
 end of otherwise;              # a char* to its 0 byte → str.utf8
-let $cs := %C.string.make(lend $name) otherwise:
+let $cs := %C.str.make(lend $name)-
+otherwise:
     case has_zero_byte:
         …
     end of case has_zero_byte
@@ -395,10 +398,10 @@ said any size. The calling rules are kayo's; the oracle has nothing to stand in 
 Both forms (owner: "What about both?"):
 
 ```
-include.%C.system["stdio.h"];                                        # printf comes with C's `...`
+incl.%C.system["stdio.h"];                                        # printf comes with C's `...`
 !no_check printf(lend $fmt, 5, lend $name);                     # the open form: any extras, on your word
 
-%external.C procedure printf_count = %C.printf [$format: pointer[integer.unsigned.8_bit], ...$n: integer.signed.32_bit] -> integer.signed.32_bit;
+%extern.C proc printf_count = %C.printf [$format: ptr[int.unsign.8], ...$n: int.sign.32] -> int.sign.32;
 !no_check printf_count(lend $fmt, 5);                            # a fixed shape: its extras' types checked
 ```
 
@@ -414,17 +417,17 @@ include.%C.system["stdio.h"];                                        # printf co
 
 ```
 %layout.C union Number:
-    i: integer.signed.32_bit;
-    f: float.binary.32_bit;
+    i: int.sign.32;
+    f: float.bin.32;
 end of union Number        # one of them at a time; C knows which
 !no_check let $x := $n.i;                          # reading a field: on your word, listed in the build report
 change $n.f = 1.5;                                 # writing: always safe
 
-%layout.C record Status:
-    mode: integer.unsigned.8_bit[bits: 3];
-    ready: boolean[bits: 1];
-    level: integer.unsigned.8_bit[bits: 4];
-end of record Status
+%layout.C rec Status:
+    mode: int.unsign.8[bits: 3];
+    ready: bool[bits: 1];
+    level: int.unsign.8[bits: 4];
+end of rec Status
 change $s.mode = 5;                                # checked to fit: 3 bits hold 0 to 7
 ```
 

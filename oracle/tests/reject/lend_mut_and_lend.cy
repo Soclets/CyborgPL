@@ -1,7 +1,7 @@
-procedure two [lent.mutable $a: std::list[integer.signed.32_bit], lent $b: std::list[integer.signed.32_bit]]:
-    std::print.shortest(std::list.length(lend $a) plus std::list.length(lend $b), newline);
-end of procedure two
+proc two [lent.mut $a: std::ls[int.sign.32], lent $b: std::ls[int.sign.32]]:
+    std::print.shortest(std::ls.len(lend $a) plus std::ls.len(lend $b), newln);
+end of proc two
 !MAIN:
-    variable $u: std::list[integer.signed.32_bit] = [1, 2];
-    two(lend.mutable $u, lend $u);
+    var $u: std::ls[int.sign.32] = [1, 2];
+    two(lend.mut $u, lend $u);
 !end of MAIN

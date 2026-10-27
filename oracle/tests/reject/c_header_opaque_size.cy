@@ -1,4 +1,4 @@
-include.%C.system["stdio.h"];
+incl.%C.system["stdio.h"];
 !MAIN:
-    std::print.shortest(size.of[FILE], newline);
+    std::print.shortest(size.of[FILE], newln);
 !end of MAIN

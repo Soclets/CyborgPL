@@ -1,1 +1,1 @@
-'total' is a `variable`, but nothing changes it
+'total' is a `var`, but nothing changes it: make it a `let`, or change it (`var` is a promise that it changes, as `let` is that it does not; owner, 2026-10-27)

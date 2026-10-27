@@ -2,48 +2,48 @@
 # may list types, one per line, as well as operations; a blank may need several, joined with `and`;
 # lifetime groups come after the generics, a `|` between the two kinds.
 interface Number:
-    integer.signed.32_bit;
-    integer.signed.64_bit;
-    float.binary.64_bit;
+    int.sign.32;
+    int.sign.64;
+    float.bin.64;
 end of interface Number
 
 interface Ordered <T>:
-    operator less_than [$a: <T>, $b: <T>] -> boolean;
-    operator equal_to [$a: <T>, $b: <T>] -> boolean;
+    op less_than [$a: <T>, $b: <T>] -> bool;
+    op eq [$a: <T>, $b: <T>] -> bool;
 end of interface Ordered
 
 interface WholeOrdered <T>:
-    integer.signed.32_bit;
-    integer.signed.64_bit;
-    operator less_than [$a: <T>, $b: <T>] -> boolean;
+    int.sign.32;
+    int.sign.64;
+    op less_than [$a: <T>, $b: <T>] -> bool;
 end of interface WholeOrdered
 
-function bigger <T: Number and Ordered> [$a: <T>, $b: <T>] -> <T>:
+fn bigger <T: Number and Ordered> [$a: <T>, $b: <T>] -> <T>:
     if $b less_than $a:
-        return $a;
+        ret $a;
     end of if
-    return $b;
-end of function bigger
+    ret $b;
+end of fn bigger
 
-function smaller <T: WholeOrdered> [$a: <T>, $b: <T>] -> <T>:
+fn smaller <T: WholeOrdered> [$a: <T>, $b: <T>] -> <T>:
     if $a less_than $b:
-        return $a;
+        ret $a;
     end of if
-    return $b;
-end of function smaller
+    ret $b;
+end of fn smaller
 
-function whole <T: any> [@x] [lent @x $xs: std::list[<T>]] -> lent @x std::list[<T>]:
-    return lend $xs;
-end of function whole
+fn whole <T: any> [@x] [lent @x $xs: std::ls[<T>]] -> lent @x std::ls[<T>]:
+    ret lend $xs;
+end of fn whole
 
-record Box <T: Number>:
+rec Box <T: Number>:
     item: <T>;
-end of record Box
+end of rec Box
 
 !MAIN:
-    std::print.shortest(bigger(3, 9), " ", bigger(2.5, 1.5), " ", smaller(3, 9), newline);
+    std::print.shortest(bigger(3, 9), " ", bigger(2.5, 1.5), " ", smaller(3, 9), newln);
     let $xs := ["a", "b"];
-    std::print.shortest(whole(lend $xs), newline);
-    let $b: Box[integer.signed.32_bit] = Box[item = 4];
-    std::print.shortest($b.item, newline);
+    std::print.shortest(whole(lend $xs), newln);
+    let $b: Box[int.sign.32] = Box[item = 4];
+    std::print.shortest($b.item, newln);
 !end of MAIN

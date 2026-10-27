@@ -1,8 +1,8 @@
 
 module a:
     module b:
-        public function f []:
-        end of function f
+        pub fn f []:
+        end of fn f
     end of module b
 end of module a
 !MAIN:

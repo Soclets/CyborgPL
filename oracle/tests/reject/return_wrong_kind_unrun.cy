@@ -1,9 +1,9 @@
-function g [$p: integer.unsigned.8_bit] -> integer.unsigned.8_bit:
+fn g [$p: int.unsign.8] -> int.unsign.8:
     if false:
-        return true;
+        ret true;
     end of if
-    return 1;
-end of function g
+    ret 1;
+end of fn g
 !MAIN:
     let $x := g(1);
 !end of MAIN

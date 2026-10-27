@@ -1,8 +1,8 @@
-%layout.C record S:
-    mode: integer.unsigned.8_bit[bits: 3];
-end of record S
+%layout.C rec S:
+    mode: int.unsign.8[bits: 3];
+end of rec S
 
 !MAIN:
-    variable $s := S[mode = 1];
+    var $s := S[mode = 1];
     change $s.mode = 8;
 !end of MAIN

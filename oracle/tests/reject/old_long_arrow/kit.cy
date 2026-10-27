@@ -1,6 +1,6 @@
-function f [] --> integer.signed.32_bit:
-    return 1;
-end of function f
+fn f [] --> int.sign.32:
+    ret 1;
+end of fn f
 
 !MAIN:
 !end of MAIN

@@ -3,8 +3,8 @@
 # `.weird` shows the stored form, as `print` does; `.weird.useful` the useful one, as `print.useful`
 # does. The strongest modifier comes first: `.weird` before `.useful`.
 !MAIN:
-    let $tenth: float.binary.64_bit = 0.1;
+    let $tenth: float.bin.64 = 0.1;
     let $n := 3;
-    std::print.arrows.shortest <- "tenth is " <- $tenth <- ", n is " <- $n <- newline;
-    std::print.arrows.stored <- "stored: " <- $tenth <- newline;
+    std::print.arrows.shortest <- "tenth is " <- $tenth <- ", n is " <- $n <- newln;
+    std::print.arrows.stored <- "stored: " <- $tenth <- newln;
 !end of MAIN

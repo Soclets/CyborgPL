@@ -1,9 +1,9 @@
-record P:
-    x: integer.signed.32_bit;
-end of record P
-function poke [lent $q: P]:
+rec P:
+    x: int.sign.32;
+end of rec P
+fn poke [lent $q: P]:
     change $q.x = 9;
-end of function poke
+end of fn poke
 !MAIN:
     let $p := P[x = 1];
     poke(lend $p);

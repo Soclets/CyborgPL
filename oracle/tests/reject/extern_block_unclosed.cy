@@ -1,4 +1,4 @@
-%external.C:
-    procedure exit [$code: integer.signed.32_bit];
+%extern.C:
+    proc exit [$code: int.sign.32];
 !MAIN:
 !end of MAIN

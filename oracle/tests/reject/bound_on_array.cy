@@ -1,3 +1,3 @@
 !MAIN:
-    let $z: array[integer.signed.32_bit][minimum: 0, maximum: 5] = [1];
+    let $z: arr[int.sign.32][min: 0, max: 5] = [1];
 !end of MAIN

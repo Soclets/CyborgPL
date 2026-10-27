@@ -1,11 +1,11 @@
 # True and false: `not`, `and`, and comparing a bool.
 !MAIN:
-    let $'correct?': boolean = true;
+    let $'correct?': bool = true;
     let $'wrong?' := not $'correct?';
     if $'correct?' and (not $'wrong?'):
-        std::print.stored("fine", newline);
+        std::print.stored("fine", newln);
     end of if
-    if $'wrong?' equal_to false:
-        std::print.stored($'correct?', " ", $'wrong?', newline);
+    if $'wrong?' eq false:
+        std::print.stored($'correct?', " ", $'wrong?', newln);
     end of if
 !end of MAIN

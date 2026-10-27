@@ -1,6 +1,6 @@
-collection.function c:
-    function x []:
-    end of function x
-end of collection.function c
+coll.fn c:
+    fn x []:
+    end of fn x
+end of coll.fn c
 !MAIN:
 !end of MAIN

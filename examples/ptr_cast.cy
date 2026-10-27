@@ -1,18 +1,18 @@
 # A pointer seen as pointing at another type (owner, 2026-09-30: a): `ptr.cast[T]($p)` keeps the
 # address and whether it may write, and changes only what it claims to point at. Always no_check.
-%external.C procedure malloc [$bytes: integer.unsigned.64_bit] -> pointer.mutable[integer.unsigned.8_bit];
-%external.C procedure free [$p: pointer.mutable[integer.unsigned.8_bit]];
+%extern.C proc malloc [$bytes: int.unsign.64] -> ptr.mut[int.unsign.8];
+%extern.C proc free [$p: ptr.mut[int.unsign.8]];
 
-%layout.C record Point:
-    x: integer.signed.32_bit;
-    y: integer.signed.32_bit;
-end of record Point
+%layout.C rec Point:
+    x: int.sign.32;
+    y: int.sign.32;
+end of rec Point
 
 !MAIN:
     !no_check let $raw := malloc(size.of[Point]);
-    !no_check let $p := pointer.cast[Point]($raw);
-    !no_check pointer.write($p, value: Point[x = 3, y = 4]);
-    !no_check let $q := pointer.read($p);
-    std::print.stored($q.x, " ", $q.y, newline);
+    !no_check let $p := ptr.cast[Point]($raw);
+    !no_check ptr.write($p, value: Point[x = 3, y = 4]);
+    !no_check let $q := ptr.read($p);
+    std::print.stored($q.x, " ", $q.y, newln);
     !no_check free($raw);
 !end of MAIN

@@ -1,3 +1,3 @@
 !MAIN:
-    let $t := to.string.utf8(42) otherwise string.empty;
+    let $t := to.str.utf8(42) otherwise str.empty;
 !end of MAIN

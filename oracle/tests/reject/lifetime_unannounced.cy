@@ -1,5 +1,5 @@
-function f [lent @x $a: string.utf8] -> lent @x string.utf8:
-    return lend $a;
-end of function f
+fn f [lent @x $a: str.utf8] -> lent @x str.utf8:
+    ret lend $a;
+end of fn f
 !MAIN:
 !end of MAIN

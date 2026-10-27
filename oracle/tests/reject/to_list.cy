@@ -1,3 +1,3 @@
 !MAIN:
-    let $l := to.list(integer.signed.32_bit)[1];
+    let $l := to.ls(int.sign.32)[1];
 !end of MAIN

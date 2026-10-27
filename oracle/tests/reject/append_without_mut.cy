@@ -1,4 +1,4 @@
 !MAIN:
-    let $xs: std::list[integer.signed.32_bit] = [1, 2, 3];
-    std::list.append(lend $xs, value: 4);
+    let $xs: std::ls[int.sign.32] = [1, 2, 3];
+    std::ls.append(lend $xs, value: 4);
 !end of MAIN

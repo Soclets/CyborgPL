@@ -1,7 +1,7 @@
-function half_start <T: any> [$x: <T>] -> <T>:
+fn half_start <T: any> [$x: <T>] -> <T>:
     let $h: <T> = 0.5;
-    return $h;
-end of function half_start
+    ret $h;
+end of fn half_start
 !MAIN:
-    std::print.shortest(half_start(4: integer.signed.32_bit), newline);
+    std::print.shortest(half_start(4: int.sign.32), newln);
 !end of MAIN

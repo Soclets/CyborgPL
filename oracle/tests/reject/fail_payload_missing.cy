@@ -1,5 +1,5 @@
-function f [] -> fail[why: string.utf8]:
+fn f [] -> fail[why: str.utf8]:
     fail why;
-end of function f
+end of fn f
 !MAIN:
 !end of MAIN

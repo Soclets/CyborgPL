@@ -1,4 +1,4 @@
-function f [$a...]:
-end of function f
+fn f [$a...]:
+end of fn f
 !MAIN:
 !end of MAIN

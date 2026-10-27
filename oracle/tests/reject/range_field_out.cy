@@ -1,6 +1,6 @@
-record P:
-    v: integer.unsigned.8_bit[minimum: 0, maximum: 100];
-end of record P
+rec P:
+    v: int.unsign.8[min: 0, max: 100];
+end of rec P
 !MAIN:
     let $p := P[v = 120];
 !end of MAIN

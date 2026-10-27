@@ -1,10 +1,10 @@
 # an owned value at the end of a deep path takes a verb, as one step does
-record In:
-    name: string.utf8;
-end of record In
-record Out:
+rec In:
+    name: str.utf8;
+end of rec In
+rec Out:
     inn: In;
-end of record Out
+end of rec Out
 !MAIN:
     let $o := Out[inn = In[name = "a"]];
     let $n := $o.inn.name;

@@ -1,35 +1,35 @@
 # Ownership: `lend`, `lend.mut`, `give` and `copy`.
-function count [lent $items: std::list[string.utf8]] -> integer.signed.32_bit:
-    variable $n := 0;
+fn count [lent $items: std::ls[str.utf8]] -> int.sign.32:
+    var $n := 0;
     for $item in lend $items:
         change $n = $n plus 1;
     end of for
-    return $n;
-end of function count
+    ret $n;
+end of fn count
 
-procedure shout [lent.mutable $text: string.utf8]:
-    change $text = copy $text concatenate "!";
-end of procedure shout
+proc shout [lent.mut $text: str.utf8]:
+    change $text = copy $text concat "!";
+end of proc shout
 
-function greet [$name: string.utf8] -> string.utf8:
-    return "hello " concatenate $name;
-end of function greet
+fn greet [$name: str.utf8] -> str.utf8:
+    ret "hello " concat $name;
+end of fn greet
 
 !MAIN:
-    let $s := "line 1" concatenate newline concatenate "line 2";
+    let $s := "line 1" concat newln concat "line 2";
     let $t := give $s;
-    variable $u := copy $t;
-    shout(lend.mutable $u);
-    std::print.stored($t, newline);
-    std::print.stored($u, newline);
+    var $u := copy $t;
+    shout(lend.mut $u);
+    std::print.stored($t, newln);
+    std::print.stored($u, newln);
     let $g := greet(copy $u);
-    std::print.stored($g, newline);
-    std::print.stored($u, newline);
+    std::print.stored($g, newln);
+    std::print.stored($u, newln);
     let $words := ["a", "b", "c"];
     let $n := count(lend $words);
-    std::print.shortest($n, " words", newline);
+    std::print.shortest($n, " words", newln);
     let $m := count(["x", "y"]);
-    std::print.shortest($m, " fresh", newline);
+    std::print.shortest($m, " fresh", newln);
     let $r := lend $words;
-    std::print.shortest($r, newline);
+    std::print.shortest($r, newln);
 !end of MAIN

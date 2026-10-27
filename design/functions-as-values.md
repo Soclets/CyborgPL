@@ -45,12 +45,12 @@ difference.
 
 ```
 let $limit := 60;
-let $passing := keep(lend $scores, function [$s: integer.signed.32_bit] -> boolean with [lend $limit]:
-    return $s at_least $limit;
-end of function);
-let $evens   := keep(lend $scores, function [$s: integer.signed.32_bit] -> boolean:
-    return ($s modulo.floor 2) equal_to 0;
-end of function);   # captures nothing
+let $passing := keep(lend $scores, fn [$s: int.sign.32] -> bool with [lend $limit]:
+    ret $s at_least $limit;
+end of fn);
+let $evens   := keep(lend $scores, fn [$s: int.sign.32] -> bool:
+    ret ($s mod.floor 2) eq 0;
+end of fn);   # captures nothing
 ```
 
 An anonymous function is `fn` with its parameters, return, and body,
@@ -65,8 +65,8 @@ silently, which is where "why is this borrowed" bugs come from.
 ### The short form (owner, 2026-10-24: "(c)"; not built)
 
 ```
-let $passing := keep(lend $scores, function [$s] with [lend $limit] = $s at_least $limit);
-let $evens   := keep(lend $scores, function [$s] = ($s modulo.floor 2) equal_to 0);
+let $passing := keep(lend $scores, fn [$s] with [lend $limit] = $s at_least $limit);
+let $evens   := keep(lend $scores, fn [$s] = ($s mod.floor 2) eq 0);
 ```
 
 One value after `=`, no `{ return …; }`; the parameters' types and the return type come from the `fn[…]` type of
@@ -77,10 +77,10 @@ stays. A named function has no short form (owner: "no"), its body always in `{ }
 ## 4. An operator is a value as `op plus` (owner, 2026-09-29)
 
 ```
-let $sum     := fold(lend $xs, 0, operator plus);
-let $product := fold(lend $xs, 1, operator times);
-let $flipped := map(lend $xs, operator neg);
-let $f: function[integer.signed.32_bit, integer.signed.32_bit] -> integer.signed.32_bit = operator modulo.floor;
+let $sum     := fold(lend $xs, 0, op plus);
+let $product := fold(lend $xs, 1, op times);
+let $flipped := map(lend $xs, op neg);
+let $f: fn[int.sign.32, int.sign.32] -> int.sign.32 = op mod.floor;
 ```
 
 `op` — the word that defines an operator — before any operator makes it

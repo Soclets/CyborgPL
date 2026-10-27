@@ -6,9 +6,9 @@ Decided 2026-09-14; spelling revised 2026-09-19 (`fn`, name-then-type
 parameters, `--> T`).
 
 ```
-function add [$a: integer.signed.32_bit, $b: integer.signed.32_bit] -> integer.signed.32_bit:
-    return $a plus $b;
-end of function add
+fn add [$a: int.sign.32, $b: int.sign.32] -> int.sign.32:
+    ret $a plus $b;
+end of fn add
 let $sum := add(10, 20);              # this Kit: bare
 let $big := mathstuff::pow(2, 64);    # another Kit: Kit::path
 ```
@@ -116,9 +116,9 @@ the parameters. A call is a value and stands bare wherever a value goes:
 ## Return
 
 ```
-return $a plus $b;
-return "hello " concatenate $name;    # text joins with ++ (2026-09-19)
-return;                       # in a nothing-function
+ret $a plus $b;
+ret "hello " concat $name;    # text joins with ++ (2026-09-19)
+ret;                       # in a nothing-function
 ```
 
 ## Entry point: `MAIN { }` (decided 2026-09-14, kept 2026-09-19)
@@ -126,7 +126,7 @@ return;                       # in a nothing-function
 ```
 !MAIN:
     let $sum := add(10, 20);
-    std::print.shortest("sum: ", $sum, newline);
+    std::print.shortest("sum: ", $sum, newln);
 !end of MAIN
 ```
 
@@ -154,8 +154,8 @@ depends on may have one too, run only when that kit is run itself
 "low-level shit, decided" — "we're at Rust, C, C++ level"):
 
 ```
-!MAIN [$argc: integer.signed.32_bit, $argv: pointer[pointer[integer.unsigned.8_bit]]]:
-    !no_check let $first := pointer.read(pointer.at($argv, by: 1));     # the first word after the program's name
+!MAIN [$argc: int.sign.32, $argv: ptr[ptr[int.unsign.8]]]:
+    !no_check let $first := ptr.read(ptr.at($argv, by: 1));     # the first word after the program's name
     …
 !end of MAIN
 ```

@@ -1,5 +1,5 @@
-public bare function pow [$a: integer.signed.32_bit] -> integer.signed.32_bit:
-    return $a;
-end of function pow
+pub bare fn pow [$a: int.sign.32] -> int.sign.32:
+    ret $a;
+end of fn pow
 !MAIN:
 !end of MAIN

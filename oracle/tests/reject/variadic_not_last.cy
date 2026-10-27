@@ -1,4 +1,4 @@
-function f [...$a, $b: integer.signed.32_bit]:
-end of function f
+fn f [...$a, $b: int.sign.32]:
+end of fn f
 !MAIN:
 !end of MAIN

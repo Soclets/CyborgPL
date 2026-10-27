@@ -1,17 +1,17 @@
-collection.function ov:
+coll.fn ov:
     versions ov.flip:
-        [$x: integer.signed.32_bit] -> integer.signed.32_bit:
-            return 1;
+        [$x: int.sign.32] -> int.sign.32:
+            ret 1;
         end of version
-        [$x: integer.signed.64_bit] -> integer.signed.32_bit:
-            return 2;
+        [$x: int.sign.64] -> int.sign.32:
+            ret 2;
         end of version
     end of versions ov
-end of collection.function ov
+end of coll.fn ov
 !MAIN:
     let $p := false;
-    std::print.shortest("before", newline);
+    std::print.shortest("before", newln);
     if $p:
-        std::print.shortest(ov.flip(77), newline);
+        std::print.shortest(ov.flip(77), newln);
     end of if
 !end of MAIN

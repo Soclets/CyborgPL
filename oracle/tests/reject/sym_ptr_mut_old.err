@@ -1,1 +1,1 @@
-`*mut` is an old spelling: write `pointer.mutable[T]`; a pointer type is written as the word
+`*mut` is an old spelling: write `ptr.mut[T]`; a pointer type is written as the word

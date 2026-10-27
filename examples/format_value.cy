@@ -3,8 +3,8 @@
 # and `.stdout` may still be written.
 !MAIN:
     let $n := 3;
-    let $line := std::format("{} items at {places: 2} each, 0x{base: hexadecimal}{newline}", $n, 1.5, 255);
+    let $line := std::format("{} items at {places: 2} each, 0x{base: hex}{newln}", $n, 1.5, 255);
     std::print.shortest($line);
-    std::print.arrows.shortest <- "hex: " <- std::format("{base: hexadecimal}", $n times 100) <- newline;
-    std::print.shortest.stdout("said ", "stdout", newline);
+    std::print.arrows.shortest <- "hex: " <- std::format("{base: hex}", $n times 100) <- newln;
+    std::print.shortest.stdout("said ", "stdout", newln);
 !end of MAIN

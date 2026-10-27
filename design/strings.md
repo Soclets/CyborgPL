@@ -27,9 +27,9 @@ goes away unflushed. Spellings open. Its size is in bytes, the unit written: `si
 for now", over also allowing `4 KiB`).
 
 ```
-variable $out := std::print.writer(size: 4096 bytes);   # std::print.writer.stderr(…) for stderr
-std::print.shortest(lend.mutable $out, "line ", $i, newline);  # a first argument `lend.mut` of a writer: into it
-std::print.flush(lend.mutable $out);                       # left out, kayo refuses: $out goes away holding text
+var $out := std::print.writer(size: 4096 bytes);   # std::print.writer.stderr(…) for stderr
+std::print.shortest(lend.mut $out, "line ", $i, newln);  # a first argument `lend.mut` of a writer: into it
+std::print.flush(lend.mut $out);                       # left out, kayo refuses: $out goes away holding text
 std::print.flush();                                    # what kayo's own buffer holds, now
 ```
 
@@ -72,8 +72,8 @@ form is decided: `print` and `print.format` have no `auto_newline`.
 ## `std::print.weird` — C++'s `cout <<`, with arrows (owner, 2026-10-01)
 
 ```
-std::print.arrows.shortest <- "tenth is " <- $tenth <- ", n is " <- $n <- newline;
-std::print.arrows.stored <- "stored: " <- $tenth <- newline;
+std::print.arrows.shortest <- "tenth is " <- $tenth <- ", n is " <- $n <- newln;
+std::print.arrows.stored <- "stored: " <- $tenth <- newln;
 ```
 
 A print in the shape of C++'s `std::cout << …` (owner: "`std::print.weird`
@@ -95,10 +95,10 @@ print_weird_brackets, print_weird_order.
 ## `std::print.format` — the formatting print, with `{}` holes (2026-09-22; holes since 2026-10-01)
 
 ```
-std::print.format("{}: {} at ${places: 2}, 50% off{newline}", $name, $count, $price);
-std::print.format("0x{base: hexadecimal} 0b{base: binary, zeros, width: 8 columns} [{width: 6 columns}] [{sign}]{newline}", 255, 10, 42, 5);
-std::print.format("{2} vs {1}, and {2} wins{newline}", "a", "b");
-std::print.format.stderr("error: {}{newline}", $msg);
+std::print.format("{}: {} at ${places: 2}, 50% off{newln}", $name, $count, $price);
+std::print.format("0x{base: hex} 0b{base: bin, zeros, width: 8 cols} [{width: 6 cols}] [{sign}]{newln}", 255, 10, 42, 5);
+std::print.format("{2} vs {1}, and {2} wins{newln}", "a", "b");
+std::print.format.stderr("error: {}{newln}", $msg);
 ```
 
 The third print, beside `print.stored` (stored form) and `print.useful` (useful
@@ -163,12 +163,12 @@ reject tests `print_format_*`.
 ## A length bound names its unit (decided 2026-09-22)
 
 ```
-let $name: string.utf8[minimum: 1, maximum: 40 %grapheme_clusters] = std::input.line() otherwise "";
-function greet [lent $who: string.utf8[minimum: 1, maximum: 10 %grapheme_clusters]]:
+let $name: str.utf8[min: 1, max: 40 %clusters] = std::input.line() otherwise "";
+fn greet [lent $who: str.utf8[min: 1, max: 10 %clusters]]:
     …
-end of function greet
-let $field: string.utf8[minimum: 0, maximum: 255 bytes] = …;
-let $code: string.utf8[minimum: 4, maximum: 4 %code_points] = …;
+end of fn greet
+let $field: str.utf8[min: 0, max: 255 bytes] = …;
+let $code: str.utf8[min: 4, max: 4 %points] = …;
 ```
 
 The thing, then its bounds, as `i32[min: 0, max: 100]` and `list[T][lo, hi]` —
@@ -189,9 +189,9 @@ bytes, 5 points, 1 grapheme. The language has the three units already
 `str.length` — the thing that makes other languages cut emoji in half:
 
 ```
-std::string.bytes(lend $s)        # what the OS and C see; O(1)
-std::string.code_points(lend $s)       # Unicode scalar values
-std::string.grapheme_clusters(lend $s)    # what a person counts as one character; O(n)
+std::str.bytes(lend $s)        # what the OS and C see; O(1)
+std::str.points(lend $s)       # Unicode scalar values
+std::str.clusters(lend $s)    # what a person counts as one character; O(n)
 ```
 
 `str.length` is a compile error naming the three.
@@ -230,17 +230,17 @@ to walk them. Everything else is ordinary library code, and case tables
 change with every Unicode release, so they belong in something updatable:
 
 ```
-std::string.split(lend $s, at: " ")          -> std::list[string.utf8]
-std::string.join(lend $parts, between: "_")
-std::string.contains / starts_with / ends_with(lend $s, "x")   -> boolean
-std::string.trim(lend $s)
-std::string.uppercase.ascii / .simple / .full(lend $s)          (and std::string.lowercase.…; `.full(…, lang: std::casing.tr)`)
-std::string.replace(lend $s, from: "a", to: "b")
-std::string.find.grapheme_cluster(lend $s, part: "x")  -> integer.signed.32_bit or fail[missing]   (1-based grapheme position)
-std::string.at.<unit>(lend $s, position: 3)        -> that unit, or fail[out_of_range]
-std::string.slice.grapheme_cluster(lend $s, from: position 1, to: position 5) -> string, or fail[out_of_range]
-std::string.slice.code_point(lend $s, from: position 1, before: position 5)  -> string, or fail[out_of_range]
-std::string.slice.byte(lend $s, from: position 1, to: position 5)     -> std::list[integer.unsigned.8_bit], or fail[out_of_range]
+std::str.split(lend $s, at: " ")          -> std::ls[str.utf8]
+std::str.join(lend $parts, between: "_")
+std::str.contains / starts_with / ends_with(lend $s, "x")   -> bool
+std::str.trim(lend $s)
+std::str.upper.ascii / .simple / .full(lend $s)          (and std::str.lower.…; `.full(…, lang: std::casing.tr)`)
+std::str.replace(lend $s, from: "a", to: "b")
+std::str.find.cluster(lend $s, part: "x")  -> int.sign.32 or fail[missing]   (1-based grapheme position)
+std::str.at.<unit>(lend $s, pos: 3)        -> that unit, or fail[out_of_range]
+std::str.slice.cluster(lend $s, from: pos 1, to: pos 5) -> str, or fail[out_of_range]
+std::str.slice.point(lend $s, from: pos 1, before: pos 5)  -> str, or fail[out_of_range]
+std::str.slice.byte(lend $s, from: pos 1, to: pos 5)     -> std::ls[int.unsign.8], or fail[out_of_range]
 ```
 
 **A case change says its mapping** (owner, 2026-10-20): `str.upper.ascii` changes a to z only (`café` → `CAFé`),

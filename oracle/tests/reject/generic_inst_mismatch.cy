@@ -1,6 +1,6 @@
-record Box <T: any>:
+rec Box <T: any>:
     item: <T>;
-end of record Box
+end of rec Box
 !MAIN:
-    let $b: Box[integer.signed.32_bit] = Box[item = "text"];
+    let $b: Box[int.sign.32] = Box[item = "text"];
 !end of MAIN

@@ -1,8 +1,9 @@
-function f [] -> fail[why: integer.signed.32_bit]:
+fn f [] -> fail[why: int.sign.32]:
     fail why["x"];
-end of function f
+end of fn f
 !MAIN:
-    f() otherwise:
+    f()-
+    otherwise:
         case why $w:
         end of case why
     end of otherwise;

@@ -1,5 +1,5 @@
-record P:
-    return: integer.signed.32_bit;
-end of record P
+rec P:
+    ret: int.sign.32;
+end of rec P
 !MAIN:
 !end of MAIN

@@ -1,6 +1,6 @@
 !MAIN:
-    variable $x: integer.signed.32_bit = 1;
-    variable shadow $x: integer.signed.32_bit = 2;
+    var $x: int.sign.32 = 1;
+    var shadow $x: int.sign.32 = 2;
     change $x = 3;
-    std::print.shortest($x, newline);
+    std::print.shortest($x, newln);
 !end of MAIN

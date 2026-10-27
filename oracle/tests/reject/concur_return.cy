@@ -1,5 +1,5 @@
 !MAIN:
     %spawn.task:
-        return;
+        ret;
     end of %spawn.task;
 !end of MAIN

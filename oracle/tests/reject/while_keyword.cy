@@ -1,4 +1,4 @@
 !MAIN:
-    loop.while 1 equal_to 1:
+    loop.while 1 eq 1:
     end of loop
 !end of MAIN

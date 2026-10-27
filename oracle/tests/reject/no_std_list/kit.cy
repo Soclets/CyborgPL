@@ -1,5 +1,5 @@
-function f [lent $xs: list[integer.signed.32_bit]]:
-end of function f
+fn f [lent $xs: ls[int.sign.32]]:
+end of fn f
 
 !MAIN:
 !end of MAIN

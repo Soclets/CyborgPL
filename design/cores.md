@@ -44,7 +44,7 @@ Genny       generics and interfaces
 MCPS        parallel loops and concur (needs threads)
 AutoGPU     automatic offload on every GPU; Metal, Nvidia and Vulkan
             cores for hand-written GPU code
-std         a kit with powers: every operator, logic, text, printing
+std         a kit with powers: every op, logic, text, printing
 your kits  everything else
 ```
 
@@ -140,15 +140,15 @@ not limbs. And then, lang could be the absence of such"). The mark goes on the f
 claude's reading of the owner's examples):
 
 ```
-%external.C procedure puts [$s: pointer[integer.unsigned.8_bit]] -> %C.int;             # CNC
-include.%C["sdl.h"];                                      # `incl` is the base's
-let $price: float.%decimal.64_bit = 19.50;                              # Money
+%extern.C proc puts [$s: ptr[int.unsign.8]] -> %C.int;             # CNC
+incl.%C["sdl.h"];                                      # `incl` is the base's
+let $price: float.%deci.64 = 19.50;                              # Money
 let $odd: %not_std.i24 = 5;                            # WSMW: `not_std` is only its
-let $name: string.utf8[maximum: 40 %grapheme_clusters] = "café";      # unicode
+let $name: str.utf8[max: 40 %clusters] = "café";      # unicode
 %spawn.task with [lend $ch]:
     %channel.send(lend $ch, value: 1);
 end of %spawn.task   # MCPS
-!no_check inline.%MSL threads 64 with [lend.mutable $xs -> buffer(0)]:   # Metal
+!no_check inline.%MSL threads 64 with [lend.mut $xs -> buffer(0)]:   # Metal
     …
 end of inline.%MSL
 ```
@@ -323,7 +323,7 @@ else on.target.chip x86_64:
     end of inline.ASM
 end of else on.target.chip
 else:
-    let $y := negate $x;
+    let $y := neg $x;
 end of else
 on.target.os macos 15:
     …

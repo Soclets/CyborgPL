@@ -1,3 +1,3 @@
 !MAIN:
-    let $xs: std::list[integer.signed.32_bit] = [1, 2, "three"];
+    let $xs: std::ls[int.sign.32] = [1, 2, "three"];
 !end of MAIN

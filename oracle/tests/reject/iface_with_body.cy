@@ -1,7 +1,7 @@
 interface Ordered <T>:
-    operator less_than [$a: <T>, $b: <T>] -> boolean:
-        return true;
-    end of operator less_than;
+    op less_than [$a: <T>, $b: <T>] -> bool:
+        ret true;
+    end of op less_than;
 end of interface Ordered
 !MAIN:
 !end of MAIN

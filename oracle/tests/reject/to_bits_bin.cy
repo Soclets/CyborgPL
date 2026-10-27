@@ -1,3 +1,3 @@
 !MAIN:
-    let $a := to.float.binary.32_bit.bits[1];
+    let $a := to.float.bin.32.bits[1];
 !end of MAIN

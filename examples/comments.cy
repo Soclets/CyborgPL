@@ -8,5 +8,5 @@
     let $e := 5; #2ld this line and two more down
     let $f := 6;
     let $g := 7;
-    std::print.shortest($a, " ", $e, newline);
+    std::print.shortest($a, " ", $e, newln);
 !end of MAIN

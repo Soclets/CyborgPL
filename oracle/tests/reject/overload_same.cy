@@ -1,13 +1,13 @@
-collection.function f:
+coll.fn f:
     versions f:
-        [$a: integer.signed.64_bit] -> integer.signed.64_bit:
-            return 1;
+        [$a: int.sign.64] -> int.sign.64:
+            ret 1;
         end of version
-        [$b: integer.signed.64_bit] -> integer.signed.64_bit:
-            return 2;
+        [$b: int.sign.64] -> int.sign.64:
+            ret 2;
         end of version
     end of versions f
-end of collection.function f
+end of coll.fn f
 !MAIN:
-    std::print.shortest(f(1), newline);
+    std::print.shortest(f(1), newln);
 !end of MAIN

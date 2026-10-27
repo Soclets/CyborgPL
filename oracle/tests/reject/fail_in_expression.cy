@@ -1,6 +1,6 @@
-function f [] -> integer.signed.32_bit or fail[a]:
+fn f [] -> int.sign.32 or fail[a]:
     fail a;
-end of function f
+end of fn f
 !MAIN:
     let $x := f() plus 1 otherwise 0;
 !end of MAIN

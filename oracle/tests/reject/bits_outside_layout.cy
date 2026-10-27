@@ -1,3 +1,3 @@
 !MAIN:
-    let $x: integer.unsigned.8_bit[bits: 3] = 1;
+    let $x: int.unsign.8[bits: 3] = 1;
 !end of MAIN

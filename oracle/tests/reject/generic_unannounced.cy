@@ -1,5 +1,5 @@
-function f [$a: <T>] -> <T>:
-    return $a;
-end of function f
+fn f [$a: <T>] -> <T>:
+    ret $a;
+end of fn f
 !MAIN:
 !end of MAIN

@@ -1,4 +1,4 @@
 !MAIN:
-    let $x: float.binary.64_bit = 0.1;
-    std::print.stored(to.float.%decimal.64_bit($x), newline);
+    let $x: float.bin.64 = 0.1;
+    std::print.stored(to.float.%deci.64($x), newln);
 !end of MAIN

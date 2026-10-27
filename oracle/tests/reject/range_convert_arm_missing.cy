@@ -1,5 +1,6 @@
 !MAIN:
-    let $n := to.integer.signed.32_bit[minimum: 0, maximum: 100]("42") otherwise:
+    let $n := to.int.sign.32[min: 0, max: 100]("42")-
+    otherwise:
         case not_a_number:
             std::exit(code: 1);
         end of case not_a_number

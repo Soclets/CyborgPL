@@ -1,4 +1,4 @@
 !MAIN:
-    check function f []:
-    end of function f
+    check fn f []:
+    end of fn f
 !end of MAIN

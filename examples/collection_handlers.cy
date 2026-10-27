@@ -2,23 +2,23 @@
 # after `otherwise` today, one per way the call can fail, and `otherwise half_failed.as_zero` reads them
 # as if they were written at the call: an arm may `return`, `break`, `continue` or `fail` from where it
 # is used, and a member that misses a way the call can fail is refused there.
-function half [$n: integer.signed.32_bit] -> integer.signed.32_bit or fail[odd, negative: integer.signed.32_bit]:
+fn half [$n: int.sign.32] -> int.sign.32 or fail[odd, negative: int.sign.32]:
     if $n less_than 0:
         fail negative[$n];
     end of if
-    if ($n divide.floor 2) times 2 not_equal_to $n:
+    if ($n div.floor 2) times 2 not_eq $n:
         fail odd;
     end of if
-    return $n divide.floor 2;
-end of function half
+    ret $n div.floor 2;
+end of fn half
 
-collection.handler half_failed:
+coll.handler half_failed:
     half_failed.as_zero:
         !case odd:
-            return 0;
+            ret 0;
         !end of case odd
         !case negative $v:
-            std::print.shortest("negative: ", $v, newline); return 0;
+            std::print.shortest("negative: ", $v, newln); ret 0;
         !end of case negative
     end of half_failed.as_zero
     half_failed.skip:
@@ -37,15 +37,15 @@ collection.handler half_failed:
             break;
         !end of case negative
     end of half_failed.stop
-end of collection.handler half_failed
+end of coll.handler half_failed
 
-procedure half_or_zero [$n: integer.signed.32_bit] -> integer.signed.32_bit:
+proc half_or_zero [$n: int.sign.32] -> int.sign.32:
     let $h := half($n) otherwise half_failed.!as_zero;
-    return $h;
-end of procedure half_or_zero
+    ret $h;
+end of proc half_or_zero
 
-function sum_of_halves [lent $xs: std::list[integer.signed.32_bit], $until_bad: boolean] -> integer.signed.32_bit:
-    variable $sum := 0;
+fn sum_of_halves [lent $xs: std::ls[int.sign.32], $until_bad: bool] -> int.sign.32:
+    var $sum := 0;
     for $x in lend $xs:
         if $until_bad:
             let $h := half($x) otherwise half_failed.!stop;
@@ -56,12 +56,12 @@ function sum_of_halves [lent $xs: std::list[integer.signed.32_bit], $until_bad: 
             change $sum = $sum plus $h;
         end of else
     end of for
-    return $sum;
-end of function sum_of_halves
+    ret $sum;
+end of fn sum_of_halves
 
 !MAIN:
-    std::print.shortest(half_or_zero(10), " ", half_or_zero(7), newline);
-    std::print.shortest(half_or_zero(negative 4), newline);
-    let $xs: std::list[integer.signed.32_bit] = [2, 4, 5, 8, negative 2, 10];
-    std::print.shortest(sum_of_halves(lend $xs, false), " ", sum_of_halves(lend $xs, true), newline);
+    std::print.shortest(half_or_zero(10), " ", half_or_zero(7), newln);
+    std::print.shortest(half_or_zero(neg 4), newln);
+    let $xs: std::ls[int.sign.32] = [2, 4, 5, 8, neg 2, 10];
+    std::print.shortest(sum_of_halves(lend $xs, false), " ", sum_of_halves(lend $xs, true), newln);
 !end of MAIN

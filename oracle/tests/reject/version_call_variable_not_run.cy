@@ -1,19 +1,19 @@
-collection.function mx:
+coll.fn mx:
     versions mx:
-        [$a: integer.signed.32_bit, $b: integer.signed.32_bit] -> integer.signed.32_bit:
-            return $a plus $b;
+        [$a: int.sign.32, $b: int.sign.32] -> int.sign.32:
+            ret $a plus $b;
         end of version
-        [$a: integer.signed.32_bit, $b: integer.signed.64_bit] -> integer.signed.32_bit:
-            return $a minus to.integer.signed.32_bit($b);
+        [$a: int.sign.32, $b: int.sign.64] -> int.sign.32:
+            ret $a minus to.int.sign.32($b);
         end of version
     end of versions mx
-end of collection.function mx
+end of coll.fn mx
 !MAIN:
-    let $v: integer.signed.32_bit = 4;
-    let $p: boolean = to.integer.signed.64_bit(1) equal_to to.integer.signed.64_bit(2);
-    std::print.shortest("before", newline);
+    let $v: int.sign.32 = 4;
+    let $p: bool = to.int.sign.64(1) eq to.int.sign.64(2);
+    std::print.shortest("before", newln);
     if $p:
-        std::print.shortest(mx($v, 5), newline);
+        std::print.shortest(mx($v, 5), newln);
     end of if
-    std::print.shortest("after", newline);
+    std::print.shortest("after", newln);
 !end of MAIN

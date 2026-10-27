@@ -1,5 +1,5 @@
-procedure edit [lent.mutable $text: string.utf8]:
-end of procedure edit
+proc edit [lent.mut $text: str.utf8]:
+end of proc edit
 !MAIN:
     let $s := "a";
     edit(lend $s);

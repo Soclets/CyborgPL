@@ -1,4 +1,4 @@
 !MAIN:
-    let $a: integer.signed.8_bit = negative 128;
-    let $b: integer.signed.8_bit = $a divide.truncate negative 1;
+    let $a: int.sign.8 = neg 128;
+    let $b: int.sign.8 = $a div.trunc neg 1;
 !end of MAIN

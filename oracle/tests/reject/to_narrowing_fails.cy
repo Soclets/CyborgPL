@@ -1,4 +1,4 @@
 !MAIN:
     let $big := 300;
-    let $s := to.integer.signed.8_bit($big);
+    let $s := to.int.sign.8($big);
 !end of MAIN

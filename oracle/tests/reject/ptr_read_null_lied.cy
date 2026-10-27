@@ -1,6 +1,6 @@
-%external.C procedure getenv [$n: pointer[integer.unsigned.8_bit]] -> pointer[integer.unsigned.8_bit];
+%extern.C proc getenv [$n: ptr[int.unsign.8]] -> ptr[int.unsign.8];
 !MAIN:
     let $k := "CYBORG_NOPE_XYZ";
     !no_check let $p := getenv(lend $k);
-    !no_check let $b := pointer.read($p);
+    !no_check let $b := ptr.read($p);
 !end of MAIN

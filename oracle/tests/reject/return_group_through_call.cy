@@ -1,16 +1,16 @@
 # A borrow handed back through a call is checked on every path, not only when it runs
 # (check claude's finding, seed 12089, 2026-10-02): here the last return is never reached.
-function b1 [@x, @y] [lent @x $p: std::list[integer.signed.8_bit], lent @y $q: std::list[integer.signed.8_bit]] -> lent @x std::list[integer.signed.8_bit]:
-    return lend $p;
-end of function b1
-function b2 [@x, @y] [lent @x $a: std::list[integer.signed.8_bit], lent @y $c: std::list[integer.signed.8_bit]] -> lent @x std::list[integer.signed.8_bit]:
-    if std::list.length(lend $a) at_least 0:
-        return lend $a;
+fn b1 [@x, @y] [lent @x $p: std::ls[int.sign.8], lent @y $q: std::ls[int.sign.8]] -> lent @x std::ls[int.sign.8]:
+    ret lend $p;
+end of fn b1
+fn b2 [@x, @y] [lent @x $a: std::ls[int.sign.8], lent @y $c: std::ls[int.sign.8]] -> lent @x std::ls[int.sign.8]:
+    if std::ls.len(lend $a) at_least 0:
+        ret lend $a;
     end of if
-    return b1(lend $c, lend $a);
-end of function b2
+    ret b1(lend $c, lend $a);
+end of fn b2
 !MAIN:
-    let $u: std::list[integer.signed.8_bit] = [1, 2];
-    let $v: std::list[integer.signed.8_bit] = [3,];
-    std::print.shortest(b2(lend $u, lend $v), newline);
+    let $u: std::ls[int.sign.8] = [1, 2];
+    let $v: std::ls[int.sign.8] = [3,];
+    std::print.shortest(b2(lend $u, lend $v), newln);
 !end of MAIN

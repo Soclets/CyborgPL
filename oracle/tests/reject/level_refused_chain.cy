@@ -1,10 +1,10 @@
-operator ~= [$a: float.binary.64_bit, $b: float.binary.64_bit] -> boolean:
-    return $a equal_to $b;
-end of operator ~=
+op ~= [$a: float.bin.64, $b: float.bin.64] -> bool:
+    ret $a eq $b;
+end of op ~=
 precedence.low_first:
-    level 1 [ equal_to, ~= ] refused
+    level 1 [ eq, ~= ] refused
 end of precedence.low_first
 !MAIN:
-    let $x: float.binary.64_bit = 1.0;
+    let $x: float.bin.64 = 1.0;
     let $k := $x ~= $x ~= $x;
 !end of MAIN

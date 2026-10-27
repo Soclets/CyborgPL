@@ -3,9 +3,9 @@
     let $x := 1;
     if true:
         let shadow $x := 2;
-        std::print.shortest($x, newline);
+        std::print.shortest($x, newln);
     end of if
-    std::print.shortest($x, newline);
-    let shadow $x: integer.signed.32_bit = 3;
-    std::print.shortest($x, newline);
+    std::print.shortest($x, newln);
+    let shadow $x: int.sign.32 = 3;
+    std::print.shortest($x, newln);
 !end of MAIN

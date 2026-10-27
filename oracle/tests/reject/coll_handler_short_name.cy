@@ -1,17 +1,17 @@
-function half [$n: integer.signed.32_bit] -> integer.signed.32_bit or fail[odd]:
-    if $n times 1 equal_to 3:
+fn half [$n: int.sign.32] -> int.sign.32 or fail[odd]:
+    if $n times 1 eq 3:
         fail odd;
     end of if
-    return $n;
-end of function half
+    ret $n;
+end of fn half
 
-collection.handler h:
+coll.handler h:
     as_zero:
         !case odd:
-            return 0;
+            ret 0;
         !end of case odd
     end of as_zero
-end of collection.handler h
+end of coll.handler h
 
 !MAIN:
 !end of MAIN

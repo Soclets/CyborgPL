@@ -1,17 +1,17 @@
 # The module `shop`, its own file: the root's bounds through `my.`.
-public function basket [$count: my.quantity] -> string.utf8:
-    return to.stored.string.utf8($count) concatenate " in the basket";
-end of function basket
+pub fn basket [$count: my.quantity] -> str.utf8:
+    ret to.stored.str.utf8($count) concat " in the basket";
+end of fn basket
 
-public function sample [$count: my.quantity.small] -> string.utf8:
-    return to.stored.string.utf8($count) concatenate " to try";
-end of function sample
+pub fn sample [$count: my.quantity.small] -> str.utf8:
+    ret to.stored.str.utf8($count) concat " to try";
+end of fn sample
 
 # The module's own bounds, which the root (or any other file) names by the module's path: `shop.order.discount`.
-public collection.bounded order:
-    order.discount = integer.signed.32_bit[minimum: 0, maximum: 50];
-end of collection.bounded order
+pub coll.bounded order:
+    order.discount = int.sign.32[min: 0, max: 50];
+end of coll.bounded order
 
-public function off [$percent: order.discount] -> string.utf8:
-    return to.stored.string.utf8($percent) concatenate "% off";
-end of function off
+pub fn off [$percent: order.discount] -> str.utf8:
+    ret to.stored.str.utf8($percent) concat "% off";
+end of fn off

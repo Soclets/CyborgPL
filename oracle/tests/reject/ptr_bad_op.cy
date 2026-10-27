@@ -1,5 +1,5 @@
-%external.C procedure malloc [$n: integer.unsigned.64_bit] -> pointer.mutable[integer.unsigned.8_bit];
+%extern.C proc malloc [$n: int.unsign.64] -> ptr.mut[int.unsign.8];
 !MAIN:
     !no_check let $p := malloc(2);
-    !no_check let $q := pointer.deref[$p];
+    !no_check let $q := ptr.deref[$p];
 !end of MAIN

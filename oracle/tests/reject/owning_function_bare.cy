@@ -1,8 +1,8 @@
 # a function carrying a copy/give capture is owned: copying it takes a word (owner, 2026-09-24: a)
 !MAIN:
     let $xs := [1, 2];
-    let $f := function [] -> integer.unsigned.64_bit with [copy $xs]:
-        return std::list.length(lend $xs);
-    end of function;
+    let $f := fn [] -> int.unsign.64 with [copy $xs]:
+        ret std::ls.len(lend $xs);
+    end of fn;
     let $g := $f;
 !end of MAIN

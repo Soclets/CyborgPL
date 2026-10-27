@@ -2,18 +2,18 @@
 # `to.`, `check`, `no_check` and generics were ASP's, IEG's and Genny's then and are the base's now; std
 # for printing.
 
-function first <T: any> [$a: <T>, $b: <T>] -> <T>:
-    return $a;
-end of function first
+fn first <T: any> [$a: <T>, $b: <T>] -> <T>:
+    ret $a;
+end of fn first
 
-procedure hello []:
-    std::print.shortest("from a task", newline);
-end of procedure hello
+proc hello []:
+    std::print.shortest("from a task", newln);
+end of proc hello
 
 !MAIN:
-    variable $n: integer.signed.64_bit = to.integer.signed.64_bit("41") otherwise 0;
+    var $n: int.sign.64 = to.int.sign.64("41") otherwise 0;
     check change $n = $n plus 1;
     !no_check change $n = $n times 1;
-    std::print.shortest(first($n, 7), newline);
+    std::print.shortest(first($n, 7), newln);
     %spawn.task hello();
 !end of MAIN

@@ -1,4 +1,4 @@
-function f [lent.string.utf8 $text]:
-end of function f
+fn f [lent.str.utf8 $text]:
+end of fn f
 !MAIN:
 !end of MAIN

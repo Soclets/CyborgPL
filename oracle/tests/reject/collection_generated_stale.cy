@@ -1,17 +1,17 @@
-collection.function c:
+coll.fn c:
     for $n in [1, 2, 3]:
-        named "t" concatenate to.stored.string.utf8($n);
-        [] -> integer.signed.32_bit:
-            return $n;
+        named "t" concat to.stored.str.utf8($n);
+        [] -> int.sign.32:
+            ret $n;
         end of named
     end of for
     #generated_2_lines_below
-    c.t1 [] -> integer.signed.32_bit:
-        return 1;
+    c.t1 [] -> int.sign.32:
+        ret 1;
     end of c.t1
-    c.t2 [] -> integer.signed.32_bit:
-        return 2;
+    c.t2 [] -> int.sign.32:
+        ret 2;
     end of c.t2
-end of collection.function c
+end of coll.fn c
 !MAIN:
 !end of MAIN

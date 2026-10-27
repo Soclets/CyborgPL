@@ -2,10 +2,10 @@
 # lane numbers, which must be fixed numbers known when compiling. Reversing, swapping and
 # copying one lane everywhere are all just orders.
 !MAIN:
-    let $xs: array[integer.signed.32_bit] = [10, 20, 30, 40];
-    let $v: simd[integer.signed.32_bit, count: 4] = simd.load(lend $xs, position: 1);
+    let $xs: arr[int.sign.32] = [10, 20, 30, 40];
+    let $v: simd[int.sign.32, count: 4] = simd.load(lend $xs, pos: 1);
     let $r := simd.shuffle($v, [4, 3, 2, 1]);         # reversed
     let $pairs := simd.shuffle($v, [2, 1, 4, 3]);     # neighbours swapped
     let $first := simd.shuffle($v, [1, 1, 1, 1]);     # lane 1 everywhere
-    std::print.shortest($r, newline, $pairs, newline, $first, newline);
+    std::print.shortest($r, newln, $pairs, newln, $first, newln);
 !end of MAIN

@@ -1,10 +1,10 @@
-public constant $pi: float.binary.64_bit = 3.141_592_653_589_793;
-public record Circle:
-    radius: float.binary.64_bit;
-end of record Circle
-public function area [$r: float.binary.64_bit] -> float.binary.64_bit:
-    return $pi times $r times $r;
-end of function area
-public.kit function name [] -> string.utf8:
-    return "circle";
-end of function name
+pub const $pi: float.bin.64 = 3.141_592_653_589_793;
+pub rec Circle:
+    radius: float.bin.64;
+end of rec Circle
+pub fn area [$r: float.bin.64] -> float.bin.64:
+    ret $pi times $r times $r;
+end of fn area
+pub.kit fn name [] -> str.utf8:
+    ret "circle";
+end of fn name

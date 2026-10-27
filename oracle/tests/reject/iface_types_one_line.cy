@@ -1,5 +1,5 @@
 interface Number:
-    integer.signed.32_bit integer.signed.64_bit;
+    int.sign.32 int.sign.64;
 end of interface Number
 !MAIN:
 !end of MAIN

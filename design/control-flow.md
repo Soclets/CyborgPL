@@ -38,7 +38,7 @@ deliberately hidden with `shadow 'x' := …;` (owner, 2026-10-08; `$:=` / `$=` u
 let $x := 1;
 if true:
     let shadow $x := 2;        # shadows the outer 'x' until the block ends
-    let shadow $y: integer.signed.32_bit = 3;  # error: there is no 'y' to shadow
+    let shadow $y: int.sign.32 = 3;  # error: there is no 'y' to shadow
 end of if
 ```
 
@@ -80,12 +80,12 @@ body ran with after a full run (the stop value when the step lands on it; for
 body never ran. One rule for every way a loop can end.
 
 ```
-for permanent $i [from: 0, to: 100, by: 1]:
+for perm $i [from: 0, to: 100, by: 1]:
     if found($i):
         break;
     end of if
 end of for
-std::print.shortest("stopped at ", $i, newline);
+std::print.shortest("stopped at ", $i, newln);
 ```
 
 `perm` on a list loop keeps the last element visited (an empty list is an
@@ -132,7 +132,7 @@ file each bound is labelled and the step always written,
 ```
 for $i [from: 0, to: 9, by: 1]:
 end of for                 # like  'i' := 0;
-for $i: integer.signed.8_bit [from: 0, to: 9, by: 1]:
+for $i: int.sign.8 [from: 0, to: 9, by: 1]:
 end of for           # like  'i': i8 = 0;
 ```
 

@@ -1,7 +1,7 @@
 
 module a:
-    public function f []:
-    end of function f
+    pub fn f []:
+    end of fn f
 end of module a
 !MAIN:
     f();

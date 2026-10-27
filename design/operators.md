@@ -129,9 +129,9 @@ how wide the number is. **Any operand whose type it can work out is
 enough** — it does not have to be a declared name:
 
 ```
-let $v: integer.unsigned.32_bit = 3;
-let $a: integer.unsigned.32_bit = 2 shift_left 3;              # 16 — the literal takes the u32 of its context
-let $b: integer.unsigned.32_bit = ($v modulo.floor 16) shift_left 2;   # 12 — the expression is plainly a u32
+let $v: int.unsign.32 = 3;
+let $a: int.unsign.32 = 2 shl 3;              # 16 — the literal takes the u32 of its context
+let $b: int.unsign.32 = ($v mod.floor 16) shl 2;   # 12 — the expression is plainly a u32
 ```
 
 Same for `not.bit` and the wrapping operators. A literal takes its
@@ -177,10 +177,10 @@ it.
 ## Plain math is exact; it is checked where it lands (owner, 2026-09-23)
 
 ```
-let $small: integer.signed.16_bit = 5;
-let $big: integer.signed.64_bit = (20000 plus 20000) plus $small;   # 40005: fits i64, fine
-let $tiny: integer.signed.8_bit = (100 plus 100) minus 150;           # 50: the 200 in between is fine
-let $bad: integer.signed.8_bit = 100 plus 100;                    # 200 does not fit i8: error
+let $small: int.sign.16 = 5;
+let $big: int.sign.64 = (20000 plus 20000) plus $small;   # 40005: fits i64, fine
+let $tiny: int.sign.8 = (100 plus 100) minus 150;           # 50: the 200 in between is fine
+let $bad: int.sign.8 = 100 plus 100;                    # 200 does not fit i8: error
 ```
 
 `plus minus times` (and std's `pow`) on integers give the true answer, and so does every `div.X`
@@ -246,8 +246,8 @@ them.
 ## `f16` / `f32` math rounds after every step (owner, 2026-09-24: a)
 
 ```
-let $x: float.binary.32_bit = 16777216.0;
-let $y: float.binary.32_bit = $x plus 1.0 plus 1.0;      # 16777216: each plus rounds back at f32
+let $x: float.bin.32 = 16777216.0;
+let $y: float.bin.32 = $x plus 1.0 plus 1.0;      # 16777216: each plus rounds back at f32
 ```
 
 Each operation on `f16` or `f32` values gives the IEEE result at their
@@ -265,8 +265,8 @@ alternative: 64-bit intermediates rounded once where stored.
 
 ```
 let $ok := check_name($f) and check_age($f);     # both run, left then right
-if $i at_most std::list.length(lend $xs):             # a check that protects the next
-    if $xs[position: $i] equal_to 5:
+if $i at_most std::ls.len(lend $xs):             # a check that protects the next
+    if $xs[pos: $i] eq 5:
         …
     end of if              # step is written as two `if`s
 end of if
@@ -338,19 +338,19 @@ every one of these symbols spelled its word, and good practice was the words. `e
 ## Custom operators — `op` (decided 2026-09-20)
 
 ```
-record Vec:
-    x: float.binary.64_bit;
-    y: float.binary.64_bit;
-end of record Vec
-operator <+> [$a: Vec, $b: Vec] -> Vec:
-    return Vec[x = $a.x plus $b.x, y = $a.y plus $b.y];
-end of operator <+>
-operator dot [$a: Vec, $b: Vec] -> float.binary.64_bit:
-    return $a.x times $b.x plus $a.y times $b.y;
-end of operator dot
-operator **  [give $a: Vec, $b: float.binary.64_bit] -> Vec:
-    … return give $a;
-end of operator **
+rec Vec:
+    x: float.bin.64;
+    y: float.bin.64;
+end of rec Vec
+op <+> [$a: Vec, $b: Vec] -> Vec:
+    ret Vec[x = $a.x plus $b.x, y = $a.y plus $b.y];
+end of op <+>
+op dot [$a: Vec, $b: Vec] -> float.bin.64:
+    ret $a.x times $b.x plus $a.y times $b.y;
+end of op dot
+op **  [give $a: Vec, $b: float.bin.64] -> Vec:
+    … ret give $a;
+end of op **
 
 let $w := $u <+> $v;                 # 'u' and 'v' both still yours
 let $d := ($u <+> $v) dot $v;       # parenthesise when operators meet

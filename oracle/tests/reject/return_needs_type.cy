@@ -1,5 +1,5 @@
-function three []:
-    return 3;
-end of function three
+fn three []:
+    ret 3;
+end of fn three
 !MAIN:
 !end of MAIN

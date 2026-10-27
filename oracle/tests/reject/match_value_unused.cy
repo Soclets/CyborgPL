@@ -1,8 +1,8 @@
 # a case that gives a value needs a match used as one (2026-09-29)
-union.tagged S:
+union.tag S:
     a;
     b;
-end of union.tagged S
+end of union.tag S
 !MAIN:
     match S.a:
         case a:

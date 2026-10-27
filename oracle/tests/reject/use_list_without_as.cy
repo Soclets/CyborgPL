@@ -1,4 +1,4 @@
-use [std::print.shortest as printu, std::list];
+use [std::print.shortest as printu, std::ls];
 !MAIN:
-    printu("x", newline);
+    printu("x", newln);
 !end of MAIN

@@ -1,8 +1,8 @@
-%external.C procedure qsort [$base: pointer.mutable[integer.signed.32_bit], $n: integer.unsigned.64_bit, $size: integer.unsigned.64_bit, $cmp: function[pointer[integer.signed.32_bit], pointer[integer.signed.32_bit]] -> integer.signed.32_bit];
+%extern.C proc qsort [$base: ptr.mut[int.sign.32], $n: int.unsign.64, $size: int.unsign.64, $cmp: fn[ptr[int.sign.32], ptr[int.sign.32]] -> int.sign.32];
 !MAIN:
-    variable $nums := [3, 1, 2];
+    var $nums := [3, 1, 2];
     let $flip := true;
-    !no_check qsort(lend.mutable $nums, 3, 4, function [$a: pointer[integer.signed.32_bit], $b: pointer[integer.signed.32_bit]] -> integer.signed.32_bit with [lend $flip]:
-        return 0;
-    end of function);
+    !no_check qsort(lend.mut $nums, 3, 4, fn [$a: ptr[int.sign.32], $b: ptr[int.sign.32]] -> int.sign.32 with [lend $flip]:
+        ret 0;
+    end of fn);
 !end of MAIN

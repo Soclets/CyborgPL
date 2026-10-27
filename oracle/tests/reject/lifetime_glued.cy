@@ -1,5 +1,5 @@
-function pick [@x] [lent@x $a: string.utf8] -> lent @x string.utf8:
-    return lend $a;
-end of function pick
+fn pick [@x] [lent@x $a: str.utf8] -> lent @x str.utf8:
+    ret lend $a;
+end of fn pick
 !MAIN:
 !end of MAIN

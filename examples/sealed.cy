@@ -6,7 +6,7 @@
     let $a := 1;
     let shadow $a := 2;                  # an immut can be shadowed: nothing is changed
     let $b := 3;                    # no word: it may not change either
-    variable no_shadow $total := 0;        # changeable, and 'total' always means this one
+    var no_shadow $total := 0;        # changeable, and 'total' always means this one
     change $total = $total plus $a plus $b;
-    std::print.shortest($a, " ", $b, " ", $total, newline);
+    std::print.shortest($a, " ", $b, " ", $total, newln);
 !end of MAIN

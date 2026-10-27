@@ -1,3 +1,3 @@
 !MAIN:
-    let $c: character.%code_point = $a;
+    let $c: char.%point = $a;
 !end of MAIN

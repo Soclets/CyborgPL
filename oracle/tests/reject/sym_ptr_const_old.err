@@ -1,1 +1,1 @@
-`*const` is an old spelling: write `pointer[T]`; a pointer type is written as the word
+`*const` is an old spelling: write `ptr[T]`; a pointer type is written as the word

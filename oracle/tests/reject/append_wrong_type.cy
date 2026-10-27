@@ -1,4 +1,4 @@
 !MAIN:
-    variable $xs: std::list[integer.signed.32_bit] = [1, 2, 3];
-    std::list.append(lend.mutable $xs, value: 2.5);
+    var $xs: std::ls[int.sign.32] = [1, 2, 3];
+    std::ls.append(lend.mut $xs, value: 2.5);
 !end of MAIN

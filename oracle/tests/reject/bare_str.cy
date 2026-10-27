@@ -1,3 +1,3 @@
 !MAIN:
-    let $s: string = "a";
+    let $s: str = "a";
 !end of MAIN

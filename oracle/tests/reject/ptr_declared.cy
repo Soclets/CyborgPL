@@ -1,3 +1,3 @@
 !MAIN:
-    let $p: pointer[integer.unsigned.8_bit] = 1;
+    let $p: ptr[int.unsign.8] = 1;
 !end of MAIN

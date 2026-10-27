@@ -3,32 +3,32 @@
 # The Nth Fibonacci number, recursively; the exit code is its low byte. N
 # comes from the environment and must be 0 to 92 — fib(93) does not fit an
 # int64 — and anything else ends the program with exit code 2, as does no N at all.
-%external.C procedure exit [$code: int32];
-%external.C procedure getenv [$name: pointer[uint8]] -> pointer[uint8];
-%external.C procedure atoll [$s: pointer[uint8]] -> int64[min 0, max 92];
+%extern.C proc exit [$code: int32];
+%extern.C proc getenv [$name: ptr[uint8]] -> ptr[uint8];
+%extern.C proc atoll [$s: ptr[uint8]] -> int64[min 0, max 92];
 
 # N, from the text in the environment: missing when there is none, and out
 # of range when it is not a number this program takes.
-procedure read_n [$text: pointer[uint8]] -> int64[min 0, max 92] or fail[missing, out_of_range]:
-    if pointer.is_null[$text]:
+proc read_n [$text: ptr[uint8]] -> int64[min 0, max 92] or fail[missing, out_of_range]:
+    if ptr.is_null[$text]:
         fail missing;
     end of if
     !no_check let $n := atoll[$text] otherwise fail;
-    return $n;
-end of procedure read_n
+    ret $n;
+end of proc read_n
 
-function fib [$n: int64[min 0, max 92]] -> int64:
+fn fib [$n: int64[min 0, max 92]] -> int64:
     if $n less_than 2:
-        return $n;
+        ret $n;
     end of if
-    return fib[$n minus 1] plus fib[$n minus 2];
-end of function fib
+    ret fib[$n minus 1] plus fib[$n minus 2];
+end of fn fib
 
-procedure run [] -> int32 or fail[missing, out_of_range]:
+proc run [] -> int32 or fail[missing, out_of_range]:
     let $key := "N";
     !no_check let $n := read_n[getenv[lend $key]] otherwise fail;
     if $n less_than 4:
-        return to.int32[fib[$n] modulo.floor 256];
+        ret to.int32[fib[$n] mod.floor 256];
     end of if
     # fib(n) = fib(n-2) + 2 fib(n-3) + fib(n-4): four tasks, each on its own channel
     let $c1 := %channel[int64];
@@ -52,8 +52,8 @@ procedure run [] -> int32 or fail[missing, out_of_range]:
     let $c := %channel.take[lend $c3] otherwise 0;
     let $d := %channel.take[lend $c4] otherwise 0;
     # each part's low byte first: what comes off a channel could be any int64
-    return to.int32[(($a modulo.floor 256) plus ($b modulo.floor 256) plus ($c modulo.floor 256) plus ($d modulo.floor 256)) modulo.floor 256];
-end of procedure run
+    ret to.int32[(($a mod.floor 256) plus ($b mod.floor 256) plus ($c mod.floor 256) plus ($d mod.floor 256)) mod.floor 256];
+end of proc run
 
 !MAIN:
     let $code := run[] otherwise 2;

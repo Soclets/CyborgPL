@@ -1,6 +1,6 @@
-function helper [] -> integer.signed.32_bit:
-    return 1;
-end of function helper
+fn helper [] -> int.sign.32:
+    ret 1;
+end of fn helper
 
 !MAIN:
     let $x := limb.helper[];

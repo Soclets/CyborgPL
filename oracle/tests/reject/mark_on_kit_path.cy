@@ -1,4 +1,4 @@
 # a kit's path is never marked
 !MAIN:
-    std::%print.shortest("hi", newline);
+    std::%print.shortest("hi", newln);
 !end of MAIN

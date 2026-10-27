@@ -1,3 +1,3 @@
 !MAIN:
-    let $x: integer.signed.32_bit;
+    let $x: int.sign.32;
 !end of MAIN

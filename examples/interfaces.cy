@@ -1,50 +1,50 @@
 # Interfaces (design/interfaces.md): a named list of promises about some <T>, announced after the name.
 interface Ordered <T>:
-    operator less_than [$a: <T>, $b: <T>] -> boolean;
-    operator equal_to [$a: <T>, $b: <T>] -> boolean;
+    op less_than [$a: <T>, $b: <T>] -> bool;
+    op eq [$a: <T>, $b: <T>] -> bool;
 end of interface Ordered
 
 interface Printable <T>:
-    function show [lent $x: <T>] -> string.utf8;
+    fn show [lent $x: <T>] -> str.utf8;
 end of interface Printable
 
-record Vec:
-    x: float.binary.64_bit;
-    y: float.binary.64_bit;
-end of record Vec
+rec Vec:
+    x: float.bin.64;
+    y: float.bin.64;
+end of rec Vec
 
 # a struct keeps a promise by having the operations — the language's own operators
 # may be defined for a user type (never for the language's types)
-operator less_than [$a: Vec, $b: Vec] -> boolean:
-    return ($a.x times $a.x plus $a.y times $a.y) less_than ($b.x times $b.x plus $b.y times $b.y);
-end of operator less_than
-operator equal_to [$a: Vec, $b: Vec] -> boolean:
-    return $a.x equal_to $b.x and $a.y equal_to $b.y;
-end of operator equal_to
-function show [lent $v: Vec] -> string.utf8:
-    return "(" concatenate to.stored.string.utf8($v.x) concatenate ", " concatenate to.stored.string.utf8($v.y) concatenate ")";
-end of function show
+op less_than [$a: Vec, $b: Vec] -> bool:
+    ret ($a.x times $a.x plus $a.y times $a.y) less_than ($b.x times $b.x plus $b.y times $b.y);
+end of op less_than
+op eq [$a: Vec, $b: Vec] -> bool:
+    ret $a.x eq $b.x and $a.y eq $b.y;
+end of op eq
+fn show [lent $v: Vec] -> str.utf8:
+    ret "(" concat to.stored.str.utf8($v.x) concat ", " concat to.stored.str.utf8($v.y) concat ")";
+end of fn show
 
 Vec satisfies Ordered;        # optional: a claim the compiler checks
 Vec satisfies Printable;
 
 # a generic says what its blank accepts where it announces it (owner, 2026-10-02)
-function max <T: Ordered> [$a: <T>, $b: <T>] -> <T>:
+fn max <T: Ordered> [$a: <T>, $b: <T>] -> <T>:
     if $b less_than $a:
-        return give $a;
+        ret give $a;
     end of if     # a <T> may be owned, so generic code writes the verbs;
-    return give $b;                       # for a plain T (i32) the verb does nothing
-end of function max
+    ret give $b;                       # for a plain T (i32) the verb does nothing
+end of fn max
 
-function describe <T: Printable> [lent $x: <T>] -> string.utf8:
-    return "value " concatenate show(lend $x);
-end of function describe
+fn describe <T: Printable> [lent $x: <T>] -> str.utf8:
+    ret "value " concat show(lend $x);
+end of fn describe
 
 !MAIN:
     let $u := Vec[x = 1, y = 2];
     let $v := Vec[x = 3, y = 4];
     let $m := max(copy $u, copy $v);             # Vec is Ordered: it has < and equal_to 
-    std::print.shortest(describe(lend $m), newline);
-    std::print.shortest(max(3, 9), " ", max(2.5, 1.5), newline);   # numbers are Ordered by the language
-    std::print.shortest($u equal_to $v, " ", $u less_than $v, newline);     # the operators work directly too
+    std::print.shortest(describe(lend $m), newln);
+    std::print.shortest(max(3, 9), " ", max(2.5, 1.5), newln);   # numbers are Ordered by the language
+    std::print.shortest($u eq $v, " ", $u less_than $v, newln);     # the operators work directly too
 !end of MAIN

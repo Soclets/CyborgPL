@@ -1,6 +1,6 @@
 !MAIN:
     let $s := "hello";
-    let $i: integer.signed.64_bit = 0;
-    let $b := std::string.at.byte(lend $s, position: $i) otherwise 0;
-    std::print.shortest($b, newline);
+    let $i: int.sign.64 = 0;
+    let $b := std::str.at.byte(lend $s, pos: $i) otherwise 0;
+    std::print.shortest($b, newln);
 !end of MAIN

@@ -1,10 +1,10 @@
-collection.function f:
-    f [$a: integer.signed.64_bit] -> integer.signed.64_bit:
-        return 1;
+coll.fn f:
+    f [$a: int.sign.64] -> int.sign.64:
+        ret 1;
     end of f
-    f [$a: integer.signed.64_bit, $b: integer.signed.64_bit] -> integer.signed.64_bit:
-        return 2;
+    f [$a: int.sign.64, $b: int.sign.64] -> int.sign.64:
+        ret 2;
     end of f
-end of collection.function f
+end of coll.fn f
 !MAIN:
 !end of MAIN

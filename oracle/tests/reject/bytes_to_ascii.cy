@@ -1,4 +1,4 @@
 !MAIN:
-    let $b: std::list[integer.unsigned.8_bit] = [104, 105];
-    let $t := to.string.ascii($b) otherwise "?";
+    let $b: std::ls[int.unsign.8] = [104, 105];
+    let $t := to.str.ascii($b) otherwise "?";
 !end of MAIN

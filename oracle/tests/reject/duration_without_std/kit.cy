@@ -1,4 +1,4 @@
-function f [$v: duration]:
-end of function f
+fn f [$v: duration]:
+end of fn f
 !MAIN:
 !end of MAIN

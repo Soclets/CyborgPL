@@ -1,4 +1,4 @@
 !MAIN:
-    let $x: float.binary.64_bit = 0.5;
-    let $d := to.float.%decimal.64_bit.useful[$x];
+    let $x: float.bin.64 = 0.5;
+    let $d := to.float.%deci.64.useful[$x];
 !end of MAIN

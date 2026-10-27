@@ -1,10 +1,10 @@
 # `gives` is spelled `giveS`, the capital S keeping it apart from `give` (owner, 2026-09-29)
-union.tagged S:
+union.tag S:
     a;
     b;
-end of union.tagged S
+end of union.tag S
 !MAIN:
-    let $x: integer.signed.32_bit = match S.a:
+    let $x: int.sign.32 = match S.a:
         case a:
             gives 1;
         end of case a

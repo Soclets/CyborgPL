@@ -1,6 +1,6 @@
 module a:
-    function f []:
-    end of function f
+    fn f []:
+    end of fn f
 end of module a
 !MAIN:
     a.f();

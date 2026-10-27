@@ -5,9 +5,9 @@
 # UTF-16 and UTF-32 say their byte order: `.low_first` (as Windows writes) or `.high_first`.
 
 !MAIN:
-    constant $tiny := include.bytes["assets/tiny.bin"];
-    std::print.shortest(array.length($tiny), " bytes, the last is ", $tiny[position: 4], newline);
+    const $tiny := incl.bytes["assets/tiny.bin"];
+    std::print.shortest(arr.len($tiny), " bytes, the last is ", $tiny[pos: 4], newln);
     std::print.shortest(ui.header.greeting());
-    constant $windows := include.string.%utf16.low_first["assets/windows.txt"];
+    const $windows := incl.str.%utf16.low_first["assets/windows.txt"];
     std::print.shortest($windows);
 !end of MAIN

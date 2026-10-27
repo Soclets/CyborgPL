@@ -1,35 +1,35 @@
 # A kit for uses_paths: other kits write its names with `greet::` (owner, 2026-10-22), and its operator `merge` bare
 # or with the path, and its glyph `<+>` the same.
 
-public function hello [] -> string.utf8:
-    return "hello";
-end of function hello
+pub fn hello [] -> str.utf8:
+    ret "hello";
+end of fn hello
 
-public function wave [] -> string.utf8:
-    return "wave";
-end of function wave
+pub fn wave [] -> str.utf8:
+    ret "wave";
+end of fn wave
 
-public function formal [] -> string.utf8:
-    return "good day";
-end of function formal
+pub fn formal [] -> str.utf8:
+    ret "good day";
+end of fn formal
 
-public record Tally:
-    n: integer.signed.32_bit;
-end of record Tally
+pub rec Tally:
+    n: int.sign.32;
+end of rec Tally
 
-public operator merge [$a: Tally, $b: Tally] -> Tally:
-    return Tally[n = $a.n plus $b.n];
-end of operator merge
+pub op merge [$a: Tally, $b: Tally] -> Tally:
+    ret Tally[n = $a.n plus $b.n];
+end of op merge
 
-public record Note:
-    text: string.utf8;
-end of record Note
+pub rec Note:
+    text: str.utf8;
+end of rec Note
 
-public union.tagged Tone:
+pub union.tag Tone:
     soft;
     loud;
-end of union.tagged Tone
+end of union.tag Tone
 
-public operator <+> [$a: Tally, $b: Tally] -> Tally:
-    return Tally[n = $a.n plus $b.n plus 1];
-end of operator <+>
+pub op <+> [$a: Tally, $b: Tally] -> Tally:
+    ret Tally[n = $a.n plus $b.n plus 1];
+end of op <+>

@@ -140,7 +140,7 @@ Metal sets from the host with `dispatchThreads` — comes **after the name**
 (owner, 2026-10-01: b), as any number:
 
 ```
-!no_check inline.%MSL threads std::list.length(lend $xs) with [lend.mutable $xs -> buffer(0)]:
+!no_check inline.%MSL threads std::ls.len(lend $xs) with [lend.mut $xs -> buffer(0)]:
     kernel void twice(device int *xs [[buffer(0)]], uint id [[thread_position_in_grid]]) {
         xs[id] = xs[id] * 2;
     }
@@ -165,14 +165,14 @@ matching the kernel's `[[buffer(0)]]`, as `inline.ASM` writes ARM's `x0`
   the block, so it is written once:
 
 ```
-%layout.C record Body:
-    x: float.binary.32_bit;
-    y: float.binary.32_bit;
-    vx: float.binary.32_bit;
-    vy: float.binary.32_bit;
-end of record Body
+%layout.C rec Body:
+    x: float.bin.32;
+    y: float.bin.32;
+    vx: float.bin.32;
+    vy: float.bin.32;
+end of rec Body
 
-!no_check inline.%MSL threads $n with [lend.mutable $bodies -> buffer(0), copy $dt -> buffer(1)]:
+!no_check inline.%MSL threads $n with [lend.mut $bodies -> buffer(0), copy $dt -> buffer(1)]:
     #include "shaders/common.metal"
     kernel void step(device Body *bodies [[buffer(0)]], constant float &dt [[buffer(1)]], uint id [[thread_position_in_grid]]) {
         bodies[id].x += bodies[id].vx * dt;

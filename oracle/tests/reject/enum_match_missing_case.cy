@@ -1,8 +1,8 @@
-union.tagged S:
+union.tag S:
     a;
     b;
     c;
-end of union.tagged S
+end of union.tag S
 !MAIN:
     let $s := S.a;
     match $s:

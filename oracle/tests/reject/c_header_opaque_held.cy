@@ -1,9 +1,9 @@
-include.%C.system["stdio.h"];
+incl.%C.system["stdio.h"];
 
-function f [$x: FILE] -> integer.signed.32_bit:
-    return 1;
-end of function f
+fn f [$x: FILE] -> int.sign.32:
+    ret 1;
+end of fn f
 
 !MAIN:
-    std::print.shortest("ran", newline);
+    std::print.shortest("ran", newln);
 !end of MAIN

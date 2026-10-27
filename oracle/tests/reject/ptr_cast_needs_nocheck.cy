@@ -1,5 +1,5 @@
-%external.C procedure malloc [$bytes: integer.unsigned.64_bit] -> pointer.mutable[integer.unsigned.8_bit];
+%extern.C proc malloc [$bytes: int.unsign.64] -> ptr.mut[int.unsign.8];
 !MAIN:
     !no_check let $raw := malloc(4);
-    let $p := pointer.cast[integer.signed.32_bit]($raw);
+    let $p := ptr.cast[int.sign.32]($raw);
 !end of MAIN

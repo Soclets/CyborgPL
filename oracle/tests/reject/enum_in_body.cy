@@ -1,5 +1,5 @@
 !MAIN:
-    union.tagged S:
+    union.tag S:
         a;
-    end of union.tagged S
+    end of union.tag S
 !end of MAIN

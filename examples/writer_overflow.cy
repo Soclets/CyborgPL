@@ -2,19 +2,19 @@
 # keeps the print whole, one longer than the writer going out alone; `.split` fills to exactly its size, a print free
 # to split, for raw throughput.
 !MAIN:
-    variable $pw := std::print.writer(size: 16 bytes);
-    std::print.shortest(lend.mutable $pw, "w 1 32", newline);
-    std::print.shortest(lend.mutable $pw, "w 2 64", newline);
-    std::print.shortest(lend.mutable $pw, "total: 4527", newline);
-    std::print.shortest("between", newline);
-    std::print.flush(lend.mutable $pw);
-    variable $sp := std::print.writer.split(size: 16 bytes);
-    std::print.shortest(lend.mutable $sp, "w 1 32", newline);
-    std::print.shortest(lend.mutable $sp, "w 2 64", newline);
-    std::print.shortest(lend.mutable $sp, "total: 4527", newline);
-    std::print.shortest("between", newline);
-    std::print.flush(lend.mutable $sp);
-    variable $wh := std::print.writer.whole(size: 8 bytes);
-    std::print.shortest(lend.mutable $wh, "longer than eight", newline);
-    std::print.flush(lend.mutable $wh);
+    var $pw := std::print.writer(size: 16 bytes);
+    std::print.shortest(lend.mut $pw, "w 1 32", newln);
+    std::print.shortest(lend.mut $pw, "w 2 64", newln);
+    std::print.shortest(lend.mut $pw, "total: 4527", newln);
+    std::print.shortest("between", newln);
+    std::print.flush(lend.mut $pw);
+    var $sp := std::print.writer.split(size: 16 bytes);
+    std::print.shortest(lend.mut $sp, "w 1 32", newln);
+    std::print.shortest(lend.mut $sp, "w 2 64", newln);
+    std::print.shortest(lend.mut $sp, "total: 4527", newln);
+    std::print.shortest("between", newln);
+    std::print.flush(lend.mut $sp);
+    var $wh := std::print.writer.whole(size: 8 bytes);
+    std::print.shortest(lend.mut $wh, "longer than eight", newln);
+    std::print.flush(lend.mut $wh);
 !end of MAIN

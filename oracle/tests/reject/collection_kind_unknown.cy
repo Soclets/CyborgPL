@@ -1,8 +1,8 @@
-collection.fun c:
-    c [] -> integer.signed.32_bit:
-        return 1;
+coll.fun c:
+    c [] -> int.sign.32:
+        ret 1;
     end of c
-end of collection.fun c
+end of coll.fun c
 
 !MAIN:
 !end of MAIN

@@ -1,3 +1,3 @@
-%external.C procedure f [lent $a: integer.signed.32_bit];
+%extern.C proc f [lent $a: int.sign.32];
 !MAIN:
 !end of MAIN

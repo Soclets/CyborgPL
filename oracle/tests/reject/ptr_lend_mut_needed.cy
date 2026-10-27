@@ -1,4 +1,4 @@
-%external.C procedure fill [$b: pointer.mutable[integer.unsigned.8_bit]];
+%extern.C proc fill [$b: ptr.mut[int.unsign.8]];
 !MAIN:
     let $xs := [1, 2];
     !no_check fill(lend $xs);

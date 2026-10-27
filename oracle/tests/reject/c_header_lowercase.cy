@@ -1,3 +1,3 @@
-include.c.system["stdio.h"];
+incl.c.system["stdio.h"];
 !MAIN:
 !end of MAIN

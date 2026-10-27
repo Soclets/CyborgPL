@@ -1,13 +1,13 @@
 # A `match` alone in a case is a statement (owner, 2026-09-29); a nested match that is the case's value
 # says `is match …` (owner, 2026-10-07: a case says its value with `is`).
-union.tagged Order:
+union.tag Order:
     cancelled;
     paid;
-end of union.tagged Order
-union.tagged Ship:
+end of union.tag Order
+union.tag Ship:
     pickup;
     post;
-end of union.tagged Ship
+end of union.tag Ship
 !MAIN:
     let $o := Order.paid;
     let $s := Ship.post;
@@ -17,10 +17,10 @@ end of union.tagged Ship
         case paid:
             match $s:
                 case pickup:
-                    std::print.shortest("counter", newline);
+                    std::print.shortest("counter", newln);
                 end of case pickup
                 case post:
-                    std::print.shortest("mail", newline);
+                    std::print.shortest("mail", newln);
                 end of case post
             end of match
         end of case paid
@@ -40,5 +40,5 @@ end of union.tagged Ship
             end of match;
         end of case paid
     end of match;
-    std::print.shortest($price, newline);
+    std::print.shortest($price, newln);
 !end of MAIN

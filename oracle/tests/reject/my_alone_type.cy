@@ -1,5 +1,5 @@
 # `my` is the root and is followed by `.`; alone it names no type
-function f [$x: my]:
-end of function f
+fn f [$x: my]:
+end of fn f
 !MAIN:
 !end of MAIN

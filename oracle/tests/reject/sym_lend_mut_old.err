@@ -1,1 +1,1 @@
-`&mut` is an old spelling: write `lend.mutable` / `lent.mutable`; a borrow is written as the word
+`&mut` is an old spelling: write `lend.mut` / `lent.mut`; a borrow is written as the word

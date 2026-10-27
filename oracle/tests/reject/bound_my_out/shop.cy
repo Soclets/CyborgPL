@@ -1,8 +1,8 @@
 # The module `shop`, its own file: the root's bounds through `my.`.
-public function basket [$count: my.quantity] -> string.utf8:
-    return to.stored.string.utf8($count) concatenate " in the basket";
-end of function basket
+pub fn basket [$count: my.quantity] -> str.utf8:
+    ret to.stored.str.utf8($count) concat " in the basket";
+end of fn basket
 
-public function sample [$count: my.quantity.small] -> string.utf8:
-    return to.stored.string.utf8($count) concatenate " to try";
-end of function sample
+pub fn sample [$count: my.quantity.small] -> str.utf8:
+    ret to.stored.str.utf8($count) concat " to try";
+end of fn sample

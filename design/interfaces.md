@@ -37,16 +37,16 @@ language's.
 
 ```
 interface Ordered <T>:
-    operator less_than [$a: <T>, $b: <T>] -> boolean;
-    operator equal_to [$a: <T>, $b: <T>] -> boolean;
+    op less_than [$a: <T>, $b: <T>] -> bool;
+    op eq [$a: <T>, $b: <T>] -> bool;
 end of interface Ordered
 interface Printable <T>:
-    function show [lent $x: <T>] -> string.utf8;
+    fn show [lent $x: <T>] -> str.utf8;
 end of interface Printable
 interface Number:
-    integer.signed.32_bit;
-    integer.signed.64_bit;
-    float.binary.64_bit;
+    int.sign.32;
+    int.sign.64;
+    float.bin.64;
 end of interface Number
 ```
 
@@ -79,12 +79,12 @@ noun-named interfaces; `satisfies` reads right for any name).
 ## 4. Asking — `<T>: Ordered`
 
 ```
-function max <T: Ordered> [$a: <T>, $b: <T>] -> <T>:
+fn max <T: Ordered> [$a: <T>, $b: <T>] -> <T>:
     if $b less_than $a:
-        return give $a;
+        ret give $a;
     end of if
-    return give $b;
-end of function max
+    ret give $b;
+end of fn max
 ```
 
 The bound is written once, where the blank is announced after the name

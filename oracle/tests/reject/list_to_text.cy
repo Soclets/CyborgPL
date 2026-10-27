@@ -1,4 +1,4 @@
 !MAIN:
-    let $n: std::list[integer.signed.32_bit] = [1, 2];
-    let $t := to.string.utf8($n);
+    let $n: std::ls[int.sign.32] = [1, 2];
+    let $t := to.str.utf8($n);
 !end of MAIN

@@ -2,8 +2,8 @@
 # than the deci's digits can (compiler claude, 2026-10-05: the oracle had said "cannot fail" past i128).
 !MAIN:
     let $small: %not_std.i300 = 5;
-    let $huge: %not_std.i300 = 2 power 200;
-    let $a := to.float.%decimal.128_bit($small) otherwise 0.0;
-    let $b := to.float.%decimal.128_bit($huge) otherwise 0.0;
-    std::print.shortest($a, " ", $b, newline);
+    let $huge: %not_std.i300 = 2 pow 200;
+    let $a := to.float.%deci.128($small) otherwise 0.0;
+    let $b := to.float.%deci.128($huge) otherwise 0.0;
+    std::print.shortest($a, " ", $b, newln);
 !end of MAIN

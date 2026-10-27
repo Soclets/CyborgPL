@@ -1,5 +1,5 @@
-func add [$a: integer.signed.32_bit] -> integer.signed.32_bit:
-    return $a;
+func add [$a: int.sign.32] -> int.sign.32:
+    ret $a;
 end of func
 !MAIN:
 !end of MAIN

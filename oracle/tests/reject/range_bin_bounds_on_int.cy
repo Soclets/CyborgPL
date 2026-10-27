@@ -1,3 +1,3 @@
 !MAIN:
-    let $p: integer.signed.32_bit[minimum: 0.0, maximum: 1.0] = 0;
+    let $p: int.sign.32[min: 0.0, max: 1.0] = 0;
 !end of MAIN

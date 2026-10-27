@@ -1,3 +1,3 @@
 !MAIN:
-    print.shortest[1, newline];
+    print.shortest[1, newln];
 !end of MAIN

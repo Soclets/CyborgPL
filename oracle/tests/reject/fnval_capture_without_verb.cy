@@ -1,6 +1,6 @@
 !MAIN:
     let $limit := 60;
-    let $f := function [$s: integer.signed.32_bit] -> boolean with [$limit]:
-        return true;
-    end of function;
+    let $f := fn [$s: int.sign.32] -> bool with [$limit]:
+        ret true;
+    end of fn;
 !end of MAIN

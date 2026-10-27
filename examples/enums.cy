@@ -1,28 +1,28 @@
 # An enum with a case that carries data, matched case by case.
-union.tagged Status:
+union.tag Status:
     empty;
-    claimed: string.utf8;
+    claimed: str.utf8;
     locked;
-end of union.tagged Status
+end of union.tag Status
 
-record Locker:
-    number: integer.signed.32_bit;
+rec Locker:
+    number: int.sign.32;
     status: Status;
-end of record Locker
+end of rec Locker
 
-function describe [lent $l: Locker] -> string.utf8:
+fn describe [lent $l: Locker] -> str.utf8:
     match $l.status:
         case empty:
-            return "free";
+            ret "free";
         end of case empty
         case claimed $who:
-            return "taken by " concatenate $who;
+            ret "taken by " concat $who;
         end of case claimed
         case locked:
-            return "locked";
+            ret "locked";
         end of case locked
     end of match
-end of function describe
+end of fn describe
 
 !MAIN:
     let $lockers := [
@@ -31,12 +31,12 @@ end of function describe
         Locker[number = 3, status = Status.locked]
     ];
     for $l in lend $lockers:
-        std::print.shortest("#", $l.number, ": ", describe(lend $l), newline);
+        std::print.shortest("#", $l.number, ": ", describe(lend $l), newln);
     end of for
     let $s := Status.locked;
-    if $s equal_to Status.locked:
-        std::print.stored("== works on a case", newline);
+    if $s eq Status.locked:
+        std::print.stored("== works on a case", newln);
     end of if
     let $t := Status.claimed("Bo");
-    std::print.stored($t, newline);
+    std::print.stored($t, newln);
 !end of MAIN

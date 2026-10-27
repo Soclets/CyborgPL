@@ -1,10 +1,10 @@
 interface Number:
-    integer.signed.32_bit;
-    float.binary.64_bit;
+    int.sign.32;
+    float.bin.64;
 end of interface Number
-function f <T: Number> [$a: <T>] -> <T>:
-    return $a;
-end of function f
+fn f <T: Number> [$a: <T>] -> <T>:
+    ret $a;
+end of fn f
 !MAIN:
     let $s := f("text");
 !end of MAIN

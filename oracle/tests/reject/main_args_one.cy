@@ -1,3 +1,3 @@
 # MAIN takes both of C's parameters or none
-!MAIN [$argc: integer.signed.32_bit]:
+!MAIN [$argc: int.sign.32]:
 !end of MAIN

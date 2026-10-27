@@ -1,6 +1,6 @@
-%layout.C record S:
-    mode: integer.unsigned.8_bit[bits: 9];
-end of record S
+%layout.C rec S:
+    mode: int.unsign.8[bits: 9];
+end of rec S
 
 !MAIN:
 !end of MAIN

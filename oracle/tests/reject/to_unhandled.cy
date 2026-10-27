@@ -1,3 +1,3 @@
 !MAIN:
-    let $n := to.integer.signed.32_bit("42");
+    let $n := to.int.sign.32("42");
 !end of MAIN

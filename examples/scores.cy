@@ -1,27 +1,27 @@
 # Score handling: small functions, `if` / `else if`, and clamping a value into a range.
-function is_even [$n: integer.signed.32_bit] -> boolean:
-    return ($n modulo.floor 2) equal_to 0;
-end of function is_even
+fn is_even [$n: int.sign.32] -> bool:
+    ret ($n mod.floor 2) eq 0;
+end of fn is_even
 
-function clamp [$n: integer.signed.32_bit, $low: integer.signed.32_bit, $high: integer.signed.32_bit] -> integer.signed.32_bit:
+fn clamp [$n: int.sign.32, $low: int.sign.32, $high: int.sign.32] -> int.sign.32:
     if $n less_than $low:
-        return $low;
+        ret $low;
     end of if
     else if $n greater_than $high:
-        return $high;
+        ret $high;
     end of else if
     else:
-        return $n;
+        ret $n;
     end of else
-end of function clamp
+end of fn clamp
 
 !MAIN:
     let $scores := [72, 95, 38, 100, 61, 87];
 
-    variable $count := 0;
-    variable $total := 0;
-    variable $evens := 0;
-    variable $best := 0;
+    var $count := 0;
+    var $total := 0;
+    var $evens := 0;
+    var $best := 0;
 
     for $score in lend $scores:
         change $count = $count plus 1;
@@ -34,21 +34,21 @@ end of function clamp
         end of if
     end of for
 
-    let $average := $total divide.floor $count;
+    let $average := $total div.floor $count;
     let $curved := clamp($average plus 10, 0, 100);
 
-    std::print.shortest("scored ", $count, " tests", newline);
-    std::print.shortest("total ", $total, ", best ", $best, newline);
-    std::print.shortest("even scores: ", $evens, newline);
-    std::print.shortest("average ", $average, ", curved ", $curved, newline);
+    std::print.shortest("scored ", $count, " tests", newln);
+    std::print.shortest("total ", $total, ", best ", $best, newln);
+    std::print.shortest("even scores: ", $evens, newln);
+    std::print.shortest("average ", $average, ", curved ", $curved, newln);
 
     if $average at_least 90:
-        std::print.shortest("grade A", newline);
+        std::print.shortest("grade A", newln);
     end of if
     else if $average at_least 75:
-        std::print.shortest("grade B", newline);
+        std::print.shortest("grade B", newln);
     end of else if
     else:
-        std::print.shortest("keep going", newline);
+        std::print.shortest("keep going", newln);
     end of else
 !end of MAIN

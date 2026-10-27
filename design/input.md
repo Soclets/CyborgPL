@@ -8,8 +8,8 @@ take a value from outside, and no way to say what that value could be.
 ## One-ended ranges — `min` and `max` (owner, 2026-09-23)
 
 ```
-let $pos: integer.signed.32_bit[minimum: 1] = 1;         # at least 1; the ceiling is i32's own
-let $score: integer.signed.32_bit[maximum: 100] = 50;    # at most 100
+let $pos: int.sign.32[min: 1] = 1;         # at least 1; the ceiling is i32's own
+let $score: int.sign.32[max: 100] = 50;    # at most 100
 ```
 
 `min` and `max` stand for the base type's own limits, so a one-ended
@@ -35,7 +35,7 @@ conversion: two lines, two failures, each handled where it happens —
 
 ```
 let $text := std::input.line() otherwise "";
-let $n := to.integer.signed.32_bit($text) otherwise 0;
+let $n := to.int.sign.32($text) otherwise 0;
 ```
 
 (A failing call must be the whole right-hand side, so they cannot nest;
@@ -62,14 +62,14 @@ shape. A value of that type is *provably* within the bounds, everywhere
 it goes.
 
 ```
-let $n: integer.signed.32_bit[minimum: 0, maximum: 100] = …;
-function draw [$x: integer.signed.32_bit[minimum: 0, maximum: 1023], $y: integer.signed.32_bit[minimum: 0, maximum: 767]]:
+let $n: int.sign.32[min: 0, max: 100] = …;
+fn draw [$x: int.sign.32[min: 0, max: 1023], $y: int.sign.32[min: 0, max: 767]]:
     …
-end of function draw
-record Percent:
-    value: integer.unsigned.8_bit[minimum: 0, maximum: 100];
-end of record Percent
-let $unit: float.binary.64_bit[minimum: 0.0, maximum: 1.0] = 0.25;
+end of fn draw
+rec Percent:
+    value: int.unsign.8[min: 0, max: 100];
+end of rec Percent
+let $unit: float.bin.64[min: 0.0, max: 1.0] = 0.25;
 ```
 
 - Bounds are numeric literals of the base type's family (`i32[min: 0.0,

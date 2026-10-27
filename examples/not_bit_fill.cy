@@ -5,44 +5,44 @@
 # many". With ('v17' plus 5) it runs, as it does for not.bit (5 plus 'v17') in a comparison or a
 # print: inside simd.fill it looks at the left operand only. kayo runs it.
 # check claude generator, seed 24126
-%external.C procedure write [$fd: integer.signed.32_bit, $buf: pointer[integer.unsigned.8_bit], $len: integer.unsigned.64_bit] -> integer.signed.64_bit;
+%extern.C proc write [$fd: int.sign.32, $buf: ptr[int.unsign.8], $len: int.unsign.64] -> int.sign.64;
 
-procedure emit [$m: integer.unsigned.64_bit, $neg: boolean]:
-    variable $buf: std::list[integer.unsigned.8_bit] = [];
+proc emit [$m: int.unsign.64, $neg: bool]:
+    var $buf: std::ls[int.unsign.8] = [];
     if $neg:
-        std::list.append(lend.mutable $buf, value: 45);
+        std::ls.append(lend.mut $buf, value: 45);
     end of if
-    variable $v: integer.unsigned.64_bit = $m;
-    variable $ds: std::list[integer.unsigned.8_bit] = [];
-    std::list.append(lend.mutable $ds, value: to.integer.unsigned.8_bit(48 plus ($v modulo.floor 10)));
-    change $v = $v divide.floor 10;
+    var $v: int.unsign.64 = $m;
+    var $ds: std::ls[int.unsign.8] = [];
+    std::ls.append(lend.mut $ds, value: to.int.unsign.8(48 plus ($v mod.floor 10)));
+    change $v = $v div.floor 10;
     while $v greater_than 0:
-        std::list.append(lend.mutable $ds, value: to.integer.unsigned.8_bit(48 plus ($v modulo.floor 10)));
-        change $v = $v divide.floor 10;
+        std::ls.append(lend.mut $ds, value: to.int.unsign.8(48 plus ($v mod.floor 10)));
+        change $v = $v div.floor 10;
     end of while
-    variable $k: integer.unsigned.64_bit = std::list.length(lend $ds);
+    var $k: int.unsign.64 = std::ls.len(lend $ds);
     while $k at_least 1:
-        std::list.append(lend.mutable $buf, value: $ds[position: $k]);
+        std::ls.append(lend.mut $buf, value: $ds[pos: $k]);
         change $k = $k minus 1;
     end of while
-    std::list.append(lend.mutable $buf, value: 10);
-    !no_check write(1, lend $buf, std::list.length(lend $buf));
-end of procedure emit
+    std::ls.append(lend.mut $buf, value: 10);
+    !no_check write(1, lend $buf, std::ls.len(lend $buf));
+end of proc emit
 
-procedure put_u [$n: integer.unsigned.64_bit]:
+proc put_u [$n: int.unsign.64]:
     emit($n, false);
-end of procedure put_u
+end of proc put_u
 
-procedure put_i [$n: integer.signed.64_bit]:
+proc put_i [$n: int.sign.64]:
     if $n less_than 0:
-        emit(to.integer.unsigned.64_bit(0 minus ($n plus 1)) plus 1, true);
+        emit(to.int.unsign.64(0 minus ($n plus 1)) plus 1, true);
     end of if
     else:
-        emit(to.integer.unsigned.64_bit($n), false);
+        emit(to.int.unsign.64($n), false);
     end of else
-end of procedure put_i
+end of proc put_i
 !MAIN:
-    let $v17: integer.unsigned.16_bit = 0;
-    let $s21: simd[integer.unsigned.16_bit, count: 8] = simd.fill(value: not.bit (5 plus $v17));
-    put_u(to.integer.unsigned.64_bit(simd.max($s21)));
+    let $v17: int.unsign.16 = 0;
+    let $s21: simd[int.unsign.16, count: 8] = simd.fill(value: not.bit (5 plus $v17));
+    put_u(to.int.unsign.64(simd.max($s21)));
 !end of MAIN

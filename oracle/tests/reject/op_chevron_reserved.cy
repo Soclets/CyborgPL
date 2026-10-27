@@ -1,8 +1,8 @@
-record V:
-    n: integer.signed.32_bit;
-end of record V
-operator >> [$a: V, $b: V] -> V:
-    return $a;
-end of operator
+rec V:
+    n: int.sign.32;
+end of rec V
+op >> [$a: V, $b: V] -> V:
+    ret $a;
+end of op
 !MAIN:
 !end of MAIN

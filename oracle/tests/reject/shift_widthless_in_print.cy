@@ -1,6 +1,6 @@
 !MAIN:
-    let $b: boolean = false;
+    let $b: bool = false;
     if $b:
-        std::print.shortest(5 shift_right to.integer.unsigned.8_bit(1), newline);
+        std::print.shortest(5 shr to.int.unsign.8(1), newln);
     end of if
 !end of MAIN

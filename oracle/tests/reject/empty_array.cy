@@ -1,3 +1,3 @@
 !MAIN:
-    let $xs: array[integer.signed.32_bit] = [];
+    let $xs: arr[int.sign.32] = [];
 !end of MAIN

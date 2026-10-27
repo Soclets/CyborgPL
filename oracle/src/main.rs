@@ -824,7 +824,7 @@ fn check_redeclared(prog: &ast::Program) -> Result<Option<String>, String> {
     fn find<'a>(sc: &'a [Vec<Entry>], n: &str) -> Option<&'a Entry> { sc.iter().rev().flat_map(|s| s.iter().rev()).find(|(m, _, _)| m == n || m.strip_prefix("const:") == Some(n)) }
     fn decl(w: &mut W, n: &str, shadow: bool, sealed: bool, is_mut: bool, line: usize) -> Result<(), String> {
         match (find(&w.sc, n), shadow) {
-            (Some(_), false) => return Err(format!("line {line}: '{n}' is already declared in an enclosing scope; to shadow it deliberately write `let shadow '{n}' := …;` (or `variable shadow`) (owner, 2026-10-08)")),
+            (Some(_), false) => return Err(format!("line {line}: '{n}' is already declared in an enclosing scope; to shadow it deliberately write `let shadow '{n}' := …;` (or `var shadow`) (owner, 2026-10-08)")),
             (None, true) => return Err(format!("line {line}: `shadow` declares over an existing '{n}', but none is visible here")),
             (Some((m, true, _)), true) if m.starts_with("const:") => return Err(format!("line {line}: '{n}' is a const and cannot be shadowed")),
             (Some((_, true, _)), true) => return Err(format!("line {line}: '{n}' cannot be shadowed: it is `no_shadow` (or a loop's own counter)")),
@@ -1002,14 +1002,14 @@ fn check_redeclared(prog: &ast::Program) -> Result<Option<String>, String> {
         if let Some(&(i, shadow)) = w.fixed.iter().find(|&&(i, _)| w.muts[i].2) {
             let (n, line, _, _) = &w.muts[i];
             return Err(if shadow {
-                format!("line {line}: '{n}' is a `let shadow`, which never changes, but something changes it: declare it `variable shadow '{n}' := …;` (owner, 2026-10-27)")
+                format!("line {line}: '{n}' is a `let shadow`, which never changes, but something changes it: declare it `var shadow '{n}' := …;` (owner, 2026-10-27)")
             } else {
-                format!("line {line}: '{n}' is a `let`, which never changes, but something changes it: declare it `variable '{n}' := …;` (owner, 2026-10-27)")
+                format!("line {line}: '{n}' is a `let`, which never changes, but something changes it: declare it `var '{n}' := …;` (owner, 2026-10-27)")
             });
         }
         if unkept.is_none() {
             if let Some((n, line, _, _)) = w.muts.iter().find(|m| m.3 && !m.2) {
-                unkept = Some(format!("line {line}: '{n}' is a `variable`, but nothing changes it: make it a `let`, or change it (`variable` is a promise that it changes, as `let` is that it does not; owner, 2026-10-27)"));
+                unkept = Some(format!("line {line}: '{n}' is a `var`, but nothing changes it: make it a `let`, or change it (`var` is a promise that it changes, as `let` is that it does not; owner, 2026-10-27)"));
             }
         }
         Ok(())
@@ -1320,6 +1320,14 @@ fn main() {
     }
     // `oracle --redesign <file.cy | directory>…`: rewrites programs into the 2026-10-26/27 redesign's spellings, in
     // place; `--redesign-show <file.cy>` prints the rewritten text instead (DECISIONS.md, "Redesign: …")
+    // `oracle --redesign-shorten <file.cy | directory>…`: a program in redesign one's spellings (2026-10-27 morning) into
+    // redesign two's, in place
+    if head.len() >= 3 && head[1] == "--redesign-shorten" {
+        let targets: Vec<PathBuf> = head[2..].iter().map(PathBuf::from).collect();
+        let mut bad = false;
+        for t in &targets { if let Err(m) = shorten_path(t) { eprintln!("{m}"); bad = true; } }
+        exit(if bad { 1 } else { 0 });
+    }
     if head.len() >= 3 && (head[1] == "--redesign" || head[1] == "--redesign-show") {
         let show = head[1] == "--redesign-show";
         let targets: Vec<PathBuf> = head[2..].iter().map(PathBuf::from).collect();
@@ -1407,11 +1415,30 @@ fn redesign_path(path: &Path, show: bool) -> Result<(), String> {
         }
     };
     let out = redesign::convert(&src, &marked, info.as_ref()).map_err(|m| format!("{}: {m}", path.display()))?;
+    // then redesign two's words (owner, 2026-10-27)
+    let out = redesign::shorten(&out).map_err(|m| format!("{}: redesign two: {m}", path.display()))?;
     if show { print!("{out}"); return Ok(()); }
     let out = if concise { concise::encode(&out) } else { out };
     if out != raw {
         std::fs::write(path, &out).map_err(|e| format!("{}: {e}", path.display()))?;
         println!("rewrote {}{}", path.display(), if info.is_none() { " (not analysed: read on its own it does not parse)" } else { "" });
     }
+    Ok(())
+}
+
+/// `oracle --redesign-shorten`: one file, or every `.cy` file under a directory, from redesign one's words to two's.
+fn shorten_path(path: &Path) -> Result<(), String> {
+    if path.is_dir() {
+        let mut entries: Vec<PathBuf> = std::fs::read_dir(path).map_err(|e| format!("{}: {e}", path.display()))?.filter_map(|e| e.ok().map(|e| e.path())).collect();
+        entries.sort();
+        let mut first = Ok(());
+        for p in entries { if p.is_dir() || p.extension().map_or(false, |x| x == "cy") { if let Err(m) = shorten_path(&p) { eprintln!("{m}"); first = Err(String::new()); } } }
+        return first.map_err(|_| format!("{}: some files were not rewritten", path.display()));
+    }
+    let raw = std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let (src, concise) = match concise::decode(&raw) { Some(Ok(text)) => (text, true), _ => (raw.clone(), false) };
+    let out = redesign::shorten(&src).map_err(|m| format!("{}: {m}", path.display()))?;
+    let out = if concise { concise::encode(&out) } else { out };
+    if out != raw { std::fs::write(path, &out).map_err(|e| format!("{}: {e}", path.display()))?; println!("shortened {}", path.display()); }
     Ok(())
 }

@@ -1,5 +1,5 @@
-collection.function c:
+coll.fn c:
     c.q [$x = 1];
-end of collection.function c
+end of coll.fn c
 !MAIN:
 !end of MAIN

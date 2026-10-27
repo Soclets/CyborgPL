@@ -10,11 +10,11 @@ carry a detail. A function's `fail[…]` list has this shape already
 ## Declaring
 
 ```
-union.tagged Status:
+union.tag Status:
     empty;
-    claimed: string.utf8;       # this case carries who claimed it
+    claimed: str.utf8;       # this case carries who claimed it
     locked;
-end of union.tagged Status
+end of union.tag Status
 ```
 
 Top level beside `struct`; `pub` works the same. The name is bare (a type);
@@ -28,10 +28,10 @@ namespace. The keyword is `enum` (Rust/C/Swift/TypeScript) over `variant`.
 ```
 let $a := Status.empty;                 # a case with no data: bare
 let $b := Status.claimed["Tankun"];     # a case with data: the bracket builds it
-record Locker:
-    number: integer.signed.32_bit;
+rec Locker:
+    number: int.sign.32;
     status: Status;
-end of record Locker
+end of rec Locker
 ```
 
 - **An enum value is always owned**, like a struct (one rule; adding a
@@ -43,19 +43,19 @@ end of record Locker
 ## `match` — when every case matters
 
 ```
-function describe [lent $l: Locker] -> string.utf8:
+fn describe [lent $l: Locker] -> str.utf8:
     match $l.status:
         case empty:
-            return "free";
+            ret "free";
         end of case empty
         case claimed $who:
-            return "taken by " concatenate $who;
+            ret "taken by " concat $who;
         end of case claimed
         case locked:
-            return "locked";
+            ret "locked";
         end of case locked
     end of match
-end of function describe
+end of fn describe
 ```
 
 - The arms are the same shape as `otherwise { … }` (`failures.md`): the
@@ -85,10 +85,10 @@ let $label := match $s:
         "free"
     end of case empty
     case claimed $who:
-        "taken by " concatenate $who
+        "taken by " concat $who
     end of case claimed
     case locked:
-        return "(locked)";
+        ret "(locked)";
     end of case locked      # a case may still leave instead
 end of match;
 ```

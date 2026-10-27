@@ -1,5 +1,5 @@
 use std::print.shortest as say;
-function say []:
-end of function say
+fn say []:
+end of fn say
 !MAIN:
 !end of MAIN

@@ -1,6 +1,6 @@
 on.machine.chip sve:
-    function f []:
-    end of function f
+    fn f []:
+    end of fn f
 end of on.machine.chip
 
 !MAIN:

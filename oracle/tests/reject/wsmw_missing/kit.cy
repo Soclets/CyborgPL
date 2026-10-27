@@ -1,3 +1,3 @@
 !MAIN:
-    let $n: integer.signed.%128_bit = 5;
+    let $n: int.sign.%128 = 5;
 !end of MAIN

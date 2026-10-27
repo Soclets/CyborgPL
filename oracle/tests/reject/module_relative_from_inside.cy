@@ -1,11 +1,11 @@
 
 module a:
-    public function f []:
+    pub fn f []:
         g();
-    end of function f
+    end of fn f
 end of module a
-function g []:
-end of function g
+fn g []:
+end of fn g
 !MAIN:
     a.f();
 !end of MAIN

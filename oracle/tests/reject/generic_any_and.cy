@@ -1,8 +1,8 @@
 interface O <T>:
-    operator less_than [$a: <T>, $b: <T>] -> boolean;
+    op less_than [$a: <T>, $b: <T>] -> bool;
 end of interface O
-function f <T: any and O> [$a: <T>] -> <T>:
-    return $a;
-end of function f
+fn f <T: any and O> [$a: <T>] -> <T>:
+    ret $a;
+end of fn f
 !MAIN:
 !end of MAIN

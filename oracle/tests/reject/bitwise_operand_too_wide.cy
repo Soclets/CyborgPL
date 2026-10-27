@@ -1,4 +1,4 @@
 !MAIN:
-    let $v: integer.unsigned.32_bit = 5;
-    let $r: integer.unsigned.32_bit = $v and.bit (1 minus 7);
+    let $v: int.unsign.32 = 5;
+    let $r: int.unsign.32 = $v and.bit (1 minus 7);
 !end of MAIN

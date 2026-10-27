@@ -1,48 +1,48 @@
 # Lockers with owners and items: structs, a constant, and lending one out to be changed.
-public constant $capacity := 12;
+pub const $capacity := 12;
 
-record Locker:
-    let number: integer.signed.32_bit;
-    owner: string.utf8;
-    items: std::list[string.utf8];
-end of record Locker
+rec Locker:
+    let number: int.sign.32;
+    owner: str.utf8;
+    items: std::ls[str.utf8];
+end of rec Locker
 
-function free_slots [lent $l: Locker] -> integer.signed.32_bit:
-    return $capacity minus std::list.length(lend $l.items);
-end of function free_slots
+fn free_slots [lent $l: Locker] -> int.sign.32:
+    ret $capacity minus std::ls.len(lend $l.items);
+end of fn free_slots
 
-procedure stash [lent.mutable $l: Locker, $item: string.utf8] -> boolean:
-    if free_slots(lend $l) equal_to 0:
-        return false;
+proc stash [lent.mut $l: Locker, $item: str.utf8] -> bool:
+    if free_slots(lend $l) eq 0:
+        ret false;
     end of if
-    std::list.append(lend.mutable $l.items, value: give $item);
-    return true;
-end of procedure stash
+    std::ls.append(lend.mut $l.items, value: give $item);
+    ret true;
+end of proc stash
 
-function label [lent $l: Locker] -> string.utf8:
-    return "#" concatenate to.stored.string.utf8($l.number) concatenate " (" concatenate $l.owner concatenate ")";
-end of function label
+fn label [lent $l: Locker] -> str.utf8:
+    ret "#" concat to.stored.str.utf8($l.number) concat " (" concat $l.owner concat ")";
+end of fn label
 
 !MAIN:
-    variable $mine := Locker[number = 7, owner = "Tankun", items = std::list.empty];
+    var $mine := Locker[number = 7, owner = "Tankun", items = std::ls.empty];
     let $names := ["helmet", "gloves", "rope"];
-    variable $stored: integer.signed.32_bit = 0;
+    var $stored: int.sign.32 = 0;
 
     for $n in lend $names:
-        if stash(lend.mutable $mine, copy $n):
+        if stash(lend.mut $mine, copy $n):
             change $stored = $stored plus 1;
         end of if
     end of for
-    std::print.shortest(label(lend $mine), ": ", $stored, " stored, ", free_slots(lend $mine), " free", newline);
+    std::print.shortest(label(lend $mine), ": ", $stored, " stored, ", free_slots(lend $mine), " free", newln);
 
-    for $i [from: 1, to: std::list.length(lend $mine.items), by: 1]:
-        check std::print.shortest($i, ". ", $mine.items[position: $i], newline);
+    for $i [from: 1, to: std::ls.len(lend $mine.items), by: 1]:
+        check std::print.shortest($i, ". ", $mine.items[pos: $i], newln);
     end of for
 
-    let $x: float.binary.64_bit = 0.1;
-    std::print.stored($x, newline);
-    std::print.shortest($x, newline);
+    let $x: float.bin.64 = 0.1;
+    std::print.stored($x, newln);
+    std::print.shortest($x, newln);
 
     let $tag := give $mine.owner;
-    std::print.stored($tag, newline);
+    std::print.stored($tag, newln);
 !end of MAIN

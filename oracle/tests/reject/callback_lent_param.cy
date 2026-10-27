@@ -1,3 +1,3 @@
-%external.C procedure f [$cb: function[lent integer.signed.32_bit] -> integer.signed.32_bit];
+%extern.C proc f [$cb: fn[lent int.sign.32] -> int.sign.32];
 !MAIN:
 !end of MAIN

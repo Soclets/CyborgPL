@@ -1,23 +1,23 @@
 # A kit's `pub coll.handler` (owner, 2026-10-23: "Should `pub` handlers be a thing? (the suggestor AI) No shit"),
 # its member taking arguments (owner: "Yes"): another kit uses it through its path,
 # `otherwise halves::half_failed.or_default(default: 0, label: "…")`.
-public function half [$n: integer.signed.32_bit] -> integer.signed.32_bit or fail[odd, negative: integer.signed.32_bit]:
+pub fn half [$n: int.sign.32] -> int.sign.32 or fail[odd, negative: int.sign.32]:
     if $n less_than 0:
         fail negative[$n];
     end of if
-    if ($n divide.floor 2) times 2 not_equal_to $n:
+    if ($n div.floor 2) times 2 not_eq $n:
         fail odd;
     end of if
-    return $n divide.floor 2;
-end of function half
+    ret $n div.floor 2;
+end of fn half
 
-public collection.handler half_failed:
-    half_failed.or_default [$default: integer.signed.32_bit, $label: string.utf8]:
+pub coll.handler half_failed:
+    half_failed.or_default [$default: int.sign.32, $label: str.utf8]:
         !case odd:
-            std::print.shortest($label, ": odd, using ", $default, newline); return $default;
+            std::print.shortest($label, ": odd, using ", $default, newln); ret $default;
         !end of case odd
         !case negative $v:
-            std::print.shortest($label, ": ", $v, " is negative, using ", $default, newline); return $default;
+            std::print.shortest($label, ": ", $v, " is negative, using ", $default, newln); ret $default;
         !end of case negative
     end of half_failed.or_default
-end of collection.handler half_failed
+end of coll.handler half_failed

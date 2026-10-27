@@ -1,3 +1,3 @@
 !MAIN:
-    let $d := 5 seconds minus 6 seconds;
+    let $d := 5 secs minus 6 secs;
 !end of MAIN

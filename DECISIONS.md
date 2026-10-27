@@ -34,6 +34,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Built in the oracle: redesign two; examples, tests and the notes' code swept again (owner: "It's done, build it")
+
+The owner, asked whether redesign two had more or should be built: "It's done, build it". Built: every word of "Redesign
+two" above (`fn` / `proc`, `var`, `rec`, `union.tag`, `ret`, `int.sign.32`, `float.%deci.64`, `ls`, `eq` / `not_eq`, `neg`,
+`len`, the std names, the rest), and its rulings since (`len`; a long `otherwise` below a line ending in `-`, on the
+call's own line refused). The oracle reads only redesign two: its front reads the short words into redesign one's tokens
+(`lengthen`, oracle/src/redesign.rs), refusing by name redesign one's long words and every older spelling still old, and
+checks each `end of` line against its block's kind and name as redesign two writes them. `oracle --redesign` now takes a
+program from before the redesigns straight to redesign two (232 of the 236 examples, as they were before this morning,
+convert and print the same; the four that do not are the hand-made ones of the first sweep); `oracle --redesign-shorten`
+takes redesign one's text to two's, which is how this repository was swept: every example and reject test (all of
+`cargo test` passing, the `.out` files unchanged), bench/, and the notes' code (prose untouched, checked). Reversed by it
+and so turned around: the reject tests of `bin` / `secs` / `neg` / `var` as old spellings now test `binary` / `seconds` /
+`negate` / `variable`. `spellings.cyr`: the keywords are the short words, redesign one's long ones reserved, every old
+spelling a row. The table is `design/revision-2026-10-27.md`, rewritten for redesign two; provisional picks in
+oracle/README.md. Not yet, as before: the prose of design/ and many of the oracle's messages name old spellings; kayo waits
+for the owner's go, std/ converts right after it.
+
 ### 2026-10-27 — Redesign two: the words are abbreviated, aggressively; the structure stays (owner; not built)
 
 The owner: "Let's do another redesign", then "We aggressively abbreviate things. `float.deci.32_bits`? And stuff".

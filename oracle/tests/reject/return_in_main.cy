@@ -1,3 +1,3 @@
 !MAIN:
-    return 0;
+    ret 0;
 !end of MAIN

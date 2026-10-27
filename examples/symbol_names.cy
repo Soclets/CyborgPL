@@ -7,5 +7,5 @@
     let $'v1.2' := 12;
     let $'total due' := $'v1.2' plus 3;
     let $'it\'s' := "yes";
-    std::print.shortest($'80%', " ", $'ready?', " ", $'v1.2', " ", $'total due', " ", $'it\'s', newline);
+    std::print.shortest($'80%', " ", $'ready?', " ", $'v1.2', " ", $'total due', " ", $'it\'s', newln);
 !end of MAIN

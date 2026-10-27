@@ -3,10 +3,10 @@
 # 2026-10-07: a vector the target lacks is refused, and a fallback is written by hand).
 !MAIN:
     on.target.chip x86_64:
-        let $w: simd[integer.signed.32_bit, count: 8] = simd.fill(value: 1);
+        let $w: simd[int.sign.32, count: 8] = simd.fill(value: 1);
     end of on.target.chip
     else:
-        let $v: simd[integer.signed.32_bit, count: 4] = simd.fill(value: 1);
-        std::print.shortest(simd.sum($v), newline);
+        let $v: simd[int.sign.32, count: 4] = simd.fill(value: 1);
+        std::print.shortest(simd.sum($v), newln);
     end of else
 !end of MAIN

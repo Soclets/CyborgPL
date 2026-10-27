@@ -1031,7 +1031,9 @@ fn between_values(toks: &[Token], i: usize) -> bool {
     // after a value: a variable, a number, a closing bracket, `true` / `false`, or a field (a word after `.`)
     let after_value = i > 0 && (matches!(toks[i - 1].tok, Tok::Var(_) | Tok::Int(_) | Tok::BigInt(_) | Tok::Bin(..) | Tok::RParen | Tok::RBracket | Tok::PercentLit(..))
         || matches!(&toks[i - 1].tok, Tok::Word(w) if w == "true" || w == "false")
-        || (matches!(toks[i - 1].tok, Tok::Word(_)) && i >= 2 && toks[i - 2].tok == Tok::Dot));
+        || (matches!(toks[i - 1].tok, Tok::Word(_)) && i >= 2 && toks[i - 2].tok == Tok::Dot)
+        // a typed literal's type, `3: u8 x 2`
+        || matches!(&toks[i - 1].tok, Tok::Word(w) if number_type(w).is_some()));
     after_value && toks.get(i + 1).is_some_and(|t| !matches!(t.tok, Tok::Semi | Tok::Comma | Tok::RBracket | Tok::RParen | Tok::Colon | Tok::Eq | Tok::Walrus))
 }
 
@@ -1165,13 +1167,13 @@ pub fn check_purity(prog: &ast::Program) -> Result<(), String> {
     for f in &prog.funcs {
         if kind_of(f) != Some(false) { continue; }
         let shown = f.name.clone();
-        if f.is_extern { return Err(format!("line {}: `{shown}` is C's, reached by a `procedure`: `%external.C procedure {shown} […]` (owner, 2026-10-27)", f.line)); }
+        if f.is_extern { return Err(format!("line {}: `{shown}` is C's, reached by a `proc`: `%extern.C proc {shown} […]` (owner, 2026-10-27)", f.line)); }
         let (effect, called) = effects_of(f);
         if effect {
-            return Err(format!("line {}: `{shown}` is a `function`, which has no effects, but it prints, reads, waits, starts a task, changes what it was lent, or reaches C or another language: make it a `procedure` (owner, 2026-10-27)", f.line));
+            return Err(format!("line {}: `{shown}` is a `fn`, which has no effects, but it prints, reads, waits, starts a task, changes what it was lent, or reaches C or another language: make it a `proc` (owner, 2026-10-27)", f.line));
         }
         if let Some(c) = called.iter().find(|c| procedures.contains(*c) && !functions.contains(*c)) {
-            return Err(format!("line {}: `{shown}` is a `function`, so it calls only functions, but `{c}` is a `procedure`: make `{shown}` a `procedure`, or `{c}` a `function` (owner, 2026-10-27)", f.line));
+            return Err(format!("line {}: `{shown}` is a `fn`, so it calls only `fn`s, but `{c}` is a `proc`: make `{shown}` a `proc`, or `{c}` a `fn` (owner, 2026-10-27)", f.line));
         }
     }
     Ok(())
@@ -1339,8 +1341,10 @@ fn shown(t: &Tok) -> String {
 /// `end of` line and every `!` against the block it closes.
 pub fn front(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
     WRITTEN_KINDS.with(|k| k.borrow_mut().clear());
-    let toks = words_back(toks)?;
-    blocks_back(toks)
+    // redesign two's words read as redesign one's (owner, 2026-10-27: "It's done, build it"), then as the parser's
+    let toks = lengthen(toks)?;
+    let toks = words_back(toks).map_err(|(l, c, m)| (l, c, if m.contains("is an old spelling") { m } else { twos(&m) }))?;
+    blocks_back(toks).map_err(|(l, c, m)| (l, c, twos(&m)))
 }
 
 /// Step one: the words. Each old spelling is refused, each new one read as the parser's.
@@ -1591,7 +1595,7 @@ fn blocks_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
             while j < n && toks[j].line == line && !matches!(toks[j].tok, Tok::Semi | Tok::RParen | Tok::Comma | Tok::RBracket | Tok::Eof) {
                 // an operator as it was written: `less_than` is `<` inside
                 let s = match &toks[j].tok {
-                    Tok::Op(o) if toks[j].end != usize::MAX && toks[j].end - toks[j].at > o.chars().count() => match o.as_str() { "<" => "less_than".to_string(), ">" => "greater_than".into(), "not_equal" => "not_equal_to".into(), _ => o.clone() },
+                    Tok::Op(o) if toks[j].end != usize::MAX && toks[j].end - toks[j].at != o.chars().count() => match (o.as_str(), toks[j].end - toks[j].at) { ("<", _) => "less_than".to_string(), (">", _) => "greater_than".into(), ("equal_to", 2) => "eq".into(), ("not_equal", 6) => "not_eq".into(), ("not_equal", _) => "not_equal_to".into(), _ => o.clone() },
                     other => shown(other),
                 };
                 let glue = matches!(toks[j].tok, Tok::Dot) || text.ends_with('.') || text.ends_with('%') || text.ends_with('!') || text.is_empty();
@@ -1754,7 +1758,8 @@ fn check_blocks(toks: &[Token], closes: &[(String, bool, usize, usize)], arm_ban
                 if open.list { continue; }
                 let Some((written, bang, line, col)) = closes.get(close_at).cloned() else { return Err((t.line, t.col, "a block's end".into())); };
                 close_at += 1;
-                let want = open.close.clone();
+                // the block's kind and name as redesign two writes them
+                let want = short_code(&open.close);
                 if written != want { return Err((line, col, format!("`end of {written}` closes `{want}`: write `{}end of {want}` (owner, 2026-10-26)", if open.bang { "!" } else { "" }))); }
                 if bang != open.bang {
                     return Err((line, col, if open.bang { format!("this block's last line wears `!`, as its first does: `!end of {want}` (owner, 2026-10-26)") } else { format!("`!end of {want}`: `!` goes only where something needs attention (owner, 2026-10-26)") }));
@@ -1792,4 +1797,495 @@ fn check_blocks(toks: &[Token], closes: &[(String, bool, usize, usize)], arm_ban
 /// The handlers this file declares, by collection: only those are checked where they are used (another kit's are its own)
 fn jumping_known(toks: &[Token], coll: &str) -> bool {
     (0..toks.len().saturating_sub(3)).any(|i| matches!(&toks[i].tok, Tok::Word(c) if c == "coll") && toks[i + 1].tok == Tok::Dot && matches!(&toks[i + 2].tok, Tok::Word(h) if h == "handler") && matches!(&toks[i + 3].tok, Tok::Word(n) if n == coll))
+}
+
+// ------------------------------------------------------------------------------------------------------------------
+// Redesign two (owner, 2026-10-27: "We aggressively abbreviate things"): the words shortened, the structure kept
+// ------------------------------------------------------------------------------------------------------------------
+
+/// A redesign-one word and its redesign-two spelling where it stands as a keyword or the head of a path
+pub fn short_word(w: &str) -> Option<&'static str> {
+    Some(match w {
+        "function" => "fn", "procedure" => "proc", "operator" => "op", "variable" => "var", "constant" => "const",
+        "record" => "rec", "enumeration" => "enum", "public" => "pub", "external" => "extern",
+        "return" => "ret", "boolean" => "bool", "character" => "char", "pointer" => "ptr",
+        "concatenate" => "concat", "shift_left" => "shl", "shift_right" => "shr",
+        "power" => "pow",
+        _ => return None,
+    })
+}
+
+/// A redesign-one word after `.`, by the segment before it (each already shortened), and its redesign-two spelling
+pub fn short_segment(before: &str, w: &str) -> Option<&'static str> {
+    Some(match (before, w) {
+        ("union", "tagged") => "tag",
+        ("coll", "function") => "fn", ("coll", "procedure") => "proc",
+        ("lend" | "lent" | "ptr", "mutable") => "mut",
+        ("str", "uppercase") => "upper", ("str", "lowercase") => "lower",
+        (_, "code_point") => "point", (_, "code_points") => "points",
+        (_, "grapheme_cluster") => "cluster", (_, "grapheme_clusters") => "clusters",
+        ("div" | "mod" | "round", "nearest") => "near", ("div" | "mod" | "round", "truncate") => "trunc", ("div" | "mod" | "round", "ceiling") => "ceil",
+        ("ls" | "arr" | "str", "length") => "len",
+        (_, "string") => "str", (_, "boolean") => "bool", (_, "character") => "char", (_, "list") => "ls", (_, "array") => "arr",
+        (_, "power") => "pow", (_, "shift_left") => "shl", (_, "shift_right") => "shr",
+        _ => return None,
+    })
+}
+
+/// The units after a number, redesign one's and two's
+pub fn short_unit(w: &str) -> Option<&'static str> {
+    Some(match w {
+        "seconds" => "secs", "minutes" => "mins", "milliseconds" => "millis", "microseconds" => "micros", "nanoseconds" => "nanos",
+        "second" => "sec", "minute" => "min", "millisecond" => "milli", "microsecond" => "micro", "nanosecond" => "nano",
+        "columns" => "cols", "grapheme_clusters" => "clusters", "code_points" => "points",
+        _ => return None,
+    })
+}
+
+/// A close as `describe` gives it (redesign one's words) in redesign two's: `function add` → `fn add`
+pub fn short_close(s: &str) -> String {
+    let mut out = String::new();
+    let mut word = String::new();
+    let mut prev_seg: Vec<String> = Vec::new();
+    let flush = |word: &mut String, out: &mut String, prev_seg: &mut Vec<String>| {
+        if word.is_empty() { return; }
+        let r = match prev_seg.last() {
+            Some(b) => short_segment(b, word).map(str::to_string),
+            None => match word.as_str() { "collection" => Some("coll".into()), "string" => Some("str".into()), "list" => Some("ls".into()), "array" => Some("arr".into()), w => short_word(w).map(str::to_string) },
+        }.unwrap_or_else(|| word.clone());
+        out.push_str(&r);
+        prev_seg.push(r);
+        word.clear();
+    };
+    for c in s.chars() {
+        if c.is_alphanumeric() || c == '_' { word.push(c); continue; }
+        flush(&mut word, &mut out, &mut prev_seg);
+        if c != '.' { prev_seg.clear(); }
+        out.push(c);
+    }
+    flush(&mut word, &mut out, &mut prev_seg);
+    out.replace("equal_to", "eq").replace("not_eq_to", "not_eq")
+}
+
+/// A format's text from redesign one to two: `{newline}` → `{newln}`, the holes' words shortened
+fn short_format(raw: &str) -> String {
+    let mut out = String::new();
+    let cs: Vec<char> = raw.chars().collect();
+    let mut i = 0;
+    while i < cs.len() {
+        if cs[i] == '\\' && i + 1 < cs.len() { out.push(cs[i]); out.push(cs[i + 1]); i += 2; continue; }
+        if cs[i] == '{' {
+            if let Some(e) = cs[i..].iter().position(|x| *x == '}') {
+                let inner: String = cs[i + 1..i + e].iter().collect();
+                let mut s = String::new();
+                let mut word = String::new();
+                let flush = |word: &mut String, s: &mut String| {
+                    let r = match word.as_str() { "newline" => "newln", "columns" => "cols", "hexadecimal" => "hex", "binary" => "bin", "octal" => "oct", "position" => "pos",
+                        "grapheme_clusters" => "clusters", "code_points" => "points", "minimum" => "min", "maximum" => "max", w => w };
+                    s.push_str(r);
+                    word.clear();
+                };
+                for c in inner.chars() { if c.is_alphanumeric() || c == '_' { word.push(c); } else { flush(&mut word, &mut s); s.push(c); } }
+                flush(&mut word, &mut s);
+                out.push('{'); out.push_str(&s); out.push('}');
+                i += e + 1;
+                continue;
+            }
+        }
+        out.push(cs[i]);
+        i += 1;
+    }
+    out
+}
+
+/// Redesign one's text in redesign two's spellings (owner, 2026-10-27): every word by the table, a long `otherwise` moved
+/// below a line ending in `-`. Comments and text are left alone, but for a format's holes.
+pub fn shorten(src: &str) -> Result<String, String> {
+    let set = |v: bool| { crate::lexer::KEEP_MARKS.with(|k| k.set(v)); crate::lexer::RAW_WORDS.with(|r| r.set(v)); };
+    set(true);
+    let lexed = crate::lexer::lex(src);
+    set(false);
+    let toks = lexed.map_err(|e| format!("line {}:{}: {}", e.line, e.col, e.msg))?;
+    let chars: Vec<char> = src.chars().collect();
+    let text = |t: &Token| -> String { if t.at == usize::MAX || t.end == usize::MAX { String::new() } else { chars[t.at..t.end].iter().collect() } };
+    let mut edits: Vec<Edit> = Vec::new();
+    let n = toks.len();
+    let tok = |i: usize| -> &Tok { toks.get(i).map(|t| &t.tok).unwrap_or(&Tok::Eof) };
+    let is_word = |i: usize, w: &str| matches!(tok(i), Tok::Word(x) if x == w);
+    // the redesign-two spelling of each path segment so far, so a later segment reads the earlier as shortened
+    let mut shortened: HashMap<usize, String> = HashMap::new();
+    let mut depth = 0i32;
+    let mut i = 0;
+    while i < n {
+        let t = &toks[i];
+        match t.tok { Tok::LBracket | Tok::LParen => depth += 1, Tok::RBracket | Tok::RParen => depth -= 1, _ => {} }
+        if t.at == usize::MAX || t.end == usize::MAX { i += 1; continue; }
+        let marked = i > 0 && *tok(i - 1) == Tok::Mark;
+        let pi = if marked { i.saturating_sub(2) } else { i.saturating_sub(1) };
+        let prev = if i > usize::from(marked) { tok(pi) } else { &Tok::Eof };
+        let after_dot = *prev == Tok::Dot;
+        let after_kit = *prev == Tok::ColonColon;
+        let before: String = if after_dot && pi >= 1 { shortened.get(&(pi - 1)).cloned().or_else(|| if let Tok::Word(b) = tok(pi - 1) { Some(b.clone()) } else { None }).unwrap_or_default() } else { String::new() };
+        let put = |edits: &mut Vec<Edit>, s: &str| edits.push(Edit { at: t.at, end: t.end, text: s.to_string() });
+        match &t.tok {
+            Tok::Word(w) => {
+                let w = w.as_str();
+                // a number type: `integer.signed.32_bit` → `int.sign.32`, its mark kept where it is
+                if (w == "integer" || w == "float") && *tok(i + 1) == Tok::Dot {
+                    let mut j = i + 2;
+                    let m1 = *tok(j) == Tok::Mark; if m1 { j += 1; }
+                    if let Tok::Word(sub) = tok(j).clone() {
+                        if *tok(j + 1) == Tok::Dot {
+                            let mut k = j + 2;
+                            let m2 = *tok(k) == Tok::Mark; if m2 { k += 1; }
+                            if let Tok::Word(width) = tok(k).clone() {
+                                if let Some(bits) = width.strip_suffix("_bit") {
+                                    let kind = if w == "integer" { "int" } else { "float" };
+                                    let sub2 = match sub.as_str() { "signed" => "sign", "unsigned" => "unsign", "binary" => "bin", "decimal" => "deci", other => other };
+                                    put(&mut edits, kind);
+                                    let st = &toks[j]; edits.push(Edit { at: st.at, end: st.end, text: sub2.into() });
+                                    let wt = &toks[k]; edits.push(Edit { at: wt.at, end: wt.end, text: bits.into() });
+                                    i = k + 1;
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                }
+                if after_kit {
+                    // std's paths: `std::string` → `std::str`, `std::list` → `std::ls`, `std::power` → `std::pow`
+                    let std_kit = pi >= 1 && matches!(tok(pi - 1), Tok::Word(k) if k == "std");
+                    let r = if std_kit { match w { "string" => Some("str"), "list" => Some("ls"), "array" => Some("arr"), "power" => Some("pow"), _ => None } } else { None };
+                    if let Some(r) = r { put(&mut edits, r); shortened.insert(i, r.into()); } else { shortened.insert(i, w.into()); }
+                    i += 1; continue;
+                }
+                if after_dot {
+                    let r = short_segment(&before, w);
+                    // `.length` only on std's own (`std::ls.length`, `arr.length`)
+                    if let Some(r) = r { put(&mut edits, r); shortened.insert(i, r.into()); } else { shortened.insert(i, w.into()); }
+                    i += 1; continue;
+                }
+                // a label: `minimum:` → `min:`
+                if depth > 0 && *tok(i + 1) == Tok::Colon {
+                    let l = match w { "minimum" => Some("min"), "maximum" => Some("max"), "position" => Some("pos"), "minimum_places" => Some("min_places"), "maximum_places" => Some("max_places"), _ => None };
+                    if let Some(l) = l { put(&mut edits, l); i += 1; continue; }
+                }
+                // a unit after a number
+                if matches!(prev, Tok::Int(_)) { if let Some(u) = short_unit(w) { put(&mut edits, u); i += 1; continue; } }
+                let r: Option<&str> = match w {
+                    "collection" | "include" if *tok(i + 1) == Tok::Dot => Some(if w == "collection" { "coll" } else { "incl" }),
+                    "string" | "list" | "array" if *tok(i + 1) == Tok::Dot || *tok(i + 1) == Tok::LBracket || matches!(prev, Tok::Word(a) if a == "as") => Some(match w { "string" => "str", "list" => "ls", _ => "arr" }),
+                    "position" if value_start(toks.get(i + 1).map(|x| &x.tok)) => Some("pos"),
+                    "newline" => Some("newln"),
+                    // `negative 5`, `negate $x`; a case or a name called so stays
+                    "negative" if matches!(tok(i + 1), Tok::Int(_) | Tok::Bin(..) | Tok::BigInt(_) | Tok::PercentLit(..)) => Some("neg"),
+                    "negate" if (value_start(toks.get(i + 1).map(|x| &x.tok)) || *tok(i + 1) == Tok::Dot || matches!(prev, Tok::Word(o) if o == "op" || o == "operator")) && !matches!(prev, Tok::Word(c) if c == "case" || c == "fail") => Some("neg"),
+                    "list" | "array" if !matches!(prev, Tok::Dot) => Some(if w == "list" { "ls" } else { "arr" }),
+                    "collection" => Some("coll"),
+                    "equal_to" => Some("eq"),
+                    "not_equal_to" => Some("not_eq"),
+                    "sequential" | "parallel" | "temporary" | "permanent" if for_modifier(&toks, i) => Some(match w { "sequential" => "seq", "parallel" => "para", "temporary" => "temp", _ => "perm" }),
+                    "divide" | "modulo" if *tok(i + 1) == Tok::Dot => Some(if w == "divide" { "div" } else { "mod" }),
+                    "boolean" | "character" | "string" => Some(match w { "boolean" => "bool", "character" => "char", _ => "str" }),
+                    _ => short_word(w),
+                };
+                if let Some(r) = r { put(&mut edits, r); shortened.insert(i, r.into()); } else { shortened.insert(i, w.into()); }
+            }
+            Tok::Int(_) => {
+                let written = text(t);
+                for (long, short) in [("binary", "bin"), ("hexadecimal", "hex"), ("octal", "oct")] {
+                    if let Some(rest) = written.strip_prefix(long) { put(&mut edits, &format!("{short}{rest}")); }
+                }
+            }
+            Tok::Text(_, raw) => {
+                if is_format_text(&toks, i) {
+                    let s = short_format(raw);
+                    if s != *raw { put(&mut edits, &format!("\"{s}\"")); }
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    // a long `otherwise:` (with arms) goes below the call's line, which ends in `-` (owner, 2026-10-26: "Opt 3", 2026-10-27)
+    for k in 1..n {
+        let t = &toks[k];
+        if !matches!(&t.tok, Tok::Word(o) if o == "otherwise") || t.at == usize::MAX { continue; }
+        let opens = *tok(k + 1) == Tok::Colon && toks.get(k + 2).map_or(true, |x| x.line > toks[k + 1].line);
+        let first_on_line = toks[k - 1].line < t.line;
+        if !opens || first_on_line || toks[k - 1].end == usize::MAX { continue; }
+        // the indentation of the call's line
+        let mut s = t.at;
+        while s > 0 && chars[s - 1] != '\n' { s -= 1; }
+        let indent: String = chars[s..].iter().take_while(|c| **c == ' ' || **c == '\t').collect();
+        edits.push(Edit { at: toks[k - 1].end, end: t.at, text: format!("-\n{indent}") });
+    }
+    let _ = is_word;
+    apply(&chars, edits)
+}
+
+/// A message's backticked code in redesign two's words: `function add` → `fn add`, `integer.signed.32_bit` → `int.sign.32`
+pub fn twos(msg: &str) -> String {
+    let parts: Vec<&str> = msg.split('`').collect();
+    parts.iter().enumerate().map(|(k, p)| if k % 2 == 1 { short_code(p) } else { p.to_string() }).collect::<Vec<_>>().join("`")
+}
+
+/// Code in redesign one's words, as redesign two writes it (for messages and `end of` lines)
+fn short_code(s: &str) -> String {
+    // the number types first, `integer.signed.32_bit`, a mark anywhere in them
+    let mut t = s.to_string();
+    for (long, short) in [("integer.signed.", "int.sign."), ("integer.unsigned.", "int.unsign."), ("float.binary.", "float.bin."), ("float.decimal.", "float.deci."), ("float.%decimal.", "float.%deci."), ("integer.signed.%", "int.sign.%"), ("integer.unsigned.%", "int.unsign.%")] { t = t.replace(long, short); }
+    let mut out = String::new();
+    let cs: Vec<char> = t.chars().collect();
+    let mut i = 0;
+    while i < cs.len() {
+        if cs[i].is_ascii_digit() && i > 0 && (cs[i - 1] == '.' || cs[i - 1] == '%') {
+            let mut j = i; while j < cs.len() && cs[j].is_ascii_digit() { j += 1; }
+            let rest: String = cs[j..].iter().take(4).collect();
+            out.extend(&cs[i..j]);
+            i = if rest == "_bit" { j + 4 } else { j };
+            continue;
+        }
+        out.push(cs[i]);
+        i += 1;
+    }
+    short_close(&out)
+}
+
+/// Redesign two's words read back into redesign one's tokens, so the rest of the front reads them as it was built to;
+/// redesign one's long words, and every older spelling still old, refused by name
+fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
+    let n = toks.len();
+    let mut out: Vec<Token> = Vec::with_capacity(n);
+    let is_w = |i: usize, w: &str| matches!(toks.get(i).map(|t| &t.tok), Some(Tok::Word(x)) if x == w);
+    let mut depth = 0i32;
+    let mut i = 0;
+    // the word each path segment was written as, so the next reads it
+    let mut seg_before = String::new();
+    while i < n {
+        let t = &toks[i];
+        match t.tok { Tok::LBracket | Tok::LParen => depth += 1, Tok::RBracket | Tok::RParen => depth -= 1, _ => {} }
+        let fault = |m: String| -> Result<Vec<Token>, Fault> { Err((t.line, t.col, m)) };
+        let old = |w: &str, new: &str| -> Result<Vec<Token>, Fault> { Err((t.line, t.col, format!("`{w}` is an old spelling: write `{new}` (owner, 2026-10-27, redesign two)"))) };
+        // an `end of` line is read as written, checked against its block later
+        let starts_line = i == 0 || toks[i - 1].line < t.line;
+        let end_at = if t.tok == Tok::Attention { i + 1 } else { i };
+        if (starts_line || t.tok == Tok::Attention) && is_w(end_at, "end") && is_w(end_at + 1, "of") {
+            let line = toks[end_at].line;
+            while i < n && toks[i].line == line && !matches!(toks[i].tok, Tok::Semi | Tok::RParen | Tok::Comma | Tok::RBracket | Tok::Eof) { out.push(toks[i].clone()); i += 1; }
+            continue;
+        }
+        if t.mtm.is_some() { out.push(t.clone()); i += 1; continue; }
+        if i > 0 && toks[i - 1].mtm.is_some() && matches!(&toks[i - 1].tok, Tok::Op(o) if o == "*" || o == "&") && toks[i - 1].end == t.at { out.push(t.clone()); i += 1; continue; }
+        let prev_i = { let mut k = i; while k > 0 && toks[k - 1].tok == Tok::Mark { k -= 1; } k.checked_sub(1) };
+        let prev = prev_i.map(|k| toks[k].tok.clone()).unwrap_or(Tok::Eof);
+        let after_dot = prev == Tok::Dot;
+        let after_kit = prev == Tok::ColonColon;
+        let std_kit = after_kit && prev_i.is_some_and(|k| k >= 1 && matches!(&toks[k - 1].tok, Tok::Word(s) if s == "std"));
+        let next = toks.get(i + 1).map(|x| x.tok.clone()).unwrap_or(Tok::Eof);
+        let push_as = |out: &mut Vec<Token>, w: &str| out.push(word_tok(w, t));
+        match &t.tok {
+            // a long `otherwise` goes below the call's line (owner, 2026-10-27)
+            Tok::Word(o) if o == "otherwise" && next == Tok::Colon && toks.get(i + 2).map_or(true, |x| x.line > t.line) && !starts_line
+                && !matches!(out.last().map(|x| &x.tok), Some(Tok::Op(m)) if m == "-") => {
+                return fault("an `otherwise` with arms goes on the next line, the call's line ending in `-`: `… parse(lend $row)-` / `otherwise:` (owner, 2026-10-27)".into());
+            }
+            Tok::Text(_, raw) if is_format_text(&toks, i) => {
+                // a format's holes: redesign two's words, read as redesign one's
+                let mut back = String::new();
+                let cs: Vec<char> = raw.chars().collect();
+                let mut k = 0;
+                while k < cs.len() {
+                    if cs[k] == '\\' && k + 1 < cs.len() { back.push(cs[k]); back.push(cs[k + 1]); k += 2; continue; }
+                    if cs[k] == '{' {
+                        if let Some(e) = cs[k..].iter().position(|x| *x == '}') {
+                            let inner: String = cs[k + 1..k + e].iter().collect();
+                            let mut s = String::new();
+                            let mut word = String::new();
+                            let mut bad = None;
+                            let mut flush = |word: &mut String, s: &mut String| {
+                                let r = match word.as_str() {
+                                    "newln" => "newline", "cols" => "columns", "hex" => "hexadecimal", "bin" => "binary", "oct" => "octal", "pos" => "position",
+                                    "clusters" => "grapheme_clusters", "points" => "code_points", "min" => "minimum", "max" => "maximum",
+                                    "newline" | "columns" | "hexadecimal" | "binary" | "octal" | "position" | "grapheme_clusters" | "code_points" | "minimum" | "maximum" => { bad = Some(word.clone()); word.as_str() }
+                                    w => w,
+                                }.to_string();
+                                s.push_str(&r);
+                                word.clear();
+                            };
+                            for c in inner.chars() { if c.is_alphanumeric() || c == '_' { word.push(c); } else { flush(&mut word, &mut s); s.push(c); } }
+                            flush(&mut word, &mut s);
+                            if let Some(b) = bad { return fault(format!("in a format hole, `{b}` is an old spelling: write `{}` (owner, 2026-10-27, redesign two)", short_format(&format!("{{{b}}}")).trim_matches(|c| c == '{' || c == '}'))); }
+                            back.push('{'); back.push_str(&s); back.push('}');
+                            k += e + 1;
+                            continue;
+                        }
+                    }
+                    back.push(cs[k]);
+                    k += 1;
+                }
+                let mut st = String::new();
+                let bc: Vec<char> = back.chars().collect();
+                let mut k = 0;
+                while k < bc.len() { if bc[k] == '\\' && k + 1 < bc.len() && (bc[k + 1] == '"' || bc[k + 1] == '\\') { st.push(bc[k + 1]); k += 2; } else { st.push(bc[k]); k += 1; } }
+                out.push(tok_like(Tok::Text(st, back), t));
+                i += 1;
+                continue;
+            }
+            Tok::Word(w) => {
+                let w = w.as_str();
+                // the number types: `int.sign.32` → `integer.signed.32_bit` (its mark where it is), redesign one's refused
+                if (w == "int" || w == "float" || w == "integer") && next == Tok::Dot {
+                    let mut j = i + 2;
+                    let m1 = toks.get(j).is_some_and(|x| x.tok == Tok::Mark); if m1 { j += 1; }
+                    if let Some(Tok::Word(sub)) = toks.get(j).map(|x| x.tok.clone()) {
+                        if toks.get(j + 1).is_some_and(|x| x.tok == Tok::Dot) {
+                            let mut k = j + 2;
+                            let m2 = toks.get(k).is_some_and(|x| x.tok == Tok::Mark); if m2 { k += 1; }
+                            if let Some(Tok::Word(width)) = toks.get(k).map(|x| x.tok.clone()) {
+                                let long_sub = match (w, sub.as_str()) { ("int", "sign") => Some("signed"), ("int", "unsign") => Some("unsigned"), ("float", "bin") => Some("binary"), ("float", "deci") => Some("decimal"), ("float", "brain") => Some("brain"), _ => None };
+                                let written_long = w == "integer" || matches!(sub.as_str(), "signed" | "unsigned" | "binary" | "decimal") || width.ends_with("_bit");
+                                if written_long {
+                                    let short = short_code(&format!("{w}.{}{sub}.{}{width}", if m1 { "%" } else { "" }, if m2 { "%" } else { "" }));
+                                    return old(&format!("{w}.{sub}.{width}"), &short);
+                                }
+                                if let (Some(ls), true) = (long_sub, width.chars().all(|c| c.is_ascii_digit())) {
+                                    push_as(&mut out, if w == "int" { "integer" } else { "float" });
+                                    for x in &toks[i + 1..j] { out.push(x.clone()); }
+                                    out.push(word_tok(ls, &toks[j]));
+                                    for x in &toks[j + 1..k] { out.push(x.clone()); }
+                                    out.push(word_tok(&format!("{width}_bit"), &toks[k]));
+                                    i = k + 1;
+                                    seg_before.clear();
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                }
+                if after_kit {
+                    if std_kit {
+                        match w {
+                            "str" => { push_as(&mut out, "string"); seg_before = "str".into(); i += 1; continue; }
+                            "ls" => { push_as(&mut out, "list"); seg_before = "ls".into(); i += 1; continue; }
+                            "pow" => { push_as(&mut out, "power"); seg_before = "pow".into(); i += 1; continue; }
+                            "string" | "list" | "power" => return old(&format!("std::{w}"), &format!("std::{}", match w { "string" => "str", "list" => "ls", _ => "pow" })),
+                            _ => {}
+                        }
+                    }
+                    out.push(t.clone()); seg_before = w.into(); i += 1; continue;
+                }
+                if after_dot {
+                    let b = seg_before.clone();
+                    let long: Option<&str> = match (b.as_str(), w) {
+                        ("union", "tag") => Some("tagged"),
+                        ("coll", "fn") => Some("function"), ("coll", "proc") => Some("procedure"),
+                        ("lend" | "lent" | "ptr", "mut") => Some("mutable"),
+                        ("str", "upper") => Some("uppercase"), ("str", "lower") => Some("lowercase"),
+                        (_, "point") if b != "char" || true => Some("code_point"), (_, "points") => Some("code_points"),
+                        (_, "cluster") => Some("grapheme_cluster"), (_, "clusters") => Some("grapheme_clusters"),
+                        ("div" | "mod" | "round", "near") => Some("nearest"), ("div" | "mod" | "round", "trunc") => Some("truncate"), ("div" | "mod" | "round", "ceil") => Some("ceiling"),
+                        ("ls" | "arr" | "str", "len") => Some("length"),
+                        (_, "str") => Some("string"), (_, "bool") => Some("boolean"), (_, "char") => Some("character"), (_, "ls") => Some("list"), (_, "arr") => Some("array"),
+                        (_, "pow") => Some("power"), (_, "shl") => Some("shift_left"), (_, "shr") => Some("shift_right"),
+                        ("pub", "kit") => Some("kit"),
+                        _ => None,
+                    };
+                    // redesign one's words in a path, and the older ones still old
+                    let was_old: Option<String> = match (b.as_str(), w) {
+                        ("union", "tagged") => Some("union.tag".into()),
+                        ("coll", "function") | ("coll", "procedure") => Some(format!("coll.{}", if w == "function" { "fn" } else { "proc" })),
+                        ("lend" | "lent" | "ptr", "mutable") => Some(format!("{b}.mut")),
+                        (_, "uppercase" | "lowercase") => Some(format!("{b}.{}", &w[..5])),
+                        (_, "code_point" | "code_points") => Some(format!("{b}.{}", &w[5..])),
+                        (_, "grapheme_cluster" | "grapheme_clusters" | "grapheme" | "graphemes") => Some(format!("{b}.{}", if w.ends_with('s') { "clusters" } else { "cluster" })),
+                        ("div" | "mod" | "round", "nearest" | "truncate" | "ceiling") => Some(format!("{b}.{}", match w { "nearest" => "near", "truncate" => "trunc", _ => "ceil" })),
+                        ("ls" | "arr" | "str" | "list" | "array" | "string", "length") => Some(format!("{b}.len")),
+                        ("map", "length") => Some("map.count".into()),
+                        ("print", "useful") | ("to", "useful") | ("weird", "useful") => Some(format!("{b}.shortest")),
+                        ("print", "weird") => Some("print.arrows".into()),
+                        (_, "auto_newln") => Some(format!("{b}.auto_newline")),
+                        (_, "string" | "boolean" | "character" | "list" | "array" | "power" | "shift_left" | "shift_right") => Some(format!("{b}.{}", short_word(w).or(match w { "string" => Some("str"), "list" => Some("ls"), "array" => Some("arr"), _ => None }).unwrap_or(w))),
+                        ("pub" | "public", "kit") if b == "public" => Some("pub.kit".into()),
+                        _ if number_type(w).is_some() => Some(format!("{b}.{}", short_code(&number_type(w).unwrap()))),
+                        _ => None,
+                    };
+                    if let Some(o) = was_old { if long.is_none() || o != format!("{b}.{w}") { if long.is_none() { return old(&format!("{b}.{w}"), &o); } } }
+                    match long { Some(l) => push_as(&mut out, l), None => out.push(t.clone()) }
+                    seg_before = w.into();
+                    i += 1;
+                    continue;
+                }
+                seg_before = w.into();
+                // a label inside brackets: `min:` → `minimum:`; redesign one's long one refused
+                if depth > 0 && next == Tok::Colon {
+                    let long = match w { "min" => Some("minimum"), "max" => Some("maximum"), "pos" => Some("position"), "min_places" => Some("minimum_places"), "max_places" => Some("maximum_places"), _ => None };
+                    if let Some(l) = long { push_as(&mut out, l); i += 1; continue; }
+                    if matches!(w, "minimum" | "maximum" | "position" | "minimum_places" | "maximum_places") { return old(&format!("{w}:"), &format!("{}:", match w { "minimum" => "min", "maximum" => "max", "position" => "pos", "minimum_places" => "min_places", _ => "max_places" })); }
+                }
+                // a unit after a number
+                if matches!(prev, Tok::Int(_)) {
+                    let long = match w { "secs" => Some("seconds"), "mins" => Some("minutes"), "millis" => Some("milliseconds"), "micros" => Some("microseconds"), "nanos" => Some("nanoseconds"),
+                        "sec" => Some("second"), "min" => Some("minute"), "milli" => Some("millisecond"), "micro" => Some("microsecond"), "nano" => Some("nanosecond"),
+                        "cols" => Some("columns"), "clusters" => Some("grapheme_clusters"), "points" => Some("code_points"), _ => None };
+                    if let Some(l) = long { push_as(&mut out, l); i += 1; continue; }
+                    if let Some(s) = short_unit(w) { return old(w, s); }
+                    if w == "graphemes" { return old(w, "clusters"); }
+                }
+                // the kinds a mark lists, `case.any [fn, var]`
+                if in_kind_list(&toks, i) {
+                    let long = match w { "fn" | "proc" => Some("function"), "rec" => Some("record"), "const" => Some("constant"), "var" => Some("variable"), "op" => Some("operator"), _ => None };
+                    if let Some(l) = long { push_as(&mut out, l); i += 1; continue; }
+                }
+                let layout_before = (i.saturating_sub(4)..i).any(|k| is_w(k, "layout"));
+                let long: Option<&str> = match w {
+                    "fn" => Some("function"), "proc" => Some("procedure"), "op" => Some("operator"),
+                    "var" => Some("variable"), "const" => Some("constant"), "rec" => Some("record"),
+                    "enum" if layout_before => Some("enumeration"),
+                    "pub" => Some("public"), "extern" => Some("external"), "ret" => Some("return"),
+                    "coll" => Some("collection"), "incl" if next == Tok::Dot => Some("include"),
+                    "seq" | "para" | "temp" | "perm" if for_modifier(&toks, i) => Some(match w { "seq" => "sequential", "para" => "parallel", "temp" => "temporary", _ => "permanent" }),
+                    "str" => Some("string"), "bool" => Some("boolean"), "char" => Some("character"), "ls" => Some("list"), "arr" => Some("array"), "ptr" => Some("pointer"),
+                    "pow" if between_values(&toks, i) || next == Tok::Dot => Some("power"),
+                    "concat" => Some("concatenate"), "div" if next == Tok::Dot => Some("divide"), "mod" if next == Tok::Dot => Some("modulo"),
+                    "shl" => Some("shift_left"), "shr" => Some("shift_right"),
+                    "neg" => Some(if matches!(next, Tok::Int(_) | Tok::Bin(..) | Tok::BigInt(_) | Tok::PercentLit(..)) { "negative" } else { "negate" }),
+                    "pos" if value_start(Some(&next)) => Some("position"),
+                    _ => None,
+                };
+                if let Some(l) = long { push_as(&mut out, l); i += 1; continue; }
+                // redesign one's words, and the older spellings still old
+                let was: Option<String> = match w {
+                    "function" | "procedure" | "operator" | "variable" | "constant" | "record" | "enumeration" | "public" | "external" | "return" | "boolean" | "character" | "pointer" | "concatenate" | "shift_left" | "shift_right" | "power" => Some(short_word(w).unwrap().into()),
+                    // `negative 5`, `negate $x`, `op negate`; a case called so is a name
+                    "negative" if matches!(next, Tok::Int(_) | Tok::Bin(..) | Tok::BigInt(_) | Tok::PercentLit(..)) => Some("neg".into()),
+                    "negate" if (value_start(Some(&next)) || next == Tok::Dot || matches!(prev, Tok::Word(ref o) if o == "op")) && !matches!(prev, Tok::Word(ref c) if c == "case" || c == "fail") => Some("neg".into()),
+                    "collection" | "include" | "divide" | "modulo" if next == Tok::Dot => Some(match w { "collection" => "coll", "include" => "incl", "divide" => "div", _ => "mod" }.into()),
+                    "string" | "list" | "array" => Some(match w { "string" => "str", "list" => "ls", _ => "arr" }.into()),
+                    "sequential" | "parallel" | "temporary" | "permanent" if for_modifier(&toks, i) => Some(match w { "sequential" => "seq", "parallel" => "para", "temporary" => "temp", _ => "perm" }.into()),
+                    "position" if value_start(Some(&next)) => Some("pos".into()),
+                    "newline" => Some("newln".into()),
+                    "equal_to" => Some("eq".into()), "not_equal_to" | "not_equal" => Some("not_eq".into()),
+                    "struct" => Some("rec".into()),
+                    "enum" => Some("union.tag` (for C, `%layout.C enum".into()),
+                    "immut" => Some("let".into()),
+                    "mut" if !after_dot => Some("var".into()),
+                    "concur" => Some("spawn.task".into()),
+                    "no_cheat" => Some("no_skip".into()),
+                    "x" | "xx" if between_values(&toks, i) => Some(if w == "x" { "times" } else { "pow" }.into()),
+                    _ if number_type(w).is_some() => Some(short_code(&number_type(w).unwrap())),
+                    _ => None,
+                };
+                if let Some(o) = was {
+                    let shown = if matches!(out.last().map(|x| &x.tok), Some(Tok::Mark)) && number_type(w).is_some() { format!("%{w}") } else { w.to_string() };
+                    let o = if shown.starts_with('%') { short_code(&marked_number_type(w).unwrap_or_default()) } else { o };
+                    return old(&shown, &o);
+                }
+                out.push(t.clone());
+            }
+            _ => out.push(t.clone()),
+        }
+        i += 1;
+    }
+    Ok(out)
 }

@@ -1,3 +1,3 @@
-%external.C procedure f [$a: integer.signed.32_bit] -> integer.signed.32_bit or fail[x];
+%extern.C proc f [$a: int.sign.32] -> int.sign.32 or fail[x];
 !MAIN:
 !end of MAIN

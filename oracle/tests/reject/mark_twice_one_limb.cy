@@ -1,4 +1,4 @@
 # one limb's path is marked once, on its first word
-%external.%C procedure puts [$s: pointer[integer.unsigned.8_bit]] -> integer.signed.32_bit;
+%extern.%C proc puts [$s: ptr[int.unsign.8]] -> int.sign.32;
 !MAIN:
 !end of MAIN

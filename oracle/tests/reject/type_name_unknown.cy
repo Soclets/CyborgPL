@@ -1,4 +1,4 @@
-function f [$v: nosuchtype]:
-end of function f
+fn f [$v: nosuchtype]:
+end of fn f
 !MAIN:
 !end of MAIN
