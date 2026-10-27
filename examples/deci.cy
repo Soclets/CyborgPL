@@ -19,7 +19,7 @@
     let $e1: float.%deci.32 := 1.000005;
     std::print.stored($e1 times 1, " ", $e1 plus 0.0000005, newln);
     let $w: float.bin.64 := 0.1;
-    std::print.stored(to.stored.float.deci.64($w), " ", to.stored.float.deci.128($w), " ", to.shortest.float.deci.128($w), newln);
+    std::print.stored(to.stored.float.%deci.64($w), " ", to.stored.float.%deci.128($w), " ", to.shortest.float.%deci.128($w), newln);
     let $n: int.sign.32 := 12345;
     std::print.stored(to.float.%deci.64($n), newln);
     let $big: int.sign.64 := 12345678901234567;

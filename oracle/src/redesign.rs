@@ -830,7 +830,9 @@ fn words(toks: &[Token], text: &dyn Fn(&Token) -> String, info: Option<&Info>, e
                 if after_dot {
                     // a number type in a path, `to.%d64`, `to.stored.d64`, `not_std.i24`: its mark goes inside it
                     if let Some(nt) = number_type(w) {
-                        let s = if marked { marked_number_type(w).unwrap_or(nt.clone()) } else { nt.clone() };
+                        // a limb's type is marked wherever it stands (owner, 2026-10-27: (a)): `to.stored.d64` too
+                        let _ = marked;
+                        let s = marked_number_type(w).unwrap_or(nt.clone());
                         if marked && s.contains('%') { let m = &toks[i - 1]; edits.push(Edit { at: m.at, end: m.end, text: String::new() }); }
                         put(edits, s);
                         continue;
@@ -1223,8 +1225,6 @@ thread_local! {
     pub static MEMBERS: std::cell::RefCell<HashSet<(usize, usize)>> = std::cell::RefCell::new(HashSet::new());
 }
 
-/// A `function` has no effects and calls only functions (owner, 2026-10-27: "`function` is pure, possibly partial;
-/// `procedure` may have effects"); a function value may stand where a procedure is asked, never the reverse.
 thread_local! {
     /// every lambda the parser made, for the purity check
     static LAMBDAS: std::cell::RefCell<Vec<std::rc::Rc<ast::Func>>> = std::cell::RefCell::new(Vec::new());
@@ -1263,6 +1263,8 @@ fn proc_values(f: &ast::Func) -> Vec<String> {
     out
 }
 
+/// A `function` has no effects and calls only functions (owner, 2026-10-27: "`function` is pure, possibly partial;
+/// `procedure` may have effects"); a function value may stand where a procedure is asked, never the reverse.
 pub fn check_purity(prog: &ast::Program) -> Result<(), String> {
     let kinds = KINDS_BY_MODULE.with(|k| k.borrow().clone());
     let kind_of = |f: &ast::Func| -> Option<bool> {
@@ -1676,7 +1678,10 @@ fn number_back(toks: &[Token], i: usize, out: &mut Vec<Token>) -> Result<Option<
         while k > 0 && out[k - 1].tok == Tok::Mark { k -= 1; }
         if k >= 2 && out[k - 1].tok == Tok::Dot { if let Tok::Word(b) = &out[k - 2].tok { Some(b.clone()) } else { None } } else { None }
     };
-    let markable = before.as_deref().map_or(true, |b| b == "to");
+    // marked wherever it stands (owner, 2026-10-27: (a)): `to.shortest.float.%deci.64` too
+    let markable = true;
+    // the marks table behind looks only first in a path or right after `to.`: deeper, the mark checked here is dropped
+    let passes_mark = before.as_deref().map_or(true, |b| b == "to");
     // kind . [%] sub . [%] width
     let mut j = i + 2;
     let m1 = toks.get(j).is_some_and(|t| t.tok == Tok::Mark);
@@ -1702,7 +1707,7 @@ fn number_back(toks: &[Token], i: usize, out: &mut Vec<Token>) -> Result<Option<
     if has_mark && written != want { return Err((t.line, t.col, format!("`{written}`: the limb's mark goes on the part it adds, `{want}` (owner, 2026-10-26)"))); }
     if needs && !has_mark { return Err((t.line, t.col, format!("`{written}` is a limb's, so it is marked: `{want}` (owner, 2026-10-26)"))); }
     if marked_before { out.pop(); }
-    if needs { out.push(tok_like(Tok::Mark, t)); }
+    if needs && passes_mark { out.push(tok_like(Tok::Mark, t)); }
     let mut w = word_tok(&old, t);
     w.end = toks[j].end;
     out.push(w);

@@ -3,7 +3,7 @@
 !MAIN:
     let $i: int.sign.64 := 9223372036854775803;
     let $b := to.float.%brain.16($i);
-    let $d := to.shortest.float.deci.64($b);
+    let $d := to.shortest.float.%deci.64($b);
     let $n := to.int.sign.64($d) otherwise neg 1;
     std::print.shortest($b, " ", $d, " ", $n, newln);
 !end of MAIN

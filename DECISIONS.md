@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign two: a limb's number type is marked wherever it stands, `to.shortest.float.%deci.64` (owner: (a))
+
+Design claude's provisional pick from the build, asked: a limb's number type was marked only first in a path or right
+after `to.` (`to.float.%deci.64`, but `to.shortest.float.deci.64`, `to.shortest.d64` never having been marked). Offered
+(a) marked wherever it appears, (b) as built; recommended (a): the mark goes on the part the limb adds, wherever that
+stands. The owner: "(a)". Built: an unmarked one deeper in a path is refused naming the marked form; the converter marks
+it; three examples changed (`to.stored.float.%deci.64`, `to.shortest.float.%deci.128`). That was the last of the
+redesign's provisional picks.
+
 ### 2026-10-27 — Redesign two: a type's name read as text in a template's `named` keeps its dots, `"int.sign.16"` (owner: (a))
 
 Design claude's provisional pick from the build, asked: (a) as built, the text is the type's name as written,
