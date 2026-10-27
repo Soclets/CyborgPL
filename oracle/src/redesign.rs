@@ -413,7 +413,7 @@ fn describe(toks: &[Token], start: usize, brace: usize, text: &dyn Fn(&Token) ->
             let name = s.iter().find_map(|t| if let Tok::Word(w) = &t.tok { Some(w.clone()) } else { None }).unwrap_or_default();
             o.close = format!("case {name}");
             if matches!(s.first().map(|t| &t.tok), Some(Tok::Var(_))) {
-                // PROVISIONAL: a `%whichever` arm closes on its variable's case
+                // a `%whichever` arm closes on its variable's case (owner, 2026-10-27: "yes")
                 let v = if let Tok::Var(v) = &s[0].tok { v.clone() } else { String::new() };
                 o.close = format!("case ${v}");
             }

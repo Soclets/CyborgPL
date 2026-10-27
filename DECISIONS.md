@@ -34,6 +34,12 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: a `%whichever` arm is `case $msg from lend $inbox:` … `end of case $msg` (owner)
+
+The arms of `%whichever` had no spelling once blocks became words; the build wrote each like a `match` case, named by the
+variable it receives (design claude's pick). Shown it, the owner: "yes". So **`case $msg from lend $inbox:` … `end of
+case $msg`**, inside `%whichever:` … `end of %whichever`. Already built.
+
 ### 2026-10-27 — Redesign: a block alone, for its own scope, is `block:` … `end of block` (owner)
 
 A `{ … }` standing alone, to give a few lines their own variables, had no spelling once blocks became words; the build
