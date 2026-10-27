@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): the replaced words are old spellings; `?` / `??` replace their long forms; narrowings stay (owner)
+
+Asked to confirm design claude's two readings of one spelling, the owner: "yes, narrowings stay (right?)". So, exploring:
+**`plus`, `minus`, `times`, `pow`, `eq`, `not_eq`, `lt`, `gt`, `at_most`, `at_least`, `and`, `and.then`, `or`, `or.else`,
+`concat` and `neg` are old spellings, refused naming their symbol**; **`?` is how `otherwise fail` is written and `?? 0`
+how `otherwise 0` is**, `otherwise` staying for arms and named handlers; and yes, **every narrowing stays a word**:
+`plus.wrap`, `minus.wrap`, `times.wrap`, `pow.wrap`, `div.floor`, `mod.floor`, the `.ieee` forms. (`and.then` and
+`or.else` are not narrowings kept: the owner gave them `&&` and `||`.)
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): the `words` style is dropped; one spelling, the short one (owner)
 
 Asked about the number types as the one exception to "`.` narrows" (`i32`), the owner first asked how Rust writes
