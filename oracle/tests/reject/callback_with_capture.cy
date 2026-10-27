@@ -2,7 +2,7 @@
 !MAIN:
     var $nums = [3, 1, 2];
     let $flip := true;
-    !no_check qsort(lend.mut $nums, 3, 4, fn [$a: ptr[int.sign.32], $b: ptr[int.sign.32]] -> int.sign.32 with [lend $flip]:
+    !no_check qsort(lend.mut $nums, 3, 4, fn [let $a: ptr[int.sign.32], let $b: ptr[int.sign.32]] -> int.sign.32 with [lend $flip]:
         ret 0;
     end of fn);
 !end of MAIN

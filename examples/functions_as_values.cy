@@ -43,12 +43,12 @@ end of fn keep
 
     let $limit := 60;
     let $scores := [72, 40, 95, 55];
-    let $passing := keep(lend $scores, fn [$s: int.sign.32] -> bool with [lend $limit]:
+    let $passing := keep(lend $scores, fn [let $s: int.sign.32] -> bool with [lend $limit]:
         ret $s at_least $limit;
     end of fn);
     std::print.shortest($passing, newln);
 
-    let $evens := keep(lend $scores, fn [$s: int.sign.32] -> bool:
+    let $evens := keep(lend $scores, fn [let $s: int.sign.32] -> bool:
         ret ($s mod.floor 2) eq 0;
     end of fn);   # captures nothing
     std::print.shortest($evens, newln);

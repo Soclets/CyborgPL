@@ -148,8 +148,8 @@ for part in ["ö", "ü", "ó", "x"]:
     found = [s for s in stations if part in s]
     say(f"  with {part}: " + ", ".join(found) if found else f"  none with {part}")
 say(""); say("the last quarter hours before midnight: " + " ".join(clock(t) for t in range(DEPART, 1440, 15)))
-say("three fares of 0.10 as d64: 0.30")
-say("the same in f64: " + format(Decimal(0.1 + 0.1 + 0.1)))
+say("three fares of 0.10 as float.deci.64: 0.30")
+say("the same in float.bin.64: " + format(Decimal(0.1 + 0.1 + 0.1)))
 say("good night from Nightjar")
 
 want = "\n".join(out) + "\n"

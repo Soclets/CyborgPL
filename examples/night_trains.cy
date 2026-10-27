@@ -1,19 +1,19 @@
 # Night trains across Europe: a longer CyborgPL program, written to be read.
 #
 # It reads a timetable written as text, finds the quickest way between two stations (Dijkstra's
-# algorithm, by hand), books travellers onto it, prices each ticket in exact decimals (`d64`, so
+# algorithm, by hand), books travellers onto it, prices each ticket in exact decimals (`float.%deci.64`, so
 # money never picks up a binary float's error), turns minutes into arrival times, prints a
 # departure board and ends with a report. The network is made up; the arithmetic is not, and every
 # figure it prints can be checked by hand from the timetable below. Along the way it shows:
 #
-#   structs, enums with data, `match` with `is`     ownership said aloud: `give`, `copy`, `lend`
+#   records, tagged unions with data, `match`, `is`  ownership said aloud: `give`, `copy`, `lend`
 #   failures a caller must handle, `otherwise`      a handler, told whom it is apologising to
-#   range types, `i32[min: 1, max: 4]`              generics with an interface, `Number`
+#   bounded types, `int.sign.32[min: 1, max: 4]`    generics with an interface, `Number`
 #   maps, looked up with a lent key                 a type's own iterator, `Clock.next`
-#   counting loops, `loop`, `break`, `continue`     a short lambda, `fn [$s] with [lend $part] = …`
-#   tasks and channels, `concur`                    a writer, `std::print.writer`
+#   counting loops, `loop`, `break`, `continue`     a short lambda, `fn [let $s] with [lend $part] = …`
+#   tasks and channels, `%spawn.task`               a writer, `std::print.writer`
 #   format holes in words, widths in `cols`         rounding money on purpose, `std::round.near`
-#   named bounds, `coll.bound trip`                 guards that let a final build prove every site
+#   named bounds, `coll.bounded trip`               guards that let a final build prove every site
 
 # ---------------------------------------------------------------------------------------------------
 # The fixed facts
@@ -46,7 +46,7 @@ rec Network:
 end of rec Network
 
 # The longest trip the network sells: ten days and 100,000 km. A way past either is no way, and that limit is what
-# keeps every sum of minutes and km below provably inside an `i32`.
+# keeps every sum of minutes and km below provably inside an `int.sign.32`.
 coll.bounded trip:
     member trip.minutes = int.sign.32[min: 0, max: 14400];
     member trip.km = int.sign.32[min: 0, max: 100000];
@@ -270,7 +270,7 @@ proc quickest_from [lent $net: Network, lent $from: str.utf8] -> std::map.ordere
     ret give $best;
 end of proc quickest_from
 
-# Reaching 'next' from 'pick' in 'minutes': kept only if no sooner way is known. The map keeps its own copy of
+# Reaching `$next` from `$pick` in `$minutes`: kept only if no sooner way is known. The map keeps its own copy of
 # both names, made here and nowhere else.
 proc try_reach [
     lent.mut $best: std::map.ordered[str.utf8, Reach],
@@ -301,7 +301,7 @@ proc try_reach [
     std::map.set(lend.mut $best, key: copy $next, value: Reach[minutes = $minutes, km = $km, prev = copy $pick]);
 end of proc try_reach
 
-# The stops from 'from' to 'to', walked back from 'to' along each station's `prev`, then turned round.
+# The stops from `$from` to `$to`, walked back from `$to` along each station's `prev`, then turned round.
 proc journey [lent $net: Network, lent $from: str.utf8, lent $to: str.utf8] -> Journey or fail[unknown_station: str.utf8, same_station, no_route]:
     if not knows(lend $net, lend $from):
         fail unknown_station[copy $from];
@@ -705,7 +705,7 @@ proc show_letters [lent $net: Network]:
     std::print.shortest(newln, "stations by letter:", newln);
     let $letters := ["ö", "ü", "ó", "x"];
     for $part in lend $letters:
-        let $found := stations_where(lend $net, fn [$s] with [lend $part] = std::str.contains(lend $s, part: lend $part));
+        let $found := stations_where(lend $net, fn [let $s] with [lend $part] = std::str.contains(lend $s, part: lend $part));
         if std::ls.len(lend $found) eq 0:
             std::print.shortest("  none with ", $part, newln);
         end of if
@@ -790,14 +790,14 @@ proc show_quarter_hours []:
     std::print.shortest(newln);
 end of proc show_quarter_hours
 
-# Exact decimals: why a fare is a `d64`. A fare of 0.10 three times is 0.30 exactly.
+# Exact decimals: why a fare is a `float.%deci.64`. A fare of 0.10 three times is 0.30 exactly.
 proc show_exact_money []:
     let $dime: float.%deci.64 := 0.10;
     let $three := $dime plus $dime plus $dime;
     let $float: float.bin.64 := 0.1 plus 0.1 plus 0.1;
-    std::print.shortest("three fares of 0.10 as d64: ");
+    std::print.shortest("three fares of 0.10 as float.deci.64: ");
     std::print.stored($three, newln);
-    std::print.shortest("the same in f64: ");
+    std::print.shortest("the same in float.bin.64: ");
     std::print.stored($float, newln);
 end of proc show_exact_money
 

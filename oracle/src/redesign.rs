@@ -962,6 +962,7 @@ fn fn_is_type(toks: &[Token], i: usize) -> bool {
             Tok::RBracket | Tok::RParen if dd == 0 => return true,
             Tok::RBracket | Tok::RParen => dd -= 1,
             Tok::LBrace if dd == 0 => return false,
+            Tok::Colon if dd == 0 && toks.get(k + 1).map_or(true, |x| x.line > toks[k].line) => return false,
             Tok::Eq if dd == 0 => return false,
             Tok::Word(w) if dd == 0 && w == "with" => return false,
             Tok::Semi | Tok::Comma if dd == 0 => return true,
@@ -2562,8 +2563,9 @@ pub fn param_list_at(toks: &[Token], i: usize) -> bool {
             // an operator's operands are lent unless `give`, and MAIN's are C's: neither says `let` (design claude's reading)
             Tok::Word(w) if depth == 0 && matches!(w.as_str(), "op" | "operator" | "MAIN") => return false,
             Tok::Word(w) if depth == 0 && matches!(w.as_str(), "fn" | "proc" | "function" | "procedure") => {
-                // a function's type, `$f: fn[…]`, names no parameters
-                return !(j + 1 == i && j > 0 && matches!(toks[j - 1].tok, Tok::Colon | Tok::Arrow | Tok::Comma | Tok::LBracket));
+                // a function's type, `$f: fn[…]`, names no parameters; a lambda, `fn [$s] with […] = …`, does
+                let type_spot = j + 1 == i && j > 0 && matches!(toks[j - 1].tok, Tok::Colon | Tok::Arrow | Tok::Comma | Tok::LBracket);
+                return !type_spot || !fn_is_type(toks, j);
             }
             Tok::Word(w) if depth == 0 && w == "member" => return true,
             _ => {}
