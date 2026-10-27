@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign two: a `fn` may change its own local variables (owner: (a))
+
+Design claude's provisional pick from the build, asked: a `fn` has no effects, but may it change its own locals (`var
+$sum = 0;` and a loop adding to it)? Offered (a) yes, as built, nothing outside seeing it, or (b) no, any change making it a
+`proc`, recommending (a): under (b) nearly every function with a loop would be a `proc`. The owner: "Is it accurate?"
+Design claude: yes, a function in maths is only what it maps each input to, not how the answer is worked out (Haskell's
+`runST` allows the same). The owner: "(a)". So **a `fn` may change its own local variables**; only effects, changing
+what it was lent, and calling a `proc` make something a `proc`. Already built that way.
+
 ### 2026-10-27 — Redesign two: a C variable is `%extern.C let` (C's `const`) or `%extern.C var` (owner)
 
 Design claude's provisional pick from the build, asked: one CyborgPL only reads was bare (`%extern.C $x: T;`), one it
