@@ -34,6 +34,27 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Built in the oracle: the redesign; examples, tests and the notes' code swept (owner: "Implement it now")
+
+The owner: "We'll implement the redesign first, but don't start yet", then "Better becareful with quoted design shit",
+then "Implement it now, you could message the others. But compiler claude waits for my go on this too". Built: every
+"Redesign: …" entry above, from 2026-10-26's blocks to this afternoon's `map.count` and `uppercase`. The oracle reads
+only the new spellings and refuses each old one by name (`spellings.cyr`, `since = "2026-10-27"`); a front pass,
+`oracle/src/redesign.rs`, reads them into the tokens the parser has always read, then checks every `end of` line against
+its block and every `!` against what needs attention. Two checks came with it: a `function` has no effects and calls only
+functions, and a `let` never changes. `oracle --redesign <file | folder>` rewrites a program in the old spellings,
+deciding `function` / `procedure` and `let` / `variable` from what each body does; `--redesign-show` prints instead.
+Swept with it: every example and reject test (all of `cargo test` passing, the `.out` files unchanged; the reject tests of
+old spellings now name the new words), bench/, and the fenced code in design/ (prose, quotes and history untouched,
+checked by a tool; `revision-2026-10-07.md` and the other languages' briefs left out). Hand-made: `gradebook.cy`'s
+function `record` became `add_score` (a keyword now); `collections.cy`'s template names its members
+`zero.of_integer_signed_16_bit`, a type's name now holding dots. The old → new table is
+`design/revision-2026-10-27.md`; design claude's provisional picks are in oracle/README.md, two of them asked (`.mutable`,
+where a limb's mark goes on a number type). Not yet: the prose of design/ and the oracle's own messages still use the old
+spellings in places; kayo waits for the owner's go; std/ and check/ are their sessions'. Told compiler, check and std
+claude. Tools: `oracle/tools/redesign_round_trip.py`, `redesign_reject_trip.py`, `redesign_notes.py`,
+`redesign_fields.py`.
+
 ### 2026-10-27 — Redesign: `map.count`, `code_point`, `grapheme_cluster`, `uppercase` / `lowercase` (owner; not built)
 
 The owner: "any other inaccurate?" Design claude, scanning every oracle keyword and `std::` name, found four: a map has
