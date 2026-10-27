@@ -848,11 +848,9 @@ impl Gen {
             format!("let {}: i64 = {};", v("fi"), lit(i)),
             format!("let {}: u8 = {u};", v("fu")),
             format!("let {}: bool = {b};", v("fb")),
-            // a `char.byte` hole is not built with no OS yet (kayo 78a41606), so the
-            // character is printed by itself, outside the format
+            // a `char.byte` hole builds with no OS since kayo 4065248f
             format!("let {}: char.byte = `{c}`;", v("fc")),
-            format!("std::print.format[\"{int_hole}|{small_hole}|{other_hole}\\n\", {}, {}, {}];", v("fi"), v("fu"), v("fb")),
-            format!("std::print.useful[{}, newln];", v("fc")),
+            format!("std::print.format[\"{int_hole}|{small_hole}|{other_hole}|{other_hole}\\n\", {}, {}, {}, {}];", v("fi"), v("fu"), v("fb"), v("fc")),
         ]
     }
 

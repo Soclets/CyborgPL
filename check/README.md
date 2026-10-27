@@ -34,8 +34,7 @@ program as a file. QEMU's output must be the oracle's; where the oracle stopped,
 board freezes (owner, 2026-10-08), so a run that does not end is right there; MAIN's end switches the board off
 through the target's `exit` (owner, 2026-10-26; kayo 78a41606);
 a build refusal at the oracle's stopping line agrees. A bare episode puts in what a chip holds without a heap (kayo 78a41606): a fixed `array[i64]` lent to a function,
-a text literal in a variable, and `print.format` with number and truth holes (a `char.byte` hole is not built there
-yet). A program kayo says needs a heap, threads or an OS there counts as not yet, and a build refusal at or past the
+a text literal in a variable, and `print.format` with number, truth and `char.byte` holes (kayo 4065248f). A program kayo says needs a heap, threads or an OS there counts as not yet, and a build refusal at or past the
 line where the oracle stopped agrees, as in the host comparison. `check/corpus-bare/` holds programs for it, run first
 (`--corpus-only` for those alone). Needs kayo's runtime built for the target: `cargo build -p kayo-runtime --release
 --target aarch64-unknown-none`. QEMU's run is stopped by the harness's own limit; `perl alarm` does not stop QEMU.
