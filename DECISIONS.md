@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): a kit uses one operator style, said in `CyJet.toml` (owner)
+
+The owner: "Is "all the words" stay a good idea? I think it is, some people might wanna write for people who don't
+remember CyPL's symbols that much". Design claude: yes, with one condition, since the cost is mixing (one file `==`, the
+next `eq`; C++'s `and` / `not_eq` beside `&&` / `!=` since 1998, unused and surprising): each kit picks one style and the
+compiler holds it to it. The owner: "So, style is from first use?" Offered (a) first use per file, (b) first use per kit
+(fragile: a new or renamed file could flip it), (c) a line in `CyJet.toml`; design claude recommended (a). The owner: "Or
+just fucking say it in `.toml`?" So, exploring: **a kit's operator style is a line in its `CyJet.toml`**, symbols or
+words, and the compiler refuses the other spelling in that kit; an operator with only a word (`div.floor`) is the same
+in both. Asked next: the line's form and whether it is required.
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): `*` marks a handler that can jump, only where it is used (owner: (b))
 
 With `!` losing its meaning, the owner: "Now, what about `*` for that kind of handler?" (a handler whose arm can `ret`,
