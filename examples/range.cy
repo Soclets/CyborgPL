@@ -13,7 +13,7 @@
     end of for
     std::print.stored(newln);
     for perm $stop [from: 0, to: 100, by: 1]:
-        if ($stop times $stop) greater_than 50:
+        if ($stop times $stop) gt 50:
             break;
         end of if
     end of for

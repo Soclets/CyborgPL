@@ -13,7 +13,7 @@ end of proc loud
         std::print.shortest("found", newln);
     end of if
     let $n: int.sign.32 := 0;
-    if $n eq 0 or.else 100 div.floor $n less_than 2:
+    if $n eq 0 or.else 100 div.floor $n lt 2:
         std::print.shortest("small or nothing", newln);
     end of if
     let $a := loud("first", false) and.then loud("second", true);

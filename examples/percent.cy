@@ -12,7 +12,7 @@
     std::print.shortest($f, newln);
     let $both := $tax plus $off;
     let $rate: percent[float.%deci.32][min: 0 percent, max: 100 percent] := exactly 12.25 percent;
-    std::print.shortest($both, " ", $rate, " ", to.percent[float.%deci.64](exactly 0.07), " ", $tax greater_than $off, newln);
+    std::print.shortest($both, " ", $rate, " ", to.percent[float.%deci.64](exactly 0.07), " ", $tax gt $off, newln);
     std::print.stored($tax, " ", $rate, newln);
     let $g: float.bin.64 := 2.0;
     let $sym: percent[float.%deci.32] := exactly 2.5 percent;

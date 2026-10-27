@@ -1,5 +1,5 @@
 fn half [let $n: int.sign.32] -> int.sign.32 or fail[odd, negative: int.sign.32]:
-    if $n less_than 0:
+    if $n lt 0:
         fail negative[$n];
     end of if
     ret $n;

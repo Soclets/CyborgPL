@@ -25,7 +25,7 @@ fn cheapest <T: Priced> [lent $xs: std::ls[<T>]] -> <T> or fail[empty]:
     end of if
     var $best = 1;
     for $k [from: 2, to: std::ls.len(lend $xs), by: 1]:
-        if price(lend $xs[pos: $k]) less_than price(lend $xs[pos: $best]):
+        if price(lend $xs[pos: $k]) lt price(lend $xs[pos: $best]):
             change $best to $k;
         end of if
     end of for

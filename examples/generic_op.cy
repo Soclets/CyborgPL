@@ -3,13 +3,13 @@
 # meanings for the same type are an error, a generic one covering a specific one's type included.
 interface Number <T>:
     op minus [$a: <T>, $b: <T>] -> <T>;
-    op less_than [$a: <T>, $b: <T>] -> bool;
+    op lt [$a: <T>, $b: <T>] -> bool;
 end of interface Number
 op ~= <T: Number> [$a: <T>, $b: <T>] -> bool:
-    if $a less_than $b:
-        ret $b minus $a less_than 10;
+    if $a lt $b:
+        ret $b minus $a lt 10;
     end of if
-    ret $a minus $b less_than 10;
+    ret $a minus $b lt 10;
 end of op ~=
 rec A:
     var x: int.sign.32;

@@ -18,7 +18,7 @@ fn average [lent $s: Student] -> int.sign.32 or fail[no_scores]:
 end of fn average
 
 proc add_score [lent.mut $s: Student, let $score: int.sign.32] -> fail[out_of_range: int.sign.32]:
-    if $score less_than 0 or $score greater_than 100:
+    if $score lt 0 or $score gt 100:
         fail out_of_range[$score];
     end of if
     std::ls.append(lend.mut $s.scores, value: $score);

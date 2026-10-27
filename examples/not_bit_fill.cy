@@ -16,7 +16,7 @@ proc emit [let $m: int.unsign.64, let $neg: bool]:
     var $ds: std::ls[int.unsign.8] = [];
     std::ls.append(lend.mut $ds, value: to.int.unsign.8(48 plus ($v mod.floor 10)));
     change $v to $v div.floor 10;
-    while $v greater_than 0:
+    while $v gt 0:
         std::ls.append(lend.mut $ds, value: to.int.unsign.8(48 plus ($v mod.floor 10)));
         change $v to $v div.floor 10;
     end of while
@@ -34,7 +34,7 @@ proc put_u [let $n: int.unsign.64]:
 end of proc put_u
 
 proc put_i [let $n: int.sign.64]:
-    if $n less_than 0:
+    if $n lt 0:
         emit(to.int.unsign.64(0 minus ($n plus 1)) plus 1, true);
     end of if
     else:

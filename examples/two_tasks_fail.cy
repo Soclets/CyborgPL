@@ -2,7 +2,7 @@
 # (found by the compiler session, 2026-09-23). Exits with 1 plus 10 = 11.
 %extern.C proc exit [let $code: int.sign.32];
 fn judge [let $n: int.sign.32] -> fail[small]:
-    if $n less_than 10:
+    if $n lt 10:
         fail small;
     end of if
 end of fn judge

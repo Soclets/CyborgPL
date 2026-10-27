@@ -126,7 +126,7 @@ check:
         …
     end of for
 end of check     # every site in the region
-check if $x greater_than 0:
+check if $x gt 0:
     …
 end of if                       # an if or a loop is a statement too
 ```

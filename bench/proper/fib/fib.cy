@@ -16,7 +16,7 @@ proc read_n [let $text: ptr[uint8]] -> int64[min 0, max 92] or fail[missing, out
 end of proc read_n
 
 fn fib [let $n: int64[min 0, max 92]] -> int64:
-    if $n less_than 2:
+    if $n lt 2:
         ret $n;
     end of if
     ret fib[$n minus 1] plus fib[$n minus 2];

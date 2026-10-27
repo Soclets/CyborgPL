@@ -3,7 +3,7 @@
 # as if they were written at the call: an arm may `return`, `break`, `continue` or `fail` from where it
 # is used, and a member that misses a way the call can fail is refused there.
 fn half [let $n: int.sign.32] -> int.sign.32 or fail[odd, negative: int.sign.32]:
-    if $n less_than 0:
+    if $n lt 0:
         fail negative[$n];
     end of if
     if ($n div.floor 2) times 2 not_eq $n:

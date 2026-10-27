@@ -6,7 +6,7 @@
 # makes every member public under its one `bare.` mark.
 coll.fn greet:
     member greet [lent $who: str.utf8, let $word: str.utf8, let $times: int.sign.32[min: 1, max: 5]] -> str.utf8 or fail[too_long]:
-        if std::str.bytes(lend $who) greater_than 20:
+        if std::str.bytes(lend $who) gt 20:
             fail too_long;
         end of if
         var $out = str.empty;

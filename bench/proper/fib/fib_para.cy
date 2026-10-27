@@ -18,7 +18,7 @@ proc read_n [let $text: ptr[uint8]] -> int64[min 0, max 92] or fail[missing, out
 end of proc read_n
 
 fn fib [let $n: int64[min 0, max 92]] -> int64:
-    if $n less_than 2:
+    if $n lt 2:
         ret $n;
     end of if
     ret fib[$n minus 1] plus fib[$n minus 2];
@@ -27,7 +27,7 @@ end of fn fib
 proc run [] -> int32 or fail[missing, out_of_range]:
     let $key := "N";
     !no_check let $n := read_n[getenv[lend $key]] otherwise fail;
-    if $n less_than 4:
+    if $n lt 4:
         ret to.int32[fib[$n] mod.floor 256];
     end of if
     # fib(n) = fib(n-2) + 2 fib(n-3) + fib(n-4): four tasks, each on its own channel

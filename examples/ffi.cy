@@ -13,7 +13,7 @@ end of rec Timeval
 
 proc say [lent $text: str.utf8] -> fail[io]:
     !no_check let $n := write(1, lend $text, strlen(lend $text));   # a lend is the pointer; the call is a no_check site
-    if $n less_than 0:
+    if $n lt 0:
         fail io;
     end of if
 end of proc say
@@ -28,7 +28,7 @@ end of proc say
         std::print.stored("no HOME", newln);
     end of if
     else:
-        !no_check if strlen($home) greater_than 0:
+        !no_check if strlen($home) gt 0:
             std::print.stored("HOME is set", newln);
         end of if
     end of else

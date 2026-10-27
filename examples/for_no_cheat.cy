@@ -3,7 +3,7 @@
 # inlining are still allowed. It goes in front of any statement or block, as `no_check` does, calls
 # included (owner, 2026-10-18: "(b)"), and in front of a `for`, never inside it (owner: "(a)").
 fn fib [let $n: int.sign.64[min: 0, max: 92]] -> int.sign.64:
-    if $n less_than 2:
+    if $n lt 2:
         ret $n;
     end of if
     ret fib($n minus 1) plus fib($n minus 2);

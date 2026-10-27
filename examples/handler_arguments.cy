@@ -1,7 +1,7 @@
 # A `coll.handler` member taking arguments (owner, 2026-10-23: "Yes"): defined in `[ ]`, given in `( )` with their
 # words, always through the collection's name, since `otherwise f(…)` alone is a fallback value from a call.
 fn half [let $n: int.sign.32] -> int.sign.32 or fail[odd, negative: int.sign.32]:
-    if $n less_than 0:
+    if $n lt 0:
         fail negative[$n];
     end of if
     if ($n div.floor 2) times 2 not_eq $n:

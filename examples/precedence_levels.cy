@@ -22,7 +22,7 @@ op scale [$a: Vec, $k: float.bin.64] -> Vec:
 end of op scale
 
 op ~= [$a: float.bin.64, $b: float.bin.64] -> bool:
-    ret ($a minus $b) less_than 0.000001 and ($b minus $a) less_than 0.000001;
+    ret ($a minus $b) lt 0.000001 and ($b minus $a) lt 0.000001;
 end of op ~=
 
 !MAIN:

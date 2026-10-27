@@ -4,10 +4,10 @@ fn is_even [let $n: int.sign.32] -> bool:
 end of fn is_even
 
 fn clamp [let $n: int.sign.32, let $low: int.sign.32, let $high: int.sign.32] -> int.sign.32:
-    if $n less_than $low:
+    if $n lt $low:
         ret $low;
     end of if
-    else if $n greater_than $high:
+    else if $n gt $high:
         ret $high;
     end of else if
     else:
@@ -29,7 +29,7 @@ end of fn clamp
         if is_even($score):
             change $evens to $evens plus 1;
         end of if
-        if $score greater_than $best:
+        if $score gt $best:
             change $best to $score;
         end of if
     end of for

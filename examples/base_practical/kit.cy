@@ -15,6 +15,6 @@ end of fn biggest
     let $small := to.int.sign.8($b);                     # proven to fit: 14
     let $level: int.sign.32[min: 0, max: 10] := 7;
     let $wrapped: int.unsign.8 := 250 plus.wrap 10;
-    let $bigger := biggest($b, $a, $b greater_than $a);
-    let $same := $bigger eq $b and not ($small less_than 0);
+    let $bigger := biggest($b, $a, $b gt $a);
+    let $same := $bigger eq $b and not ($small lt 0);
 !end of MAIN

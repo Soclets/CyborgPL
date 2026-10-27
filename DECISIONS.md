@@ -34,6 +34,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign two: `less_than` / `greater_than` become `lt` / `gt`; `at_most` / `at_least` stay (owner)
+
+Shown every operator, the owner: "if shift_right is `shr`, then shouldn't `greater_than` be `gt`?" (the table had had
+`lt` / `gt`; the owner had kept the long ones). Design claude: yes by redesign two's rule, recommending `at_most` /
+`at_least` stay (plain short words, not abbreviations; `le` / `ge` more cryptic). The owner: "yes". So **`$n gt 0 and $n
+lt 100`**; `less_than` / `greater_than` are refused naming them, and `<` / `>` now name `lt` / `gt`. Built.
+
 ### 2026-10-27 — Redesign: a `var` starts with `=`, as a starting value is written; `let` and `const` keep `:=` (owner)
 
 The owner: "What about `var`?", then "Well, is `:=` accurate for var?" Design claude: strictly no, a definition holds

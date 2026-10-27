@@ -8,7 +8,7 @@
     let $a := 7;
     let $b := 2;
     std::print.shortest($a plus $b, " ", $a minus $b, " ", $a times $b, " ", $b pow 10, " ", 1 plus 2 times 3, newln);
-    std::print.shortest($a less_than $b, " ", $a greater_than $b, " ", $a less_than $b, " ", $a greater_than $b, newln);
+    std::print.shortest($a lt $b, " ", $a gt $b, " ", $a lt $b, " ", $a gt $b, newln);
     std::print.shortest(neg $a, " ", neg $a, " ", neg 5, newln);
     std::print.shortest($a plus $b, " ", $a div.floor $b, " ", $a eq $b, newln);
     var $i = 1;

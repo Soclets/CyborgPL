@@ -1,3 +1,3 @@
 !MAIN:
-    let $b := "a" less_than "b";
+    let $b := "a" lt "b";
 !end of MAIN

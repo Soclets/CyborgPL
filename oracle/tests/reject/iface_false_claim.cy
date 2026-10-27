@@ -1,5 +1,5 @@
 interface Ordered <T>:
-    op less_than [$a: <T>, $b: <T>] -> bool;
+    op lt [$a: <T>, $b: <T>] -> bool;
 end of interface Ordered
 rec V:
     var x: int.sign.32;

@@ -5,10 +5,10 @@ rec Locker:
 end of rec Locker
 
 fn by_number [lent $a: Locker, lent $b: Locker] -> bool:
-    ret $a.number less_than $b.number;
+    ret $a.number lt $b.number;
 end of fn by_number
 fn by_owner  [lent $a: Locker, lent $b: Locker] -> bool:
-    ret std::str.bytes(lend $a.owner) less_than std::str.bytes(lend $b.owner);
+    ret std::str.bytes(lend $a.owner) lt std::str.bytes(lend $b.owner);
 end of fn by_owner
 
 # a function that takes a function: the type is the signature without the names

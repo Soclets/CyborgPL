@@ -2,7 +2,7 @@
 # Like `i32[min: 0, max: 100]`: the thing, then its bounds. Its length is a `u64[lo, hi]`.
 
 fn fill [let $count: int.sign.32] -> std::ls[int.sign.32][min: 0, max: 5] or fail[too_many]:
-    if $count greater_than 5:
+    if $count gt 5:
         fail too_many;
     end of if
     var $out = std::ls.empty;

@@ -33,5 +33,5 @@
     let $j := to.int.sign.32($h) otherwise neg 1;
     std::print.stored($i, " ", $j, " ", to.float.bin.64($h), " ", to.stored.str.utf8($h), newln);
     let $neg: float.%deci.64 := neg 1.5;
-    std::print.stored($neg, " ", neg $neg, " ", $neg less_than $h, newln);
+    std::print.stored($neg, " ", neg $neg, " ", $neg lt $h, newln);
 !end of MAIN

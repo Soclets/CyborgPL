@@ -5,7 +5,7 @@
 !MAIN [$argc: int.sign.32, $argv: ptr[ptr[int.unsign.8]]]:
     std::print.stored("argc = ", $argc, newln);
     var $i: int.sign.32 = 1;
-    while $i less_than $argc:
+    while $i lt $argc:
         !no_check let $word := ptr.read(ptr.at($argv, by: $i));
         var $k: int.sign.32 = 0;
         var $bytes: std::ls[int.unsign.8] = [];

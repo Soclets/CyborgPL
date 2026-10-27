@@ -29,7 +29,7 @@ proc pi_digits [let $n: int.sign.32]:
             change $nines to 0;
         end of else if
         else:
-            if $j greater_than 1:
+            if $j gt 1:
                 std::print.shortest($predigit);
             end of if
             if $j eq 2:

@@ -7,7 +7,7 @@ interface Number:
 end of interface Number
 
 fn max <T: Number> [let $a: <T>, let $b: <T>] -> <T>:
-    if $a greater_than $b:
+    if $a gt $b:
         ret give $a;
     end of if     # a <T> may be owned: generic code writes the verbs
     ret give $b;

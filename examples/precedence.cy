@@ -9,7 +9,7 @@
     std::print.shortest(((6 div.floor 2) times 3), newln);
     let $a := 5;
     let $b := 7;
-    if $a plus 1 greater_than $b minus 2 and not ($a eq $b) or false:
+    if $a plus 1 gt $b minus 2 and not ($a eq $b) or false:
         std::print.stored("logic holds", newln);
     end of if
 !end of MAIN

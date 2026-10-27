@@ -56,7 +56,7 @@ loop:                                         # forever, until break
     …
 end of loop
 
-while $count less_than 100:                          # while a condition holds
+while $count lt 100:                          # while a condition holds
     …
 end of while
 

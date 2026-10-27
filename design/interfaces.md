@@ -37,7 +37,7 @@ language's.
 
 ```
 interface Ordered <T>:
-    op less_than [$a: <T>, $b: <T>] -> bool;
+    op lt [$a: <T>, $b: <T>] -> bool;
     op eq [$a: <T>, $b: <T>] -> bool;
 end of interface Ordered
 interface Printable <T>:
@@ -80,7 +80,7 @@ noun-named interfaces; `satisfies` reads right for any name).
 
 ```
 fn max <T: Ordered> [let $a: <T>, let $b: <T>] -> <T>:
-    if $b less_than $a:
+    if $b lt $a:
         ret give $a;
     end of if
     ret give $b;

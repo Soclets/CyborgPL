@@ -430,8 +430,11 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 "equal_to" if old_syntax() || crate::spellings::loading() => Some(Tok::Op("equal_to".into())),
                 "eq" if !old_syntax() => Some(Tok::Op("equal_to".into())),
                 // the words of `<` and `>` (owner, 2026-10-16: "the long"), read as the symbols inside
-                "less_than" => Some(Tok::Op("<".into())),
-                "greater_than" => Some(Tok::Op(">".into())),
+                // `lt` / `gt` since redesign two (owner, 2026-10-27: "yes"); the long ones before it
+                "less_than" if old_syntax() || crate::spellings::loading() => Some(Tok::Op("<".into())),
+                "greater_than" if old_syntax() || crate::spellings::loading() => Some(Tok::Op(">".into())),
+                "lt" if !old_syntax() => Some(Tok::Op("<".into())),
+                "gt" if !old_syntax() => Some(Tok::Op(">".into())),
                 "not_equal" if old_syntax() => Some(Tok::Op("not_equal".into())),
                 "not_eq" if !old_syntax() => Some(Tok::Op("not_equal".into())),
                 "at_most" => Some(Tok::Op("at_most".into())),

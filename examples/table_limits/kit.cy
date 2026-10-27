@@ -6,7 +6,7 @@ table_bytes 1_024 fn square [let $x: int.unsign.8] -> int.unsign.16:
 end of fn square
 
 table_bytes 0 fn fib [let $n: int.sign.64[min: 0, max: 92]] -> int.sign.64:
-    if $n less_than 2:
+    if $n lt 2:
         ret $n;
     end of if
     ret fib($n minus 1) plus fib($n minus 2);

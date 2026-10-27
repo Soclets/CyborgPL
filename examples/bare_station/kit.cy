@@ -76,7 +76,7 @@ proc next_reading [lent.mut $c: Cursor] -> temp or fail[done, bad_byte: int.unsi
     var $at = $c.at;
     var $first: int.unsign.8 = 0;
     loop:
-        if $at greater_than $n:
+        if $at gt $n:
             fail done;
         end of if
         let $b := $log[pos: $at];
@@ -99,13 +99,13 @@ proc next_reading [lent.mut $c: Cursor] -> temp or fail[done, bad_byte: int.unsi
     var $value: int.sign.32 = 0;
     while $at at_most $n and.then $log[pos: $at] not_eq $newline:
         let $b := $log[pos: $at];
-        if $b less_than $zero:
+        if $b lt $zero:
             fail bad_byte[$at];
         end of if
-        if $b greater_than $nine:
+        if $b gt $nine:
             fail bad_byte[$at];
         end of if
-        if $value greater_than 600:
+        if $value gt 600:
             fail bad_byte[$at];
         end of if
         change $value to $value times 10 plus to.int.sign.32($b minus $zero);
@@ -115,10 +115,10 @@ proc next_reading [lent.mut $c: Cursor] -> temp or fail[done, bad_byte: int.unsi
     if $negative:
         change $value to neg $value;
     end of if
-    if $value less_than neg 500:
+    if $value lt neg 500:
         fail bad_byte[$at];
     end of if
-    if $value greater_than 600:
+    if $value gt 600:
         fail bad_byte[$at];
     end of if
     let $t: temp := $value;
@@ -164,7 +164,7 @@ end of fn crc32
 # Tenths of a degree as degrees: `-3.5`, `21.0`.
 proc show_tenths [let $t: day.tenths]:
     var $a = $t;
-    if $t less_than 0:
+    if $t lt 0:
         std::print.shortest("-");
         change $a to neg $t;
     end of if
@@ -173,14 +173,14 @@ end of proc show_tenths
 
 # An hour of the day as a clock time, `07:00`.
 proc show_hour [let $h: day.hour]:
-    if $h less_than 10:
+    if $h lt 10:
         std::print.shortest("0");
     end of if
     std::print.shortest($h, ":00");
 end of proc show_hour
 
 proc show_digit [let $d: int.unsign.32]:
-    if $d less_than 10:
+    if $d lt 10:
         std::print.shortest($d); ret;
     end of if
     if $d eq 10:
@@ -224,10 +224,10 @@ union.tag Alarm:
 end of union.tag Alarm
 
 fn alarm_for [let $t: temp] -> Alarm:
-    if $t greater_than 250:
+    if $t gt 250:
         ret Alarm.hot;
     end of if
-    if $t greater_than 220:
+    if $t gt 220:
         ret Alarm.warm;
     end of if
     ret Alarm.calm;
@@ -272,7 +272,7 @@ interface Number:
 end of interface Number
 
 fn larger <T: Number> [let $a: <T>, let $b: <T>] -> <T>:
-    if $a greater_than $b:
+    if $a gt $b:
         ret $a;
     end of if
     ret $b;
@@ -320,15 +320,15 @@ proc read_day [] -> Day:
                 std::exit(code: 2);
             end of case bad_byte
         end of otherwise;
-        if $t less_than $low:
+        if $t lt $low:
             change $low to $t; change $low_hour to $hour;
         end of if
-        if $t greater_than $high:
+        if $t gt $high:
             change $high to $t; change $high_hour to $hour;
         end of if
-        if $hour greater_than 0:
+        if $hour gt 0:
             let $step := $t minus $prev;
-            if larger($step, neg $step) greater_than larger($rise, neg $rise):
+            if larger($step, neg $step) gt larger($rise, neg $rise):
                 change $rise to $step; change $rise_hour to $hour;
             end of if
         end of if
@@ -384,7 +384,7 @@ proc report [lent $d: Day]:
     std::print.shortest(" C, ");
     show_tenths(($mean times 9) div.near 5 plus 320);
     std::print.shortest(" F", newln, "steepest hour: ");
-    if $d.rise greater_than 0:
+    if $d.rise gt 0:
         std::print.shortest("+");
     end of if
     show_tenths($d.rise);

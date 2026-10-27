@@ -1422,7 +1422,7 @@ fn words_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                 if (o == "<" && glued_after) || (o == ">" && glued_before) { out.push(t.clone()); i += 1; continue; }
                 if o == "-" && toks.get(i + 1).is_some_and(|nx| nx.line > t.line) { out.push(t.clone()); i += 1; continue; }
                 if o == "-" && (statement_has(&toks, i, "target") || out.iter().rev().take(6).any(|x| matches!(&x.tok, Tok::Word(w) if w == "target"))) { out.push(t.clone()); i += 1; continue; }
-                let w = match o.as_str() { "+" => "plus", "<" => "less_than", ">" => "greater_than", _ => "minus` (`negative 5` for a number, `negate $x` for a value" };
+                let w = match o.as_str() { "+" => "plus", "<" => "lt", ">" => "gt", _ => "minus` (`neg 5` for a number, `neg $x` for a value" };
                 return fault(format!("`{o}` is an old spelling since 2026-10-27: write `{w}` (owner)"));
             }
             Tok::Op(o) if o == "x~" || o == "xx~" => return fault(format!("`{o}` is an old spelling: write `{}` (owner, 2026-10-27)", if o == "x~" { "times.wrap" } else { "power.wrap" })),
@@ -1633,7 +1633,7 @@ fn blocks_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
             while j < n && toks[j].line == line && !matches!(toks[j].tok, Tok::Semi | Tok::RParen | Tok::Comma | Tok::RBracket | Tok::Eof) {
                 // an operator as it was written: `less_than` is `<` inside
                 let s = match &toks[j].tok {
-                    Tok::Op(o) if toks[j].end != usize::MAX && toks[j].end - toks[j].at != o.chars().count() => match (o.as_str(), toks[j].end - toks[j].at) { ("<", _) => "less_than".to_string(), (">", _) => "greater_than".into(), ("equal_to", 2) => "eq".into(), ("not_equal", 6) => "not_eq".into(), ("not_equal", _) => "not_equal_to".into(), _ => o.clone() },
+                    Tok::Op(o) if toks[j].end != usize::MAX && toks[j].end - toks[j].at != o.chars().count() => match (o.as_str(), toks[j].end - toks[j].at) { ("<", 2) => "lt".to_string(), (">", 2) => "gt".into(), ("<", _) => "less_than".to_string(), (">", _) => "greater_than".into(), ("equal_to", 2) => "eq".into(), ("not_equal", 6) => "not_eq".into(), ("not_equal", _) => "not_equal_to".into(), _ => o.clone() },
                     other => shown(other),
                 };
                 let glue = matches!(toks[j].tok, Tok::Dot) || text.ends_with('.') || text.ends_with('%') || text.ends_with('!') || text.is_empty();
@@ -1930,7 +1930,7 @@ pub fn short_close(s: &str) -> String {
         out.push(c);
     }
     flush(&mut word, &mut out, &mut prev_seg);
-    out.replace("equal_to", "eq").replace("not_eq_to", "not_eq")
+    out.replace("not_equal_to", "not_eq").replace("equal_to", "eq").replace("not_eq_to", "not_eq").replace("less_than", "lt").replace("greater_than", "gt")
 }
 
 /// A format's text from redesign one to two: `{newline}` → `{newln}`, the holes' words shortened
@@ -2050,6 +2050,8 @@ pub fn shorten(src: &str) -> Result<String, String> {
                     "collection" => Some("coll"),
                     "equal_to" => Some("eq"),
                     "not_equal_to" => Some("not_eq"),
+                    "less_than" => Some("lt"),
+                    "greater_than" => Some("gt"),
                     "sequential" | "parallel" | "temporary" | "permanent" if for_modifier(&toks, i) => Some(match w { "sequential" => "seq", "parallel" => "para", "temporary" => "temp", _ => "perm" }),
                     "divide" | "modulo" if *tok(i + 1) == Tok::Dot => Some(if w == "divide" { "div" } else { "mod" }),
                     "boolean" | "character" | "string" => Some(match w { "boolean" => "bool", "character" => "char", _ => "str" }),
@@ -2513,6 +2515,7 @@ fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     "position" if value_start(Some(&next)) => Some("pos".into()),
                     "newline" => Some("newln".into()),
                     "equal_to" => Some("eq".into()), "not_equal_to" | "not_equal" => Some("not_eq".into()),
+                    "less_than" => Some("lt".into()), "greater_than" => Some("gt".into()),
                     "struct" => Some("rec".into()),
                     "enum" => Some("union.tag` (for C, `%layout.C enum".into()),
                     "immut" => Some("let".into()),

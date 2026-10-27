@@ -10,7 +10,7 @@ fn wrong [let $a: int.sign.32, let $b: int.sign.32] -> int.sign.32:
 end of fn wrong
 test proc adds_up []:
     must add(2, 3) eq 5;
-    must add(2, 3) greater_than 4;
+    must add(2, 3) gt 4;
 end of test proc adds_up
 test proc catches_a_bug []:
     must wrong(2, 3) eq 5;

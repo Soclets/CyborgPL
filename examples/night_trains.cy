@@ -150,7 +150,7 @@ fn parse_link [lent $row: str.utf8] -> Link or fail[bad_row: str.utf8]:
     end of if
     let $words := std::str.split(lend $sides[pos: 2], at: " ");
     let $n := std::ls.len(lend $words);
-    if $n less_than 3:
+    if $n lt 3:
         fail bad_row[copy $row];
     end of if
     let $minutes: int.sign.32[min: 1, max: 1440] := to.int.sign.32[min: 1, max: 1440]($words[pos: $n minus 1])-
@@ -241,7 +241,7 @@ proc quickest_from [lent $net: Network, lent $from: str.utf8] -> std::map.ordere
                     continue;
                 !end of case missing
             end of otherwise;
-            if not $found or.else $r.minutes less_than $pick_minutes:
+            if not $found or.else $r.minutes lt $pick_minutes:
                 change $found to true;
                 change $pick to copy $s;
                 change $pick_minutes to $r.minutes;
@@ -284,7 +284,7 @@ proc try_reach [
         ret;
     end of if
     # past the longest trip sold, it is no way at all
-    if $minutes less_than 0 or $minutes greater_than 14400 or $km less_than 0 or $km greater_than 100000:
+    if $minutes lt 0 or $minutes gt 14400 or $km lt 0 or $km gt 100000:
         ret;
     end of if
     if std::map.has(lend $best, key: lend $next):
@@ -616,7 +616,7 @@ fn soonest_first [lent $xs: std::ls[Arrival]] -> std::ls[Arrival]:
         var $next: std::ls[Arrival] = std::ls.empty;
         var $placed = false;
         for $y in lend $out:
-            if not $placed and $x.minutes less_than $y.minutes:
+            if not $placed and $x.minutes lt $y.minutes:
                 std::ls.append(lend.mut $next, value: copy $x);
                 change $placed to true;
             end of if
@@ -729,7 +729,7 @@ proc report [lent $bookings: std::ls[Booking][max: 500], lent $left: std::map.or
     for $b in lend $bookings:
         std::ls.append(lend.mut $fares, value: $b.fare);
         std::ls.append(lend.mut $kms, value: $b.journey.km);
-        if $b.journey.km greater_than $longest:
+        if $b.journey.km gt $longest:
             change $longest to $b.journey.km;
             change $longest_who to copy $b.traveller;
         end of if
@@ -738,7 +738,7 @@ proc report [lent $bookings: std::ls[Booking][max: 500], lent $left: std::map.or
     let $takings := total_of(lend $fares);
     std::print.shortest(lend.mut $out, "tickets sold: ", $count, newln);
     std::print.format(lend.mut $out, "takings: {places: 2}{newln}", $takings);
-    if $count greater_than 0:
+    if $count gt 0:
         let $average := std::round.near($takings div.near to.float.%deci.64(to.int.sign.32($count)), places: 2);
         std::print.format(lend.mut $out, "average fare: {places: 2}{newln}", $average);
     end of if

@@ -7,7 +7,7 @@ end of fn count_on
 !MAIN:
     let $xs: arr[int.sign.32] := [5, 20, 30, 40];
     let $a: simd[int.sign.32, count: 4] := simd.load(lend $xs, pos: 1);
-    let $m: simd[bool, count: 4] := $a greater_than simd.fill(value: 10);
+    let $m: simd[bool, count: 4] := $a gt simd.fill(value: 10);
     let $all: simd[bool, count: 4] := simd.fill(value: true);
     let $both := $m and $all;
     let $flip := not $m;

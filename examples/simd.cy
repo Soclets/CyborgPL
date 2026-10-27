@@ -5,7 +5,7 @@ fn is_ascii [lent $bytes: arr[int.unsign.8]] -> bool:
     for $i [from: 1, to: arr.len(lend $bytes), by: 16]:
         change $acc to $acc or.bit simd.load(lend $bytes, pos: $i);
     end of for
-    ret simd.max($acc) less_than 128;
+    ret simd.max($acc) lt 128;
 end of fn is_ascii
 
 !MAIN:
@@ -15,8 +15,8 @@ end of fn is_ascii
     let $a: simd[int.sign.32, count: 4] := simd.fill(value: 10);
     let $b: simd[int.sign.32, count: 4] := simd.fill(value: 3);
     std::print.shortest($a plus $b, " ", simd.sum($a), " ", simd.max($a times $b), newln);
-    let $m := $a greater_than $b;                       # a simd[bool, count 4], one answer per lane
-    std::print.shortest(simd.all($m), " ", simd.any($b greater_than $a), newln);
+    let $m := $a gt $b;                       # a simd[bool, count 4], one answer per lane
+    std::print.shortest(simd.all($m), " ", simd.any($b gt $a), newln);
     var $out: arr[int.sign.32] = [0, 0, 0, 0, 0, 0];
     simd.store(lend.mut $out, pos: 2, value: $a plus $b);
     std::print.shortest($out, newln);

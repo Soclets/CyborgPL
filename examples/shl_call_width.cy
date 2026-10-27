@@ -4,7 +4,7 @@ fn g [] -> int.sign.8:
     ret 10;
 end of fn g
 !MAIN:
-    if 3 greater_than (g() shl 1):
+    if 3 gt (g() shl 1):
         std::print.shortest("yes", newln);
     end of if
     else:

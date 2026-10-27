@@ -9,7 +9,7 @@
     let $twice: int.sign.64 := $s plus $s;                   # 60000, though no i16 holds it
     let $tiny: int.sign.8 := (100 plus 100) minus 150;             # 50: the 200 in between is fine
     let $v: int.sign.8 := 112;
-    std::print.shortest($big, " ", $twice, " ", $tiny, " ", $v greater_than ($v plus $v), newln);   # 224 compared as 224
+    std::print.shortest($big, " ", $twice, " ", $tiny, " ", $v gt ($v plus $v), newln);   # 224 compared as 224
     let $u: int.unsign.8 := 5;
     let $below := $u minus 10;                          # -5: `:=` takes a type that holds it
     let $x: int.unsign.32 := 4000000000;

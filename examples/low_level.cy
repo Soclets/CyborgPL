@@ -25,7 +25,7 @@ end of fn fnv1a
 fn popcount [let $x: int.unsign.32] -> int.unsign.32:
     var $n: int.unsign.32 = $x;
     var $count: int.unsign.32 = 0;
-    while $n greater_than 0:
+    while $n gt 0:
         change $count to $count plus ($n and.bit 1);
         change $n to $n shr 1;
     end of while
@@ -35,7 +35,7 @@ end of fn popcount
 # 16 bytes at once: is every byte ASCII (below 128)?
 fn all_ascii [lent $bytes: arr[int.unsign.8]] -> bool:
     let $v: simd[int.unsign.8, count: 16] := simd.load(lend $bytes, pos: 1);
-    ret simd.all($v less_than simd.fill(value: 128));
+    ret simd.all($v lt simd.fill(value: 128));
 end of fn all_ascii
 
 !MAIN:

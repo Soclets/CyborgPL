@@ -1,7 +1,7 @@
 # `while`, `loop` with `break` and `continue`, and `for`.
 !MAIN:
     var $i = 0;
-    while $i less_than 3:
+    while $i lt 3:
         std::print.shortest("while ", $i, newln);
         change $i to $i plus 1;
     end of while
@@ -11,7 +11,7 @@
         if $n eq 2:
             continue;
         end of if
-        if $n greater_than 4:
+        if $n gt 4:
             break;
         end of if
         std::print.shortest("loop ", $n, newln);

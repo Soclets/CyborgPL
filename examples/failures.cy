@@ -28,7 +28,7 @@ fn double_digit [let $t: str.utf8] -> int.sign.32 or fail[not_a_digit]:
 end of fn double_digit
 
 fn save [lent $l: Locker] -> fail[disk_full]:
-    if std::ls.len(lend $l.items) greater_than 1:
+    if std::ls.len(lend $l.items) gt 1:
         fail disk_full;
     end of if
 end of fn save

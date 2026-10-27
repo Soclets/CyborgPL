@@ -10,7 +10,7 @@ fn heaviest [var ...$items: Item] -> Item or fail[none]:
     end of if
     var $best = std::ls.remove(lend.mut $items, pos: 1);
     for $it in lend $items:
-        if $it.grams greater_than $best.grams:
+        if $it.grams gt $best.grams:
             change $best to copy $it;
         end of if
     end of for

@@ -8,7 +8,7 @@ end of proc draw
     # family (`types.md`), so the value is a bin from the start — `to.f16` would be the
     # way to cross from an integer, and it would fail rather than round silently.
     let $x: float.bin.32 := 70000.0;
-    if $x greater_than 65_504.0:
+    if $x gt 65_504.0:
         std::print.stored("too big", newln);
     end of if
     else:
@@ -24,7 +24,7 @@ end of proc draw
     std::print.stored(newln);
     !no_check change $xs[pos: 2] to 9;
     # crossing families is spelled, and it fails rather than rounds (`types.md`)
-    check if $x greater_than 0.0:
+    check if $x gt 0.0:
         change $xs[pos: 1] to to.int.sign.32($x div.near 2.0) otherwise 0;
     end of if
     std::print.shortest($xs, newln);

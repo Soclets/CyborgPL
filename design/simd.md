@@ -14,7 +14,7 @@ fn is_ascii [lent $bytes: arr[int.unsign.8]] -> bool:
     for $i [from: 1, to: arr.len(lend $bytes), by: 16]:
         change $acc to $acc or.bit simd.load(lend $bytes, pos: $i);
     end of for
-    ret simd.max($acc) less_than 128;
+    ret simd.max($acc) lt 128;
 end of fn is_ascii
 ```
 
@@ -108,7 +108,7 @@ against a vector (`'v' plus 1`), and `simd.sum` is a check site while
 fn all_on [let $m: simd[bool, count: 4]] -> bool:
     ret simd.all($m);
 end of fn all_on
-let $m: simd[bool, count: 4] := $a greater_than simd.fill(value: 10);
+let $m: simd[bool, count: 4] := $a gt simd.fill(value: 10);
 let $flip := not $m;
 ```
 
