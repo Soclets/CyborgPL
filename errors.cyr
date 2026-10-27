@@ -414,7 +414,7 @@ errors::table[
         errors::error[name = "operator_level_given_twice", means = "An operator is given precedence levels in two places; it binds one way everywhere.", tests = []],
         errors::error[name = "operator_wrong_type", means = "An operator is used on a type it has no meaning for, such as negating text or multiplying two durations.", tests = []],
         errors::error[name = "operators_level_apart", means = "A precedence level holds two operators that the language puts at different levels.", tests = []],
-        errors::error[name = "outside_loop", means = "`break` or `continue` stands outside any loop.", tests = []],
+        errors::error[name = "outside_loop", means = "`break` or `continue` stands outside any loop.", tests = ["break_no_loop", "handler_continue_no_loop", "otherwise_continue_no_loop"]],
         errors::error[name = "path_not_readable", means = "A file or folder kayo was given or found cannot be read.", tests = []],
         errors::error[name = "power_not_granted", means = "A kit uses a power that nothing grants it.", tests = []],
         errors::error[name = "returned_borrow_form", means = "A function that returns a borrow hands back something other than the `lent` or `lent.mut` borrow its signature says.", tests = []],

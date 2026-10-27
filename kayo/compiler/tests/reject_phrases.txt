@@ -946,3 +946,6 @@ percent_type_symbol_old [fnv:1f36b4c8bb912f7a] :: error[old_spelling]
 
 main_fn_called_bare [fnv:f1c8a5d71d1fa783] :: error[keyword_name_bare]
 target_layout_with_os [fnv:bdb4919177fb990d] :: error[manifest_field_misplaced]
+break_no_loop [fnv:838f50afa6de6f96] :: `break` outside a loop
+otherwise_continue_no_loop [fnv:f045d94cd6dc5212] :: `continue` outside a loop
+handler_continue_no_loop [fnv:110718aee352dc13] :: can `break` or `continue`, so it is used only inside a loop
