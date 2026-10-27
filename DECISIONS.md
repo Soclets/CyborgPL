@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): `std::println` ends its line; `std::print` stays on it (owner: (a))
+
+Asked whether a bare `std::print` ends its line (503 of the examples' 566 `print.shortest` calls end with `newln`), the
+owner: "Does manual `newln` really do anything useful, except showing it?" Design claude: at a print's end, no; it works
+building a line from several prints, for a prompt that waits on the line, and for a break inside one print (`"a", newln,
+"b"`), where it stays as a value. The owner: "How about this? A small little thing could stick to the name like this,
+`std::println`". Offered (a) `std::println` (Rust, Java, Kotlin, Go; its `ln` the `ln` of `newln`) or (b)
+`std::print.ln` (the `.` rule), design claude recommending (a). The owner: "(a)". So, exploring: **`std::println(…)` ends
+the line, `std::print(…)` stays on it** (exactly `print.shortest`).
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): a bare `std::print(…)` is `std::print.shortest(…)` (owner)
 
 The owner: "`std::print("Hello, World!");` Is there a "correct" assumption?" Design claude: for text every form prints the
