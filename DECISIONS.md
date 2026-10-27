@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): `??` is `practical_concise`'s `otherwise <value>` (owner)
+
+Asked whether `otherwise <value>` gets a short form too, the owner: "Where is it used?" Design claude counted the
+examples: the most common `otherwise` by far, 98 uses in 45 files (against 10 `otherwise fail`, 7 named handlers, 1
+leaving), nearly all a failing conversion, a map lookup's default, or a fallback text; `0` 26 times, `-1` 23. Offered
+`??`, C#'s, Swift's and JavaScript's "this, or else that". The owner: "yes". So, exploring: **`let $n :=
+std::map.get(lend $phones, key: "ann") ?? 0;`**, under `words` `… otherwise 0;`, standing where `otherwise` can (the
+call the whole statement or right-hand side).
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): `?` is `practical_concise`'s `otherwise fail`, only where that can go (owner: (a))
 
 The owner: "What about adding Rust's `?` to concise". Design claude: it is exactly `otherwise fail;` (pass the failure up
