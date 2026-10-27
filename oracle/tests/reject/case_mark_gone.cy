@@ -1,3 +1,3 @@
-case.any;
+case.any [fn];
 !MAIN:
 !end of MAIN

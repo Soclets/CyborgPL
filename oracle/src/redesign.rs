@@ -2586,6 +2586,12 @@ fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
             while i < n && toks[i].line == line && !matches!(toks[i].tok, Tok::Semi | Tok::RParen | Tok::Comma | Tok::RBracket | Tok::Eof) { out.push(toks[i].clone()); i += 1; }
             continue;
         }
+        // the case marks are gone (owner, 2026-10-27: "No case shit anymore"): every name is exact
+        if matches!(&t.tok, Tok::Word(c) if c == "case") && toks.get(i + 1).is_some_and(|x| x.tok == Tok::Dot)
+            && matches!(toks.get(i + 2).map(|x| &x.tok), Some(Tok::Word(m)) if matches!(m.as_str(), "any" | "exact" | "insensitive" | "sensitive")) {
+            let m = shown(&toks[i + 2].tok);
+            return Err((t.line, t.col, format!("`case.{m}` is gone: every name is exact, written as it is declared (owner, 2026-10-27)")));
+        }
         if t.mtm.is_some() { out.push(t.clone()); i += 1; continue; }
         if i > 0 && toks[i - 1].mtm.is_some() && matches!(&toks[i - 1].tok, Tok::Op(o) if o == "*" || o == "&") && toks[i - 1].end == t.at { out.push(t.clone()); i += 1; continue; }
         // a definition's `:=` with a type, a change's `to`: the parser's `=`

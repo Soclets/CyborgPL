@@ -34,6 +34,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Built: the case marks removed, "did you mean" for a case-only difference; collection members checked (owner: "also do the current and `coll`s getting checked")
+
+The owner, asking for compiler claude's conversion prompt: "also do the current and `coll`s getting checked", read by
+design claude as the go for the rulings held with "not yet" (the case marks going, the case-only note, "did you mean")
+and for checking a collection's members for effects. Built in the oracle: `case.any` / `case.exact` / `case.insensitive`
+/ `case.sensitive` refused ("is gone: every name is exact"); `examples/case_marks.cy`, `case_unicode.cy`, `case_file.cy`,
+the `uses_case` kit and `kits/shout`, and seven reject tests removed; `slim_limbs` calls `Halve` as declared; a function,
+variable or type not found names one differing only in case ("did you mean `Area`?"), the variable message now
+`` `$Total` is not declared ``. The case-only pair's note goes in the build report, which the oracle does not make: it is
+kayo's. A collection's members are checked as its written kind, a `coll.fn` member with an effect refused naming
+`coll.proc`.
+
 ### 2026-10-27 — Redesign two: a limb's number type is marked wherever it stands, `to.shortest.float.%deci.64` (owner: (a))
 
 Design claude's provisional pick from the build, asked: a limb's number type was marked only first in a path or right

@@ -325,7 +325,12 @@ would give the name two places to disagree.
 that kit itself is run, and is ignored when another kit uses it, so a
 library can ship its own demo or tool.
 
-## Case (owner, 2026-10-06)
+## Case (owner, 2026-10-06; the marks removed 2026-10-27)
+
+**Since 2026-10-27 every name is exact, and the case marks are gone** (owner: "No case shit anymore", then "correct").
+`case.any`, `case.exact` and their older spellings are refused. Two names in a kit that differ only in case build, each
+such pair a note in the build report (owner: "(c)"), and an error for a name not found suggests one differing from it
+only in case: "no function `area`; did you mean `Area`?" (owner: "(a)"). What follows is the rule as it stood before.
 
 Names are exact (`case.exact`) unless a kit's writer marks them
 `case.any`: on kinds in `kit.cy` (`case.any [fn, struct, enum,
@@ -336,8 +341,7 @@ Writing `case.exact` is allowed; marks that disagree are an error. A
 own kit and from other kits. Spelled `case.insensitive` /
 `case.sensitive` until 2026-10-10 (owner: "(a)", to shorten them), and
 refused now with the new spelling. Keywords stay exact. It costs nothing at run time. DECISIONS 2026-10-06
-has the rulings and the oracle's readings; `examples/case_marks.cy`,
-`examples/uses_case`.
+has the rulings and the oracle's readings; its examples, `case_marks.cy` and `uses_case`, went with the marks.
 
 ## Open
 

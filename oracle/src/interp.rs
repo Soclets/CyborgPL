@@ -339,6 +339,21 @@ impl<'p> Interp<'p> {
 
     fn push(&mut self) { self.scopes.push(HashMap::new()); }
     fn pop(&mut self) { self.scopes.pop(); }
+    /// "; did you mean `total`?" for a name not found that differs from one in `pool` only in case (owner, 2026-10-27: (a))
+    fn case_twin<I: IntoIterator<Item = String>>(name: &str, pool: I) -> String {
+        let low = name.to_lowercase();
+        pool.into_iter().find(|n| n != name && n.to_lowercase() == low).map(|n| format!("; did you mean `{n}`?")).unwrap_or_default()
+    }
+    fn var_twin(&self, name: &str) -> String {
+        Self::case_twin(name, self.scopes.iter().flat_map(|s| s.keys().cloned()).collect::<Vec<_>>()).replacen("mean `", "mean `$", 1)
+    }
+    fn fn_twin(&self, name: &str) -> String {
+        let last = name.rsplit('.').next().unwrap_or(name).to_string();
+        Self::case_twin(&last, self.prog.funcs.iter().map(|f| f.name.rsplit('.').next().unwrap_or(&f.name).to_string()))
+    }
+    fn type_twin(&self, name: &str) -> String {
+        Self::case_twin(name, self.prog.structs.iter().map(|d| d.name.clone()).chain(self.prog.enums.iter().map(|e| e.name.clone())))
+    }
     fn lookup(&self, name: &str) -> Option<&Slot> { self.scopes.iter().rev().find_map(|s| s.get(name)).or_else(|| self.consts.get(&self.const_at(name))) }
     /// Where a const of this name is kept: in this module, or, inside a function that belongs to a
     /// type or another function (`fn Counter.next`, `fn cum.quick`, a collection's members), in the
@@ -1008,7 +1023,7 @@ impl<'p> Interp<'p> {
             Stmt::Assign { name, value, line } => {
                 let (kind, ty, immut) = match self.lookup(name) {
                     Some(s) => (s.kind, s.ty.clone(), s.immut),
-                    None => return rt(*line, format!("'{name}' is not declared")),
+                    None => return rt(*line, format!("`${name}` is not declared{}", self.var_twin(name))),
                 };
                 if kind == SlotKind::Const { return rt(*line, format!("'{name}' is a const and cannot be assigned to")); }
                 if kind == SlotKind::Extern { return rt(*line, format!("`${name}` is C's `const`, `%extern.C let ${name}`, so it is only read; a C variable CyborgPL writes is `%extern.C var ${name}` (owner, 2026-10-27)")); }
@@ -1052,7 +1067,7 @@ impl<'p> Interp<'p> {
             Stmt::AssignElem { name, index, value, line } => {
                 let (kind, ty, immut, cell) = match self.lookup(name) {
                     Some(s) => (s.kind, s.ty.clone(), s.immut, s.cell.clone()),
-                    None => return rt(*line, format!("'{name}' is not declared")),
+                    None => return rt(*line, format!("`${name}` is not declared{}", self.var_twin(name))),
                 };
                 if immut { return rt(*line, format!("'{name}' is `immut`; its elements cannot be assigned to")); }
                 if kind == SlotKind::Lent { return rt(*line, format!("'{name}' is lent (shared); its elements cannot be assigned to — a `lent.mut` could")); }
@@ -1094,7 +1109,7 @@ impl<'p> Interp<'p> {
             Stmt::AssignField { name, field, value, line } => {
                 let (kind, immut, cell) = match self.lookup(name) {
                     Some(s) => (s.kind, s.immut, s.cell.clone()),
-                    None => return rt(*line, format!("'{name}' is not declared")),
+                    None => return rt(*line, format!("`${name}` is not declared{}", self.var_twin(name))),
                 };
                 if !self.lookup(name).unwrap().alive { return rt(*line, format!("'{name}' was given away and no longer owns anything")); }
                 if immut { return rt(*line, format!("'{name}' is `immut`; its fields cannot be assigned to")); }
@@ -1341,7 +1356,7 @@ impl<'p> Interp<'p> {
                 // captures, each with its verb — as an anonymous fn's (design/functions-as-values.md)
                 let mut captures = Vec::new();
                 for (verb, v) in caps {
-                    let (kind, alive, cell, val) = match self.lookup(v) { Some(s) => (s.kind, s.alive, s.cell.clone(), s.cell.borrow().clone()), None => return rt(*line, format!("'{v}' is not declared")) };
+                    let (kind, alive, cell, val) = match self.lookup(v) { Some(s) => (s.kind, s.alive, s.cell.clone(), s.cell.borrow().clone()), None => return rt(*line, format!("`${v}` is not declared{}", self.var_twin(v))) };
                     if !alive { return rt(*line, format!("'{v}' was already given away")); }
                     match verb {
                         Verb::Lend | Verb::LendMut => {
@@ -1435,9 +1450,9 @@ impl<'p> Interp<'p> {
                 if self.nocheck_depth == 0 && self.marks_needed() { return rt(*line, "an `asm` block is a no_check site: the compiler cannot see inside it"); }
                 for b in binds {
                     match b {
-                        AsmBind::In(v, _) | AsmBind::InOut(v, _) => { if self.lookup(v).is_none() { return rt(*line, format!("'{v}' is not declared")); } }
+                        AsmBind::In(v, _) | AsmBind::InOut(v, _) => { if self.lookup(v).is_none() { return rt(*line, format!("`${v}` is not declared{}", self.var_twin(v))); } }
                         AsmBind::Lend(v, _, mutable) => {
-                            let Some(s) = self.lookup(v) else { return rt(*line, format!("'{v}' is not declared")) };
+                            let Some(s) = self.lookup(v) else { return rt(*line, format!("`${v}` is not declared{}", self.var_twin(v))) };
                             if *mutable && s.kind == SlotKind::Lent { return rt(*line, format!("'{v}' is lent (shared); it cannot be lent mutably")); }
                             if *mutable && s.immut { return rt(*line, format!("'{v}' is `immut`, so `lend.mut '{v}'` cannot hand the assembly its address to write through")); }
                         }
@@ -1454,7 +1469,7 @@ impl<'p> Interp<'p> {
                 let n = match n { Value::Int(n) if n >= 1 => n, Value::Int(n) => return rt(*line, format!("an `inline.%MSL` block runs at least one thread; here {n}")), other => return rt(*line, format!("the thread count is a whole number, not {}", other.kind())) };
                 let number = |v: &Value| matches!(v, Value::Int(_) | Value::Bin(_) | Value::Brain(_));
                 for (verb, v, slot) in binds {
-                    let Some(sl) = self.lookup(v) else { return rt(*line, format!("'{v}' is not declared")) };
+                    let Some(sl) = self.lookup(v) else { return rt(*line, format!("`${v}` is not declared{}", self.var_twin(v))) };
                     let val = sl.cell.borrow().clone();
                     let layout_c = |n: &str| self.prog.structs.iter().any(|d| d.name == n && d.layout_c);
                     let what = match &val {
@@ -1800,7 +1815,7 @@ impl<'p> Interp<'p> {
             }
             (Ty::Inst(want, args), Value::Struct(have, fields)) => {
                 if want != have { return rt(line, format!("expected a {name}, got a {have}")); }
-                let def = match self.prog.structs.iter().find(|d| &d.name == want) { Some(d) => d.clone(), None => return rt(line, format!("no struct named `{want}`")) };
+                let def = match self.prog.structs.iter().find(|d| &d.name == want) { Some(d) => d.clone(), None => return rt(line, format!("no struct named `{want}`{}", self.type_twin(want))) };
                 if def.params.len() != args.len() { return rt(line, format!("`{want}` has {} blank(s) ({}), given {}", def.params.len(), def.params.iter().map(|p| format!("<{p}>")).collect::<Vec<_>>().join(", "), args.len())); }
                 let map: HashMap<String, Ty> = def.params.iter().cloned().zip(args.iter().cloned()).collect();
                 // what each blank accepts (owner, 2026-10-02)
@@ -1814,7 +1829,7 @@ impl<'p> Interp<'p> {
             }
             (Ty::Inst(want, args), Value::Enum(have, case, data)) => {
                 if want != have { return rt(line, format!("expected a {name}, got a {have}")); }
-                let def = match self.prog.enums.iter().find(|d| &d.name == want) { Some(d) => d.clone(), None => return rt(line, format!("no enum named `{want}`")) };
+                let def = match self.prog.enums.iter().find(|d| &d.name == want) { Some(d) => d.clone(), None => return rt(line, format!("no enum named `{want}`{}", self.type_twin(want))) };
                 if def.params.len() != args.len() { return rt(line, format!("`{want}` has {} blank(s), given {}", def.params.len(), args.len())); }
                 let map: HashMap<String, Ty> = def.params.iter().cloned().zip(args.iter().cloned()).collect();
                 for (var, iface) in &def.bounds {
@@ -1833,7 +1848,7 @@ impl<'p> Interp<'p> {
             }
             (Ty::Ptr(..), v) => rt(line, format!("expected a pointer ({name}); got {} — a pointer is a `lend` of a list/array/str, or comes from C", v.kind())),
             (Ty::Struct(want), v) => {
-                if !self.prog.structs.iter().any(|sd| &sd.name == want) && !self.prog.enums.iter().any(|e| &e.name == want) { return rt(line, format!("no struct or enum named `{want}` is declared")); }
+                if !self.prog.structs.iter().any(|sd| &sd.name == want) && !self.prog.enums.iter().any(|e| &e.name == want) { return rt(line, format!("no struct or enum named `{want}` is declared{}", self.type_twin(want))); }
                 rt(line, format!("expected a {want}, got {}", v.kind()))
             }
             (Ty::Char(unit), Value::Char(_, s)) => {
@@ -2222,7 +2237,7 @@ impl<'p> Interp<'p> {
 
     fn read_var(&self, name: &str, line: usize) -> Result<Value, RuntimeError> {
         match self.lookup(name) {
-            None => rt(line, format!("'{name}' is not declared")),
+            None => rt(line, format!("`${name}` is not declared{}", self.var_twin(name))),
             Some(s) if matches!(s.kind, SlotKind::Extern | SlotKind::ExternMut) && self.nocheck_depth == 0 && self.marks_needed() =>
                 rt(line, format!("'{name}' is extern: C's variable, which nothing can be proven about — reading it is a no_check site: `no_check … '{name}' …`")),
             Some(s) if !s.alive => rt(line, format!("'{name}' was given away and no longer owns anything")),
@@ -2356,7 +2371,7 @@ impl<'p> Interp<'p> {
     /// The case of `v` among a `match`'s arms, after checking every case is covered.
     fn pick_arm<'a>(&self, v: Value, arms: &'a [Arm], line: usize) -> Result<(&'a Arm, Option<Value>, Option<Ty>), RuntimeError> {
         let (tname, case, data) = match v { Value::Enum(t, c, d) => (t, c, d), other => return rt(line, format!("`match` takes an enum value, got {} — for other types use `if`", other.kind())) };
-        let def = match self.prog.enums.iter().find(|e| e.name == tname) { Some(d) => d.clone(), None => return rt(line, format!("no enum named `{tname}`")) };
+        let def = match self.prog.enums.iter().find(|e| e.name == tname) { Some(d) => d.clone(), None => return rt(line, format!("no enum named `{tname}`{}", self.type_twin(&tname))) };
         for a in arms {
             match def.cases.iter().find(|c| c.name == a.name) {
                 None => return rt(a.line, format!("`{tname}` has no case `{}` (it has {})", a.name, def.cases.iter().map(|c| c.name.as_str()).collect::<Vec<_>>().join(", "))),
@@ -2507,7 +2522,7 @@ impl<'p> Interp<'p> {
             Expr::Owned(verb, name, _) => {
                 let (kind, alive, cell, generic) = match self.lookup(name) {
                     Some(s) => (s.kind, s.alive, s.cell.clone(), matches!(s.ty, Some(Ty::Var(_)) | Some(Ty::Inst(..)))),
-                    None => return rt(line, format!("'{name}' is not declared")),
+                    None => return rt(line, format!("`${name}` is not declared{}", self.var_twin(name))),
                 };
                 if !alive { return rt(line, format!("'{name}' was already given away")); }
                 self.stale(name, self.lookup(name).unwrap(), line)?;
@@ -2629,7 +2644,7 @@ impl<'p> Interp<'p> {
             Expr::OwnedField(verb, name, field, _) => {
                 let (kind, alive, cell) = match self.lookup(name) {
                     Some(s) => (s.kind, s.alive, s.cell.clone()),
-                    None => return rt(line, format!("'{name}' is not declared")),
+                    None => return rt(line, format!("`${name}` is not declared{}", self.var_twin(name))),
                 };
                 if !alive { return rt(line, format!("'{name}' was already given away")); }
                 let fv = match &*cell.borrow() {
@@ -2706,7 +2721,7 @@ impl<'p> Interp<'p> {
             Expr::Construct(sname, given, _) => {
                 let def = match self.prog.structs.iter().find(|d| d.name == *sname) {
                     Some(d) => d.clone(),
-                    None => return rt(line, format!("no struct named `{sname}` is declared (a call to a function is `{sname}(…)` with plain values, not `field = …`)")),
+                    None => return rt(line, format!("no struct named `{sname}` is declared{} (a call to a function is `{sname}(…)` with plain values, not `field = …`)", self.type_twin(&sname))),
                 };
                 if def.opaque { return rt(line, format!("`{sname}` is C's and opaque (owner, 2026-10-10): it is only pointed at, `ptr.mut[{sname}]`, never built")); }
                 let from = self.module.clone();
@@ -3202,7 +3217,7 @@ impl<'p> Interp<'p> {
                 if found.len() > 1 { return rt(line, format!("there are {} `{name}`; the oracle cannot yet pick one by where the value goes", found.len())); }
                 let f = match found.first().copied().or_else(|| self.prog.funcs.iter().find(|f| f.module == module && &f.name == name)) {
                     Some(f) => f,
-                    None => return rt(line, format!("no function `{name}` in `{}` (a bare name with no brackets is the function as a value)", root_or(module))),
+                    None => return rt(line, format!("no function `{name}` in `{}` (a bare name with no brackets is the function as a value){}", root_or(module), self.fn_twin(name))),
                 };
                 if !self.reachable(from, &f.module, f.vis) { return rt(line, format!("`{name}` is private to `{}`", root_or(&f.module))); }
                 if f.is_op { return rt(line, format!("`{name}` is an operator; it is not a value")); }
@@ -3229,7 +3244,7 @@ impl<'p> Interp<'p> {
                 let mut captures = Vec::new();
                 let mut owned = Vec::new();
                 for (verb, v) in caps {
-                    let (kind, alive, cell, val) = match self.lookup(v) { Some(s) => (s.kind, s.alive, s.cell.clone(), s.cell.borrow().clone()), None => return rt(line, format!("'{v}' is not declared")) };
+                    let (kind, alive, cell, val) = match self.lookup(v) { Some(s) => (s.kind, s.alive, s.cell.clone(), s.cell.borrow().clone()), None => return rt(line, format!("`${v}` is not declared{}", self.var_twin(v))) };
                     if !alive { return rt(line, format!("'{v}' was already given away")); }
                     owned.push(matches!(verb, Verb::Copy | Verb::Give));
                     match verb {
@@ -4677,7 +4692,7 @@ impl<'p> Interp<'p> {
                 let f = c.labels.iter().flatten().next().cloned().unwrap_or_default();
                 return rt(c.line, format!("a field is given by name: `{f} = value` (its type is fixed by the struct)"));
             }
-            0 => return rt(c.line, format!("no function `{name}` in `{}`", root_or(module))),
+            0 => return rt(c.line, format!("no function `{name}` in `{}`{}", root_or(module), self.fn_twin(name))),
             1 => cands[0],
             _ => self.pick_overload(cands, c, name)?,
         };
@@ -4962,7 +4977,7 @@ impl<'p> Interp<'p> {
         let fv = match self.lookup(name) {
             Some(s) if !s.alive => return rt(line, format!("'{name}' was already given away")),
             Some(s) => match &*s.cell.borrow() { Value::Func(fv) => fv.clone(), other => return rt(line, format!("'{name}' is {}, not a function; `'{name}'[…]` calls, `'{name}'[pos: …]` indexes", other.kind())) },
-            None => return rt(line, format!("'{name}' is not declared")),
+            None => return rt(line, format!("`${name}` is not declared{}", self.var_twin(name))),
         };
         let func = fv.def.clone();
         let value_used = !self.call_is_stmt;
