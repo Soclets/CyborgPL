@@ -1689,6 +1689,12 @@ fn blocks_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
         }
         // the hyphen ending a line, before a block's opening line, joins them (owner, 2026-10-26: "See that `-`?")
         if matches!(&t.tok, Tok::Op(o) if o == "-") && toks.get(i + 1).is_some_and(|x| x.line > t.line) {
+            // only there (owner, 2026-10-27: "(a)"): the line below must open a block, ending in `:`
+            let below = toks[i + 1].line;
+            let last = toks[i + 1..].iter().take_while(|x| x.line == below && x.tok != Tok::Eof).last();
+            if !last.is_some_and(|x| x.tok == Tok::Colon) {
+                return Err((t.line, t.col, "a line-end `-` joins a line to the block's opening line below it (`…(lend $row)-` / `otherwise:`); a statement goes on to the next line by itself, up to its `;` (owner, 2026-10-27)".into()));
+            }
             i += 1;
             continue;
         }

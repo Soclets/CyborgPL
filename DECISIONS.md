@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign two: the line-end `-` only joins a line to a block's opening line below it (owner: (a))
+
+Design claude's provisional pick from the build, asked: a statement ends at its `;`, so a long one already runs on to the
+next line unmarked (84 such lines in the examples, 58 of them inside an open `[ ]` or `( )` after a comma); `-` was built
+only where a call's `otherwise:` arms start on the next line, which would otherwise read as a block of its own. Offered
+(a) `-` only there, or (b) `-` ending every line a statement carries on past, recommending (a): an open bracket already
+says there is more, text and inline code running over lines cannot take one, and only the `otherwise:` line could be
+mistaken for a new start. The owner: "(a)". Built: a line-end `-` whose next line does not open a block (end in `:`) is
+now refused; until then it was quietly dropped.
+
 ### 2026-10-27 — Redesign two: an integer of any width is `int.sign.%not_std.24` (owner: (a))
 
 Design claude's provisional pick from the build, asked: `%not_std.i24` / `%not_std.u4` had kept their short form while
