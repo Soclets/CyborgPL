@@ -2168,10 +2168,14 @@ pub fn shorten(src: &str) -> Result<String, String> {
                     Tok::RBracket | Tok::RParen => d -= 1,
                     Tok::Semi if d == 0 => break,
                     Tok::Colon if d == 0 && is_def => typed = true,
-                    Tok::Walrus if d == 0 => break,
+                    Tok::Walrus if d == 0 => {
+                        let t = &toks[k];
+                        if matches!(word.as_str(), "var" | "variable") { edits.push(Edit { at: t.at, end: t.end, text: "=".into() }); }
+                        break;
+                    }
                     Tok::Eq if d == 0 => {
                         let t = &toks[k];
-                        if is_def && typed { edits.push(Edit { at: t.at, end: t.end, text: ":=".into() }); }
+                        if is_def && typed && !matches!(word.as_str(), "var" | "variable") { edits.push(Edit { at: t.at, end: t.end, text: ":=".into() }); }
                         if !is_def { edits.push(Edit { at: t.at, end: t.end, text: "to".into() }); }
                         break;
                     }
@@ -2610,10 +2614,12 @@ fn signs_back(toks: &[Token]) -> Result<HashMap<usize, Tok>, Fault> {
                 Tok::RBracket | Tok::RParen => d -= 1,
                 Tok::Semi if d == 0 => break,
                 Tok::Colon if d == 0 && is_def => typed = true,
+                // a `var` starts with `=`, as maths writes a starting value, x₀ = 0 (owner, 2026-10-27: "Yes")
+                Tok::Walrus if d == 0 && word == "var" => return Err((t.line, t.col, "a `var` starts with `=`, as a starting value is written: `var $count = 0;` (owner, 2026-10-27)".into())),
+                Tok::Eq if d == 0 && word == "var" => { if !typed { out.insert(k, Tok::Walrus); } break; }
                 Tok::Walrus if d == 0 && is_def => { if typed { out.insert(k, Tok::Eq); } break; }
                 Tok::Eq if d == 0 && is_def => {
-                    if typed { return Err((t.line, t.col, "a definition is `:=`, typed or not: `let $x: int.sign.32 := 5;` (owner, 2026-10-27)".into())); }
-                    break;
+                    { return Err((t.line, t.col, format!("a `{word}` is a definition, `:=`, typed or not: `{word} $x: int.sign.32 := 5;` (owner, 2026-10-27)"))); }
                 }
                 Tok::Eq if d == 0 => return Err((t.line, t.col, "a change is `change $x to 6;` (owner, 2026-10-27)".into())),
                 Tok::Word(w) if d == 0 && w == "to" && word == "change" && !matches!(toks.get(k + 1).map(|x| &x.tok), Some(Tok::Dot | Tok::Colon)) => { out.insert(k, Tok::Eq); break; }

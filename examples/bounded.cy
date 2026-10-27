@@ -5,7 +5,7 @@ fn fill [let $count: int.sign.32] -> std::ls[int.sign.32][min: 0, max: 5] or fai
     if $count greater_than 5:
         fail too_many;
     end of if
-    var $out := std::ls.empty;
+    var $out = std::ls.empty;
     for $i [from: 1, to: $count, by: 1]:
         std::ls.append(lend.mut $out, value: $i times $i);
     end of for
@@ -13,7 +13,7 @@ fn fill [let $count: int.sign.32] -> std::ls[int.sign.32][min: 0, max: 5] or fai
 end of fn fill
 
 !MAIN:
-    var $squares: std::ls[int.sign.32][min: 0, max: 5] := fill(3) otherwise std::ls.empty;
+    var $squares: std::ls[int.sign.32][min: 0, max: 5] = fill(3) otherwise std::ls.empty;
     let $n := std::ls.len(lend $squares);    # a u64[min: 0, max: 5]
     let $small: int.sign.8 := $n;                   # proven: the bound says at most 5
     std::print.shortest($squares, " has ", $small, newln);

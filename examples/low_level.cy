@@ -14,7 +14,7 @@ end of rec Header
 
 # FNV-1a: the wrap *is* the algorithm, so `x~`, never a check
 fn fnv1a [lent $bytes: arr[int.unsign.8]] -> int.unsign.64:
-    var $h: int.unsign.64 := 14695981039346656037;
+    var $h: int.unsign.64 = 14695981039346656037;
     for $b in lend $bytes:
         change $h to ($h xor to.int.unsign.64($b)) times.wrap 1099511628211;
     end of for
@@ -23,8 +23,8 @@ end of fn fnv1a
 
 # count the 1 bits, one shift at a time
 fn popcount [let $x: int.unsign.32] -> int.unsign.32:
-    var $n: int.unsign.32 := $x;
-    var $count: int.unsign.32 := 0;
+    var $n: int.unsign.32 = $x;
+    var $count: int.unsign.32 = 0;
     while $n greater_than 0:
         change $count to $count plus ($n and.bit 1);
         change $n to $n shr 1;

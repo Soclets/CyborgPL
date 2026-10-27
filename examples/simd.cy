@@ -1,7 +1,7 @@
 # simd[T, N] (design/simd.md, 2026-09-22): N plain values in one register, the ordinary
 # operators lane by lane. The plain loop is the portable way; this is for when it is not enough.
 fn is_ascii [lent $bytes: arr[int.unsign.8]] -> bool:
-    var $acc: simd[int.unsign.8, count: 16] := simd.fill(value: 0);
+    var $acc: simd[int.unsign.8, count: 16] = simd.fill(value: 0);
     for $i [from: 1, to: arr.len(lend $bytes), by: 16]:
         change $acc to $acc or.bit simd.load(lend $bytes, pos: $i);
     end of for
@@ -17,7 +17,7 @@ end of fn is_ascii
     std::print.shortest($a plus $b, " ", simd.sum($a), " ", simd.max($a times $b), newln);
     let $m := $a greater_than $b;                       # a simd[bool, count 4], one answer per lane
     std::print.shortest(simd.all($m), " ", simd.any($b greater_than $a), newln);
-    var $out: arr[int.sign.32] := [0, 0, 0, 0, 0, 0];
+    var $out: arr[int.sign.32] = [0, 0, 0, 0, 0, 0];
     simd.store(lend.mut $out, pos: 2, value: $a plus $b);
     std::print.shortest($out, newln);
 !end of MAIN

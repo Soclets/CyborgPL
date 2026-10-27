@@ -19,7 +19,7 @@ end of proc read_n
 proc run [] -> int.sign.32 or fail[missing, out_of_range]:
     let $key := "N";
     !no_check let $n := read_n(getenv(lend $key)) otherwise fail;
-    var $acc: int.sign.64 := 0;
+    var $acc: int.sign.64 = 0;
     for $i: int.sign.64 [from: 1, to: $n, by: 1]:
         change $acc to $acc plus (($i times $i) mod.floor 7);
     end of for

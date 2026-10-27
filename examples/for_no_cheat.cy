@@ -10,21 +10,21 @@ fn fib [let $n: int.sign.64[min: 0, max: 92]] -> int.sign.64:
 end of fn fib
 
 !MAIN:
-    var $acc: int.sign.64 := 0;
+    var $acc: int.sign.64 = 0;
     no_skip for $i: int.sign.64 [from: 1, to: 1000, by: 1]:
         change $acc to $acc plus $i;
     end of for
-    var $more: int.sign.64 := 0;
+    var $more: int.sign.64 = 0;
     no_skip for seq $i: int.sign.64 [from: 1, to: 10, by: 1]:
         change $more to $more plus $i;
     end of for
     no_skip let $f := fib(20);
-    var $both: int.sign.64 := 0;
+    var $both: int.sign.64 = 0;
     no_skip:
         change $both to $acc plus $more;
     end of no_skip
     # beside `no_check`, `no_check` comes first: the stronger word, and the unchecked part seen first (owner, 2026-10-19)
-    var $last: int.sign.64 := 0;
+    var $last: int.sign.64 = 0;
     !no_check no_skip change $last to $f;
     std::print.shortest.auto_newline($acc, " ", $more, " ", $f, " ", $both, " ", $last);
 !end of MAIN

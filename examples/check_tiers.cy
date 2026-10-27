@@ -15,7 +15,7 @@ end of proc draw
         check let $y: float.bin.16 := $x;
         draw($y);
     end of else
-    var $xs := [1, 2, 3];
+    var $xs = [1, 2, 3];
     check:
         for $i [from: 1, to: std::ls.len(lend $xs), by: 1]:
             std::print.shortest($xs[pos: $i], " ");

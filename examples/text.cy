@@ -6,7 +6,7 @@
     std::print.shortest(std::str.bytes(lend $s), " bytes, ", std::str.points(lend $s), " points, ", std::str.clusters(lend $s), " graphemes", newln);
 
     # walking a text says the unit too
-    var $vowels := 0;
+    var $vowels = 0;
     for $g in std::str.each.cluster(lend $s):
         if $g eq `o` or $g eq `e`:
             change $vowels to $vowels plus 1;

@@ -7,7 +7,7 @@
     std::print.shortest($a xor $b, newln);       # 0000 0110 = 6
     std::print.shortest(not.bit $a, newln);       # 1111 0011 = 243
     std::print.shortest($a shl 2, " ", $a shr 2, newln);   # 48 3
-    var $flags: int.unsign.8 := 0;
+    var $flags: int.unsign.8 = 0;
     change $flags to $flags or.bit 4;                # set bit 2
     change $flags to $flags or.bit 1;                # set bit 0
     std::print.shortest($flags, " ", ($flags and.bit 4) not_eq 0, newln);   # 5 true — parenthesised next to not_equal 

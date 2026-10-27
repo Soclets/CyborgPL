@@ -1,6 +1,6 @@
 # Reading, appending to and summing a list.
 fn sum [lent $items: std::ls[int.sign.32]] -> int.sign.32:
-    var $total := 0;
+    var $total = 0;
     for $n in lend $items:
         change $total to $total plus $n;
     end of for
@@ -8,7 +8,7 @@ fn sum [lent $items: std::ls[int.sign.32]] -> int.sign.32:
 end of fn sum
 
 !MAIN:
-    var $xs: std::ls[int.sign.32] := [10, 20, 30];
+    var $xs: std::ls[int.sign.32] = [10, 20, 30];
     std::print.shortest("first ", $xs[pos: 1], ", last ", $xs[pos: 3], newln);
     let $n := std::ls.len(lend $xs);
     std::print.shortest("length ", $n, newln);

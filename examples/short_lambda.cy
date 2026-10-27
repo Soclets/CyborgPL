@@ -1,7 +1,7 @@
 # A short lambda (owner, 2026-10-24: "(c)"): one value after `=`, its parameters' types and its return type taken from
 # where it goes, `keep`'s `fn[i32] -> bool` or a declared type; captures stay explicit with `with`.
 fn keep [lent $xs: std::ls[int.sign.32], let $test: fn[int.sign.32] -> bool] -> std::ls[int.sign.32]:
-    var $out: std::ls[int.sign.32] := std::ls.empty;
+    var $out: std::ls[int.sign.32] = std::ls.empty;
     for $x in lend $xs:
         if $test($x):
             std::ls.append(lend.mut $out, value: $x);

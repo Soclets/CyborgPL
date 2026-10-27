@@ -3,7 +3,7 @@
 # list goes anywhere a plain one does, lent or given, and keeps its kind as it grows there; a plain list becomes one
 # only by `to.list.page_aligned(…)` / `to.list.not_page_aligned(…)`, which may copy it.
 fn total [lent $xs: std::ls[int.sign.32]] -> int.sign.32:
-    var $s: int.sign.32 := 0;
+    var $s: int.sign.32 = 0;
     for $x in lend $xs:
         change $s to $s plus $x;
     end of for
@@ -15,7 +15,7 @@ proc grow [lent.mut $xs: std::ls[int.sign.32]]:
 end of proc grow
 
 !MAIN:
-    var $xs: std::ls.page_aligned[int.sign.32] := [1, 2, 3];
+    var $xs: std::ls.page_aligned[int.sign.32] = [1, 2, 3];
     grow(lend.mut $xs);
     std::print.shortest(total(lend $xs), " ", $xs, newln);
     let $plain: std::ls[int.sign.32] := [5, 6];

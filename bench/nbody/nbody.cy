@@ -68,7 +68,7 @@ end of proc advance
 
 fn energy [lent $bodies: std::ls[Body]] -> float.bin.64:
     let $n := std::ls.len(lend $bodies);
-    var $e: float.bin.64 := 0.0;
+    var $e: float.bin.64 = 0.0;
     for $i: int.unsign.64 [from: 1, to: $n, by: 1]:
         !no_check change $e to $e plus 0.5 times $bodies[pos: $i].mass times ($bodies[pos: $i].vx times $bodies[pos: $i].vx plus $bodies[pos: $i].vy times $bodies[pos: $i].vy plus $bodies[pos: $i].vz times $bodies[pos: $i].vz);
         for $j: int.unsign.64 [from: $i plus 1, to: $n, by: 1]:
@@ -85,9 +85,9 @@ fn energy [lent $bodies: std::ls[Body]] -> float.bin.64:
 end of fn energy
 
 proc offset_momentum [lent.mut $bodies: std::ls[Body]]:
-    var $px: float.bin.64 := 0.0;
-    var $py: float.bin.64 := 0.0;
-    var $pz: float.bin.64 := 0.0;
+    var $px: float.bin.64 = 0.0;
+    var $py: float.bin.64 = 0.0;
+    var $pz: float.bin.64 = 0.0;
     for $b in lend $bodies:
         !no_check:
             change $px to $px plus $b.vx times $b.mass;
@@ -105,7 +105,7 @@ end of proc offset_momentum
 fn run [] -> int.sign.32 or fail[missing, out_of_range]:
     let $key := "N";
     !no_check let $n := read_n(getenv(lend $key)) otherwise fail;
-    var $bodies: std::ls[Body] := [
+    var $bodies: std::ls[Body] = [
         # the Sun
         Body[x = 0.0, y = 0.0, z = 0.0, vx = 0.0, vy = 0.0, vz = 0.0, mass = $solar_mass],
         # Jupiter

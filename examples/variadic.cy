@@ -1,6 +1,6 @@
 # Functions that take any number of arguments, typed or not.
 fn sum [let ...$nums] -> float.bin.64:
-    var $total: float.bin.64 := 0;
+    var $total: float.bin.64 = 0;
     for $n in lend $nums:
         change $total to $total plus to.float.bin.64($n);
     end of for

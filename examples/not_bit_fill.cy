@@ -8,19 +8,19 @@
 %extern.C proc write [let $fd: int.sign.32, let $buf: ptr[int.unsign.8], let $len: int.unsign.64] -> int.sign.64;
 
 proc emit [let $m: int.unsign.64, let $neg: bool]:
-    var $buf: std::ls[int.unsign.8] := [];
+    var $buf: std::ls[int.unsign.8] = [];
     if $neg:
         std::ls.append(lend.mut $buf, value: 45);
     end of if
-    var $v: int.unsign.64 := $m;
-    var $ds: std::ls[int.unsign.8] := [];
+    var $v: int.unsign.64 = $m;
+    var $ds: std::ls[int.unsign.8] = [];
     std::ls.append(lend.mut $ds, value: to.int.unsign.8(48 plus ($v mod.floor 10)));
     change $v to $v div.floor 10;
     while $v greater_than 0:
         std::ls.append(lend.mut $ds, value: to.int.unsign.8(48 plus ($v mod.floor 10)));
         change $v to $v div.floor 10;
     end of while
-    var $k: int.unsign.64 := std::ls.len(lend $ds);
+    var $k: int.unsign.64 = std::ls.len(lend $ds);
     while $k at_least 1:
         std::ls.append(lend.mut $buf, value: $ds[pos: $k]);
         change $k to $k minus 1;

@@ -195,7 +195,7 @@ is fastest.
 ## A length bound — `list[T][lo, hi]`
 
 ```
-var $ys: std::ls[int.sign.32][min: 0, max: 1000] := read_numbers() otherwise std::ls.empty;
+var $ys: std::ls[int.sign.32][min: 0, max: 1000] = read_numbers() otherwise std::ls.empty;
 let $n := std::ls.len(lend $ys);      # a u64[min: 0, max: 1000]
 let $m: int.sign.32 := $n;                   # proven by the bound; no check
 ```
@@ -259,7 +259,7 @@ reading, not asked). Proposed alternative: leave it, looping over
 ## A list of n copies — `list.fill` (owner, 2026-09-30)
 
 ```
-var $scores := std::ls.fill(value: 0, count: 10);              # ten 0s
+var $scores = std::ls.fill(value: 0, count: 10);              # ten 0s
 let $flags: std::ls[bool] := std::ls.fill(value: false, count: $n);   # 'n' falses
 ```
 

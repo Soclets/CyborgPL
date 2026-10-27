@@ -13,7 +13,7 @@ end of fn by_owner
 
 # a function that takes a function: the type is the signature without the names
 fn first_by [lent $xs: std::ls[Locker], let $less: fn[lent Locker, lent Locker] -> bool] -> str.utf8:
-    var $best := 1;
+    var $best = 1;
     for $i [from: 2, to: std::ls.len(lend $xs), by: 1]:
         if $less(lend $xs[pos: $i], lend $xs[pos: $best]):
             change $best to $i;
@@ -24,7 +24,7 @@ fn first_by [lent $xs: std::ls[Locker], let $less: fn[lent Locker, lent Locker] 
 end of fn first_by
 
 fn keep [lent $xs: std::ls[int.sign.32], let $test: fn[int.sign.32] -> bool] -> std::ls[int.sign.32]:
-    var $out: std::ls[int.sign.32] := [];
+    var $out: std::ls[int.sign.32] = [];
     for $x in lend $xs:
         if $test($x):
             std::ls.append(lend.mut $out, value: $x);

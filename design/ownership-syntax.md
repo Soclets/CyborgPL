@@ -103,7 +103,7 @@ a chain segment, `var.!mut.i32`), and the compiler then holds them to it:
 
 ```
 let $limit: int.sign.32 := 10;      # assigning to 'limit' later is an error
-var $counter := 0;             # a promise that it changes: refused if nothing does (2026-10-10)
+var $counter = 0;             # a promise that it changes: refused if nothing does (2026-10-10)
 fn twice [let $n: int.sign.32] -> int.sign.32:
     …
 end of fn twice

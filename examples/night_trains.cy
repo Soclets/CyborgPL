@@ -104,7 +104,7 @@ interface Number:
 end of interface Number
 
 fn total_of <T: Number> [lent $xs: std::ls[<T>]] -> <T>:
-    var $sum: <T> := 0;
+    var $sum: <T> = 0;
     for $x in lend $xs:
         change $sum to $sum plus $x;
     end of for
@@ -186,8 +186,8 @@ proc add_station [lent.mut $stations: std::ls[str.utf8], lent $name: str.utf8]:
 end of proc add_station
 
 proc read_network [lent $rows: std::ls[str.utf8]] -> Network:
-    var $stations: std::ls[str.utf8] := std::ls.empty;
-    var $links: std::ls[Link] := std::ls.empty;
+    var $stations: std::ls[str.utf8] = std::ls.empty;
+    var $links: std::ls[Link] = std::ls.empty;
     for $row in lend $rows:
         let $link := parse_link(lend $row)-
         otherwise:
@@ -219,15 +219,15 @@ end of fn knows
 # ---------------------------------------------------------------------------------------------------
 
 proc quickest_from [lent $net: Network, lent $from: str.utf8] -> std::map.ordered[str.utf8, Reach]:
-    var $best: std::map.ordered[str.utf8, Reach] := std::map.empty;
-    var $done: std::map[str.utf8, bool] := std::map.empty;
+    var $best: std::map.ordered[str.utf8, Reach] = std::map.empty;
+    var $done: std::map[str.utf8, bool] = std::map.empty;
     std::map.set(lend.mut $best, key: copy $from, value: Reach[minutes = 0, km = 0, prev = str.empty]);
     loop:
         # the unfinished station reached soonest; the first in the station list wins a tie
-        var $found := false;
-        var $pick := str.empty;
-        var $pick_minutes: trip.minutes := 0;
-        var $pick_km: trip.km := 0;
+        var $found = false;
+        var $pick = str.empty;
+        var $pick_minutes: trip.minutes = 0;
+        var $pick_km: trip.km = 0;
         for $s in lend $net.stations:
             if std::map.has(lend $done, key: lend $s):
                 continue;
@@ -252,7 +252,7 @@ proc quickest_from [lent $net: Network, lent $from: str.utf8] -> std::map.ordere
             break;
         end of if
         std::map.set(lend.mut $done, key: copy $pick, value: true);
-        var $wait := $change_minutes;
+        var $wait = $change_minutes;
         if $pick eq $from:
             change $wait to 0;
         end of if
@@ -319,8 +319,8 @@ proc journey [lent $net: Network, lent $from: str.utf8, lent $to: str.utf8] -> J
             fail no_route;
         end of case missing
     end of otherwise;
-    var $back: std::ls[str.utf8] := std::ls.empty;
-    var $at := copy $to;
+    var $back: std::ls[str.utf8] = std::ls.empty;
+    var $at = copy $to;
     loop:
         std::ls.append(lend.mut $back, value: copy $at);
         if $at eq $from:
@@ -334,7 +334,7 @@ proc journey [lent $net: Network, lent $from: str.utf8, lent $to: str.utf8] -> J
         end of otherwise;
         change $at to copy $r.prev;
     end of loop
-    var $stops: std::ls[str.utf8] := std::ls.empty;
+    var $stops: std::ls[str.utf8] = std::ls.empty;
     let $n := std::ls.len(lend $back);
     for $k [from: 1, to: $n, by: 1]:
         std::ls.append(lend.mut $stops, value: copy $back[pos: $n minus $k plus 1]);
@@ -534,7 +534,7 @@ end of fn todays_requests
 
 # How many of each kind of place are left on tonight's trains, by `seat_name`.
 fn places_left [] -> std::map.ordered[str.utf8, int.sign.32]:
-    var $left: std::map.ordered[str.utf8, int.sign.32] := std::map.empty;
+    var $left: std::map.ordered[str.utf8, int.sign.32] = std::map.empty;
     std::map.set(lend.mut $left, key: "seat", value: 40);
     std::map.set(lend.mut $left, key: "couchette", value: 6);
     std::map.set(lend.mut $left, key: "sleeper for 1", value: 1);
@@ -611,10 +611,10 @@ end of rec Arrival
 # Soonest first: each arrival goes in before the first one later than it, so arrivals at the same time keep their
 # order. The list is written out anew around each one, which needs no positions.
 fn soonest_first [lent $xs: std::ls[Arrival]] -> std::ls[Arrival]:
-    var $out: std::ls[Arrival] := std::ls.empty;
+    var $out: std::ls[Arrival] = std::ls.empty;
     for $x in lend $xs:
-        var $next: std::ls[Arrival] := std::ls.empty;
-        var $placed := false;
+        var $next: std::ls[Arrival] = std::ls.empty;
+        var $placed = false;
         for $y in lend $out:
             if not $placed and $x.minutes less_than $y.minutes:
                 std::ls.append(lend.mut $next, value: copy $x);
@@ -631,11 +631,11 @@ fn soonest_first [lent $xs: std::ls[Arrival]] -> std::ls[Arrival]:
 end of fn soonest_first
 
 proc board [lent $net: Network, lent $from: str.utf8]:
-    var $out := std::print.writer(size: 4096 bytes);
+    var $out = std::print.writer(size: 4096 bytes);
     std::print.shortest(lend.mut $out, newln, "departures from ", $from, " at ", clock($departure), newln);
     std::print.format(lend.mut $out, "  {align: left, width: 12 cols} {align: left, width: 8 cols} {align: right, width: 6 cols}{newln}", "to", "arrives", "km");
     let $best := quickest_from(lend $net, lend $from);
-    var $arrivals: std::ls[Arrival] := std::ls.empty;
+    var $arrivals: std::ls[Arrival] = std::ls.empty;
     for $e in std::map.pairs(lend $best):
         if $e.key eq $from:
             continue;
@@ -656,7 +656,7 @@ end of proc board
 
 proc reached_by [lent $net: Network, lent $hub: str.utf8, let $deadline: int.sign.32] -> int.unsign.64:
     let $best := quickest_from(lend $net, lend $hub);
-    var $reached: std::ls[str.utf8] := std::ls.empty;
+    var $reached: std::ls[str.utf8] = std::ls.empty;
     for $e in std::map.pairs(lend $best):
         if $e.key not_eq $hub and $departure plus $e.value.minutes at_most $deadline:
             std::ls.append(lend.mut $reached, value: copy $e.key);
@@ -692,7 +692,7 @@ end of proc compare_hubs
 # ---------------------------------------------------------------------------------------------------
 
 fn stations_where [lent $net: Network, let $keep: fn[str.utf8] -> bool] -> std::ls[str.utf8]:
-    var $out: std::ls[str.utf8] := std::ls.empty;
+    var $out: std::ls[str.utf8] = std::ls.empty;
     for $s in lend $net.stations:
         if $keep(copy $s):
             std::ls.append(lend.mut $out, value: copy $s);
@@ -720,12 +720,12 @@ end of proc show_letters
 # ---------------------------------------------------------------------------------------------------
 
 proc report [lent $bookings: std::ls[Booking][max: 500], lent $left: std::map.ordered[str.utf8, int.sign.32]]:
-    var $out := std::print.writer(size: 4096 bytes);
+    var $out = std::print.writer(size: 4096 bytes);
     std::print.shortest(lend.mut $out, newln, "=== ", $network_name, ", tonight ===", newln);
-    var $fares: std::ls[float.%deci.64][max: 500] := std::ls.empty;
-    var $kms: std::ls[int.sign.32][max: 500] := std::ls.empty;
-    var $longest := 0;
-    var $longest_who := "nobody";
+    var $fares: std::ls[float.%deci.64][max: 500] = std::ls.empty;
+    var $kms: std::ls[int.sign.32][max: 500] = std::ls.empty;
+    var $longest = 0;
+    var $longest_who = "nobody";
     for $b in lend $bookings:
         std::ls.append(lend.mut $fares, value: $b.fare);
         std::ls.append(lend.mut $kms, value: $b.journey.km);
@@ -753,8 +753,8 @@ end of proc report
 # Every request of the day, each with the next ticket number; the ones that cannot be read or booked are explained.
 proc book_all [lent $net: Network, lent.mut $left: std::map.ordered[str.utf8, int.sign.32], lent $lines: std::ls[str.utf8]] -> std::ls[Booking][max: 500]:
     std::print.shortest(newln, "bookings:", newln);
-    var $bookings: std::ls[Booking][max: 500] := std::ls.empty;
-    var $ticket := 500;
+    var $bookings: std::ls[Booking][max: 500] = std::ls.empty;
+    var $ticket = 500;
     for $line in lend $lines:
         if std::ls.len(lend $bookings) at_least $most_bookings:
             std::print.shortest("  (tonight's trains are full)", newln);
@@ -783,7 +783,7 @@ end of proc book_all
 # The night's quarter hours, from departure to midnight, walked by the clock's own iterator.
 proc show_quarter_hours []:
     std::print.shortest(newln, "the last quarter hours before midnight:");
-    var $quarters := Clock[now = $departure, stop = 1440];
+    var $quarters = Clock[now = $departure, stop = 1440];
     for $t in lend.mut $quarters:
         std::print.shortest(" ", clock($t));
     end of for
@@ -811,7 +811,7 @@ end of proc show_exact_money
     let $net := read_network(lend $rows);
     std::print.shortest("  ", std::ls.len(lend $net.links), " lines between ", std::ls.len(lend $net.stations), " stations", newln);
     board(lend $net, "Wien");
-    var $left := places_left();
+    var $left = places_left();
     let $requests := todays_requests();
     let $bookings := book_all(lend $net, lend.mut $left, lend $requests);
     report(lend $bookings, lend $left);

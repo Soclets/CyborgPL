@@ -11,7 +11,7 @@ proc descending [let $a: ptr[int.sign.32], let $b: ptr[int.sign.32]] -> int.sign
 end of proc descending
 
 !MAIN:
-    var $nums := [5, 1, 4, 2, 3];
+    var $nums = [5, 1, 4, 2, 3];
     !no_check qsort(lend.mut $nums, 5, size.of[int.sign.32], ascending);
     std::print.shortest($nums, newln);
     !no_check qsort(lend.mut $nums, 5, size.of[int.sign.32], descending);

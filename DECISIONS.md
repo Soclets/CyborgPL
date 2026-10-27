@@ -34,6 +34,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: a `var` starts with `=`, as a starting value is written; `let` and `const` keep `:=` (owner)
+
+The owner: "What about `var`?", then "Well, is `:=` accurate for var?" Design claude: strictly no, a definition holds
+for as long as the name exists; offered `from` ("Shit sounds weird"), `init` / `starts`, or keeping `:=`; the owner:
+"What about `init_stores`?", then "How do you even write a var in maths?" Design claude: pure maths has none; something
+that changes is a sequence, x₀ = 0, xₙ₊₁ = xₙ + 1 (pseudocode writes x ← 0). The owner: "Hmmm, is that... An `=`" (yes,
+accurate there, the two sides being different names), "Or we could do `=`?", "I mean, they did use (a) for a math var,
+right?" (yes: a recurrence's initial condition is written `=`, never `:=`), then, shown the split, "Yes". So **`var $count
+= 0;`, `var $total: int.sign.32 = 0;`** (a starting value, x₀ = 0), **`let $limit := 10;`, `const $rate := 0.12;`** (a
+definition), and **`change $count to $count plus 1;`** (each step after); `var … :=` and `let … =` are refused, each
+naming the other; the shadows follow their word (`let shadow $x := …`, `var shadow $x = …`). Built.
+
 ### 2026-10-27 — Redesign: a change is `change $x to 6;` (owner); built with every definition `:=`
 
 Asked how `change $x = 6;` reads in the maths sense (it claims `$x` equals 6, false a moment before), design claude

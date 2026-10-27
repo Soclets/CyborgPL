@@ -8,7 +8,7 @@ fn heaviest [var ...$items: Item] -> Item or fail[none]:
     if std::ls.len(lend $items) eq 0:
         fail none;
     end of if
-    var $best := std::ls.remove(lend.mut $items, pos: 1);
+    var $best = std::ls.remove(lend.mut $items, pos: 1);
     for $it in lend $items:
         if $it.grams greater_than $best.grams:
             change $best to copy $it;
@@ -32,7 +32,7 @@ fn initial [lent $name: str.utf8] -> char.%point:
 end of fn initial
 
 !MAIN:
-    var $shelf: std::ls[Item][min: 0, max: 4] := std::ls.empty;
+    var $shelf: std::ls[Item][min: 0, max: 4] = std::ls.empty;
     std::ls.append(lend.mut $shelf, value: Item[name = "rope", grams = 1_250]);
     std::ls.append(lend.mut $shelf, value: Item[name = "helmet", grams = 900]);
     std::ls.append(lend.mut $shelf, value: Item[name = "tent", grams = 4_000]);

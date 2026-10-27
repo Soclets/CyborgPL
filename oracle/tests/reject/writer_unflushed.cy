@@ -6,7 +6,7 @@ end of proc report
     std::print.shortest("starting", newln);
     std::print.flush();
 
-    var $out := std::print.writer(size: 4096 bytes);
+    var $out = std::print.writer(size: 4096 bytes);
     for $i: int.sign.64 [from: 1, to: 3, by: 1]:
         std::print.shortest(lend.mut $out, "line ", $i, newln);
     end of for

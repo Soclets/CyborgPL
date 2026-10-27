@@ -34,7 +34,7 @@ fn save [lent $l: Locker] -> fail[disk_full]:
 end of fn save
 
 !MAIN:
-    var $mine := Locker[owner = "Tankun", items = std::ls.empty];
+    var $mine = Locker[owner = "Tankun", items = std::ls.empty];
     let $names := ["rope", str.empty, "helmet", "torch"];
     for $n in lend $names:
         let $ok := stash(lend.mut $mine, copy $n)-

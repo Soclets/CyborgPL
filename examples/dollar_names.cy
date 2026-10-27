@@ -7,7 +7,7 @@ fn twice [let $n: int.sign.64] -> int.sign.64:
 end of fn twice
 
 !MAIN:
-    var $total := 1;
+    var $total = 1;
     change $total to $total plus 1;
     let $'total due' := twice($total) times 10;
     let $xs: std::ls[int.sign.64] := [$total, $'total due'];

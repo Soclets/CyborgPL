@@ -1,7 +1,7 @@
 # A bare literal takes a generic's type, as it takes a written one (owner, 2026-10-22: "it should work"): `let $sum: <T>
 # = 0;` is a d64 0 when `<T>` is filled with d64, an f64 0 with f64, an integer with i32.
 fn total <T: any> [lent $xs: std::ls[<T>]] -> <T>:
-    var $sum: <T> := 0;
+    var $sum: <T> = 0;
     for $x in lend $xs:
         change $sum to $sum plus $x;
     end of for

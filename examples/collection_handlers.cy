@@ -45,7 +45,7 @@ proc half_or_zero [let $n: int.sign.32] -> int.sign.32:
 end of proc half_or_zero
 
 fn sum_of_halves [lent $xs: std::ls[int.sign.32], let $until_bad: bool] -> int.sign.32:
-    var $sum := 0;
+    var $sum = 0;
     for $x in lend $xs:
         if $until_bad:
             let $h := half($x) otherwise half_failed.!stop;

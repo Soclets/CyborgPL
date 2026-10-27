@@ -3,7 +3,7 @@ fn first [lent $a: std::ls[int.sign.32]] -> lent std::ls[int.sign.32]:
     ret lend $a;
 end of fn first
 !MAIN:
-    var $s: std::ls[int.sign.32] := [1, 2, 3];
+    var $s: std::ls[int.sign.32] = [1, 2, 3];
     let $r := first(lend $s);
     std::ls.append(lend.mut $s, value: 4);
     std::print.shortest(std::ls.len(lend $r), newln);

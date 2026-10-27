@@ -1,6 +1,6 @@
 # Lists of lists, and a generic function that counts any list.
 fn count <T: any> [lent $items: std::ls[<T>]] -> int.sign.32:
-    var $n := 0;
+    var $n = 0;
     for $item in lend $items:
         change $n to $n plus 1;
     end of for

@@ -11,7 +11,7 @@
     std::print.shortest($a less_than $b, " ", $a greater_than $b, " ", $a less_than $b, " ", $a greater_than $b, newln);
     std::print.shortest(neg $a, " ", neg $a, " ", neg 5, newln);
     std::print.shortest($a plus $b, " ", $a div.floor $b, " ", $a eq $b, newln);
-    var $i := 1;
+    var $i = 1;
     change $i to $i plus 1;
     std::print.shortest($i, newln);
 !end of MAIN

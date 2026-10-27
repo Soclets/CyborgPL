@@ -10,7 +10,7 @@ algorithm.
 
 ```
 fn is_ascii [lent $bytes: arr[int.unsign.8]] -> bool:
-    var $acc := simd.fill(value: 0);                          # simd[u8, count 16]
+    var $acc = simd.fill(value: 0);                          # simd[u8, count 16]
     for $i [from: 1, to: arr.len(lend $bytes), by: 16]:
         change $acc to $acc or.bit simd.load(lend $bytes, pos: $i);
     end of for

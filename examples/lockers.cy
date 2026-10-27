@@ -24,9 +24,9 @@ fn label [lent $l: Locker] -> str.utf8:
 end of fn label
 
 !MAIN:
-    var $mine := Locker[number = 7, owner = "Tankun", items = std::ls.empty];
+    var $mine = Locker[number = 7, owner = "Tankun", items = std::ls.empty];
     let $names := ["helmet", "gloves", "rope"];
-    var $stored: int.sign.32 := 0;
+    var $stored: int.sign.32 = 0;
 
     for $n in lend $names:
         if stash(lend.mut $mine, copy $n):

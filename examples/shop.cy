@@ -23,7 +23,7 @@ fn cheapest <T: Priced> [lent $xs: std::ls[<T>]] -> <T> or fail[empty]:
     if std::ls.len(lend $xs) eq 0:
         fail empty;
     end of if
-    var $best := 1;
+    var $best = 1;
     for $k [from: 2, to: std::ls.len(lend $xs), by: 1]:
         if price(lend $xs[pos: $k]) less_than price(lend $xs[pos: $best]):
             change $best to $k;
@@ -48,7 +48,7 @@ fn describe [lent $i: Item] -> str.utf8:
 end of fn describe
 
 fn keep [lent $xs: std::ls[Item], let $test: fn[lent Item] -> bool] -> std::ls[Item]:
-    var $out: std::ls[Item] := [];
+    var $out: std::ls[Item] = [];
     for $x in lend $xs:
         if $test(lend $x):
             std::ls.append(lend.mut $out, value: copy $x);

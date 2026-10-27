@@ -21,7 +21,7 @@ fn run [] -> int32 or fail[missing, out_of_range]:
     let $key := "N";
     !no_check let $n := read_n[getenv[lend $key]] otherwise fail;
     # n + 1 falses, as C's calloc gives them (`list.fill`, owner 2026-09-30).
-    var $comp: ls[bool] := ls.fill[value false, count $n plus 1];
+    var $comp: ls[bool] = ls.fill[value false, count $n plus 1];
     # cross off the multiples of each prime up to √n, each prime's multiples spread across the cores
     for $p: int64 from 2 to $n by 1:
         if not $comp[pos to.uint64[$p plus 1]]:
@@ -31,7 +31,7 @@ fn run [] -> int32 or fail[missing, out_of_range]:
         end of if
     end of for
     # then count what is left, a reduction across the cores
-    var $count: int64 := 0;
+    var $count: int64 = 0;
     for %para $i: int64 from 2 to $n by 1:
         if not $comp[pos to.uint64[$i plus 1]]:
             change $count to $count plus 1;

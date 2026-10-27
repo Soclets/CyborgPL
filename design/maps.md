@@ -6,7 +6,7 @@ Decided 2026-09-22, one question at a time. The third collection, beside
 `list` and `array` (`lists.md`): look a value up by a key.
 
 ```
-var $phones: std::map[str.utf8, int.sign.32] := std::map.empty;
+var $phones: std::map[str.utf8, int.sign.32] = std::map.empty;
 std::map.set(lend.mut $phones, key: "ann", value: 5551);                 # add, or replace an existing key's value
 let $n := std::map.get(lend $phones, key: "ann") otherwise 0;    # a missing key is a failure
 if std::map.has(lend $phones, key: "bob"):
@@ -91,7 +91,7 @@ a compile error. Proposed alternatives: a list of two-element lists
 ## A count bound, and bounds inside (owner: yes)
 
 ```
-var $small: std::map[str.utf8[min: 1, max: 3 bytes], int.sign.32[min: 0, max: 10]][min: 0, max: 2] := std::map.empty;
+var $small: std::map[str.utf8[min: 1, max: 3 bytes], int.sign.32[min: 0, max: 10]][min: 0, max: 2] = std::map.empty;
 ```
 
 `map[K, V][lo, hi]` bounds the number of entries, as `list[T][lo, hi]`

@@ -14,7 +14,7 @@ end of proc mul_add_asm
 
 # how many zero bits before the first 1, counting from the top
 proc leading_zeros_asm [let $n: int.unsign.64] -> int.unsign.64:
-    var $z: int.unsign.64 := $n;
+    var $z: int.unsign.64 = $n;
     !no_check inline.ASM with [$z <-> x0]:
         clz x0, x0
     end of inline.ASM
@@ -22,8 +22,8 @@ proc leading_zeros_asm [let $n: int.unsign.64] -> int.unsign.64:
 end of proc leading_zeros_asm
 
 fn leading_zeros_zag [let $n: int.unsign.64] -> int.unsign.64:
-    var $z: int.unsign.64 := 0;
-    var $mask: int.unsign.64 := 9223372036854775808;   # the top bit
+    var $z: int.unsign.64 = 0;
+    var $mask: int.unsign.64 = 9223372036854775808;   # the top bit
     while $mask not_eq 0 and ($n and.bit $mask) eq 0:
         change $mask to $mask shr 1;
         change $z to $z plus 1;

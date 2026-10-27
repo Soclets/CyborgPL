@@ -9,7 +9,7 @@ coll.fn greet:
         if std::str.bytes(lend $who) greater_than 20:
             fail too_long;
         end of if
-        var $out := str.empty;
+        var $out = str.empty;
         for $i [from: 1, to: $times, by: 1]:
             change $out to $out concat $word concat ", ";
         end of for

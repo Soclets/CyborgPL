@@ -26,7 +26,7 @@ proc Forever.next [lent.mut $f: Forever] -> optional[int.sign.32]:
 end of proc Forever.next
 
 !MAIN:
-    var $c := Counter[now = 0, stop = 5];
+    var $c = Counter[now = 0, stop = 5];
     match Counter.next(lend.mut $c):
         case value $x:
             std::print.shortest("by hand: ", $x, newln);
@@ -44,7 +44,7 @@ end of proc Forever.next
     for $x in give $c:
         std::print.shortest("given: ", $x, newln);
     end of for
-    var $f := Forever[n = 0];
+    var $f = Forever[n = 0];
     for perm $y in lend.mut $f:
         if $y eq 3:
             break;

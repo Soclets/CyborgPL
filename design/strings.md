@@ -27,7 +27,7 @@ goes away unflushed. Spellings open. Its size is in bytes, the unit written: `si
 for now", over also allowing `4 KiB`).
 
 ```
-var $out := std::print.writer(size: 4096 bytes);   # std::print.writer.stderr(…) for stderr
+var $out = std::print.writer(size: 4096 bytes);   # std::print.writer.stderr(…) for stderr
 std::print.shortest(lend.mut $out, "line ", $i, newln);  # a first argument `lend.mut` of a writer: into it
 std::print.flush(lend.mut $out);                       # left out, kayo refuses: $out goes away holding text
 std::print.flush();                                    # what kayo's own buffer holds, now

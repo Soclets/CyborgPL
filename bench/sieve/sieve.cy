@@ -19,8 +19,8 @@ proc run [] -> int.sign.32 or fail[missing, out_of_range]:
     let $key := "N";
     !no_check let $n := read_n(getenv(lend $key)) otherwise fail;
     # n + 1 falses, as C's calloc gives them (`list.fill`, owner 2026-09-30).
-    var $comp: std::ls[bool] := std::ls.fill(value: false, count: $n plus 1);
-    var $count: int.sign.64 := 0;
+    var $comp: std::ls[bool] = std::ls.fill(value: false, count: $n plus 1);
+    var $count: int.sign.64 = 0;
     for $p: int.sign.64 [from: 2, to: $n, by: 1]:
         if not $comp[pos: to.int.unsign.64($p plus 1)]:
             change $count to $count plus 1;

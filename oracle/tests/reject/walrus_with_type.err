@@ -1,1 +1,1 @@
-a definition is `:=`, typed or not: `let $x: int.sign.32 := 5;`
+a `let` is a definition, `:=`, typed or not: `let $x: int.sign.32 := 5;`

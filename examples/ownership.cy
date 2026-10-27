@@ -1,6 +1,6 @@
 # Ownership: `lend`, `lend.mut`, `give` and `copy`.
 fn count [lent $items: std::ls[str.utf8]] -> int.sign.32:
-    var $n := 0;
+    var $n = 0;
     for $item in lend $items:
         change $n to $n plus 1;
     end of for
@@ -18,7 +18,7 @@ end of fn greet
 !MAIN:
     let $s := "line 1" concat newln concat "line 2";
     let $t := give $s;
-    var $u := copy $t;
+    var $u = copy $t;
     shout(lend.mut $u);
     std::print.stored($t, newln);
     std::print.stored($u, newln);

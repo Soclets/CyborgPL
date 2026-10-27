@@ -73,8 +73,8 @@ end of rec Cursor
 # `bad_byte` with its position for a byte no reading has, or a number past what the sensor reads.
 proc next_reading [lent.mut $c: Cursor] -> temp or fail[done, bad_byte: int.unsign.64]:
     let $n := arr.len($log);
-    var $at := $c.at;
-    var $first: int.unsign.8 := 0;
+    var $at = $c.at;
+    var $first: int.unsign.8 = 0;
     loop:
         if $at greater_than $n:
             fail done;
@@ -96,7 +96,7 @@ proc next_reading [lent.mut $c: Cursor] -> temp or fail[done, bad_byte: int.unsi
     if $negative:
         change $at to $at plus 1;
     end of if
-    var $value: int.sign.32 := 0;
+    var $value: int.sign.32 = 0;
     while $at at_most $n and.then $log[pos: $at] not_eq $newline:
         let $b := $log[pos: $at];
         if $b less_than $zero:
@@ -142,7 +142,7 @@ end of proc log_ends
 # The CRC-32 of the whole log (the one zlib and PNG use, reflected, polynomial 0xEDB8_8320), bit by bit: no table,
 # so no memory beyond the program's own.
 fn crc32 [] -> int.unsign.32:
-    var $crc: int.unsign.32 := hex FFFF_FFFF;
+    var $crc: int.unsign.32 = hex FFFF_FFFF;
     for $i [from: 1, to: arr.len($log), by: 1]:
         change $crc to $crc xor to.int.unsign.32($log[pos: $i]);
         for $k [from: 1, to: 8, by: 1]:
@@ -163,7 +163,7 @@ end of fn crc32
 
 # Tenths of a degree as degrees: `-3.5`, `21.0`.
 proc show_tenths [let $t: day.tenths]:
-    var $a := $t;
+    var $a = $t;
     if $t less_than 0:
         std::print.shortest("-");
         change $a to neg $t;
@@ -293,19 +293,19 @@ rec Day:
 end of rec Day
 
 proc read_day [] -> Day:
-    var $c := Cursor[at = 1];
-    var $sum: day.sum := 0;
-    var $low: temp := 600;
-    var $low_hour: day.hour := 0;
-    var $high: temp := neg 500;
-    var $high_hour: day.hour := 0;
-    var $rise: day.step := 0;
-    var $rise_hour: day.hour := 1;
-    var $warm: day.count := 0;
-    var $hot: day.count := 0;
-    var $changes: day.count := 0;
-    var $prev: temp := 0;
-    var $alarm := Alarm.calm;
+    var $c = Cursor[at = 1];
+    var $sum: day.sum = 0;
+    var $low: temp = 600;
+    var $low_hour: day.hour = 0;
+    var $high: temp = neg 500;
+    var $high_hour: day.hour = 0;
+    var $rise: day.step = 0;
+    var $rise_hour: day.hour = 1;
+    var $warm: day.count = 0;
+    var $hot: day.count = 0;
+    var $changes: day.count = 0;
+    var $prev: temp = 0;
+    var $alarm = Alarm.calm;
     std::print.shortest("alarm:  ");
     show_alarm(copy $alarm);
     for $hour [from: 0, before: $hours, by: 1]:
@@ -361,7 +361,7 @@ end of proc read_day
 
 # A status word for a control panel, four bytes from the top: readings, warm hours, hot hours, alarm changes.
 fn status_word [lent $d: Day] -> int.unsign.32:
-    var $w := to.int.unsign.32($hours) shl 24;
+    var $w = to.int.unsign.32($hours) shl 24;
     change $w to $w or.bit (to.int.unsign.32($d.warm_hours) shl 16);
     change $w to $w or.bit (to.int.unsign.32($d.hot_hours) shl 8);
     change $w to $w or.bit to.int.unsign.32($d.changes);

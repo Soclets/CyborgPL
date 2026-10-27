@@ -5,12 +5,12 @@ fn add [let $a: int.sign.32, let $b: int.sign.32] -> int.sign.32:
 end of fn add
 
 !MAIN:
-    var $xs: std::ls[int.sign.32] := [];
+    var $xs: std::ls[int.sign.32] = [];
     std::ls.append(lend.mut $xs, value: 3);
     std::ls.append(lend.mut $xs, value: 4);
     std::print.shortest(std::ls.len(lend $xs), newln);
 
-    var $phones: std::map[str.utf8, int.sign.32] := std::map.empty;
+    var $phones: std::map[str.utf8, int.sign.32] = std::map.empty;
     std::map.set(lend.mut $phones, key: "ann", value: 5551);
     std::map.set(lend.mut $phones, key: "bob", value: 5552);
     let $n := std::map.get(lend $phones, key: "ann") otherwise 0;

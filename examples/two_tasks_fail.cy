@@ -7,7 +7,7 @@ fn judge [let $n: int.sign.32] -> fail[small]:
     end of if
 end of fn judge
 !MAIN:
-    var $seen: int.sign.32 := 0;
+    var $seen: int.sign.32 = 0;
     block:
         %spawn.task:
             judge(3) otherwise fail;

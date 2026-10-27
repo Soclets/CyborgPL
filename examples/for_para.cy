@@ -2,7 +2,7 @@
 # the prover decides, and a loop that prints stays in order by itself. The oracle runs every loop in order.
 !MAIN:
     let $xs: std::ls[int.sign.64] := [1, 2, 3, 4];
-    var $total: int.sign.64 := 0;
+    var $total: int.sign.64 = 0;
     for %para $x in lend $xs:
         change $total to $total plus $x;
     end of for

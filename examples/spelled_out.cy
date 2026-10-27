@@ -7,7 +7,7 @@ fn ratio [let $n: int.sign.32[min: 1]] -> int.sign.32:
 end of fn ratio
 !MAIN:
     let $xs: std::ls[int.sign.32] := [10, 20, 30, 40];
-    var $total: int.sign.32 := 0;
+    var $total: int.sign.32 = 0;
     for temp $i: int.unsign.64 [from: 1, to: 4, by: 1]:
         change $total to $total plus $xs[pos: $i];
     end of for

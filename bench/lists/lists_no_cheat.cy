@@ -21,11 +21,11 @@ end of proc read_n
 proc run [] -> int.sign.32 or fail[missing, out_of_range]:
     let $key := "N";
     !no_check let $n := read_n(getenv(lend $key)) otherwise fail;
-    var $xs: std::ls[int.sign.64] := [];
+    var $xs: std::ls[int.sign.64] = [];
     for $i: int.sign.64 [from: 1, to: $n, by: 1]:
         std::ls.append(lend.mut $xs, value: $i mod.floor 1000);
     end of for
-    var $acc: int.sign.64 := 0;
+    var $acc: int.sign.64 = 0;
     for $r: int.sign.64 [from: 1, to: 10, by: 1]:
         for $x in lend $xs:
             change $acc to $acc plus $x;

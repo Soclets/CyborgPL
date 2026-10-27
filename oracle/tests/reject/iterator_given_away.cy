@@ -10,7 +10,7 @@ proc Counter.next [lent.mut $c: Counter] -> optional[int.sign.32]:
     ret optional.value($c.now);
 end of proc Counter.next
 !MAIN:
-    var $c := Counter[now = 0, stop = 2];
+    var $c = Counter[now = 0, stop = 2];
     for $x in give $c:
     end of for
     let $again := Counter.next(lend.mut $c);

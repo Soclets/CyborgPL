@@ -48,7 +48,7 @@ other kits, own stays bare."): its functions, types, enums and enum values, std'
 
 ```
 std::print.shortest(greet::hello(), newln);
-var $xs: std::ls[int.sign.64] := [];
+var $xs: std::ls[int.sign.64] = [];
 std::ls.append(lend.mut $xs, value: 3);
 let $b: greet::Note := greet::Note[text = "hi"];
 let $up := std::str.upper.full(lend $s, lang: std::casing.tr);

@@ -18,7 +18,7 @@ proc claim [lent.mut $l: Locker]:
 end of proc claim
 
 !MAIN:
-    var $mine := Locker[name = "field kit", number = 7, capacity = 12, occupied = false];
+    var $mine = Locker[name = "field kit", number = 7, capacity = 12, occupied = false];
     std::print.shortest($mine.name, " is #", $mine.number, newln);
     std::print.shortest("free: ", free_space(lend $mine), newln);
     claim(lend.mut $mine);

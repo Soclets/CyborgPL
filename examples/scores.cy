@@ -18,10 +18,10 @@ end of fn clamp
 !MAIN:
     let $scores := [72, 95, 38, 100, 61, 87];
 
-    var $count := 0;
-    var $total := 0;
-    var $evens := 0;
-    var $best := 0;
+    var $count = 0;
+    var $total = 0;
+    var $evens = 0;
+    var $best = 0;
 
     for $score in lend $scores:
         change $count to $count plus 1;

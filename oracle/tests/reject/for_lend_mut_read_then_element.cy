@@ -1,5 +1,5 @@
 !MAIN:
-    var $xs: std::ls[int.sign.32] := [1, 2, 3];
+    var $xs: std::ls[int.sign.32] = [1, 2, 3];
     for $x in lend.mut $xs:
         let $first := $xs[pos: 1];
         change $x to $x plus $first;

@@ -3,6 +3,6 @@ fn one [let $a: ptr[int.sign.32]] -> int.sign.32:
     ret 0;
 end of fn one
 !MAIN:
-    var $nums := [3, 1, 2];
+    var $nums = [3, 1, 2];
     !no_check qsort(lend.mut $nums, 3, 4, one);
 !end of MAIN

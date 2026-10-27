@@ -7,7 +7,7 @@
     let $u: simd[int.unsign.8, count: 16] := simd.fill(value: 200);
     let $w := $u plus.wrap $u;
     std::print.stored($x, " ", $w[pos: 1], " ", $w[pos: 16], newln);
-    var $v: simd[int.sign.32, count: 4] := simd.fill(value: 0);
+    var $v: simd[int.sign.32, count: 4] = simd.fill(value: 0);
     change $v[pos: 3] to 30;
     std::print.stored($v[pos: 3], " ", simd.sum($v), newln);
 !end of MAIN

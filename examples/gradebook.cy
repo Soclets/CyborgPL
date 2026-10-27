@@ -10,7 +10,7 @@ fn average [lent $s: Student] -> int.sign.32 or fail[no_scores]:
     if std::ls.len(lend $s.scores) eq 0:
         fail no_scores;
     end of if
-    var $total := 0;
+    var $total = 0;
     for $x in lend $s.scores:
         change $total to $total plus $x;
     end of for
@@ -33,8 +33,8 @@ fn grade [lent $s: Student] -> str.utf8:
 end of fn grade
 
 !MAIN:
-    var $a := Student[name = "Ann", scores = std::ls.empty];
-    var $b := Student[name = "Bo", scores = [40, 55]];
+    var $a = Student[name = "Ann", scores = std::ls.empty];
+    var $b = Student[name = "Bo", scores = [40, 55]];
     let $marks := [72, 130, 88];
 
     for $m in lend $marks:
@@ -48,7 +48,7 @@ end of fn grade
     add_score(lend.mut $b, 65) otherwise std::exit(code: 1);
 
     let $students := [give $a, give $b, Student[name = "Cy", scores = std::ls.empty]];
-    var $passed := 0;
+    var $passed = 0;
     for $s in lend $students:
         std::print.stored($s.name, ": ", grade(lend $s), newln);
         let $avg := average(lend $s) otherwise 0;
