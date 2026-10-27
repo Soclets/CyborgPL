@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): the number types' short names are the one exception to "`.` narrows"; brain float is `%bf16` (owner)
+
+Asked whether the number types' short names (`i32`, `u8`, `f64`, `%d64`) are the one true exception to "`.` narrows" (the
+owner having put `ln` as no exception: "`ln` stuck to `print`, because it was a pretty small feature"), design claude
+recommending yes (a closed list writers cannot add to; read at once, as Rust, Zig, Odin, WebAssembly and LLVM spell them;
+829 lines), the owner: "yes, make it the exception. Also, it's `%bf` for brain, right?" Design claude: `bf16` is the usual
+name (Rust's `half`, C++23's `std::bfloat16_t`, Arm's `__bf16`, PyTorch's `bfloat16`), the width kept as `f16` keeps it.
+So, exploring, with one spelling: **`i8` … `i64`, `%i128`; `u8` … `u64`, `%u128`; `f16` `f32` `f64`, `%f128`; `%d32`
+`%d64` `%d128`; `%bf16`; `%not_std.i24`, `%not_std.u4`**, the limb's mark in front, where a glued name puts it; the long
+names (`int.sign.32`, `float.%deci.64`) become old spellings. The list is closed: a writer's own names still follow `.`.
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): the replaced words are old spellings; `?` / `??` replace their long forms; narrowings stay (owner)
 
 Asked to confirm design claude's two readings of one spelling, the owner: "yes, narrowings stay (right?)". So, exploring:
