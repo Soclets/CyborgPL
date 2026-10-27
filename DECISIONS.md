@@ -46,6 +46,9 @@ accurate: `map`, `structure`, `give` / `copy` / `lend`, `shadow`, `change`, `fai
 then "`spawn.task` or `spawn_task`?" (`.` narrows into a variant: a task is one kind of thing spawned, beside a thread
 or a process later; `_` would make one indivisible name), then "yes". So **`%spawn.task with […]:` … `end of
 %spawn.task`, and `%spawn.task.detached`**, the mark on `%spawn`. Not built; the other inaccurate terms follow.
+Correction (design claude, the same day): `range[1, 10]` was a wrong item. The keyword has been refused since 2026-10-12;
+a counting loop is `for $i [from: 1, to: 10, by: 1]`, with no `range`. The word is left only in prose ("a range type"
+for `i32[0, 100]`) and in a few stale oracle messages, to be swept with the redesign.
 
 ### 2026-10-27 — Redesign: no abbreviations; a name stays a name (`std`, `ASM`, `MSL`, `utf8`, `C`) (owner; not built)
 
