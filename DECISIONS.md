@@ -34,6 +34,27 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — The case marks go; every name is exact; a pair differing only in case is a note in the build report (owner: (c); NOT BUILT, waits for the owner's go)
+
+Asked whether `case.any [fn, var]` names `proc` too, the owner: "No case shit anymore". Design claude read it as removing
+the case marks of 2026-10-06 entirely (every name exact, `case.any` / `case.exact` refused as old spellings, their
+examples and tests gone, `case` in a `match` arm untouched); the owner: "correct, but not yet". Then "Is there really
+any usefulness it gives?" Design claude: very little (a "did you mean" message forgives a typo better; refusing
+near-identical names needs no marks; matching a case-insensitive outside system is rare), against grep missing `AREA`,
+one kit's choice changing another's lookups, `ß` matching `SS`, and marks at every level; Nim the one real language
+doing something like it, and argued over. Asked to put the follow-ups ("ask me, then"): whether two names differing
+only in case are refused. The examples hold 11 such pairs, all a type beside a function or value of one word (`rec
+Journey` / `fn journey`). Offered (a) refuse any pair, (b) refuse within one family (types; functions; values), (c) no
+rule; recommended (b). The owner asked "why?", "Why would you even make such similiar names?" (by accident: two writers, a
+rename that missed a spot, pasted code), "Why not refuse for all?" (fine, the one-sentence rule; costs the 11 pairs),
+"Warn only?" (CyborgPL has no warnings, diagnostics.md rule 4: a note in the report), "What if they wanted
+abbreviations?" (`rec URL` / `fn url`: refused under (a), allowed under (b)), "How does Rust do it?" (no case rule: types
+and values in separate namespaces, casing conventions as warnings; CyborgPL has neither, its writers' names free since
+2026-09-24), "Goes in the build report?" (yes, every note does). Offered (c) every case-only pair a note, nothing refused,
+or (d) refused within a family and a note across, design claude still recommending (b). The owner: "(c)". So, when
+built: **every name is exact; two names in a kit differing only in case build, each pair a note in the build report**.
+Next asked: a "did you mean" in the message for a name not found.
+
 ### 2026-10-27 — Redesign two: a function value carries its kind; `fn[…]` holds `fn`s, `proc[…]` either (owner: (a))
 
 Found as gaps in the build: lambdas were not checked for effects, and `proc[…]` was read as `fn[…]`. Asked whether a
