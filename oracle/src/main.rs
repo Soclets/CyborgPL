@@ -659,7 +659,7 @@ fn check_type_names(prog: &ast::Program) -> Result<(), String> {
             Ty::Inst(n, args) => { out.push(n); for a in args { walk(a, out); } }
             Ty::List(e, _) | Ty::Array(e) | Ty::Ptr(e, _) | Ty::Channel(e) | Ty::Simd(e, _) | Ty::Ranged(e, ..) => walk(e, out),
             Ty::Map(k, v, _) => { walk(k, out); walk(v, out); }
-            Ty::Fn(ps, r, _) => { for (_, p) in ps { walk(p, out); } if let Some(r) = r { walk(r, out); } }
+            Ty::Fn(ps, r, _, _) => { for (_, p) in ps { walk(p, out); } if let Some(r) = r { walk(r, out); } }
             _ => {}
         }
     }
@@ -1042,7 +1042,7 @@ fn check_opaque_held(prog: &ast::Program) -> Result<(), String> {
             Ty::List(e, _) | Ty::Array(e) | Ty::Channel(e) | Ty::Simd(e, _) | Ty::Ranged(e, _, _) => held(e, opaque),
             Ty::Map(k, v, _) => held(k, opaque).or_else(|| held(v, opaque)),
             Ty::Inst(_, ts) => ts.iter().find_map(|t| held(t, opaque)),
-            Ty::Fn(ps, r, _) => ps.iter().find_map(|(_, t)| held(t, opaque)).or_else(|| r.as_deref().and_then(|r| held(r, opaque))),
+            Ty::Fn(ps, r, _, _) => ps.iter().find_map(|(_, t)| held(t, opaque)).or_else(|| r.as_deref().and_then(|r| held(r, opaque))),
             _ => None,
         }
     }

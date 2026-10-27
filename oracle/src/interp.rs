@@ -645,7 +645,7 @@ impl<'p> Interp<'p> {
             Ty::Var(_) | Ty::Inst(..) => Err("a generic type cannot cross to C".into()),
             Ty::Ranged(..) => Err("a range type cannot cross to C; C has no ranges — use the plain type".into()),
             // a callback (design/ffi.md, 2026-09-21): C-shaped through and through, by value, no failures
-            Ty::Fn(ps, ret, fails) => {
+            Ty::Fn(ps, ret, fails, _) => {
                 if !fails.is_empty() { return Err("a callback cannot fail; C has no failures".into()); }
                 for (k, t) in ps {
                     if *k != ParamKind::Owned { return Err("a callback's parameters are by value; C passes pointers for the rest".into()); }
@@ -1748,8 +1748,12 @@ impl<'p> Interp<'p> {
                 };
                 if inside { Ok(()) } else { site(line, format!("{shown} does not fit {name}")) }
             }
-            (Ty::Fn(ps, ret, fails), Value::Func(fv)) => {
+            (Ty::Fn(ps, ret, fails, takes_proc), Value::Func(fv)) => {
                 let f = &fv.def;
+                // a `fn[…]` holds only `fn`s; a `proc[…]` either (owner, 2026-10-27: (a))
+                if !*takes_proc && crate::redesign::func_is_proc(f) {
+                    return rt(line, format!("expected {name}: `{}` is a `proc`, which a `fn[…]` cannot hold: the type is `proc[…]` (owner, 2026-10-27)", f.name));
+                }
                 if f.name == "op -" && ps.len() == 1 { return rt(line, format!("expected {name}: `op -` subtracts two values; negation as a value is `op neg` (owner, 2026-09-29)")); }
                 if f.params.len() != ps.len() { return rt(line, format!("expected {name}, got a function taking {} argument(s)", f.params.len())); }
                 // a short lambda's types are the ones of where it goes (owner, 2026-10-24: "(c)"): only its count, checked above,

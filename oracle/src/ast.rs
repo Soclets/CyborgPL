@@ -47,7 +47,8 @@ pub enum Ty {
     Simd(Box<Ty>, usize),
     /// `fn[lent T, U] -> R or fail[…]` — a function's type (design/functions-as-values.md,
     /// 2026-09-21): its signature with the names removed
-    Fn(Vec<(ParamKind, Ty)>, Option<Box<Ty>>, Vec<String>),
+    /// the last: written `proc[…]` (owner, 2026-10-27: (a)), holding a `proc` or a `fn`; `fn[…]` holds only `fn`s
+    Fn(Vec<(ParamKind, Ty)>, Option<Box<Ty>>, Vec<String>, bool),
     /// `percent[d32]` / `percent[f64]` (owner, 2026-10-17): a percentage holding that number, its own family;
     /// `%[d32]` the symbol spelling; the held number is the fraction (7.5% holds 0.075)
     Percent(Box<Ty>),
@@ -77,7 +78,7 @@ impl Ty {
             Ty::Var(n) => if !out.contains(n) { out.push(n.clone()); },
             Ty::List(t, _) | Ty::Array(t) | Ty::Ptr(t, _) => t.vars_into(out),
             Ty::Inst(_, args) => for a in args { a.vars_into(out); },
-            Ty::Fn(ps, r, _) => { for (_, t) in ps { t.vars_into(out); } if let Some(r) = r { r.vars_into(out); } }
+            Ty::Fn(ps, r, _, _) => { for (_, t) in ps { t.vars_into(out); } if let Some(r) = r { r.vars_into(out); } }
             _ => {}
         }
     }

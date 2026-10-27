@@ -2226,7 +2226,9 @@ impl Parser {
         }
         if matches!(self.peek(), Tok::Op(o) if o.starts_with('<')) { return self.err("a type variable is `<T>` — with a space before it after `->` (`-> <T>`), since a run of operator characters is one token"); }
         // `fn[lent T, U] -> R or fail[…]` — a function's type (2026-09-21)
-        if self.is_word("fn") {
+        if self.is_word("fn") || self.is_word("proc") {
+            // `proc[…]`: a procedure's type (owner, 2026-10-27: (a))
+            let procedure = self.is_word("proc");
             self.advance();
             self.expect(Tok::LBracket, "`[` after `fn` in a type: `fn[lent Locker, i32] -> bool`")?;
             let mut ps = Vec::new();
@@ -2255,7 +2257,7 @@ impl Parser {
                     if self.is_word("or") { self.advance(); if !self.is_word("fail") { return self.err("after `or` comes `fail[…]`"); } fails = self.fail_list()?.into_iter().map(|c| c.name).collect(); }
                 }
             }
-            return Ok(Ty::Fn(ps, ret, fails));
+            return Ok(Ty::Fn(ps, ret, fails, procedure));
         }
         // `duration` bare is std's `std::duration`: std marks everything `bare.kit_prefix.optional` (owner, 2026-10-06:
         // "optional for all")
@@ -4089,7 +4091,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
     /// The body of an anonymous function: `fn [params] -> T with [captures] { … }`
     fn anon_func(&mut self) -> PResult<Func> {
         let line = self.line();
-        self.expect_word("fn")?;
+        if self.is_word("proc") { self.advance(); } else { self.expect_word("fn")?; }
         self.expect(Tok::LBracket, "`[` to open the parameter list")?;
         let mut params = Vec::new();
         if *self.peek() != Tok::RBracket {
@@ -5598,15 +5600,18 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
                 "true" => { self.advance(); Ok(Expr::Bool(true, line)) }
                 "false" => { self.advance(); Ok(Expr::Bool(false, line)) }
                 "my" if !matches!(self.peek_at(1), Tok::Dot) => self.err("`my` is the root of this kit and is followed by `.`: `my.helper()`, `my.$pi`"),
-                "fn" => {
-                    // fn [params] -> T with [lend 'v', give 'w'] { … } — an anonymous function (2026-09-21)
+                "fn" | "proc" if matches!(self.peek_at(1), Tok::LBracket) || w == "fn" => {
+                    // fn [params] -> T with [lend 'v', give 'w'] { … } — an anonymous function (2026-09-21); `proc [ … ]` one
+                    // with effects (owner, 2026-10-27: (a)), told apart by its name
                     let saved_bounds = std::mem::take(&mut self.bounds);
                     // reuse func(): give it a name it can never collide with
                     let mut f = self.anon_func()?;
                     self.bounds = saved_bounds;
-                    f.name = format!("<anonymous at line {line}>");
+                    f.name = if w == "proc" { format!("<anonymous proc at line {line}>") } else { format!("<anonymous at line {line}>") };
+                    let rc = std::rc::Rc::new(f);
+                    crate::redesign::note_lambda(rc.clone());
                     let caps = std::mem::take(&mut self.pending_captures);
-                    Ok(Expr::Lambda(std::rc::Rc::new(f), caps, line))
+                    Ok(Expr::Lambda(rc, caps, line))
                 }
                 _ if crate::spellings::is_reserved(&w) && w != "my" => self.err(format!("`{w}` is a keyword and cannot appear inside a value")),
                 _ if self.is_fn_ref() => {

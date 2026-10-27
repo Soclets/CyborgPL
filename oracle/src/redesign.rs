@@ -853,7 +853,10 @@ fn words(toks: &[Token], text: &dyn Fn(&Token) -> String, info: Option<&Info>, e
                 match w.as_str() {
                     "fn" => {
                         // a declaration, a lambda or a function type
-                        let kind = if *tok(i + 1) == Tok::LBracket && (matches!(prev, Tok::Colon | Tok::Arrow | Tok::Comma | Tok::LBracket) || fn_is_type(toks, i)) { "function" }
+                        let kind = if *tok(i + 1) == Tok::LBracket && (matches!(prev, Tok::Colon | Tok::Arrow | Tok::Comma | Tok::LBracket) || fn_is_type(toks, i)) {
+                            // a type in C's signature is a callback's, `procedure[…]`, which holds a `fn` too (owner, 2026-10-27: (a))
+                            if statement_has(toks, i, "extern") { "procedure" } else { "function" }
+                        }
                             else if i > 0 && is_word(i - 1, "test") { "procedure" }
                             else if statement_has(toks, i, "extern") { "procedure" }
                             else {
@@ -1222,6 +1225,44 @@ thread_local! {
 
 /// A `function` has no effects and calls only functions (owner, 2026-10-27: "`function` is pure, possibly partial;
 /// `procedure` may have effects"); a function value may stand where a procedure is asked, never the reverse.
+thread_local! {
+    /// every lambda the parser made, for the purity check
+    static LAMBDAS: std::cell::RefCell<Vec<std::rc::Rc<ast::Func>>> = std::cell::RefCell::new(Vec::new());
+}
+
+pub fn note_lambda(f: std::rc::Rc<ast::Func>) { LAMBDAS.with(|l| l.borrow_mut().push(f)); }
+
+/// Whether a function value is a `proc`: C's, a `proc [ … ]` lambda, or one declared `proc`
+pub fn func_is_proc(f: &ast::Func) -> bool {
+    if f.is_extern || f.name.starts_with("<anonymous proc") { return true; }
+    let kinds = KINDS_BY_MODULE.with(|k| k.borrow().clone());
+    let mut m = f.module.clone();
+    if f.owned { m.pop(); }
+    kinds.get(&(m, f.line)).copied().or_else(|| kinds.get(&(f.module.clone(), f.line)).copied()).unwrap_or(false)
+}
+
+/// The names in a body holding a `proc[…]` value: parameters so typed, and locals so typed or given a `proc [ … ]` lambda
+fn proc_values(f: &ast::Func) -> Vec<String> {
+    let mut out: Vec<String> = f.params.iter().filter(|p| matches!(p.ty, Some(ast::Ty::Fn(.., true)))).map(|p| p.name.clone()).collect();
+    fn walk(b: &[ast::Stmt], out: &mut Vec<String>) {
+        for s in b {
+            match s {
+                ast::Stmt::Decl { name, ty, value, .. } => {
+                    let lambda = matches!(value.values.as_slice(), [ast::Value::Expr(ast::Expr::Lambda(l, ..))] if l.name.starts_with("<anonymous proc"));
+                    if matches!(ty, Some(ast::Ty::Fn(.., true))) || lambda { out.push(name.clone()); }
+                }
+                ast::Stmt::If { arms, otherwise, .. } => { for (_, b) in arms { walk(b, out); } if let Some(b) = otherwise { walk(b, out); } }
+                ast::Stmt::Loop { body, .. } | ast::Stmt::While { body, .. } | ast::Stmt::For { body, .. } | ast::Stmt::Range { body, .. } | ast::Stmt::Block { body, .. } => walk(body, out),
+                ast::Stmt::Tier { body, .. } => walk(std::slice::from_ref(body), out),
+                ast::Stmt::Match { arms, .. } => { for a in arms { walk(&a.body, out); } }
+                _ => {}
+            }
+        }
+    }
+    walk(&f.body, &mut out);
+    out
+}
+
 pub fn check_purity(prog: &ast::Program) -> Result<(), String> {
     let kinds = KINDS_BY_MODULE.with(|k| k.borrow().clone());
     let kind_of = |f: &ast::Func| -> Option<bool> {
@@ -1243,6 +1284,21 @@ pub fn check_purity(prog: &ast::Program) -> Result<(), String> {
         }
         if let Some(c) = called.iter().find(|c| procedures.contains(*c) && !functions.contains(*c)) {
             return Err(format!("line {}: `{shown}` is a `fn`, so it calls only `fn`s, but `{c}` is a `proc`: make `{shown}` a `proc`, or `{c}` a `fn` (owner, 2026-10-27)", f.line));
+        }
+        // a `proc[…]` value it calls (owner, 2026-10-27: (a)); a `fn[…]` one keeps it a `fn`
+        let text = format!("{:?}", f.body);
+        if let Some(v) = proc_values(f).into_iter().find(|v| text.contains(&format!("CallValue(\"{v}\"")) || text.contains(&format!("CallValue {{ name: \"{v}\""))) {
+            return Err(format!("line {}: `{shown}` is a `fn`, so it calls only `fn`s, but `${v}` holds a `proc[…]`: make `{shown}` a `proc`, or `${v}` a `fn[…]` (owner, 2026-10-27)", f.line));
+        }
+    }
+    // a `fn [ … ] = …` lambda has no effects either; one with them is `proc [ … ] = …` (owner, 2026-10-27: (a))
+    let lambdas = LAMBDAS.with(|l| std::mem::take(&mut *l.borrow_mut()));
+    for l in lambdas.iter().filter(|l| !l.name.starts_with("<anonymous proc")) {
+        let (effect, called) = effects_of(l);
+        let bad_call = called.iter().find(|c| procedures.contains(*c) && !functions.contains(*c));
+        if effect || bad_call.is_some() {
+            return Err(format!("line {}: a `fn [ … ]` lambda has no effects, but this one {}: write it `proc [ … ] = …` (owner, 2026-10-27)", l.line,
+                bad_call.map(|c| format!("calls `{c}`, a `proc`")).unwrap_or_else(|| "prints, reads, waits, starts a task, changes what it was lent, or reaches C".into())));
         }
     }
     Ok(())
@@ -1544,7 +1600,8 @@ fn words_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                             let module = LEX_MODULE.with(|m| m.borrow().clone());
                             KINDS_BY_MODULE.with(|k| { k.borrow_mut().insert((module, t.line), w == "procedure"); });
                         }
-                        out.push(word_tok("fn", t));
+                        // a procedure's type or lambda, `procedure[…]`, `procedure [let $s] = …`: the parser's `proc` (owner, 2026-10-27: (a))
+                        out.push(word_tok(if w == "procedure" && !declares { "proc" } else { "fn" }, t));
                     }
                     // a writable C variable, `%external.C variable $x: C.int;`; a parameter that changes, `[variable $n: i32]`
                     "variable" if out.iter().rev().take(4).any(|x| matches!(&x.tok, Tok::Word(e) if e == "extern")) || matches!(out.last().map(|x| &x.tok), Some(Tok::LBracket | Tok::Comma)) => out.push(word_tok("mut", t)),

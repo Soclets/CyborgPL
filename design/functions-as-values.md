@@ -102,6 +102,11 @@ OCaml), `op[+]`.
 - **`op and.then` and `op or.else` are refused** (owner): a function's
   arguments are worked out before it runs, so they could skip nothing and
   would secretly be `op and` / `op or`. The error says to write those.
+- **A function value says its kind** (owner, 2026-10-27: "(a)"): `fn[int.sign.32] -> bool` holds only `fn`s,
+  `proc[int.sign.32]` a `proc` or a `fn` (a `fn` stands anywhere a `proc` can). A lambda with effects is `proc [let $s]
+  = std::print.shortest($s, newln)`; a `fn [ … ] = …` one with them is refused. A `fn` calling a `fn[…]` value it was
+  handed stays a `fn`; calling a `proc[…]` one makes it a `proc`. A callback handed to C is typed `proc[…]` in C's
+  signature. `examples/proc_values.cy`.
 - A custom operator's operands are lent unless its definition says
   `give`, so `op dot` is a `fn[lent Vec, lent Vec] --> f64` *(the
   oracle's reading)*.

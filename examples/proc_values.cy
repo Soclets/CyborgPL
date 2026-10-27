@@ -1,0 +1,18 @@
+# A function value says its kind, as a declaration does (owner, 2026-10-27: (a)): a `fn[…]` holds only `fn`s, a
+# `proc[…]` a `proc` or a `fn`; a lambda with effects is `proc [ … ] = …`. A `fn` may call a `fn[…]` it is handed and
+# stay a `fn`; calling a `proc[…]` makes it a `proc`.
+fn keep_if [let $n: int.sign.32, let $test: fn[int.sign.32] -> bool] -> bool:
+    ret $test($n);
+end of fn keep_if
+
+proc each [let $n: int.sign.32, let $act: proc[int.sign.32]]:
+    $act($n);
+end of proc each
+
+!MAIN:
+    let $big: fn[int.sign.32] -> bool := fn [let $s] = $s at_least 90;
+    let $say: proc[int.sign.32] := proc [let $s] = std::print.shortest($s, newln);
+    std::print.shortest(keep_if(91, $big), newln);
+    each(7, $say);
+    each(8, fn [let $s] = $s plus 1);
+!end of MAIN

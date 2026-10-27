@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign two: a function value carries its kind; `fn[…]` holds `fn`s, `proc[…]` either (owner: (a))
+
+Found as gaps in the build: lambdas were not checked for effects, and `proc[…]` was read as `fn[…]`. Asked whether a
+function value carries fn-or-proc, design claude offered (a) yes: a `fn [ … ] = …` lambda calls only `fn`s, one with
+effects is `proc [ … ] = …`; a `fn[…]` type holds only `fn`s, a `proc[…]` both; a `fn` calling a `fn[…]` value it was
+handed stays a `fn`, calling a `proc[…]` one makes it a `proc`; or (b) no, calling any function value makes the caller a
+`proc`. Recommended (a): under (b) `keep(lend $scores, fn [let $s] = …)` would make `keep` a `proc` for calling its test.
+The owner: "(a)". Built: the three refusals, `examples/proc_values.cy`; `examples/callbacks.cy`'s `qsort` now takes a
+`proc[…]` (its comparisons read pointers), and the converter types a callback in C's signature `procedure[…]`.
+
 ### 2026-10-27 — Redesign two: a `fn` may change its own local variables (owner: (a))
 
 Design claude's provisional pick from the build, asked: a `fn` has no effects, but may it change its own locals (`var

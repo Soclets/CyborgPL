@@ -298,9 +298,9 @@ pub fn ty_name(ty: &Ty) -> String {
             if sides.is_empty() { sides.push("min: 0".into()); }
             format!("{}[{} {}]", ty_name(&Ty::Str(e.clone())), sides.join(", "), unit_word(u))
         }
-        Ty::Fn(ps, r, fails) => {
+        Ty::Fn(ps, r, fails, procedure) => {
             let ps: Vec<String> = ps.iter().map(|(k, t)| format!("{}{}", match k { crate::ast::ParamKind::Owned => "", crate::ast::ParamKind::Lent => "lent ", crate::ast::ParamKind::LentMut => "lent.mut " }, ty_name(t))).collect();
-            let mut s = format!("fn[{}]", ps.join(", "));
+            let mut s = format!("{}[{}]", if *procedure { "proc" } else { "fn" }, ps.join(", "));
             if let Some(r) = r { s.push_str(&format!(" -> {}", ty_name(r))); }
             if !fails.is_empty() { s.push_str(&format!("{} fail[{}]", if r.is_some() { " or" } else { " ->" }, fails.join(", "))); }
             s
