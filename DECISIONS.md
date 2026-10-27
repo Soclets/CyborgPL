@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: `structure` becomes `record`, C's too (owner; not built)
+
+The owner: "Is `struct` accurate, you know what I mean". Design claude: not in the maths sense, where a structure is a
+set with its operations (a group is an algebraic structure); a few named fields, each holding one value, is a record
+in type theory, a labelled product. Offered `record` (recommended; Pascal, ML and Haskell use it; no CyborgPL keyword
+yet), `product` (reads as multiplication or goods) and `tuple.named` (two words for the commonest type), with C's
+following as `enum`'s did; the owner: "yes". So **`record Line:` … `end of record Line`**, built as before
+(`Line[name = "apple", count = 12]`), and **`%layout.C record Timeval:`**. Not built.
+
 ### 2026-10-27 — Redesign: the missed abbreviations, `operator`, `external.C`, `boolean`, `concatenate`, `std::power`, `round.truncate`, `round.ceiling` (owner; not built)
 
 Scanning the oracle's keywords and every `std::` name in the examples, design claude found seven abbreviations this
