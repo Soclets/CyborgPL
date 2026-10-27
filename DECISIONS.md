@@ -34,6 +34,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: `enumeration` becomes `union.tagged` (owner; not built)
+
+This morning's `enum` → `enumeration` was inaccurate: an enumeration is a listing of things with nothing attached, and
+CyborgPL's cases may carry data (`claimed: string.utf8`), which in maths is a tagged union. Design claude offered
+`variant` (taken: it is what `.` narrows into), `union` (C's means something else) and `choice` (recommended). The
+owner: "Lol, I mean, isn't `fn` in Rust also mean another thing? But we changed to accurate anyways", so another
+language's meaning is no reason against a word. Design claude then noted CyborgPL's own `%layout.C union` (2026-10-19,
+one field at a time, no tag) and recommended `union.tagged`, the safe kind beside C's untagged one; the owner: "yes".
+So **`union.tagged Status:` … `end of union.tagged Status`**, cases ending `;`. Design claude's reading, not asked:
+`%layout.C enum Key` (named numbers, no data) is an enumeration in the exact sense and becomes
+`%layout.C enumeration Key`. Not built.
+
 ### 2026-10-27 — Redesign: `concur` becomes `spawn.task`, `concur.detached` `spawn.task.detached` (owner; not built)
 
 The owner: "More syntax shit, no shit. Find more inaccurate terms, if not already accurate". Design claude listed
