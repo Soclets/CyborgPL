@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): operators get symbols again, the words staying as their other spelling; which ones is the owner's (owner)
+
+Asked where conciseness pays most (design claude counted lines in the examples and recommended printing), the owner: "Not
+really what I meant, I meant doing shit like `==`, `!=`, `>=`, `<=`, you know? But where it should stay words, should stay
+words. And I think that should be my choice to decide". Shown every operator with its usual symbol and what each would
+collide with now (`/` cannot say how it rounds; `%` is the limb mark; `<` `>` meet `<T>` and the arrows; `&&` / `||` skip
+their right side in C, where `and` does not; `&` was a lend spelling; the `.wrap` / `.ieee` forms stay words, 2026-10-07),
+the owner: "The words versions would stay, so that's a good backup". So, exploring: **a symbol is a second spelling of its
+word, and the word stays** (as 2026-10-14 had it); which operators get one is the owner's pick, asked next.
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): `!` loses its "needs attention" meaning; CyborgPL concise where possible (owner)
 
 Asked about `!` with `;` closers ((a) `!MAIN:` … `!;MAIN`, (b) on the opening line only, (c) none on `MAIN`; design claude
