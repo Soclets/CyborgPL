@@ -34,6 +34,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: `lend.mut`, `lent.mut`, `pointer.mut` become `.mutable` (owner)
+
+`mut` is short for "mutable", and this morning's ruling took `mut` and `immut` out of declarations only. Design claude
+asked whether the three borrows and pointers left become `.mutable`, recommending yes (no abbreviations); the owner:
+"yes". So **`lend.mutable $xs`, `lent.mutable $xs: T`, `pointer.mutable[T]`**. Built with the redesign (it was the
+oracle's provisional pick, `MUTABLE` in oracle/src/redesign.rs); `lend.mut` and the rest are refused naming them.
+
 ### 2026-10-27 — Built in the oracle: the redesign; examples, tests and the notes' code swept (owner: "Implement it now")
 
 The owner: "We'll implement the redesign first, but don't start yet", then "Better becareful with quoted design shit",

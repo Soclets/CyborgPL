@@ -12,7 +12,7 @@ use crate::ast::{self, Expr, Stmt, Handler};
 use crate::lexer::{Tok, Token};
 use std::collections::{HashMap, HashSet};
 
-/// PROVISIONAL (asked 2026-10-27): `lend.mut`, `lent.mut`, `ptr.mut[T]` become `.mutable`
+/// `lend.mut`, `lent.mut`, `ptr.mut[T]` become `.mutable` (owner, 2026-10-27: "yes")
 pub const MUTABLE: &str = "mutable";
 
 /// What the converter needs to know that the tokens do not say: which functions have effects, and which `let`s change.
