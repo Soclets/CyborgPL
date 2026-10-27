@@ -34,6 +34,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign two: a type's name read as text in a template's `named` keeps its dots, `"int.sign.16"` (owner: (a))
+
+Design claude's provisional pick from the build, asked: (a) as built, the text is the type's name as written,
+`"int.sign.16"`, the writer turning the dots into what a member's name can hold (collections.cy's one-line `name_word`),
+or (b) `"int_sign_16"` straight away; recommended (a), the text being the type's real name, which other uses (printing
+it) need as written. The owner: "(a)". Already built.
+
 ### 2026-10-27 — A name not found suggests one differing only in case: "did you mean `total`?" (owner: (a); NOT BUILT, with the case removal)
 
 The second follow-up to the case marks going. Offered (a) suggest a name differing only in case, (b) any close name (case,
