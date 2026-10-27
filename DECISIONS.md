@@ -34,6 +34,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — A name not found suggests one differing only in case: "did you mean `total`?" (owner: (a); NOT BUILT, with the case removal)
+
+The second follow-up to the case marks going. Offered (a) suggest a name differing only in case, (b) any close name (case,
+or one or two letters off: `totl`, `totals`), as Rust, Python and Swift do, (c) none; design claude recommended (b). The
+owner: "(a)". So **an error for a name not found names one that differs from it only in case, if there is one**: `no
+function `Total`; did you mean `total`?`. Nothing else is suggested. Built with the case removal, on the owner's go.
+
 ### 2026-10-27 — The case marks go; every name is exact; a pair differing only in case is a note in the build report (owner: (c); NOT BUILT, waits for the owner's go)
 
 Asked whether `case.any [fn, var]` names `proc` too, the owner: "No case shit anymore". Design claude read it as removing
