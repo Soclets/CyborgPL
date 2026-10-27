@@ -1562,7 +1562,11 @@ fn blocks_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
             let mut j = at_end + 2;
             let mut text = String::new();
             while j < n && toks[j].line == line && !matches!(toks[j].tok, Tok::Semi | Tok::RParen | Tok::Comma | Tok::RBracket | Tok::Eof) {
-                let s = shown(&toks[j].tok);
+                // an operator as it was written: `less_than` is `<` inside
+                let s = match &toks[j].tok {
+                    Tok::Op(o) if toks[j].end != usize::MAX && toks[j].end - toks[j].at > o.chars().count() => match o.as_str() { "<" => "less_than".to_string(), ">" => "greater_than".into(), "not_equal" => "not_equal_to".into(), _ => o.clone() },
+                    other => shown(other),
+                };
                 let glue = matches!(toks[j].tok, Tok::Dot) || text.ends_with('.') || text.ends_with('%') || text.ends_with('!') || text.is_empty();
                 if !glue { text.push(' '); }
                 text.push_str(&s);

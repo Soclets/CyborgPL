@@ -17,7 +17,7 @@ end of record Vec
 # may be defined for a user type (never for the language's types)
 operator less_than [$a: Vec, $b: Vec] -> boolean:
     return ($a.x times $a.x plus $a.y times $a.y) less_than ($b.x times $b.x plus $b.y times $b.y);
-end of operator <
+end of operator less_than
 operator equal_to [$a: Vec, $b: Vec] -> boolean:
     return $a.x equal_to $b.x and $a.y equal_to $b.y;
 end of operator equal_to
