@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: `map.count`, `code_point`, `grapheme_cluster`, `uppercase` / `lowercase` (owner; not built)
+
+The owner: "any other inaccurate?" Design claude, scanning every oracle keyword and `std::` name, found four: a map has
+no length, it has a number of entries (a list, as a sequence, keeps its length); "point" is short for Unicode's code
+point; a grapheme in linguistics is one written unit, while what is counted is Unicode's grapheme cluster; `upper` /
+`lower` are short for uppercase / lowercase. Recommended all four; the owner: "yes". So **`std::map.count`;
+`std::string.slice.code_point`, `.at.code_point`, `.code_points`; `.grapheme_cluster`, `%grapheme_clusters` in
+bounds; `std::string.uppercase.full` / `.simple` / `.ascii`, `std::string.lowercase.…`**. Found fine:
+`std::list.empty` / `std::map.empty` (values), `map.has` / `.keys` / `.pairs` / `.ordered` / `.unordered`,
+`round.half_up` / `.floor`, Unicode's `.full` / `.simple`. Not built.
+
 ### 2026-10-27 — Redesign: `structure` becomes `record`, C's too (owner; not built)
 
 The owner: "Is `struct` accurate, you know what I mean". Design claude: not in the maths sense, where a structure is a
