@@ -34,6 +34,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): a declaration keeps `let` / `var` in both styles (owner)
+
+Shown the remaining candidates for `practical_concise` twins (number types `i32` / `%d64`, 829 lines; `&$xs` for `lend`,
+488; `$x := 5;` for `let $x := 5;`, 990; `change $x = 5;`, 131), the owner, of `$x := 5;`: "no `let` there would make
+it inaccurate". So **a declaration says `let` or `var` in both styles**; whether a value can change is never left out.
+Design claude asked next about the number types.
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): every printing form has its `println.` twin; `.auto_newline` retired (owner)
 
 Shown the print forms with their counts in the examples, design claude recommending a `println.` twin for each form that
