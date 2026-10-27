@@ -60,7 +60,12 @@ the maths sense), and names stay names (`std`, `ASM`, `MSL`, `utf8`, `C`, `MAIN`
   `%grapheme_clusters` / `%code_points` → `%clusters` / `%points`;
 - std: `std::string.…` → `std::str.…`; `.uppercase` / `.lowercase` → `.upper` / `.lower`; `.code_point(s)` /
   `.grapheme_cluster(s)` → `.point(s)` / `.cluster(s)`; `round.nearest` / `.truncate` / `.ceiling` → `round.near` /
-  `.trunc` / `.ceil`; `std::power` → `std::pow`; kept: `print.shortest`, `print.arrows`, `map.count`.
+  `.trunc` / `.ceil`; `std::power` → `std::pow`; `length` → `len` (`std::ls.len`, `arr.len`, `std::str.len`; the
+  owner's own sample had it, the table had missed it; asked, "yes"); kept: `print.shortest`, `print.arrows`, `map.count`.
+Then "where's the `-` for "this line has more"?": design claude had built the converter keeping a long `otherwise:` on
+the call's line, but 2026-10-26's ruling chose option 3 over option 1 (the same line): **an `otherwise` with arms goes on
+the next line, the call's line ending in `-`** (`…($words[pos: $n minus 1])-` / `otherwise:`). Design claude's mistake,
+to be fixed with this redesign's build; the oracle already reads the `-`.
 Design claude's readings, said with the table: a width written bare after `.` (`int.sign.32`) is a segment, not a
 number; the limb marks stay on the limb's part (`float.%deci.64`, `int.sign.%128`). Not built.
 
