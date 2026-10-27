@@ -34,6 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: `collection.bound` becomes `collection.bounded` (owner; not built)
+
+In maths a bound is a value (1 and 99 in `integer.signed.32_bit[minimum: 1, maximum: 99]`); what each member of a
+`coll.bound` (2026-10-25) names is a set of values that has bounds, a bounded set. Design claude offered
+`collection.bounded` (recommended: one word changed, and true of every member, a list with `maximum: 3` included) and
+`collection.subset` (accurate, but readable as a subset of the collection); the owner: "yes". So **`collection.bounded
+quantity:` … `end of collection.bounded quantity`**; members, paths and `pub` unchanged. Not built.
+
 ### 2026-10-27 — Redesign: `enumeration` becomes `union.tagged` (owner; not built)
 
 This morning's `enum` → `enumeration` was inaccurate: an enumeration is a listing of things with nothing attached, and
