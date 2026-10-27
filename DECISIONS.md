@@ -34,6 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: `print.weird` becomes `print.arrows` (owner; not built)
+
+`print.weird` (2026-10-01) was a joke name for the print shaped like C++'s `cout <<`; what sets it apart is only its
+shape, no brackets and each value handed in with `<-` (a structural symbol, kept by this morning's purge). Design
+claude offered `print.arrows` (recommended), `print.stream` (C++'s word, but every print writes to a stream) and
+`print.chained` (vaguer); the owner: "yes". So **`std::print.arrows.shortest <- "tenth is " <- $tenth <- newline;`**
+and `std::print.arrows.stored`, the shape still the strongest modifier and first. Not built.
+
 ### 2026-10-27 — Redesign: `print.useful` becomes `print.shortest`, and `to.useful` `to.shortest` (owner; not built)
 
 "Useful" said nothing of what it does: it prints the shortest decimal that reads back as the same value (`f16`
