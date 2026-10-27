@@ -13,11 +13,13 @@ UNICODE_ID=55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece
 UNICODE_VER=2026-10-12T10:19:44+07:00
 MONEY_ID=d7b62f4448a5b23d792a25bcdba89220e02691fb5e27cf18640ee491d049df0f
 MONEY_VER=2026-10-07T20:22:24+07:00
+CNC_ID=04b99a7cbb141b84b9f2f38c085c124e2badc37d663f71c6deebdd6ac24e79b1
+CNC_VER=2026-10-10T16:42:00+07:00
 
 # toml DIR NAME WORD…: DIR/CyJet.toml for a kit named NAME. Each WORD adds one thing:
 #   std          this std/, by its path       builtin   the oracle's built-in std, by its id
-#   stdtest=DIR  a copy of std/ as stdtest     unicode, money   that limb
-#   vouch, raw_memory   that power
+#   stdtest=DIR  a copy of std/ as stdtest     unicode, money, cnc   that limb
+#   vouch, raw_memory, c_calls   that power
 toml() {
     _dir="$1"; _name="$2"; shift 2
     _kits=""; _limbs=""; _powers=""
@@ -28,7 +30,8 @@ toml() {
             stdtest=*) _kits="${_kits}stdtest {\npath = ${_w#stdtest=}\n}\n" ;;
             unicode) _limbs="${_limbs}unicode {\nid = $UNICODE_ID\nver = $UNICODE_VER\n}\n" ;;
             money) _limbs="${_limbs}money {\nid = $MONEY_ID\nver = $MONEY_VER\n}\n" ;;
-            vouch|raw_memory) _powers="${_powers}$_w {\n}\n" ;;
+            cnc) _limbs="${_limbs}cnc {\nid = $CNC_ID\nver = $CNC_VER\n}\n" ;;
+            vouch|raw_memory|c_calls) _powers="${_powers}$_w {\n}\n" ;;
             *) echo "toml: no word $_w" >&2; return 1 ;;
         esac
     done

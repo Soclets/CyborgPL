@@ -44,8 +44,8 @@ echo "argv_rdeci 1234.5678 2: $("$W/argv_rdeci.prog" 1234.5678 2 | sed -n 2p)"
 
 # check claude's corpus program on str.at and slice.grapheme: kayo against std/, beside the oracle
 C="$R/check/corpus/2026-10-08-str-at-and-slice-by-position.cy"
-mkdir -p "$W/corpus"; cp "$C" "$W/corpus/kit.cy"; toml "$W/corpus" corpus builtin
-(cd "$W/corpus" && "$O" . > "$W/corpus.oracle" 2>&1); toml "$W/corpus" corpus std
+mkdir -p "$W/corpus"; cp "$C" "$W/corpus/kit.cy"; toml "$W/corpus" corpus builtin cnc unicode vouch c_calls
+(cd "$W/corpus" && "$O" . > "$W/corpus.oracle" 2>&1); toml "$W/corpus" corpus std cnc unicode vouch c_calls
 "$Y" build "$W/corpus" -o "$W/corpus.prog" > "$W/corpus.build" 2>&1 && "$W/corpus.prog" | diff -q - "$W/corpus.oracle" > /dev/null \
     && echo "corpus 2026-10-08: kayo against std/ prints the oracle's output" \
     || echo "corpus 2026-10-08: not run ($(head -1 "$W/corpus.build" | cut -c1-90)); it is check claude's"
