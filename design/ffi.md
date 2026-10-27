@@ -198,8 +198,8 @@ tier trusting C's answers too. The owner asked whether `no_check` was then
 
 ```
 %layout.C rec Rect:
-    w: int.sign.32[min: 0, max: 4096];
-    h: int.sign.32[min: 0, max: 4096];
+    var w: int.sign.32[min: 0, max: 4096];
+    var h: int.sign.32[min: 0, max: 4096];
 end of rec Rect
 ```
 
@@ -276,8 +276,8 @@ kayo compiling the block with Clang; it is CNC's (owner: "Yup"). Not designed ye
 
 ```
 %layout.C rec Timeval:
-    sec: int.sign.64;
-    usec: int.sign.64;
+    var sec: int.sign.64;
+    var usec: int.sign.64;
 end of rec Timeval
 ```
 
@@ -424,9 +424,9 @@ end of union Number        # one of them at a time; C knows which
 change $n.f = 1.5;                                 # writing: always safe
 
 %layout.C rec Status:
-    mode: int.unsign.8[bits: 3];
-    ready: bool[bits: 1];
-    level: int.unsign.8[bits: 4];
+    var mode: int.unsign.8[bits: 3];
+    var ready: bool[bits: 1];
+    var level: int.unsign.8[bits: 4];
 end of rec Status
 change $s.mode = 5;                                # checked to fit: 3 bits hold 0 to 7
 ```

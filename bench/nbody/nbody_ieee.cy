@@ -22,13 +22,13 @@ const $solar_mass: float.bin.64 = 4.0 times.ieee $pi times.ieee $pi;
 const $days_per_year: float.bin.64 = 365.24;
 
 rec Body:
-    x: float.bin.64;
-    y: float.bin.64;
-    z: float.bin.64;
-    vx: float.bin.64;
-    vy: float.bin.64;
-    vz: float.bin.64;
-    mass: float.bin.64;
+    var x: float.bin.64;
+    var y: float.bin.64;
+    var z: float.bin.64;
+    var vx: float.bin.64;
+    var vy: float.bin.64;
+    var vz: float.bin.64;
+    var mass: float.bin.64;
 end of rec Body
 
 # N, from the text in the environment: missing when there is none, and out

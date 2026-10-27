@@ -6,8 +6,8 @@ union.tag Status:
 end of union.tag Status
 
 rec Locker:
-    number: int.sign.32;
-    status: Status;
+    var number: int.sign.32;
+    var status: Status;
 end of rec Locker
 
 fn describe [lent $l: Locker] -> str.utf8:

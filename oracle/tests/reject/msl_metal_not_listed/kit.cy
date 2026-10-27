@@ -1,8 +1,8 @@
 # A list of `layout.C` structs bound to a kernel, kayo writing the struct's Metal declaration at the top of the block,
 # and shared code from a `.metal` file of the kit, `#include`d from the kit's root (owner, 2026-10-22).
 %layout.C rec Body:
-    x: float.bin.32;
-    vx: float.bin.32;
+    var x: float.bin.32;
+    var vx: float.bin.32;
 end of rec Body
 
 !MAIN:

@@ -2,8 +2,8 @@
 # as the loosest (good practice), each level says how a chain reads, and a language operator in a
 # level pins it where that operator is. std's `pow` binds above a negative, right pair first.
 rec Vec:
-    x: float.bin.64;
-    y: float.bin.64;
+    var x: float.bin.64;
+    var y: float.bin.64;
 end of rec Vec
 
 precedence.low_first:

@@ -10,9 +10,9 @@ union.tag Stock:
 end of union.tag Stock
 
 rec Item:
-    name: str.utf8;
-    cents: int.sign.32[min: 0, max: 100_000];
-    stock: Stock;
+    var name: str.utf8;
+    var cents: int.sign.32[min: 0, max: 100_000];
+    var stock: Stock;
 end of rec Item
 
 fn price [lent $i: Item] -> int.sign.32:

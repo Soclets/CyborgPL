@@ -248,7 +248,7 @@ pub.kit fn area [$r: float.bin.64] -> float.bin.64:
     …
 end of fn area
 pub.kit rec Circle:
-    r: float.bin.64;
+    var r: float.bin.64;
 end of rec Circle
 
 # geometry/kit.cy

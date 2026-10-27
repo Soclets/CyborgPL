@@ -13,8 +13,8 @@ coll.bounded order:
 end of coll.bounded order
 
 rec Line:
-    name: order.name;
-    count: quantity;
+    var name: order.name;
+    var count: quantity;
 end of rec Line
 
 fn apply_discount [$amount: float.%deci.64, $percent: order.discount] -> float.%deci.64:

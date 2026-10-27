@@ -1,7 +1,7 @@
 # `list.remove` hands the removed element back (decided 2026-09-21): no copy, no hole.
 
 rec Job:
-    name: str.utf8;
+    var name: str.utf8;
 end of rec Job
 proc run [$job: Job]:
     std::print.shortest("ran ", $job.name, newln);

@@ -4,8 +4,8 @@
 %extern.C proc free [$p: ptr.mut[int.unsign.8]];
 
 %layout.C rec Point:
-    x: int.sign.32;
-    y: int.sign.32;
+    var x: int.sign.32;
+    var y: int.sign.32;
 end of rec Point
 
 !MAIN:

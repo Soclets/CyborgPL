@@ -9,8 +9,8 @@ interface Printable <T>:
 end of interface Printable
 
 rec Vec:
-    x: float.bin.64;
-    y: float.bin.64;
+    var x: float.bin.64;
+    var y: float.bin.64;
 end of rec Vec
 
 # a struct keeps a promise by having the operations — the language's own operators

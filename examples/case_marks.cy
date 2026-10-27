@@ -4,13 +4,13 @@
 case.any [fn, var];
 
 case.any union.tag Mood:
-    Happy,
-    Grumpy
-end of case
+    Happy;
+    Grumpy;
+end of union.tag Mood
 
 case.exact rec Exact:
-    n: int.sign.32
-end of case
+    var n: int.sign.32;
+end of rec Exact
 
 fn Describe [$m: Mood] -> str.utf8:
     ret match $M:

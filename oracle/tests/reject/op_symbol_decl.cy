@@ -1,5 +1,5 @@
 rec V:
-    a: int.sign.32;
+    var a: int.sign.32;
 end of rec V
 op % [$p: V, $q: V] -> V:
     ret $p;

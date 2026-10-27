@@ -5,7 +5,7 @@ const $pi: float.bin.64 = 3.141_592_653_589_793;
 const $twice_max := $max times 2;
 const $greeting := "hello " concat "world";
 pub rec P:
-    x: int.sign.32;
+    var x: int.sign.32;
 end of rec P
 pub fn area [$r: float.bin.64] -> float.bin.64:
     ret $pi times $r times $r;

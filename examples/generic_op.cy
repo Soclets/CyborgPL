@@ -12,10 +12,10 @@ op ~= <T: Number> [$a: <T>, $b: <T>] -> bool:
     ret $a minus $b less_than 10;
 end of op ~=
 rec A:
-    x: int.sign.32;
+    var x: int.sign.32;
 end of rec A
 rec B:
-    y: int.sign.32;
+    var y: int.sign.32;
 end of rec B
 op <+> [$a: A, $b: A] -> int.sign.32:
     ret $a.x plus $b.x;

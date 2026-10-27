@@ -1,7 +1,7 @@
 # A literal takes its type from where it lands (types.md): a struct field's type and an enum case's data
 # type are its context, as a declared variable's is, so `0.45` into a `d64` field is a deci.
 rec Price:
-    amount: float.%deci.64;
+    var amount: float.%deci.64;
 end of rec Price
 union.tag Pay:
     cash;

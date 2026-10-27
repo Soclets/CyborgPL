@@ -1,6 +1,6 @@
 %extern.C proc malloc [$bytes: int.unsign.64] -> ptr.mut[int.unsign.8];
 rec Plain:
-    x: int.sign.32;
+    var x: int.sign.32;
 end of rec Plain
 !MAIN:
     !no_check let $raw := malloc(4);

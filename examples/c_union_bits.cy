@@ -5,9 +5,9 @@
     f: float.bin.32;
 end of union Number
 %layout.C rec Status:
-    mode: int.unsign.8[bits: 3];
-    ready: bool[bits: 1];
-    level: int.sign.8[bits: 4];
+    var mode: int.unsign.8[bits: 3];
+    var ready: bool[bits: 1];
+    var level: int.sign.8[bits: 4];
 end of rec Status
 
 !MAIN:

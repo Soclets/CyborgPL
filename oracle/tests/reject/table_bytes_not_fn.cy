@@ -1,5 +1,5 @@
 table_bytes 1_024 rec P:
-    x: int.sign.32;
+    var x: int.sign.32;
 end of rec P
 
 !MAIN:

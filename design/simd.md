@@ -140,8 +140,8 @@ went through with a. `examples/simd_tail.cy`.
 
 ```
 rec Particle:
-    place: simd[float.bin.32, count: 4];
-    vel: simd[float.bin.32, count: 4];
+    var place: simd[float.bin.32, count: 4];
+    var vel: simd[float.bin.32, count: 4];
 end of rec Particle
 let $history: std::ls[simd[float.bin.32, count: 4]] = [];
 ```

@@ -339,8 +339,8 @@ every one of these symbols spelled its word, and good practice was the words. `e
 
 ```
 rec Vec:
-    x: float.bin.64;
-    y: float.bin.64;
+    var x: float.bin.64;
+    var y: float.bin.64;
 end of rec Vec
 op <+> [$a: Vec, $b: Vec] -> Vec:
     ret Vec[x = $a.x plus $b.x, y = $a.y plus $b.y];

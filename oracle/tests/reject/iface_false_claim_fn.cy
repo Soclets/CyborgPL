@@ -2,7 +2,7 @@ interface Printable <T>:
     fn show [lent $x: <T>] -> str.utf8;
 end of interface Printable
 rec V:
-    x: int.sign.32;
+    var x: int.sign.32;
 end of rec V
 V satisfies Printable;
 !MAIN:

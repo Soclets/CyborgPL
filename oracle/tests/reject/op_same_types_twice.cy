@@ -1,6 +1,6 @@
 # two meanings of one operator for the same types (2026-09-23)
 rec A:
-    x: int.sign.32;
+    var x: int.sign.32;
 end of rec A
 op <+> [$a: A, $b: A] -> int.sign.32:
     ret 1;

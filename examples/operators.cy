@@ -1,7 +1,7 @@
 # Declaring operators: a symbol one, `<+>`, and a word one, `dot`.
 rec Vec:
-    x: float.bin.64;
-    y: float.bin.64;
+    var x: float.bin.64;
+    var y: float.bin.64;
 end of rec Vec
 
 # a glyph operator: any run of  not % & * plus minus / < > = ? @ ^ | ~

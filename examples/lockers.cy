@@ -3,8 +3,8 @@ pub const $capacity := 12;
 
 rec Locker:
     let number: int.sign.32;
-    owner: str.utf8;
-    items: std::ls[str.utf8];
+    var owner: str.utf8;
+    var items: std::ls[str.utf8];
 end of rec Locker
 
 fn free_slots [lent $l: Locker] -> int.sign.32:

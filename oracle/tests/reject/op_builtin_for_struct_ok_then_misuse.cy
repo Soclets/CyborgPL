@@ -1,5 +1,5 @@
 rec V:
-    x: int.sign.32;
+    var x: int.sign.32;
 end of rec V
 op plus [$a: V, $b: V] -> V:
     ret V[x = $a.x plus $b.x];

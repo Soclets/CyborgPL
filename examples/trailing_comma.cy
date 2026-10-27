@@ -1,7 +1,7 @@
 # a trailing `,` is allowed (owner, 2026-10-14)
 rec P:
-    x: int.sign.32;
-    y: int.sign.32;
+    var x: int.sign.32;
+    var y: int.sign.32;
 end of rec P
 union.tag S:
     a;

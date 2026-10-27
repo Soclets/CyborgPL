@@ -21,8 +21,8 @@ fn first <T: any> [lent $xs: std::ls[<T>]] -> <T> or fail[empty]:
 end of fn first
 
 rec Pair <A: any, B: any>:
-    left: <A>;
-    right: <B>;
+    var left: <A>;
+    var right: <B>;
 end of rec Pair     # blanks in the order announced: A, B
 
 union.tag Maybe <T: any>:

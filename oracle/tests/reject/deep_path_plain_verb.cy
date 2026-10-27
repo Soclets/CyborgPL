@@ -1,9 +1,9 @@
 # a plain value at the end of a path owns nothing, so it takes no verb
 rec In:
-    k: int.sign.32;
+    var k: int.sign.32;
 end of rec In
 rec Out:
-    inn: In;
+    var inn: In;
 end of rec Out
 !MAIN:
     let $o := Out[inn = In[k = 1]];

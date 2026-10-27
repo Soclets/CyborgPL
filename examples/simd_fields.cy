@@ -2,8 +2,8 @@
 # element, a parameter, a return value. It is plain, a fixed-size value that copies by
 # itself, and the compiler keeps it on its register-width boundary (16 bytes here).
 rec Particle:
-    place: simd[float.bin.32, count: 4];
-    vel: simd[float.bin.32, count: 4];
+    var place: simd[float.bin.32, count: 4];
+    var vel: simd[float.bin.32, count: 4];
 end of rec Particle
 fn step [$p: Particle] -> Particle:
     ret Particle[place = $p.place plus $p.vel, vel = $p.vel];

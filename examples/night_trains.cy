@@ -34,15 +34,15 @@ const $most_bookings: int.unsign.64 = 500;     # a night's trains hold no more t
 
 # A stretch of line between two stations, run in both directions.
 rec Link:
-    a: str.utf8;
-    b: str.utf8;
-    minutes: int.sign.32[min: 1, max: 1440];
-    km: int.sign.32[min: 1, max: 3000];
+    var a: str.utf8;
+    var b: str.utf8;
+    var minutes: int.sign.32[min: 1, max: 1440];
+    var km: int.sign.32[min: 1, max: 3000];
 end of rec Link
 
 rec Network:
-    stations: std::ls[str.utf8];
-    links: std::ls[Link];
+    var stations: std::ls[str.utf8];
+    var links: std::ls[Link];
 end of rec Network
 
 # The longest trip the network sells: ten days and 100,000 km. A way past either is no way, and that limit is what
@@ -54,15 +54,15 @@ end of coll.bounded trip
 
 # The quickest known way to a station: when it is reached, how far it is, and where it came from.
 rec Reach:
-    minutes: trip.minutes;
-    km: trip.km;
-    prev: str.utf8;
+    var minutes: trip.minutes;
+    var km: trip.km;
+    var prev: str.utf8;
 end of rec Reach
 
 rec Journey:
-    stops: std::ls[str.utf8];
-    minutes: trip.minutes;
-    km: trip.km;
+    var stops: std::ls[str.utf8];
+    var minutes: trip.minutes;
+    var km: trip.km;
 end of rec Journey
 
 # Where a traveller sleeps. A sleeper carries how many berths share the compartment.
@@ -79,19 +79,19 @@ union.tag Age:
 end of union.tag Age
 
 rec Request:
-    traveller: str.utf8;
-    origin: str.utf8;
-    destination: str.utf8;
-    seat: Seat;
-    age: Age;
+    var traveller: str.utf8;
+    var origin: str.utf8;
+    var destination: str.utf8;
+    var seat: Seat;
+    var age: Age;
 end of rec Request
 
 rec Booking:
-    ticket: int.sign.32;
-    traveller: str.utf8;
-    journey: Journey;
-    seat: Seat;
-    fare: float.%deci.64;
+    var ticket: int.sign.32;
+    var traveller: str.utf8;
+    var journey: Journey;
+    var seat: Seat;
+    var fare: float.%deci.64;
 end of rec Booking
 
 # ---------------------------------------------------------------------------------------------------
@@ -358,8 +358,8 @@ end of fn clock
 
 # A clock that hands out the next quarter hour each time it is asked, until it reaches its end.
 rec Clock:
-    now: int.sign.32[min: 0, max: 2895];
-    stop: int.sign.32[min: 0, max: 2880];
+    var now: int.sign.32[min: 0, max: 2895];
+    var stop: int.sign.32[min: 0, max: 2880];
 end of rec Clock
 
 proc Clock.next [lent.mut $c: Clock] -> optional[int.sign.32]:
@@ -603,9 +603,9 @@ end of proc show_booking
 # ---------------------------------------------------------------------------------------------------
 
 rec Arrival:
-    station: str.utf8;
-    minutes: trip.minutes;
-    km: trip.km;
+    var station: str.utf8;
+    var minutes: trip.minutes;
+    var km: trip.km;
 end of rec Arrival
 
 # Soonest first: each arrival goes in before the first one later than it, so arrivals at the same time keep their

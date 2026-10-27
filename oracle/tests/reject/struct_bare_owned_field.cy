@@ -1,5 +1,5 @@
 rec P:
-    n: str.utf8;
+    var n: str.utf8;
 end of rec P
 !MAIN:
     let $p := P[n = "a"];

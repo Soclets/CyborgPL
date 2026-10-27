@@ -1,7 +1,7 @@
 # A function that can fail, its failures named, and `otherwise` handling them.
 rec Locker:
-    owner: str.utf8;
-    items: std::ls[str.utf8];
+    var owner: str.utf8;
+    var items: std::ls[str.utf8];
 end of rec Locker
 
 proc stash [lent.mut $l: Locker, $item: str.utf8] -> bool or fail[full, bad_item: str.utf8]:

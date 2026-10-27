@@ -2,8 +2,8 @@
 # comes from where it goes. `op -` subtracts; negation is `op negate`. A custom operator's operands
 # are lent, so `op dot` is a fn[lent Vec, lent Vec] -> f64.
 rec Vec:
-    x: float.bin.64;
-    y: float.bin.64;
+    var x: float.bin.64;
+    var y: float.bin.64;
 end of rec Vec
 op dot [$a: Vec, $b: Vec] -> float.bin.64:
     ret $a.x times $b.x plus $a.y times $b.y;

@@ -66,7 +66,7 @@ end of coll.bounded day
 
 # Where the reading of the log has got to: a position in it, from 1 (one past the end when it is done).
 rec Cursor:
-    at: int.unsign.64[min: 1];
+    var at: int.unsign.64[min: 1];
 end of rec Cursor
 
 # The next reading, past comment lines (`#` to the line's end) and blank ones; `done` at the log's end, and
@@ -280,16 +280,16 @@ end of fn larger
 
 # Everything the day comes to, worked out in one pass over its 24 readings.
 rec Day:
-    sum: day.sum;
-    low: temp;
-    low_hour: day.hour;
-    high: temp;
-    high_hour: day.hour;
-    rise: day.step;
-    rise_hour: day.hour;
-    warm_hours: day.count;
-    hot_hours: day.count;
-    changes: day.count;
+    var sum: day.sum;
+    var low: temp;
+    var low_hour: day.hour;
+    var high: temp;
+    var high_hour: day.hour;
+    var rise: day.step;
+    var rise_hour: day.hour;
+    var warm_hours: day.count;
+    var hot_hours: day.count;
+    var changes: day.count;
 end of rec Day
 
 proc read_day [] -> Day:

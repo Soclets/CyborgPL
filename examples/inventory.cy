@@ -1,7 +1,7 @@
 # An inventory: range types, a function that takes any number of items, and failures.
 rec Item:
-    name: str.utf8;
-    grams: int.sign.32[min: 1, max: 50_000];
+    var name: str.utf8;
+    var grams: int.sign.32[min: 1, max: 50_000];
 end of rec Item
 
 fn heaviest [...$items: Item] -> Item or fail[none]:

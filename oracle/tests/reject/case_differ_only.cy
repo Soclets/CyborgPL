@@ -3,7 +3,7 @@ fn area [] -> int.sign.32:
     ret 1;
 end of fn area
 rec Area:
-    n: int.sign.32;
+    var n: int.sign.32;
 end of rec Area
 !MAIN:
     let $a := area();

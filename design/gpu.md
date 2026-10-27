@@ -166,10 +166,10 @@ matching the kernel's `[[buffer(0)]]`, as `inline.ASM` writes ARM's `x0`
 
 ```
 %layout.C rec Body:
-    x: float.bin.32;
-    y: float.bin.32;
-    vx: float.bin.32;
-    vy: float.bin.32;
+    var x: float.bin.32;
+    var y: float.bin.32;
+    var vx: float.bin.32;
+    var vy: float.bin.32;
 end of rec Body
 
 !no_check inline.%MSL threads $n with [lend.mut $bodies -> buffer(0), copy $dt -> buffer(1)]:

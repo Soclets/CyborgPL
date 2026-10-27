@@ -6,12 +6,12 @@ interface Key <T>:
 end of interface Key
 
 rec Point:
-    x: int.sign.32;
-    y: int.sign.32;
+    var x: int.sign.32;
+    var y: int.sign.32;
 end of rec Point                      # structural: fields decide
 
 rec User:
-    name: str.utf8;
+    var name: str.utf8;
 end of rec User                           # its own rule: names compare lowercased
 op eq [$a: User, $b: User] -> bool:
     ret std::str.lower.full(lend $a.name) eq std::str.lower.full(lend $b.name);

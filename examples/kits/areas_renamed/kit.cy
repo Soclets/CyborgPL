@@ -5,7 +5,7 @@
 pub const $pi: float.bin.64 = 3.14159;
 
 pub rec Circle:
-    radius: float.bin.64;
+    var radius: float.bin.64;
 end of rec Circle
 
 pub fn circle [lent $c: Circle] -> float.bin.64:

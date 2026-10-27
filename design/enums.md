@@ -29,8 +29,8 @@ namespace. The keyword is `enum` (Rust/C/Swift/TypeScript) over `variant`.
 let $a := Status.empty;                 # a case with no data: bare
 let $b := Status.claimed["Tankun"];     # a case with data: the bracket builds it
 rec Locker:
-    number: int.sign.32;
-    status: Status;
+    var number: int.sign.32;
+    var status: Status;
 end of rec Locker
 ```
 

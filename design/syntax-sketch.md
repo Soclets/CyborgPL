@@ -13,9 +13,9 @@ The 2026-09-14 form is under **History** at the bottom.
 
 ```
 rec Locker:
-    name: str.utf8;
+    var name: str.utf8;
     let number: int.sign.32;
-    occupied: bool;
+    var occupied: bool;
 end of rec Locker
 
 fn count [lent $text: str.utf8] -> int.sign.32:

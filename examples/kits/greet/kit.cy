@@ -14,7 +14,7 @@ pub fn formal [] -> str.utf8:
 end of fn formal
 
 pub rec Tally:
-    n: int.sign.32;
+    var n: int.sign.32;
 end of rec Tally
 
 pub op merge [$a: Tally, $b: Tally] -> Tally:
@@ -22,7 +22,7 @@ pub op merge [$a: Tally, $b: Tally] -> Tally:
 end of op merge
 
 pub rec Note:
-    text: str.utf8;
+    var text: str.utf8;
 end of rec Note
 
 pub union.tag Tone:

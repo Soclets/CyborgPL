@@ -1,5 +1,5 @@
 %layout.C rec S:
-    mode: int.unsign.8[bits: 3];
+    var mode: int.unsign.8[bits: 3];
 end of rec S
 
 !MAIN:

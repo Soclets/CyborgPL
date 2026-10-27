@@ -7,9 +7,9 @@
 end of %extern.C
 
 %layout.C rec Header:
-    magic: int.unsign.32;
-    flags: int.unsign.8;
-    length: int.unsign.64;
+    var magic: int.unsign.32;
+    var flags: int.unsign.8;
+    var length: int.unsign.64;
 end of rec Header
 
 # FNV-1a: the wrap *is* the algorithm, so `x~`, never a check

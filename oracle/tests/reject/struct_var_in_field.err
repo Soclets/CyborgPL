@@ -1,1 +1,1 @@
-no `let`
+a field says whether it changes: `let x: …;` (set when made, never changed) or `var x: …;`

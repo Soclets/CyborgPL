@@ -2,7 +2,7 @@ interface Ordered <T>:
     op less_than [$a: <T>, $b: <T>] -> bool;
 end of interface Ordered
 rec V:
-    x: int.sign.32;
+    var x: int.sign.32;
 end of rec V
 V satisfies Ordered;
 !MAIN:

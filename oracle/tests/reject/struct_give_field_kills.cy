@@ -1,6 +1,6 @@
 rec P:
-    n: str.utf8;
-    x: int.sign.32;
+    var n: str.utf8;
+    var x: int.sign.32;
 end of rec P
 !MAIN:
     let $p := P[n = "a", x = 2];

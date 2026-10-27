@@ -1,5 +1,5 @@
 rec S:
-    x: int.sign.32;
+    var x: int.sign.32;
 end of rec S
 union.tag S:
     a;

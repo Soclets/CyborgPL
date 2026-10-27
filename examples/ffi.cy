@@ -7,8 +7,8 @@
 %extern.C proc free [$p: ptr.mut[int.unsign.8]];
 
 %layout.C rec Timeval:
-    sec: int.sign.64;
-    usec: int.sign.64;
+    var sec: int.sign.64;
+    var usec: int.sign.64;
 end of rec Timeval
 
 proc say [lent $text: str.utf8] -> fail[io]:

@@ -29,8 +29,8 @@ fn pick <T: any> [@x] [lent @x $xs: std::ls[<T>]] -> lent @x <T>:
 end of fn pick   # then the lifetime groups, after a `|`
 
 rec Pair <A: any, B: any>:
-    left: <A>;
-    right: <B>;
+    var left: <A>;
+    var right: <B>;
 end of rec Pair         # blanks in the order announced
 union.tag Maybe <T: any>:
     none;

@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign two: every field of a record says `let` or `var` (owner)
+
+A field that never changes had been `immut number: i32`; the build read it as `let number: …;` (design claude's pick).
+Asked whether `let` is right ("what", then shown again, simpler), the owner: "What about both `var` & `let`?" So every
+field says whether it changes, as every declaration does (the rule picked for `shadow` this evening): **`let number:
+int.sign.32;` is set when the record is made and never changed, `var occupied: bool;` changes**, and a bare field is
+refused naming both (owner: "yes", to design claude's readings: C's records, `%layout.C rec`, follow the same rule; a
+`union.tag`'s cases are not fields and stay bare). Built: the oracle and its converter (a plain old field becomes a
+`var`, an `immut` one a `let`), examples, tests and the notes' code. A `%layout.C union`'s fields are left as they are,
+not having been asked.
+
 ### 2026-10-27 — Built in the oracle: redesign two; examples, tests and the notes' code swept again (owner: "It's done, build it")
 
 The owner, asked whether redesign two had more or should be built: "It's done, build it". Built: every word of "Redesign

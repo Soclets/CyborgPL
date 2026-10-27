@@ -2,7 +2,7 @@ interface Number:
     int.sign.32;
 end of interface Number
 rec Box <T: Number>:
-    item: <T>;
+    var item: <T>;
 end of rec Box
 !MAIN:
     let $b: Box[str.utf8] = Box[item = "x"];

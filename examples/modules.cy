@@ -6,7 +6,7 @@ const $scale := 10;
 module counter:
     pub const $start := 1;
     pub rec Count:
-        n: int.sign.32;
+        var n: int.sign.32;
     end of rec Count
     pub fn bump [$c: Count] -> Count:
         ret Count[n = $c.n plus step()];

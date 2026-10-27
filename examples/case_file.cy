@@ -4,8 +4,8 @@ case.any;
 const $Limit := 3;
 
 rec Point:
-    X: int.sign.32;
-    Y: int.sign.32;
+    var X: int.sign.32;
+    var Y: int.sign.32;
 end of rec Point
 
 fn Sum [$p: Point] -> int.sign.32:

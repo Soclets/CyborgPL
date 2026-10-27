@@ -2,8 +2,8 @@
 pub const $passing := 60;
 
 rec Student:
-    name: str.utf8;
-    scores: std::ls[int.sign.32];
+    var name: str.utf8;
+    var scores: std::ls[int.sign.32];
 end of rec Student
 
 fn average [lent $s: Student] -> int.sign.32 or fail[no_scores]:

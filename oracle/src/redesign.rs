@@ -483,6 +483,8 @@ fn describe(toks: &[Token], start: usize, brace: usize, text: &dyn Fn(&Token) ->
         match s.get(i).map(|t| &t.tok) {
             Some(Tok::Word(w)) if w == "pub" => { i += 1; if matches!(s.get(i).map(|t| &t.tok), Some(Tok::Dot)) { i += 2; } }
             Some(Tok::Word(w)) if w == "bare" => { i += 1; while matches!(s.get(i).map(|t| &t.tok), Some(Tok::Dot)) { i += 2; } }
+            // `case.exact rec Exact`, `case.any fn …`: a case mark in front
+            Some(Tok::Word(w)) if w == "case" && matches!(s.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) => { i += 3; }
             Some(Tok::Word(w)) if (w == "no_check" || w == "NO_FUCKING_CHECKS" || w == "check" || w == "no_cheat") && s.len() > i + 1 => { i += 1; }
             Some(Tok::Mark) => { i += 1; }
             Some(Tok::Strict) => { i += 1; }
@@ -1696,26 +1698,33 @@ fn fields_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
         match &toks[k].tok {
             Tok::LBrace => {
                 let o = describe(&toks, stmt_start, k, &text, None, stack.last());
-                kinds.push(if o.close.starts_with("interface ") { 2 } else if o.fields { 1 } else { 0 });
+                kinds.push(if o.close.starts_with("interface ") { 2 } else if o.close.starts_with("record ") { 3 } else if o.fields { 1 } else { 0 });
                 stack.push(o);
                 stmt_start = k + 1;
             }
             Tok::RBrace => {
                 // a field or case before the end with no `;` of its own
-                if kinds.last() == Some(&1) && stmt_start < k {
+                if matches!(kinds.last(), Some(&1) | Some(&3)) && stmt_start < k {
                     let t = &toks[k - 1];
                     return Err((t.line, t.col, "each field and case ends with `;` (owner, 2026-10-26: commas inside brackets, semicolons inside blocks)".into()));
                 }
                 kinds.pop(); stack.pop(); stmt_start = k + 1;
             }
-            Tok::Comma if depth == 0 && kinds.last() == Some(&1) => {
+            Tok::Comma if depth == 0 && matches!(kinds.last(), Some(&1) | Some(&3)) => {
                 let t = &toks[k];
                 return Err((t.line, t.col, "fields and cases end with `;`, not `,` (owner, 2026-10-26: commas inside brackets, semicolons inside blocks)".into()));
             }
-            Tok::Word(l) if l == "let" && kinds.last() == Some(&1) && k == stmt_start && matches!(toks.get(k + 1).map(|t| &t.tok), Some(Tok::Word(m)) if m == "immut") => { drop.insert(k); }
+            // a record's field says whether it changes (owner, 2026-10-27: "What about both `var` & `let`?", then "yes"): `let x: T;`
+            // is the parser's `immut x: T`, `var x: T;` its `x: T`, and a bare field is refused
+            Tok::Word(l) if l == "let" && kinds.last() == Some(&3) && k == stmt_start && matches!(toks.get(k + 1).map(|t| &t.tok), Some(Tok::Word(m)) if m == "immut") => { drop.insert(k); }
+            Tok::Word(l) if l == "let" && kinds.last() == Some(&3) && k == stmt_start && matches!(toks.get(k + 1).map(|t| &t.tok), Some(Tok::Word(m)) if m == "mut") => { drop.insert(k); drop.insert(k + 1); }
+            Tok::Word(f) if kinds.last() == Some(&3) && k == stmt_start && toks.get(k + 1).is_some_and(|t| t.tok == Tok::Colon) => {
+                let t = &toks[k];
+                return Err((t.line, t.col, format!("a field says whether it changes: `let {f}: …;` (set when made, never changed) or `var {f}: …;` (owner, 2026-10-27)")));
+            }
             Tok::Semi if depth == 0 => {
                 match kinds.last() {
-                    Some(1) => { if toks.get(k + 1).is_some_and(|t| t.tok == Tok::RBrace) { drop.insert(k); } else { comma.insert(k); } }
+                    Some(1) | Some(3) => { if toks.get(k + 1).is_some_and(|t| t.tok == Tok::RBrace) { drop.insert(k); } else { comma.insert(k); } }
                     // a type entry (no `fn` / `op` in it) loses its `;`
                     Some(2) => { if !toks[stmt_start..k].iter().any(|t| matches!(&t.tok, Tok::Word(w) if w == "fn" || w == "op")) { drop.insert(k); } }
                     _ => {}
@@ -2006,6 +2015,24 @@ pub fn shorten(src: &str) -> Result<String, String> {
             _ => {}
         }
         i += 1;
+    }
+    // a record's fields each say whether they change (owner, 2026-10-27): a bare one is a `var`
+    let mut in_rec = false;
+    for k in 0..n {
+        let t = &toks[k];
+        if t.at == usize::MAX { continue; }
+        let line_start = k == 0 || toks[k - 1].line < t.line;
+        if in_rec && line_start && is_word(k, "end") && is_word(k + 1, "of") { in_rec = false; continue; }
+        if !in_rec && matches!(&t.tok, Tok::Word(r) if r == "rec" || r == "record") && !matches!(tok(k.wrapping_sub(1)), Tok::Dot) {
+            // its opening line ends in `:`
+            let mut e = k;
+            while e + 1 < n && toks[e + 1].line == t.line { e += 1; }
+            if toks[e].tok == Tok::Colon && matches!(tok(k + 1), Tok::Word(_)) { in_rec = true; }
+            continue;
+        }
+        if in_rec && (line_start || matches!(tok(k.wrapping_sub(1)), Tok::Semi)) && matches!(&t.tok, Tok::Word(f) if f != "let" && f != "var") && *tok(k + 1) == Tok::Colon {
+            edits.push(Edit { at: t.at, end: t.at, text: "var ".into() });
+        }
     }
     // a long `otherwise:` (with arms) goes below the call's line, which ends in `-` (owner, 2026-10-26: "Opt 3", 2026-10-27)
     for k in 1..n {

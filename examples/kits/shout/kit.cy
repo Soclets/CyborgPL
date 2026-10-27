@@ -13,5 +13,5 @@ pub fn Whisper [] -> str.utf8:
 end of fn Whisper
 
 pub rec Level:
-    Loud: bool;
+    var Loud: bool;
 end of rec Level

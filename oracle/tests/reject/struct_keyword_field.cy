@@ -1,5 +1,5 @@
 rec P:
-    ret: int.sign.32;
+    var ret: int.sign.32;
 end of rec P
 !MAIN:
 !end of MAIN

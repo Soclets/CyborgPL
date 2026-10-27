@@ -5,7 +5,7 @@ union.tag Color:
     blue;
 end of union.tag Color
 rec P:
-    x: int.sign.32;
+    var x: int.sign.32;
 end of rec P
 
 module paint:

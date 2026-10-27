@@ -1,8 +1,8 @@
 # A struct field prints in its own type (check claude, 2026-10-25): an f32 field shows f32's shortest form, as the same
 # value in an f32 variable does; and an exact tie between two shortest forms goes to the even digit, as Ryu does.
 rec Pr:
-    a: float.bin.32;
-    b: float.bin.32;
+    var a: float.bin.32;
+    var b: float.bin.32;
 end of rec Pr
 !MAIN:
     let $v: float.bin.32 = neg 3080.765625;

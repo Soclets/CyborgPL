@@ -2,8 +2,8 @@
 # plain number (Rect is two int32s, 8 bytes); the range is CyborgPL's promise — proven where
 # CyborgPL fills one in, and checked at the door (`out_of_range`) when one comes from C.
 %layout.C rec Rect:
-    w: int.sign.32[min: 0, max: 4096];
-    h: int.sign.32[min: 0, max: 4096];
+    var w: int.sign.32[min: 0, max: 4096];
+    var h: int.sign.32[min: 0, max: 4096];
 end of rec Rect
 %extern.C proc DrawRect [$r: Rect];
 !MAIN:

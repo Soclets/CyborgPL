@@ -1,6 +1,6 @@
 # Range types (design/input.md, 2026-09-20): a type with bounds, provably within them.
 rec Percent:
-    value: int.unsign.8[min: 0, max: 100];
+    var value: int.unsign.8[min: 0, max: 100];
 end of rec Percent
 
 fn scale [$p: Percent, $total: int.sign.32[min: 0, max: 1000]] -> int.sign.32[min: 0, max: 1000]:

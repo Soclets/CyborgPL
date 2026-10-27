@@ -11,10 +11,10 @@ of every field.
 
 ```
 rec Locker:
-    name: str.utf8;
-    number: int.sign.32;
-    capacity: int.sign.32;
-    occupied: bool;
+    var name: str.utf8;
+    var number: int.sign.32;
+    var capacity: int.sign.32;
+    var occupied: bool;
 end of rec Locker
 ```
 

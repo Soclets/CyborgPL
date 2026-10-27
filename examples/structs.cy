@@ -1,9 +1,9 @@
 # Structs: building one, reading and changing its fields, an `immut` field.
 rec Locker:
-    name: str.utf8;
+    var name: str.utf8;
     let number: int.sign.32;
-    capacity: int.sign.32;
-    occupied: bool;
+    var capacity: int.sign.32;
+    var occupied: bool;
 end of rec Locker
 
 fn free_space [lent $l: Locker] -> int.sign.32:

@@ -1,7 +1,7 @@
 # Functions as values (design/functions-as-values.md, 2026-09-21).
 rec Locker:
-    number: int.sign.32;
-    owner: str.utf8;
+    var number: int.sign.32;
+    var owner: str.utf8;
 end of rec Locker
 
 fn by_number [lent $a: Locker, lent $b: Locker] -> bool:

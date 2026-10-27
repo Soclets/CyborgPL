@@ -1,6 +1,6 @@
 rec Counter:
-    now: int.sign.32;
-    stop: int.sign.32;
+    var now: int.sign.32;
+    var stop: int.sign.32;
 end of rec Counter
 proc Counter.next [lent.mut $c: Counter] -> optional[int.sign.32]:
     if $c.now eq $c.stop:

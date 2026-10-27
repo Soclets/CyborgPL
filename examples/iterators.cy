@@ -4,8 +4,8 @@
 # ("`c`"). `optional` is the base's: `optional.value(…)` / `optional.none`, matched bare.
 
 rec Counter:
-    now: int.sign.32;
-    stop: int.sign.32;
+    var now: int.sign.32;
+    var stop: int.sign.32;
 end of rec Counter
 
 proc Counter.next [lent.mut $c: Counter] -> optional[int.sign.32]:
@@ -17,7 +17,7 @@ proc Counter.next [lent.mut $c: Counter] -> optional[int.sign.32]:
 end of proc Counter.next
 
 rec Forever:
-    n: int.sign.32;
+    var n: int.sign.32;
 end of rec Forever
 
 proc Forever.next [lent.mut $f: Forever] -> optional[int.sign.32]:

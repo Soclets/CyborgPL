@@ -67,7 +67,7 @@ fn draw [$x: int.sign.32[min: 0, max: 1023], $y: int.sign.32[min: 0, max: 767]]:
     …
 end of fn draw
 rec Percent:
-    value: int.unsign.8[min: 0, max: 100];
+    var value: int.unsign.8[min: 0, max: 100];
 end of rec Percent
 let $unit: float.bin.64[min: 0.0, max: 1.0] = 0.25;
 ```

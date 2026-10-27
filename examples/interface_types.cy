@@ -37,7 +37,7 @@ fn whole <T: any> [@x] [lent @x $xs: std::ls[<T>]] -> lent @x std::ls[<T>]:
 end of fn whole
 
 rec Box <T: Number>:
-    item: <T>;
+    var item: <T>;
 end of rec Box
 
 !MAIN:

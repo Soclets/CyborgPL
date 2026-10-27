@@ -2,8 +2,8 @@
 # structs, `match`, and.then / or.else (the base's, since they skip their right side) still work.
 
 rec Point:
-    x: int.sign.32;
-    y: int.sign.32;
+    var x: int.sign.32;
+    var y: int.sign.32;
 end of rec Point
 
 union.tag Light:

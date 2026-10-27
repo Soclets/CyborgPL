@@ -1,5 +1,5 @@
 rec V:
-    x: int.sign.32;
+    var x: int.sign.32;
 end of rec V
 op <*> [give $a: V, $b: int.sign.32] -> V:
     ret give $a;

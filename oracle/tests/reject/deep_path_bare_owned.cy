@@ -1,9 +1,9 @@
 # an owned value at the end of a deep path takes a verb, as one step does
 rec In:
-    name: str.utf8;
+    var name: str.utf8;
 end of rec In
 rec Out:
-    inn: In;
+    var inn: In;
 end of rec Out
 !MAIN:
     let $o := Out[inn = In[name = "a"]];
