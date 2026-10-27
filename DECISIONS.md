@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: the missed abbreviations, `operator`, `external.C`, `boolean`, `concatenate`, `std::power`, `round.truncate`, `round.ceiling` (owner; not built)
+
+Scanning the oracle's keywords and every `std::` name in the examples, design claude found seven abbreviations this
+morning's rule had missed: **`op` → `operator`, `extern.C` → `external.C`, `bool` → `boolean`, `concat` →
+`concatenate` (`"taken by " concatenate $who`), `std::pow` / `std::pow.ieee` → `std::power` / `std::power.ieee`,
+`std::round.trunc` → `std::round.truncate`, `std::round.ceil` → `std::round.ceiling`**; the owner: "yes". Left as
+names (design claude's reading): `ieee` (the standard's) and `std::casing.tr` (Turkish, ISO 639); `argc`, `args`,
+`len` in examples are writers' own variables. Not built.
+
 ### 2026-10-27 — Redesign: `no_cheat` becomes `no_skip` (owner; not built)
 
 `no_cheat` (2026-10-01; any statement since 2026-10-18) says every bit of the work really happens at run time: no
