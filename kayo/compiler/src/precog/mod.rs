@@ -4284,14 +4284,21 @@ struct Layer3 {
 /// landings needs.
 fn layer3(p: &Program, r: &SiteResult, facts: &Facts, portfolio: &smt::Portfolio) -> Layer3 {
     let note = |n: &str| Layer3 { verdict: None, note: Some(n.to_string()), solved: false, disagreement: None };
+    let Some(q) = smt::encode(p, r.function, r.site, facts) else {
+        // A site whose values bit-vectors do not describe — what a task
+        // computes, a horizontal sum across lanes. Layer 3 ran; it had
+        // nothing it could ask.
+        return note("layer 3 has no way to ask about this one yet");
+    };
     // First, with no loop walked: each head stands for every trip, and a
     // counting loop's counter never goes back past its first value. A
     // weaker question, so only a proof from it is taken; and a much
     // smaller one, answered in a second where the walked one took CVC5
     // half a minute (std's `sits_at`, design claude, 2026-10-26).
-    if !p.functions[r.function].fors.is_empty() {
+    // Only where a loop makes it a different question.
+    {
         if let Some(shallow) = smt::encode_unrolled(p, r.function, r.site, facts, true, true, 0) {
-            if shallow.text.len() <= smt::QUERY_CAP {
+            if shallow.text.len() <= smt::QUERY_CAP && shallow.text != q.text {
                 let (a, e) = portfolio.ask(&shallow);
                 let reached = !shallow.assumed || matches!(portfolio.ask_text(&shallow.reach), smt::Answer::Sat(_));
                 if matches!(a, smt::Answer::Unsat) && reached && !shallow.truncated && !smt::disagreed(&e) {
@@ -4300,12 +4307,6 @@ fn layer3(p: &Program, r: &SiteResult, facts: &Facts, portfolio: &smt::Portfolio
             }
         }
     }
-    let Some(q) = smt::encode(p, r.function, r.site, facts) else {
-        // A site whose values bit-vectors do not describe — what a task
-        // computes, a horizontal sum across lanes. Layer 3 ran; it had
-        // nothing it could ask.
-        return note("layer 3 has no way to ask about this one yet");
-    };
     if q.text.len() > smt::QUERY_CAP {
         return note(&format!("layer 3's question came out too big to ask ({} MB)", q.text.len() / 1_000_000));
     }

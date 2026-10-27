@@ -468,7 +468,7 @@ pub fn encode_unrolled(p: &Program, f: usize, site: SiteId, facts: &crate::preco
         }
     }
     let borrows = shared_borrows(&p.functions[f]);
-    let mut e = Enc { p, f, defs: Vec::new(), next: 0, truncated: false, reached: Vec::new(), inputs: Vec::new(), aliased, unexpressible: false, facts, borrows, entries: HashMap::new(), assume, counted, assumed: false, reach: Vec::new(), points: Vec::new(), operands: Vec::new(), entry_fields: HashMap::new(), unroll };
+    let mut e = Enc { p, f, defs: Vec::new(), next: 0, truncated: false, reached: Vec::new(), inputs: Vec::new(), aliased, unexpressible: false, facts, borrows, entries: HashMap::new(), assume, counted, assumed: false, reach: Vec::new(), points: Vec::new(), operands: Vec::new(), entry_fields: HashMap::new(), field_places: HashMap::new(), unroll };
     e.build(site)?;
     if e.reached.is_empty() || e.unexpressible {
         return None;
@@ -553,6 +553,9 @@ struct Enc<'a> {
     /// when first read (design claude, 2026-10-26: `if $c.now at_least
     /// 2880 { return …; }` said nothing about the `$c.now + 15` after it).
     entry_fields: HashMap<(LocalId, String), Option<Val>>,
+    /// Each field key's place, for a join that needs its entry value before
+    /// anything has read it (a `while` testing a field it writes).
+    field_places: HashMap<(LocalId, String), Place>,
     /// How many times each loop is walked before its head stands for the
     /// trips after.
     unroll: u32,
@@ -1078,17 +1081,13 @@ impl<'a> Enc<'a> {
                         let mut late = e.clone();
                         let before = e.clone();
                         let grows = resized.get(&ti).cloned().unwrap_or_default();
+                        let body = bodies.get(&ti).cloned().unwrap_or_default();
                         for l in sorted(last_trip.get(&ti).cloned().unwrap_or_default()) {
-                            if grows.contains(&l) {
-                                this.forget(&mut late, l);
-                            } else {
-                                this.forget_value(&mut late, l);
-                            }
+                            this.forget_in_loop(&mut late, &body, l, grows.contains(&l));
                             this.assume_fact(&mut late, ti, l);
                         }
                         let written = last_trip.get(&ti).cloned().unwrap_or_default();
                         this.assume_counted(&mut late, ti, &written);
-                        let body = bodies.get(&ti).cloned().unwrap_or_default();
                         this.assume_kept_positions(&mut late, ti, &written, &body, &[before]);
                         this.forget_aliased(&mut late);
                         // Either the trips go on as walked, or this entry is
@@ -1113,21 +1112,17 @@ impl<'a> Enc<'a> {
                 if lvl == this.unroll {
                     if let Some(written) = last_trip.get(&ti).cloned() {
                         let grows = resized.get(&ti).cloned().unwrap_or_default();
+                        let body = bodies.get(&ti).cloned().unwrap_or_default();
                         for l in &sorted(written.clone()) {
-                            if grows.contains(l) {
-                                this.forget(&mut e, *l);
-                            } else {
-                                // Written only element by element: every
-                                // length the query knows of it stays.
-                                this.forget_value(&mut e, *l);
-                            }
+                            // Written only element by element: every length
+                            // the query knows of it stays.
+                            this.forget_in_loop(&mut e, &body, *l, grows.contains(l));
                             // What layer 2 knows holds on every trip through
                             // this head: `'i'` counts up from 1, so it is
                             // never below 1, whichever trip this stands for.
                             this.assume_fact(&mut e, ti, *l);
                         }
                         this.assume_counted(&mut e, ti, &written);
-                        let body = bodies.get(&ti).cloned().unwrap_or_default();
                         let entries = this.entries.get(&ti).cloned().unwrap_or_default();
                         this.assume_kept_positions(&mut e, ti, &written, &body, &entries);
                         this.forget_aliased(&mut e);
@@ -1261,7 +1256,11 @@ impl<'a> Enc<'a> {
                 if e.contains_key(k) {
                     continue;
                 }
-                let entry = e.contains_key(&Key::Pristine(*l)).then(|| self.entry_fields.get(&(*l, path.clone())).cloned().flatten()).flatten();
+                let place = self.field_places.get(&(*l, path.clone())).cloned();
+                let entry = match (e.contains_key(&Key::Pristine(*l)), place) {
+                    (true, Some(place)) => self.entry_field(&place),
+                    _ => None,
+                };
                 match entry {
                     Some(v) => {
                         e.insert(k.clone(), v);
@@ -1336,6 +1335,7 @@ impl<'a> Enc<'a> {
                     };
                     match v {
                         Some(v) => {
+                            self.field_places.insert((place.local, k.clone()), place.clone());
                             env.insert(Key::Field(place.local, k), v);
                         }
                         None => self.forget_fields(env, place.local),
@@ -1369,6 +1369,55 @@ impl<'a> Enc<'a> {
     /// No field of this local is known any more.
     fn forget_fields(&mut self, env: &mut Env, l: LocalId) {
         env.retain(|k, _| !matches!(k, Key::Field(x, _) | Key::Pristine(x) if *x == l));
+    }
+
+    /// A loop that writes `l` only through whole-number fields (`change
+    /// $c.now = …` in a `while`): those fields, at its head, are anything
+    /// their types allow, and the parameter's other fields are what they
+    /// were. Any other write to it, and nothing of its fields is known.
+    fn forget_in_loop(&mut self, env: &mut Env, body: &std::collections::HashSet<usize>, l: LocalId, grows: bool) {
+        let leaf = |this: &Self, st: &Statement| matches!(&st.kind, StmtKind::Assign { place, .. } if place.local == l && field_key(place).is_some() && int_shape(&this.place_ty(place)).is_some());
+        let mut fields: Vec<Place> = Vec::new();
+        // A whole-number field's write resizes nothing, whatever the walk's
+        // own count of resized locals says.
+        let mut other = !env.contains_key(&Key::Pristine(l));
+        let mut blocks: Vec<usize> = body.iter().copied().collect();
+        blocks.sort();
+        for b in blocks {
+            let block = &self.func().blocks[b];
+            for st in &block.stmts {
+                if let (true, StmtKind::Assign { place, .. }) = (leaf(self, st), &st.kind) {
+                    if !fields.contains(place) {
+                        fields.push(place.clone());
+                    }
+                }
+            }
+            let mut only = block.clone();
+            only.stmts.retain(|st| !leaf(self, st));
+            let mut w = std::collections::HashSet::new();
+            written_in(&only, &mut w);
+            other |= w.contains(&l);
+        }
+        if other || fields.is_empty() {
+            if grows {
+                self.forget(env, l);
+            } else {
+                self.forget_value(env, l);
+            }
+            return;
+        }
+        env.remove(&Key::Local(l));
+        for p in fields {
+            let ty = self.place_ty(&p);
+            let Some((bits, signed)) = int_shape(&ty) else { continue };
+            let show = self.spell(&Operand::Read(p.clone()), 0).unwrap_or_else(|| "a field".to_string());
+            let v = self.fresh("in", bits, signed, show);
+            self.constrain_range(&v, &ty);
+            if let Some(k) = field_key(&p) {
+                self.field_places.insert((l, k.clone()), p.clone());
+                env.insert(Key::Field(l, k), v);
+            }
+        }
     }
 
     /// A parameter's field as it was on entry: anything its type allows,

@@ -405,21 +405,25 @@ fn final_build_proves_counted_loops_and_no_more() {
 }
 
 /// A parameter's field is one value from entry until something writes it,
-/// so a guard on it narrows it; and a position kept from a walk over a list
+/// so a guard on it narrows it, and a loop that steps it keeps it inside its
+/// type at the head; and a position kept from a walk over a list
 /// is inside that list (design claude, 2026-10-26). Refused still: a field
-/// written on one way in, after a call that lends it, through the whole
+/// written on one way in, after a call that lends it (once, or on each trip
+/// of a loop), stepped past its bound, through the whole
 /// struct or a borrow, and a kept position one past, in another list, in
 /// a list since shortened, or never kept. A counterexample names the
 /// program's own values.
 #[test]
 fn final_build_proves_fields_and_kept_positions_and_no_more() {
     let tests = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/final");
-    let proven = ["field_guarded", "field_or_guarded", "kept_position", "kept_position_from_one"];
+    let proven = ["field_guarded", "field_or_guarded", "field_loop_stepped", "kept_position", "kept_position_from_one"];
     let refused = [
         ("field_branch_written", "field_branch_written.cy:16:"),
         ("field_after_call", "field_after_call.cy:16:"),
         ("field_struct_replaced", "field_struct_replaced.cy:16:"),
         ("field_alias", "field_alias.cy:17:"),
+        ("field_loop_past", "field_loop_past.cy:14:"),
+        ("field_loop_call", "field_loop_call.cy:14:"),
         ("kept_position_plus_one", "kept_position_plus_one.cy:15:"),
         ("kept_position_other_list", "kept_position_other_list.cy:15:"),
         ("kept_position_shrunk", "kept_position_shrunk.cy:23:"),
