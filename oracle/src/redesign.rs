@@ -732,7 +732,9 @@ fn words(toks: &[Token], text: &dyn Fn(&Token) -> String, info: Option<&Info>, e
     let is_word = |i: usize, w: &str| matches!(tok(i), Tok::Word(x) if x == w);
     let mut depth: i32 = 0;
     let jumping = jumping_handlers(toks);
+    let mut skip_to = 0;
     for i in 0..n {
+        if i < skip_to { continue; }
         let t = &toks[i];
         // a handler that jumps, where it is used: `otherwise half_failed.!as_zero`, `otherwise !half_failed(…)` (owner, 2026-10-26)
         if i > 0 && is_word(i - 1, "otherwise") {
@@ -755,6 +757,18 @@ fn words(toks: &[Token], text: &dyn Fn(&Token) -> String, info: Option<&Info>, e
         let after_kit = *prev == Tok::ColonColon;
         let before = if after_dot && pi >= 1 { if let Tok::Word(b) = tok(pi - 1) { b.clone() } else { String::new() } } else { String::new() };
         let put = |edits: &mut Vec<Edit>, s: String| edits.push(Edit { at: t.at, end: t.end, text: s });
+        // an integer of any width, `%not_std.i24` → `int.sign.%not_std.24` (owner, 2026-10-27: (a)), written at once in
+        // redesign two's words, redesign one having none for it
+        if is_word(i, "not_std") && !after_dot && *tok(i + 1) == Tok::Dot {
+            if let Tok::Word(x) = tok(i + 2) {
+                if let Some(d) = x.strip_prefix('i').or_else(|| x.strip_prefix('u')).filter(|d| !d.is_empty() && d.chars().all(|c| c.is_ascii_digit())) {
+                    let from = if marked { toks[i - 1].at } else { t.at };
+                    edits.push(Edit { at: from, end: toks[i + 2].end, text: format!("int.{}.%not_std.{d}", if x.starts_with('i') { "sign" } else { "unsign" }) });
+                    skip_to = i + 3;
+                    continue;
+                }
+            }
+        }
         match &t.tok {
             Tok::Var(v) => {
                 // a quoted name becomes `$name`, or `$'odd name'` when it needs its quotes (owner, 2026-10-27)
@@ -2582,6 +2596,25 @@ fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                         if toks.get(j + 1).is_some_and(|x| x.tok == Tok::Dot) {
                             let mut k = j + 2;
                             let m2 = toks.get(k).is_some_and(|x| x.tok == Tok::Mark); if m2 { k += 1; }
+                            // an integer of any width, `int.sign.%not_std.24` (owner, 2026-10-27: (a)): the limb's mark and
+                            // `not_std` on the width; read as the parser's `%not_std.i24`
+                            if w == "int" && !m1 && matches!(sub.as_str(), "sign" | "unsign") && matches!(toks.get(k).map(|x| &x.tok), Some(Tok::Word(n)) if n == "not_std") && toks.get(k + 1).is_some_and(|x| x.tok == Tok::Dot) {
+                                if let Some(Tok::Word(d)) = toks.get(k + 2).map(|x| x.tok.clone()) {
+                                    if d.chars().all(|c| c.is_ascii_digit()) {
+                                        let new = format!("int.{sub}.%not_std.{d}");
+                                        if !m2 || out.last().is_some_and(|x| x.tok == Tok::Mark) { return Err((t.line, t.col, format!("an integer of any width is a limb's, marked on the width: `{new}` (owner, 2026-10-27)"))); }
+                                        out.push(tok_like(Tok::Mark, t));
+                                        out.push(word_tok("not_std", &toks[k]));
+                                        out.push(toks[k + 1].clone());
+                                        let mut wt = word_tok(&format!("{}{d}", if sub == "sign" { "i" } else { "u" }), &toks[k + 2]);
+                                        wt.end = toks[k + 2].end;
+                                        out.push(wt);
+                                        i = k + 3;
+                                        seg_before.clear();
+                                        continue;
+                                    }
+                                }
+                            }
                             if let Some(Tok::Word(width)) = toks.get(k).map(|x| x.tok.clone()) {
                                 let long_sub = match (w, sub.as_str()) { ("int", "sign") => Some("signed"), ("int", "unsign") => Some("unsigned"), ("float", "bin") => Some("binary"), ("float", "deci") => Some("decimal"), ("float", "brain") => Some("brain"), _ => None };
                                 let written_long = w == "integer" || matches!(sub.as_str(), "signed" | "unsigned" | "binary" | "decimal") || width.ends_with("_bit");
@@ -2600,6 +2633,14 @@ fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                                     continue;
                                 }
                             }
+                        }
+                    }
+                }
+                if w == "not_std" && next == Tok::Dot {
+                    if let Some(Tok::Word(x)) = toks.get(i + 2).map(|y| &y.tok) {
+                        if let Some(d) = x.strip_prefix('i').or_else(|| x.strip_prefix('u')).filter(|d| !d.is_empty() && d.chars().all(|c| c.is_ascii_digit())) {
+                            let marked = out.last().is_some_and(|y| y.tok == Tok::Mark);
+                            return old(&format!("{}not_std.{x}", if marked { "%" } else { "" }), &format!("int.{}.%not_std.{d}", if x.starts_with('i') { "sign" } else { "unsign" }));
                         }
                     }
                 }

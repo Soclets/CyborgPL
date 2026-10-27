@@ -13,7 +13,7 @@ end of test proc halves
 
 !MAIN:
     let $b: float.%brain.16 := 0.5;
-    let $w: %not_std.u4 := 9;
+    let $w: int.unsign.%not_std.4 := 9;
     let $price: float.%deci.64 := 19.99;
     let $g: char.%cluster := `ก็`;
     let $age: int.sign.32[min: 0, max: 150] := 42;

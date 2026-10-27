@@ -91,9 +91,13 @@ and `deci`/`uenr` are ours to write rather than vendored.
 ## Integers of any width: `!std.int24` (owner, 2026-10-03; the `.` since 2026-10-06)
 
 ```
-let $sample: %not_std.i24 := neg 8_000_000;     # Rust-style: !std.i24
-let $flags: %not_std.u4 := 9;               # !std.u4
+let $sample: int.sign.%not_std.24 := neg 8_000_000;     # Rust-style: !std.i24
+let $flags: int.unsign.%not_std.4 := 9;               # !std.u4
 ```
+
+**Since 2026-10-27 it is `int.sign.%not_std.24` / `int.unsign.%not_std.4`** (owner, 2026-10-27: "(a)"): the long name
+every number type now has, the limb's mark and `not_std` on the part it adds, the width, as `int.sign.%128` and
+`float.%deci.64`. `%not_std.i24` is refused as the old spelling. The history below keeps its own spellings.
 
 Any width LLVM takes (from 1 bit to its own limit, about 8 million),
 always marked `!std.`, "not standard": `!std.intN` / `!std.uintN`, or

@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign two: an integer of any width is `int.sign.%not_std.24` (owner: (a))
+
+Design claude's provisional pick from the build, asked: `%not_std.i24` / `%not_std.u4` had kept their short form while
+every other number type took its long name. Offered (a) `int.sign.%not_std.24`, `int.unsign.%not_std.4`, the limb's mark
+on the part it adds, the width, (b) `%not_std.int.sign.24`, `%not_std.` kept in front, (c) keep `%not_std.i24`,
+recommending (a) (the rule that turned `%i128` into `int.sign.%128` and `%d64` into `float.%deci.64`, `not_std` on the
+width it describes). The owner: "(a)". So **`let $sample: int.sign.%not_std.24 := neg 8_000_000;`**; the old spelling is
+refused naming the new, and one without its mark is refused. Built; the converter writes it, and the code was swept.
+
 ### 2026-10-27 — Redesign two: an operator's operands and `MAIN`'s parameters say how they come, as a function's do (owner: (a1))
 
 Design claude's provisional pick from the build, asked: an operator's operands and `MAIN`'s two parameters took no `let`

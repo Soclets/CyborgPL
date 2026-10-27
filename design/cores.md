@@ -143,7 +143,7 @@ claude's reading of the owner's examples):
 %extern.C proc puts [let $s: ptr[int.unsign.8]] -> %C.int;             # CNC
 incl.%C["sdl.h"];                                      # `incl` is the base's
 let $price: float.%deci.64 := 19.50;                              # Money
-let $odd: %not_std.i24 := 5;                            # WSMW: `not_std` is only its
+let $odd: int.sign.%not_std.24 := 5;                            # WSMW: `not_std` is only its
 let $name: str.utf8[max: 40 %clusters] := "café";      # unicode
 %spawn.task with [lend $ch]:
     %channel.send(lend $ch, value: 1);
