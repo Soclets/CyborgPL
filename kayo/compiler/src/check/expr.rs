@@ -3316,7 +3316,18 @@ impl Checker {
                     };
                     // An arm gives the call's value, as a `match` case does
                     // (owner, 2026-09-29), or leaves.
-                    let (body, given) = self.arm_block(ctx, &arm.body)?;
+                    // A handler's arms are written for the caller's loop, so
+                    // one that can `break` or `continue` is refused where it
+                    // is used outside a loop (owner, 2026-10-27: (b)); its
+                    // arm lies outside the use's span.
+                    let s = arm.body.span;
+                    let from_handler = s.file != arms_span.file || s.start < arms_span.start || s.end > arms_span.end;
+                    let (body, given) = match self.arm_block(ctx, &arm.body) {
+                        Err(d) if from_handler && d.name == Some("outside_loop") => {
+                            return err(Diagnostic::error("this handler can `break` or `continue`, so it is used only inside a loop").named("outside_loop").at(*arms_span));
+                        }
+                        r => r?,
+                    };
                     ctx.pop_scope();
                     let given = match given {
                         Some(_) if !used => return err(Diagnostic::error(format!("the `{}` arm gives a value, but the call's value is not used", arm.name.name)).named("handler_value_unused").at(arm.body.span)),
