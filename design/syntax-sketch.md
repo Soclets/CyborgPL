@@ -28,13 +28,11 @@ end of fn count
     for $i [from: 1, to: 10, by: 1]:
         if ($i mod.floor 2) eq 0:
             change $total to $total plus $i;
-        end of if
         else if $i eq 7:
             break;
-        end of else if
         else:
             continue;
-        end of else
+        end of if
     end of for
     let $s := "line 1" concat newln concat "line 2";
     std::print.shortest("total: ", $total, newln);

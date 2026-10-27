@@ -1647,6 +1647,16 @@ fn blocks_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
             i = j;
             continue;
         }
+        // an `else` line ends the branch before it and opens the next; `end of if` ends them all (owner, 2026-10-27: "(b)")
+        if matches!(&t.tok, Tok::Word(e) if e == "else") && (i == 0 || toks[i - 1].line < t.line) {
+            // the old form: the chain's own `end of if` right above, in the `else`'s column (a nested one sits further in)
+            let chain_end = closes.last().is_some_and(|(w, _, _, c)| (w == "if" || w.starts_with("else") || w.starts_with("on.")) && *c == t.col);
+            if out.last().is_some_and(|x| x.tok == Tok::RBrace) && chain_end {
+                return Err((t.line, t.col, "an `else` continues its `if`: no `end of if` before it; `end of if` comes once, after the last branch (owner, 2026-10-27)".into()));
+            }
+            closes.push(("<else>".into(), false, t.line, t.col));
+            out.push(tok_like(Tok::RBrace, t));
+        }
         // the hyphen ending a line, before a block's opening line, joins them (owner, 2026-10-26: "See that `-`?")
         if matches!(&t.tok, Tok::Op(o) if o == "-") && toks.get(i + 1).is_some_and(|x| x.line > t.line) {
             i += 1;
@@ -1794,6 +1804,9 @@ fn check_blocks(toks: &[Token], closes: &[(String, bool, usize, usize)], arm_ban
     let mut depth = 0;
     let mut close_at = 0;
     let members = MEMBERS.with(|m| m.borrow().clone());
+    // the chain an `else` continues: the first branch's kind, for the `end of` closing the last
+    let mut heads: Vec<Option<String>> = Vec::new();
+    let mut last_closed: Option<String> = None;
     for (k, t) in toks.iter().enumerate() {
         // a line inside a collection that is one of its members says `member` (owner, 2026-10-27)
         if k == stmt_start && depth == 0 {
@@ -1817,16 +1830,22 @@ fn check_blocks(toks: &[Token], closes: &[(String, bool, usize, usize)], arm_ban
                     if written && !open.bang { return Err((line, col, format!("`!{}` jumps nowhere: `!` marks an arm holding a `return`, `break` or `continue` (owner, 2026-10-26)", open.close))); }
                     if !written && open.bang { return Err((line, col, format!("this arm jumps, so it wears `!`: `!{}:` … `!end of {}` (owner, 2026-10-26)", open.close, open.close))); }
                 }
+                let head = if open.close.starts_with("else") { last_closed.clone() } else { None };
+                heads.push(head);
                 stack.push((open, k));
                 stmt_start = k + 1;
             }
             Tok::RBrace => {
                 let Some((open, _)) = stack.pop() else { return Err((t.line, t.col, "an `end of` line with no block open".into())); };
                 if open.list { continue; }
+                let head = heads.pop().flatten();
                 let Some((written, bang, line, col)) = closes.get(close_at).cloned() else { return Err((t.line, t.col, "a block's end".into())); };
                 close_at += 1;
-                // the block's kind and name as redesign two writes them
-                let want = short_code(&open.close);
+                // an `else` line ended this branch; the chain goes on
+                if written == "<else>" { last_closed = Some(head.unwrap_or_else(|| open.close.clone())); stmt_start = k + 1; continue; }
+                last_closed = None;
+                // the block's kind and name as redesign two writes them; a chain's last branch closes on its first's
+                let want = short_code(&head.unwrap_or_else(|| open.close.clone()));
                 if written != want { return Err((line, col, format!("`end of {written}` closes `{want}`: write `{}end of {want}` (owner, 2026-10-26)", if open.bang { "!" } else { "" }))); }
                 if bang != open.bang {
                     return Err((line, col, if open.bang { format!("this block's last line wears `!`, as its first does: `!end of {want}` (owner, 2026-10-26)") } else { format!("`!end of {want}`: `!` goes only where something needs attention (owner, 2026-10-26)") }));
@@ -2075,6 +2094,52 @@ pub fn shorten(src: &str) -> Result<String, String> {
             _ => {}
         }
         i += 1;
+    }
+    // an if's branches are one block: no `end of` before an `else`, and the last branch closes on the first's kind
+    // (owner, 2026-10-27: "(b)")
+    {
+        let lines: Vec<(usize, usize)> = {
+            let mut v = Vec::new(); let mut st = 0;
+            for (k, c) in chars.iter().enumerate() { if *c == '\n' { v.push((st, k)); st = k + 1; } }
+            v.push((st, chars.len())); v
+        };
+        let text_of = |l: usize| -> String { chars[lines[l].0..lines[l].1].iter().collect() };
+        let indent_of = |s: &str| s.len() - s.trim_start().len();
+        for l in 0..lines.len() {
+            let t = text_of(l);
+            let tr = t.trim();
+            let Some(kind) = tr.strip_prefix("end of ") else { continue };
+            let chainy = kind == "if" || kind == "else" || kind == "else if" || kind.starts_with("on.") || kind.starts_with("else on.");
+            if !chainy { continue; }
+            let ind = indent_of(&t);
+            // the next line with code
+            let mut m = l + 1;
+            while m < lines.len() && text_of(m).trim().is_empty() { m += 1; }
+            let next_else = m < lines.len() && indent_of(&text_of(m)) == ind && text_of(m).trim().starts_with("else") && text_of(m).trim().ends_with(':');
+            if next_else {
+                // the line goes, its line break with it
+                let end = if l + 1 < lines.len() { lines[l + 1].0 } else { lines[l].1 };
+                edits.push(Edit { at: lines[l].0, end, text: String::new() });
+            } else if kind.starts_with("else") {
+                // the chain's first branch, up the lines at this indent
+                let mut h = l;
+                let mut head = String::new();
+                while h > 0 {
+                    h -= 1;
+                    let ht = text_of(h);
+                    if indent_of(&ht) != ind || ht.trim().is_empty() { continue; }
+                    let htr = ht.trim();
+                    if htr.starts_with("else") || htr.starts_with("end of") { continue; }
+                    if htr.starts_with("if ") || htr.starts_with("if(") { head = "if".into(); }
+                    else if htr.starts_with("on.") { head = htr.split(|c: char| c == ' ' || c == ':').next().unwrap_or("").to_string(); }
+                    break;
+                }
+                if !head.is_empty() {
+                    let at = lines[l].0 + ind;
+                    edits.push(Edit { at, end: lines[l].1, text: format!("end of {head}") });
+                }
+            }
+        }
     }
     // a collection's members say `member` on both lines (owner, 2026-10-27: "(b)", "yes")
     {

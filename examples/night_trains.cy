@@ -261,10 +261,9 @@ proc quickest_from [lent $net: Network, lent $from: str.utf8] -> std::map.ordere
             let $km := $pick_km plus $l.km;
             if $l.a eq $pick:
                 try_reach(lend.mut $best, lend $done, lend $l.b, lend $pick, $minutes, $km);
-            end of if
             else if $l.b eq $pick:
                 try_reach(lend.mut $best, lend $done, lend $l.a, lend $pick, $minutes, $km);
-            end of else if
+            end of if
         end of for
     end of loop
     ret give $best;
@@ -708,10 +707,9 @@ proc show_letters [lent $net: Network]:
         let $found := stations_where(lend $net, fn [let $s] with [lend $part] = std::str.contains(lend $s, part: lend $part));
         if std::ls.len(lend $found) eq 0:
             std::print.shortest("  none with ", $part, newln);
-        end of if
         else:
             std::print.shortest("  with ", $part, ": ", std::str.join(lend $found, between: ", "), newln);
-        end of else
+        end of if
     end of for
 end of proc show_letters
 
@@ -765,10 +763,9 @@ proc book_all [lent $net: Network, lent.mut $left: std::map.ordered[str.utf8, in
             !case bad_request $what:
                 if $what eq $line:
                     std::print.shortest("  (cannot read \"", $line, "\")", newln);
-                end of if
                 else:
                     std::print.shortest("  (cannot read \"", $what, "\" in \"", $line, "\")", newln);
-                end of else
+                end of if
                 continue;
             !end of case bad_request
         end of otherwise;

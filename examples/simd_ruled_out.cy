@@ -4,9 +4,8 @@
 !MAIN:
     on.target.chip x86_64:
         let $w: simd[int.sign.32, count: 8] := simd.fill(value: 1);
-    end of on.target.chip
     else:
         let $v: simd[int.sign.32, count: 4] := simd.fill(value: 1);
         std::print.shortest(simd.sum($v), newln);
-    end of else
+    end of on.target.chip
 !end of MAIN

@@ -14,10 +14,9 @@ end of fn scale
     if $raw at_least 0 and $raw at_most 100:
         let $ok: int.sign.32[min: 0, max: 100] := $raw;                   # the if is the guardrail; a check site
         std::print.shortest($ok, newln);
-    end of if
     else:
         std::print.stored("250 is not a percentage", newln);
-    end of else
+    end of if
     let $r := to.int.unsign.8[min: 0, max: 100]("42") otherwise 0;          # into a range type: fails, does not check
     let $bad := to.int.unsign.8[min: 0, max: 100]("142") otherwise 0;
     let $huge := to.int.unsign.8[min: 0, max: 100]("99999999999") otherwise 0;   # not even a u8: still out of range, not a crash

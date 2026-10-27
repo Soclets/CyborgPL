@@ -148,10 +148,9 @@ fn crc32 [] -> int.unsign.32:
         for $k [from: 1, to: 8, by: 1]:
             if ($crc and.bit 1) eq 1:
                 change $crc to ($crc shr 1) xor hex EDB8_8320;
-            end of if
             else:
                 change $crc to $crc shr 1;
-            end of else
+            end of if
         end of for
     end of for
     ret $crc xor hex FFFF_FFFF;

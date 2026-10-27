@@ -19,7 +19,6 @@ proc pi_digits [let $n: int.sign.32]:
         change $q to $q div.floor 10;
         if $q eq 9:
             change $nines to $nines plus 1;
-        end of if
         else if $q eq 10:
             std::print.shortest($predigit plus 1);
             for $k [from: 1, to: $nines, by: 1]:
@@ -27,7 +26,6 @@ proc pi_digits [let $n: int.sign.32]:
             end of for
             change $predigit to 0;
             change $nines to 0;
-        end of else if
         else:
             if $j gt 1:
                 std::print.shortest($predigit);
@@ -40,7 +38,7 @@ proc pi_digits [let $n: int.sign.32]:
                 std::print.shortest(9);
             end of for
             change $nines to 0;
-        end of else
+        end of if
     end of for
     std::print.shortest($predigit, newln);
 end of proc pi_digits

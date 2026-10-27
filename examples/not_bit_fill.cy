@@ -36,10 +36,9 @@ end of proc put_u
 proc put_i [let $n: int.sign.64]:
     if $n lt 0:
         emit(to.int.unsign.64(0 minus ($n plus 1)) plus 1, true);
-    end of if
     else:
         emit(to.int.unsign.64($n), false);
-    end of else
+    end of if
 end of proc put_i
 !MAIN:
     let $v17: int.unsign.16 := 0;

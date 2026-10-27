@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: an `if`'s branches are one block; `end of if` comes once, after the last (owner: (b))
+
+From multifinity's review of the redesigned night trains (a Claude with no context): "`end of if` doesn't actually end
+the `if`, since `else` still belongs to it. Named closers are strongest when the closer really is the end." Design
+claude offered (a) as ruled 2026-10-26, each branch its own block, or (b) one block, each `else` line starting the next
+branch and `end of if` ending them all, now recommending (b) (2026-10-26's worry, a branch ending without its own `end
+of`, answered by the `else` line itself). The owner: "(b)". So **`if $n gt 0:` … `else if $n lt 0:` … `else:` … `end
+of if`**, and the same for `on.target … else on.target.chip … else … end of on.target`; an `end of if` right before its
+`else` is refused. This reverses 2026-10-26's chained branches. Built (the converter folds the old form).
+
 ### 2026-10-27 — Redesign two: `less_than` / `greater_than` become `lt` / `gt`; `at_most` / `at_least` stay (owner)
 
 Shown every operator, the owner: "if shift_right is `shr`, then shouldn't `greater_than` be `gt`?" (the table had had

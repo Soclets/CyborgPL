@@ -45,10 +45,10 @@ difference.
 
 ```
 let $limit := 60;
-let $passing := keep(lend $scores, fn [$s: int.sign.32] -> bool with [lend $limit]:
+let $passing := keep(lend $scores, fn [let $s: int.sign.32] -> bool with [lend $limit]:
     ret $s at_least $limit;
 end of fn);
-let $evens   := keep(lend $scores, fn [$s: int.sign.32] -> bool:
+let $evens   := keep(lend $scores, fn [let $s: int.sign.32] -> bool:
     ret ($s mod.floor 2) eq 0;
 end of fn);   # captures nothing
 ```
@@ -65,8 +65,8 @@ silently, which is where "why is this borrowed" bugs come from.
 ### The short form (owner, 2026-10-24: "(c)"; not built)
 
 ```
-let $passing := keep(lend $scores, fn [$s] with [lend $limit] = $s at_least $limit);
-let $evens   := keep(lend $scores, fn [$s] = ($s mod.floor 2) eq 0);
+let $passing := keep(lend $scores, fn [let $s] with [lend $limit] = $s at_least $limit);
+let $evens   := keep(lend $scores, fn [let $s] = ($s mod.floor 2) eq 0);
 ```
 
 One value after `=`, no `{ return …; }`; the parameters' types and the return type come from the `fn[…]` type of

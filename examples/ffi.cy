@@ -26,12 +26,11 @@ end of proc say
     !no_check let $home := getenv(lend $key);
     if ptr.is_null($home):
         std::print.stored("no HOME", newln);
-    end of if
     else:
         !no_check if strlen($home) gt 0:
             std::print.stored("HOME is set", newln);
         end of if
-    end of else
+    end of if
 
     !no_check let $buf := malloc(4);                 # bytes nobody owns
     !no_check ptr.write($buf, value: 72);

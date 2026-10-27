@@ -316,15 +316,13 @@ on.target.chip aarch64:
     !no_check inline.ASM with [ … ]:
         neg x0, x0
     end of inline.ASM
-end of on.target.chip
 else on.target.chip x86_64:
     !no_check inline.ASM with [ … ]:
         neg rax
     end of inline.ASM
-end of else on.target.chip
 else:
     let $y := neg $x;
-end of else
+end of on.target.chip
 on.target.os macos 15:
     …
 end of on.target.os          # a minimum: refuses to start on older

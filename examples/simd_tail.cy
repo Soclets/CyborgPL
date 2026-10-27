@@ -12,11 +12,10 @@
         if $left at_least 4:
             let $v: simd[int.sign.32, count: 4] := simd.load(lend $xs, pos: $i);
             change $acc to $acc plus $v;
-        end of if
         else:
             let $v: simd[int.sign.32, count: 4] := simd.load.some(lend $xs, pos: $i, count: $left);
             change $acc to $acc plus $v;
-        end of else
+        end of if
         change $i to $i plus 4;
     end of while
     let $twice: simd[int.sign.32, count: 4] := simd.fill(value: 2);

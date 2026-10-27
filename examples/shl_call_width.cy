@@ -6,8 +6,7 @@ end of fn g
 !MAIN:
     if 3 gt (g() shl 1):
         std::print.shortest("yes", newln);
-    end of if
     else:
         std::print.shortest("no", newln);
-    end of else
+    end of if
 !end of MAIN

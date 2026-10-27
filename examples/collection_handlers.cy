@@ -50,11 +50,10 @@ fn sum_of_halves [lent $xs: std::ls[int.sign.32], let $until_bad: bool] -> int.s
         if $until_bad:
             let $h := half($x) otherwise half_failed.!stop;
             change $sum to $sum plus $h;
-        end of if
         else:
             let $h := half($x) otherwise half_failed.!skip;
             change $sum to $sum plus $h;
-        end of else
+        end of if
     end of for
     ret $sum;
 end of fn sum_of_halves

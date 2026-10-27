@@ -6,13 +6,11 @@ end of fn is_even
 fn clamp [let $n: int.sign.32, let $low: int.sign.32, let $high: int.sign.32] -> int.sign.32:
     if $n lt $low:
         ret $low;
-    end of if
     else if $n gt $high:
         ret $high;
-    end of else if
     else:
         ret $n;
-    end of else
+    end of if
 end of fn clamp
 
 !MAIN:
@@ -44,11 +42,9 @@ end of fn clamp
 
     if $average at_least 90:
         std::print.shortest("grade A", newln);
-    end of if
     else if $average at_least 75:
         std::print.shortest("grade B", newln);
-    end of else if
     else:
         std::print.shortest("keep going", newln);
-    end of else
+    end of if
 !end of MAIN

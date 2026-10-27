@@ -10,11 +10,10 @@ end of proc draw
     let $x: float.bin.32 := 70000.0;
     if $x gt 65_504.0:
         std::print.stored("too big", newln);
-    end of if
     else:
         check let $y: float.bin.16 := $x;
         draw($y);
-    end of else
+    end of if
     var $xs = [1, 2, 3];
     check:
         for $i [from: 1, to: std::ls.len(lend $xs), by: 1]:
