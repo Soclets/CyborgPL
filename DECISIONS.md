@@ -34,6 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign two: a lone `on.target.chip` block closes on its full kind, `end of on.target.chip` (owner: (a))
+
+Design claude's provisional pick from the build, asked: (a) a lone block closes on its whole kind, `end of on.target.chip`
+(`.os`, `on.machine.chip` alike), or (b) always `end of on.target`; a chain closes on its first line's kind either way
+(the `if` ruling's (b)). Recommended (a): every other dotted kind closes on all of it (`end of union.tag Status`, `end of
+%spawn.task.detached`, `end of coll.handler booking_failed`), and the line says which question the block asked. The
+owner: "a". Already built that way.
+
 ### 2026-10-27 — Redesign two: no one-line `otherwise` arm; one answer for every reason is `otherwise fail …;` (owner: (a))
 
 From multifinity's review of the redesigned night trains (a smaller point): a one-line form for single-statement arms
