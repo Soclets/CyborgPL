@@ -131,7 +131,7 @@ pub fn number_type(w: &str) -> Option<String> {
     Some(format!("{kind}.{n}_bit"))
 }
 
-/// PROVISIONAL (asked 2026-10-27): a limb's number type wears its mark on the part the limb adds
+/// A limb's number type wears its mark on the part the limb adds (owner, 2026-10-27: "yes")
 fn marked_number_type(w: &str) -> Option<String> {
     let t = number_type(w)?;
     Some(match w {
@@ -1552,7 +1552,7 @@ fn number_back(toks: &[Token], i: usize, out: &mut Vec<Token>) -> Result<Option<
     let Some(old) = old_number(kind, &sub, width) else { return Ok(None) };
     let t = &toks[i];
     let marked_before = out.last().is_some_and(|x| x.tok == Tok::Mark);
-    // where the mark belongs (PROVISIONAL, asked 2026-10-27): on the part the limb adds
+    // where the mark belongs: on the part the limb adds (owner, 2026-10-27)
     let want = marked_number_type(&old).unwrap_or_default();
     let has_mark = m1 || m2 || marked_before;
     let written = format!("{}{kind}.{}{sub}.{}{width}", if marked_before { "%" } else { "" }, if m1 { "%" } else { "" }, if m2 { "%" } else { "" });

@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: a limb's number type is marked on the part the limb adds, `float.%decimal.64_bit` (owner)
+
+With the number types named by narrowing, a limb adds only part of a name: Money the decimal floats, AI the brain float,
+WSMW the 128-bit width. Design claude recommended marking that part, as 2026-10-26's rule ("a limb's first word")
+reads on the new names, over `%float.decimal.64_bit`, which would make the base's `float` look like the limb's; the owner:
+"yes". So **`float.%decimal.64_bit`, `float.%brain.16_bit`, `integer.signed.%128_bit`** (and `%128_bit` on `unsigned` and
+`float.binary`). Built with the redesign; a mark elsewhere on the type is refused naming the right place, and a base type
+marked is refused. Design claude's reading, kept from the marks as built: the mark is needed where `%d64` was, first in a
+path or right after `to.`.
+
 ### 2026-10-27 — Redesign: `lend.mut`, `lent.mut`, `pointer.mut` become `.mutable` (owner)
 
 `mut` is short for "mutable", and this morning's ruling took `mut` and `immut` out of declarations only. Design claude
