@@ -824,7 +824,7 @@ fn check_redeclared(prog: &ast::Program) -> Result<Option<String>, String> {
     fn find<'a>(sc: &'a [Vec<Entry>], n: &str) -> Option<&'a Entry> { sc.iter().rev().flat_map(|s| s.iter().rev()).find(|(m, _, _)| m == n || m.strip_prefix("const:") == Some(n)) }
     fn decl(w: &mut W, n: &str, shadow: bool, sealed: bool, is_mut: bool, line: usize) -> Result<(), String> {
         match (find(&w.sc, n), shadow) {
-            (Some(_), false) => return Err(format!("line {line}: '{n}' is already declared in an enclosing scope; to shadow it deliberately write `shadow '{n}' := …;` (owner, 2026-10-08)")),
+            (Some(_), false) => return Err(format!("line {line}: '{n}' is already declared in an enclosing scope; to shadow it deliberately write `let shadow '{n}' := …;` (or `variable shadow`) (owner, 2026-10-08)")),
             (None, true) => return Err(format!("line {line}: `shadow` declares over an existing '{n}', but none is visible here")),
             (Some((m, true, _)), true) if m.starts_with("const:") => return Err(format!("line {line}: '{n}' is a const and cannot be shadowed")),
             (Some((_, true, _)), true) => return Err(format!("line {line}: '{n}' cannot be shadowed: it is `no_shadow` (or a loop's own counter)")),
@@ -1002,7 +1002,7 @@ fn check_redeclared(prog: &ast::Program) -> Result<Option<String>, String> {
         if let Some(&(i, shadow)) = w.fixed.iter().find(|&&(i, _)| w.muts[i].2) {
             let (n, line, _, _) = &w.muts[i];
             return Err(if shadow {
-                format!("line {line}: '{n}' is a `shadow` that never changes, but something changes it: declare it `shadow variable '{n}' := …;` (owner, 2026-10-27)")
+                format!("line {line}: '{n}' is a `let shadow`, which never changes, but something changes it: declare it `variable shadow '{n}' := …;` (owner, 2026-10-27)")
             } else {
                 format!("line {line}: '{n}' is a `let`, which never changes, but something changes it: declare it `variable '{n}' := …;` (owner, 2026-10-27)")
             });

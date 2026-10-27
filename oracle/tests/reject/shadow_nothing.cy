@@ -1,3 +1,3 @@
 !MAIN:
-    shadow $y := 2;
+    let shadow $y := 2;
 !end of MAIN

@@ -829,22 +829,20 @@ fn words(toks: &[Token], text: &dyn Fn(&Token) -> String, info: Option<&Info>, e
                         let gap = toks[i + 1].at;
                         edits.push(Edit { at: t.at, end: gap, text: String::new() });
                     }
-                    // `shadow mut $x` → `shadow variable $x`, `shadow immut $x` → `shadow $x`, a plain one by what changes it
-                    // (PROVISIONAL: a shadow never changes unless it says `variable`, as `let` / `variable`)
+                    // `shadow mut $x` → `variable shadow $x`, `shadow immut $x` / `shadow $x` → `let shadow $x`, a plain one by
+                    // what changes it (owner, 2026-10-27: "(a)", the declaration word first, as `let no_shadow`)
                     "shadow" => {
                         let ns = *tok(i + 1) == Tok::NoShadow;
                         let m_at = if ns { i + 2 } else { i + 1 };
                         let flagged = toks.get(m_at).is_some_and(|x| x.mtm.is_some());
-                        if is_word(m_at, "mut") && !flagged {
-                            let m = &toks[m_at];
-                            edits.push(Edit { at: m.at, end: m.end, text: "variable".into() });
-                        } else if is_word(m_at, "immut") && !flagged {
+                        let changes = if is_word(m_at, "mut") && !flagged { true } else if is_word(m_at, "immut") && !flagged { false } else if let Tok::Var(name) = tok(m_at) {
+                            info.map_or_else(|| changed_in_text(toks, i, name), |inf| inf.changed.contains(&(t.line, name.clone())) || (!inf.declared.contains(&(t.line, name.clone())) && changed_in_text(toks, i, name)))
+                        } else { false };
+                        put(edits, if changes { "variable shadow".into() } else { "let shadow".into() });
+                        if (is_word(m_at, "mut") || is_word(m_at, "immut")) && !flagged {
                             let m = &toks[m_at];
                             let gap_end = toks.get(m_at + 1).map_or(m.end, |x| x.at);
                             edits.push(Edit { at: m.at, end: gap_end, text: String::new() });
-                        } else if let Tok::Var(name) = tok(m_at) {
-                            let changed = info.map_or_else(|| changed_in_text(toks, i, name), |inf| inf.changed.contains(&(t.line, name.clone())) || (!inf.declared.contains(&(t.line, name.clone())) && changed_in_text(toks, i, name)));
-                            if changed { let a = toks[m_at].at; edits.push(Edit { at: a, end: a, text: "variable ".into() }); }
                         }
                     }
                     "immut" if matches!(tok(i + 1), Tok::Word(_)) => {
@@ -1467,15 +1465,15 @@ fn words_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     }
                     // a writable C variable, `%external.C variable $x: C.int;`; a parameter that changes, `[variable $n: i32]`
                     "variable" if out.iter().rev().take(4).any(|x| matches!(&x.tok, Tok::Word(e) if e == "extern")) || matches!(out.last().map(|x| &x.tok), Some(Tok::LBracket | Tok::Comma)) => out.push(word_tok("mut", t)),
-                    // `shadow $x` never changes, `shadow variable $x` does (PROVISIONAL)
-                    "shadow" => {
-                        out.push(t.clone());
-                        let ns = toks.get(i + 1).is_some_and(|x| x.tok == Tok::NoShadow);
-                        if ns { out.push(toks[i + 1].clone()); }
-                        let m = if ns { i + 2 } else { i + 1 };
-                        if is_w(m, "variable") { out.push(word_tok("mut", &toks[m])); i = m + 1; continue; }
-                        if matches!(toks.get(m).map(|x| &x.tok), Some(Tok::Var(_))) { out.push(word_tok("immut", t)); }
-                        i = m;
+                    // a shadow says first whether it changes: `let shadow $x`, `variable shadow $x` (owner, 2026-10-27: "(a)")
+                    "shadow" => return fault("a shadow says whether it changes, as every declaration does: `let shadow $x := …;` or `variable shadow $x := …;` (owner, 2026-10-27)".into()),
+                    "variable" | "let" if is_w(i + 1, "shadow") => {
+                        // `let shadow $x` / `variable shadow $x`: the parser's `shadow immut $x` / `shadow mut $x`
+                        out.push(word_tok("shadow", &toks[i + 1]));
+                        let ns = toks.get(i + 2).is_some_and(|x| x.tok == Tok::NoShadow);
+                        if ns { out.push(toks[i + 2].clone()); }
+                        out.push(word_tok(if w == "variable" { "mut" } else { "immut" }, t));
+                        i += if ns { 3 } else { 2 };
                         continue;
                     }
                     "variable" | "let" => {

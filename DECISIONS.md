@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: a shadow says first whether it changes, `let shadow $x` / `variable shadow $x` (owner: (a))
+
+The rulings left `shadow` open; the build had read a plain `shadow $x` as never changing and `shadow variable $x` as
+changing (design claude's pick). Shown it, the owner: "Wait, what", then "reads a bit weird". Design claude offered (a)
+the declaration word first, `let shadow $x := 100;` / `variable shadow $x := 100;`, as `let no_shadow $x` already is,
+recommended (whether a name changes is always the first word); (b) `shadow.let` / `shadow.variable`; (c) as built; and
+noted that on 2026-10-08 the owner chose `shadow $x :=` over `let shadow` ("Not `let`"), when `let` said nothing of change.
+The owner: "(a)". So **`let shadow $x := 2;` never changes, `variable shadow $x := 2;` does**; a bare `shadow $x` is
+refused naming both. This reverses 2026-10-08's `shadow` in `let`'s place. Built (examples, tests and notes changed).
+
 ### 2026-10-27 — std converts to the redesign right after kayo, on the owner's go, when compiler claude's turn ends (owner)
 
 std's checks run every call in both the oracle and kayo, so converting std/ alone stops half of them either way (std
