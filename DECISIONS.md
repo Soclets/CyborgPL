@@ -34,6 +34,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: no abbreviations; a name stays a name (`std`, `ASM`, `MSL`, `utf8`, `C`) (owner; not built)
+
+After the operator purge, shown a piece of the bare station still with `div`, `mod`, `min:`, `max:`, the owner: "No
+abbrevs, bro". Shown everything spelled out, with design claude questioning `std` and `MSL`, the owner: "`ASM`, `MSL`.
+`std` are names, bro". So **every abbreviation becomes its word**, and **a name stays as it is**:
+- `fn` → `function` / `procedure` (2026-10-27); `struct` → `structure`; `enum` → `enumeration`; `const` → `constant`;
+  `pub` → `public`; `coll` → `collection`; `ptr` → `pointer`; `incl` → `include`; `str` → `string`;
+- `div` → `divide`, `mod` → `modulo`, `.near` → `.nearest`; `shl` / `shr` → `shift_left` / `shift_right`;
+- `min:` / `max:` → `minimum:` / `maximum:`; `pos` → `position`; `newln` → `newline`; `secs` / `mins` → `seconds` /
+  `minutes`; `bin` / `hex` / `oct` → `binary` / `hexadecimal` / `octal`; `char` → `character`; `cols` → `columns`;
+  `seq` / `para` / `temp` / `perm` → `sequential` / `parallel` / `temporary` / `permanent`;
+- names kept: `std`, `ASM`, `MSL`, `utf8`, `C`, `MAIN`; design claude's reading: `simd` and `xor` are names as well.
+This reverses the owner's shortenings of 2026-10-19 (`coll.`), 2026-10-20 (`bin` / `hex` / `oct`) and 2026-10-24
+(`secs` / `mins`). Not built.
+
 ### 2026-10-27 — Redesign: `not_equal` becomes `not_equal_to`; `equal_to` and `array` stay; 2026-10-26's `arr` / `eq_to` / `not_eq` withdrawn (owner; not built)
 
 The owner: "did we change `not_equal` to `not_equal_to` yet? Because, since we have no abbriviations anymore, we might
