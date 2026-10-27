@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: `print.useful` becomes `print.shortest`, and `to.useful` `to.shortest` (owner; not built)
+
+"Useful" said nothing of what it does: it prints the shortest decimal that reads back as the same value (`f16`
+0.123456789 prints `0.1235`; a decimal `1.50` prints `1.5`), beside `print.stored` (the exact value held) and
+`print.written` (as typed), both accurate. Design claude offered `shortest` (recommended), `round_trip` (true of
+`stored` too) and `readable` (as vague); the owner: "yes. Btw, it's not `d64`" (the type is `float.decimal.64_bit`
+since this morning). So **`print.shortest`, `print.shortest.auto_newline`, and the conversion
+`to.shortest.float.decimal.64_bit[…]`** (with `to.stored.float.decimal.64_bit[…]`; the spelling of a conversion with
+the new type names is design claude's reading). Not built.
+
 ### 2026-10-27 — Redesign: `collection.bound` becomes `collection.bounded` (owner; not built)
 
 In maths a bound is a value (1 and 99 in `integer.signed.32_bit[minimum: 1, maximum: 99]`); what each member of a
