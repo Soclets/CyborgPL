@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): the setting is a kit's style, covering every short form; the symbol style is `practical concise` (owner)
+
+Shown `operators = symbols` under `my details:`, the owner: "It's not only operators, bro. It's others too, so just
+`practical concise`? Btw, currently, `concise` means CyPL encoded in Binary" (Concise CyborgPL, 2026-10-22). So,
+exploring: **the setting is the kit's style**, covering every place with a short form beside a word, not operators only;
+**the short style is named `practical concise`** (design claude's spelling for the file, by the house rule that `_` joins
+one name's words: `style = practical_concise`), not `concise`, which stays the binary encoding. Asked next: the words
+style's name (design claude: `plain_words`), and whether the line is required or `practical_concise` when left out.
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): a kit uses one operator style, said in `CyJet.toml` (owner)
 
 The owner: "Is "all the words" stay a good idea? I think it is, some people might wanna write for people who don't
