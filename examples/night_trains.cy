@@ -25,8 +25,8 @@ const $change_minutes: int.sign.32 := 10;     # changing trains at a station cos
 const $near_rate: float.%deci.64 := 0.12;        # the fare per km for the first 500 km
 const $far_rate: float.%deci.64 := 0.08;         # and per km after that
 const $near_km: int.sign.32 := 500;
-const $by_eight: int.sign.32 := 1920;
-const $most_bookings: int.unsign.64 := 500;     # a night's trains hold no more travellers than this         # 08:00 the next morning, 1440 + 480
+const $by_eight: int.sign.32 := 1920;           # 08:00 the next morning, 1440 + 480
+const $most_bookings: int.unsign.64 := 500;     # a night's trains hold no more travellers than this
 
 # ---------------------------------------------------------------------------------------------------
 # Types
