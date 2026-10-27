@@ -34,6 +34,11 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: a lambda with a body closes on its kind alone, `end of fn` / `end of proc` (owner)
+
+A lambda has no name, so the build closed it on its kind, as `if` closes (design claude's pick). Shown it, the owner:
+"yes". So **`keep(lend $scores, fn [let $s: int.sign.32] -> bool with [lend $limit]:` … `end of fn);`**. Already built.
+
 ### 2026-10-27 — Redesign: a precedence level lists its operators in brackets, `level 2 [plus, minus] left_first;` (owner)
 
 A level's `{ equal_to, ~= }` had become `[eq, ~=]` in the build (design claude's pick). The owner: "Why not block?" Shown
