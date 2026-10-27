@@ -769,6 +769,11 @@ fn words(toks: &[Token], text: &dyn Fn(&Token) -> String, info: Option<&Info>, e
                 }
             }
         }
+        // an old read-only C variable, `%extern.C $x: T;`: `variable`, since C may change it (owner, 2026-10-27); marking one C
+        // declares `const` as `let` is the writer's
+        if is_word(i, "C") && i >= 2 && *tok(i - 1) == Tok::Dot && is_word(i - 2, "extern") && matches!(tok(i + 1), Tok::Var(_)) {
+            edits.push(Edit { at: t.end, end: t.end, text: " variable".into() });
+        }
         match &t.tok {
             Tok::Var(v) => {
                 // a quoted name becomes `$name`, or `$'odd name'` when it needs its quotes (owner, 2026-10-27)
@@ -907,10 +912,6 @@ fn words(toks: &[Token], text: &dyn Fn(&Token) -> String, info: Option<&Info>, e
                         put(edits, "let".into());
                     }
                     "mut" if statement_has(toks, i, "extern") && matches!(tok(i + 1), Tok::Var(_)) => put(edits, "variable".into()),
-                    "C" if i >= 2 && *tok(i - 1) == Tok::Dot && is_word(i - 2, "extern") && matches!(tok(i + 1), Tok::Var(_)) => {
-                        // an old read-only C variable: `var`, since C may change it (owner, 2026-10-27); a `const` one is the writer's to mark `let`
-                        edits.push(Edit { at: t.end, end: t.end, text: " variable".into() });
-                    }
                     _ if in_kind_list(toks, i) => {
                         let k = match w.as_str() { "fn" => "function", "struct" => "record", "enum" => "union.tagged", "const" => "constant", "var" => "variable", "op" => "operator", _ => continue };
                         put(edits, k.into());
