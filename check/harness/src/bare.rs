@@ -73,6 +73,9 @@ fn manifest(std: &Path) -> String {
 
 pub enum Outcome {
     Same,
+    /// kayo says the program needs what a chip with no OS lacks yet (a heap,
+    /// threads, an OS): coverage, not a finding
+    NotYet(String),
     Differ(String),
     /// the oracle or kayo did not run it, or QEMU did not end: why
     Failed(String),
@@ -110,9 +113,14 @@ pub fn check_text(t: &Tools, text: &str, dir: &Path) -> Outcome {
     if r.code != Some(0) || !bin.exists() {
         // a failure kayo sees while building, at the line the oracle stops at,
         // is the same answer, as in the host comparison
+        if let Some(l) = r.stderr.lines().find(|l| l.contains("not yet on `aarch64-none`") || l.starts_with("error[not_built_yet]")) {
+            return Outcome::NotYet(l.to_string());
+        }
+        // or before it: the oracle stopped earlier in the run, at a check kayo
+        // keeps, and never reached what kayo sees fail every time (as compare.rs)
         let at = engines::kayo_line(&r.stderr);
         if let engines::Oracle::Stopped { line: Some(l), .. } = &o {
-            if at == Some(*l) {
+            if at.is_some_and(|k| k >= *l) {
                 return Outcome::Same;
             }
         }

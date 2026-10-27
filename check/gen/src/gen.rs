@@ -566,6 +566,10 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         let probe = g.width_probe();
         main.extend(probe);
     }
+    if g.cfg.bare && g.rng.chance(60) {
+        let lines = g.bare_episode();
+        main.extend(lines.into_iter().map(Stmt::Src));
+    }
     let n = g.stmt_count();
     main.extend(g.stmts(n, g.depth()));
     // `std::exit(code: N)` last (owner, 2026-10-23; oracle 69c6aedf): the
@@ -810,6 +814,46 @@ impl Gen {
         shown.push(format!("std::map.length[lend {m}]"));
         lines.push(format!("std::print.useful[{}, newln];", shown.join(", \" \", ")));
         lines
+    }
+
+    /// What a chip with no operating system holds without a heap (kayo
+    /// 78a41606; `check bare`): a fixed array, summed by a function it is lent
+    /// to, its length and an item; a text literal in a variable; and
+    /// `print.format` with number, truth and character holes (text and
+    /// collection holes are not built there).
+    fn bare_episode(&mut self) -> Vec<String> {
+        self.unevaluable = true;
+        self.fresh += 1;
+        let id = self.fresh;
+        let v = |n: &str| format!("'{n}{id}'");
+        let lit = |v: i128| if v < 0 { format!("({v})") } else { v.to_string() };
+        self.extra_fns.push(format!("fn ba_sum{id} [lent 'a': array[i64]] -> i64 {{\n    let mut 's': i64 = 0;\n    for 'i': u64 [from: 1, to: array.length[lend 'a'], by: 1] {{ change 's' = 's' plus.wrap 'a'['i']; }}\n    return 's';\n}}").replace("'a'['i']", "'a'[pos: 'i']"));
+        let n = self.rng.range(1, 8);
+        let items: Vec<String> = (0..n).map(|_| lit(self.rng.range(-99999, 99999))).collect();
+        let at = self.rng.range(1, n);
+        let words = ["station 7", "ok", "x", "café", "日本"];
+        let w = *self.rng.pick(&words);
+        let (i, u) = (self.rng.range(-99999, 99999), self.rng.range(0, 255));
+        let b = if self.rng.chance(50) { "true" } else { "false" };
+        // a character says what it is; `char.byte`, the base's, an ASCII one
+        let c = *self.rng.pick(&["a", "Z", "7", "~", "-"]);
+        let int_hole = *self.rng.pick(&["{}", "{width: 8 cols}", "{align: left, width: 7 cols, fill: `.`}", "{base: hex}", "{sign}", "{zeros, width: 6 cols}"]);
+        let small_hole = *self.rng.pick(&["{}", "{base: bin, zeros, width: 8 cols}", "{base: hex.upper}", "{width: 4 cols}"]);
+        let other_hole = *self.rng.pick(&["{}", "{width: 6 cols}", "{align: center, width: 7 cols, fill: `*`}"]);
+        vec![
+            format!("let {}: array[i64] = [{},];", v("ar"), items.join(", ")),
+            format!("std::print.useful[ba_sum{id}[lend {ar}], \" \", array.length[lend {ar}], \" \", {ar}[pos: {at}], newln];", ar = v("ar")),
+            format!("let {}: str.utf8 = \"{w}\";", v("tx")),
+            format!("std::print.useful[{}, newln];", v("tx")),
+            format!("let {}: i64 = {};", v("fi"), lit(i)),
+            format!("let {}: u8 = {u};", v("fu")),
+            format!("let {}: bool = {b};", v("fb")),
+            // a `char.byte` hole is not built with no OS yet (kayo 78a41606), so the
+            // character is printed by itself, outside the format
+            format!("let {}: char.byte = `{c}`;", v("fc")),
+            format!("std::print.format[\"{int_hole}|{small_hole}|{other_hole}\\n\", {}, {}, {}];", v("fi"), v("fu"), v("fb")),
+            format!("std::print.useful[{}, newln];", v("fc")),
+        ]
     }
 
     /// A list's kinds (owner, 2026-10-25): a `page_aligned` list grown through

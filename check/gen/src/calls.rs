@@ -18,8 +18,8 @@
 //!
 //! Lines stay where they were; a column moves where `'x'` becomes `$x`.
 
-const TYPES: [&str; 29] = [
-    "i8", "i16", "i32", "i64", "i128", "u8", "u16", "u32", "u64", "u128", "f16", "f32", "f64", "d32", "d64", "d128", "bool", "brain16", "str.utf8", "list", "map", "simd", "ptr", "ptr.mut", "percent", "channel", "fn", "list.page_aligned", "list.not_page_aligned",
+const TYPES: [&str; 30] = [
+    "i8", "i16", "i32", "i64", "i128", "u8", "u16", "u32", "u64", "u128", "f16", "f32", "f64", "d32", "d64", "d128", "bool", "brain16", "str.utf8", "list", "map", "simd", "ptr", "ptr.mut", "percent", "channel", "fn", "list.page_aligned", "list.not_page_aligned", "array",
 ];
 const DESCRIBE: [&str; 5] = ["size.of", "align.of", "ptr.cast", "range", "simd"];
 

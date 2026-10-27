@@ -395,7 +395,7 @@ fn main() {
             // the oracle (2026-10-26; oracle 29b59ddc)
             let t = tools();
             let cfg = Config { lists: false, borrows: false, inputs: 0, std_all: false, iterators: false, written: false, bare: true, ..a.config_modelled() };
-            let (mut same, mut differ, mut failed) = (0, 0, vec![]);
+            let (mut same, mut differ, mut failed, mut not_yet) = (0, 0, vec![], 0);
             // corpus-bare/ first: each a program whose MAIN ends in std::exit
             let mut files: Vec<_> = std::fs::read_dir(repo().join("check/corpus-bare")).map(|d| d.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "cy")).collect()).unwrap_or_default();
             files.sort();
@@ -409,6 +409,7 @@ fn main() {
                 match (bare::check_text(&t, &text, &dir), known) {
                     (bare::Outcome::Same, Some(_)) => println!("agrees       {name}  (marked known-difference: it agrees now, so the mark can go)"),
                     (bare::Outcome::Same, None) => println!("agrees       {name}"),
+                    (bare::Outcome::NotYet(why), _) => println!("not yet      {name}  ({why})"),
                     (bare::Outcome::Differ(why) | bare::Outcome::Failed(why), Some(k)) => println!("known        {name}  ({why}; {k})"),
                     (bare::Outcome::Differ(why) | bare::Outcome::Failed(why), None) => println!("STILL FAILS  {name}  ({why})"),
                 }
@@ -426,6 +427,7 @@ fn main() {
                 let _ = std::fs::create_dir_all(&dir);
                 match bare::check(&t, &p, &dir) {
                     bare::Outcome::Same => same += 1,
+                    bare::Outcome::NotYet(_) => not_yet += 1,
                     bare::Outcome::Differ(why) => {
                         differ += 1;
                         println!("seed {seed}: {why}, files in {}", dir.display());
@@ -436,7 +438,7 @@ fn main() {
             for f in failed.iter().take(5) {
                 println!("not built or run: {f}");
             }
-            println!("{} programs: {same} the same on the bare board, {differ} differ, {} not built or run", same + differ + failed.len(), failed.len());
+            println!("{} programs: {same} the same on the bare board, {differ} differ, {not_yet} not yet on the board, {} not built or run", same + differ + not_yet + failed.len(), failed.len());
         }
         "metal" => {
             // inline.MSL on the GPU against the oracle's loop (kayo 793861b5)
