@@ -1,5 +1,6 @@
-# extern.C 'x': T — a C global (decided 2026-09-21). Reading or writing it is a no_check site.
-%extern.C $lib_version: int.sign.32;              # C: extern int lib_version;
+# A C global (decided 2026-09-21), saying whether it can change (owner, 2026-10-27): `let` for one C declares `const`,
+# `var` for the rest. Reading or writing it is a no_check site.
+%extern.C let $lib_version: int.sign.32;          # C: extern const int lib_version;
 %extern.C var $lib_verbose: int.sign.32;          # C: extern int lib_verbose;  (we may write it)
 
 !MAIN:

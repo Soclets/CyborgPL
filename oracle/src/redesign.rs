@@ -907,6 +907,10 @@ fn words(toks: &[Token], text: &dyn Fn(&Token) -> String, info: Option<&Info>, e
                         put(edits, "let".into());
                     }
                     "mut" if statement_has(toks, i, "extern") && matches!(tok(i + 1), Tok::Var(_)) => put(edits, "variable".into()),
+                    "C" if i >= 2 && *tok(i - 1) == Tok::Dot && is_word(i - 2, "extern") && matches!(tok(i + 1), Tok::Var(_)) => {
+                        // an old read-only C variable: `var`, since C may change it (owner, 2026-10-27); a `const` one is the writer's to mark `let`
+                        edits.push(Edit { at: t.end, end: t.end, text: " variable".into() });
+                    }
                     _ if in_kind_list(toks, i) => {
                         let k = match w.as_str() { "fn" => "function", "struct" => "record", "enum" => "union.tagged", "const" => "constant", "var" => "variable", "op" => "operator", _ => continue };
                         put(edits, k.into());
@@ -1443,6 +1447,13 @@ fn words_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
         if t.mtm.is_some() { out.push(t.clone()); i += 1; continue; }
         // and the word glued to an old symbol, `*const`, `&mut`: the symbol names the whole old spelling
         if i > 0 && toks[i - 1].mtm.is_some() && matches!(&toks[i - 1].tok, Tok::Op(o) if o == "*" || o == "&") && toks[i - 1].end == t.at { out.push(t.clone()); i += 1; continue; }
+        // a C variable says whether it can change (owner, 2026-10-27): `let` for what C declares `const` (the parser's bare
+        // one, read only), `var` for the rest
+        let after_extern_c = out.len() >= 3 && matches!(&out[out.len() - 1].tok, Tok::Word(c) if c == "C") && out[out.len() - 2].tok == Tok::Dot && matches!(&out[out.len() - 3].tok, Tok::Word(e) if e == "extern");
+        if after_extern_c {
+            if matches!(&t.tok, Tok::Word(l) if l == "let") && matches!(toks.get(i + 1).map(|x| &x.tok), Some(Tok::Var(_))) { out.push(toks[i + 1].clone()); i += 2; continue; }
+            if let Tok::Var(v) = &t.tok { return fault(format!("a C variable says whether it can change: `%extern.C let ${v}: …;` for one C declares `const`, `%extern.C var ${v}: …;` for the rest (owner, 2026-10-27)")); }
+        }
         match &t.tok {
             Tok::LBrace | Tok::RBrace => return fault("`{ }` is an old spelling since 2026-10-26: a block's opening line ends in `:` and its last line is `end of` its kind and name (`if $n greater_than 0:` … `end of if`) (owner)".into()),
             // a symbol, not the word the lexer reads as it (`less_than` is `<` inside)

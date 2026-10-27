@@ -239,7 +239,7 @@ design claude's recommendation with a, not asked separately.
 ## `extern.C 'x': T` — a C global (decided 2026-09-21; `let` dropped 2026-09-25)
 
 ```
-%extern.C $lib_version: int.sign.32;        # C: extern int lib_version;   read-only
+%extern.C let $lib_version: int.sign.32;    # C: extern const int lib_version;   never changes
 %extern.C var $lib_verbose: int.sign.32;    # C: extern int lib_verbose;   may be written
 
 !no_check let $v := $lib_version;       # reading C's variable is a no_check site
@@ -255,6 +255,11 @@ by itself — no verbs. Proposed alternatives: no extern data at all (a C
 helper function per variable) and `extern.C 'x': ptr[T]` read through
 `ptr.read`. Owner chose `extern let`, which lost its `let` with every
 other declaration on 2026-09-25.
+
+**Since 2026-10-27 a C variable says whether it can change**, as every declaration does (owner, 2026-10-27: "yes"): `let`
+for one C declares `const`, which CyborgPL only reads, and `var` for every other, which CyborgPL may write. Not `const`:
+CyborgPL's `const` is known while building, and a C constant's value is only there once the program links. The bare
+form is refused.
 
 **`errno` is not a plain global** on macOS and Linux — it is a macro
 that calls a function — so `extern.C 'errno': i32;` would be wrong

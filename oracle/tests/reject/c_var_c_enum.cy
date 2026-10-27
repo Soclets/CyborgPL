@@ -3,6 +3,6 @@
     emacs = 0;
     vi = 1;
 end of %layout.C enum Mode
-%extern.C $m: Mode;
+%extern.C var $m: Mode;
 !MAIN:
 !end of MAIN

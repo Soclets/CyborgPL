@@ -34,6 +34,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign two: a C variable is `%extern.C let` (C's `const`) or `%extern.C var` (owner)
+
+Design claude's provisional pick from the build, asked: one CyborgPL only reads was bare (`%extern.C $x: T;`), one it
+writes `%extern.C var`. Design claude first recommended keeping the bare one (`let` would claim it never changes, while
+C may change it). The owner: "So, is the second line accurate?" Design claude: yes, `var` says it changes; then offered
+`var.read_only` for the first; the owner: "Didn't you just say var isn't accurate?" (design claude had: wrongly, reading
+`var` as "CyborgPL may write it", where it means "it changes"). "Is it `mut`, `immut`? I mean, look at `ptr`, `&`":
+design claude offered `var` / `var.mut` after `ptr` / `ptr.mut`; "Wait, but does't `var` already mean a mutable
+variable?" (yes, said twice), then every C variable `var`; "Or should we have a clearer `read` vs `write` word, instead
+of slapping `mut` on everything?" (design claude: keep `.mut` on borrows and pointers, `write` sounding write-only and
+`ptr.read` / `ptr.write` being its functions); "So, what are we supposed to use?"; "Where's `extern.C` let?" (C's own
+`const` globals never change: `let`); "Isn't it `const`? You good?" (design claude: CyborgPL's `const` is known while
+building, a C constant only once linked, so `let`); "So, wha's the syntax now"; "yes". So **`%extern.C let $lib_version:
+int.sign.32;` for one C declares `const`, only read; `%extern.C var $lib_verbose: int.sign.32;` for the rest, CyborgPL
+may write it**; the bare form is refused; `lend.mut`, `lent.mut`, `ptr.mut` unchanged. Built; the converter makes an old
+bare one `var` (C may change it; marking a `const` one `let` is the writer's), and the old tests were moved over.
+
 ### 2026-10-27 — Redesign two: the line-end `-` only joins a line to a block's opening line below it (owner: (a))
 
 Design claude's provisional pick from the build, asked: a statement ends at its `;`, so a long one already runs on to the

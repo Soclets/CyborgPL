@@ -1675,7 +1675,7 @@ impl Parser {
     /// `fn name [params] -> T;` or `['mut'] 'name': T;`.
     fn extern_item(&mut self, prog: &mut Program, vis: Vis) -> PResult<()> {
         let line = self.line();
-        if self.is_word("let") { return self.err("C's variable takes no `let`: `%extern.C $errno: i32;` (or `%extern.C mut $x: T;`)"); }
+        if self.is_word("let") { return self.err("a C variable is `%extern.C let $max_len: int.sign.32;` (C's `const`) or `%extern.C var $errno: int.sign.32;`"); }
         if self.is_word("mut") || self.is_word("immut") || matches!(self.peek(), Tok::Var(_)) {
             // a C global (decided 2026-09-21; no `let` since 2026-09-25)
             let mutable = if self.is_word("mut") { self.advance(); true } else { false };
