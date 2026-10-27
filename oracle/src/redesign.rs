@@ -1754,11 +1754,14 @@ fn fields_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
     let mut stack: Vec<Open> = Vec::new();
     let sets = SET_LINES.with(|s| s.borrow().clone());
     let mut set_block: Vec<bool> = Vec::new();
+    // a `sig`'s first type entry, refused once the block turns out to hold operations too
+    let mut type_at: Vec<Option<usize>> = Vec::new();
     for k in 0..toks.len() {
         match toks[k].tok { Tok::LBracket | Tok::LParen => depth += 1, Tok::RBracket | Tok::RParen => depth -= 1, _ => {} }
         match &toks[k].tok {
             Tok::LBrace => {
                 set_block.push(sets.contains(&toks[k].line));
+                type_at.push(None);
                 let o = describe(&toks, stmt_start, k, &text, None, stack.last());
                 kinds.push(if o.close.starts_with("interface ") { 2 } else if o.close.starts_with("record ") { 3 } else if o.fields { 1 } else { 0 });
                 stack.push(o);
@@ -1774,13 +1777,18 @@ fn fields_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                         let t = &toks[open_at];
                         return Err((t.line, t.col, "a list of types only is a `set`: `set Number:` … `end of set Number` (owner, 2026-10-27)".into()));
                     }
+                    // types and operations do not mix (owner, 2026-10-27): the types go in a `set`, joined where used with `and`
+                    if let Some(Some(at)) = type_at.last() {
+                        let t = &toks[*at];
+                        return Err((t.line, t.col, "a `sig` lists operations only; put its types in a `set` and join the two where used: `<T: Whole and Ordered>` (owner, 2026-10-27)".into()));
+                    }
                 }
                 // a field or case before the end with no `;` of its own
                 if matches!(kinds.last(), Some(&1) | Some(&3)) && stmt_start < k {
                     let t = &toks[k - 1];
                     return Err((t.line, t.col, "each field and case ends with `;` (owner, 2026-10-26: commas inside brackets, semicolons inside blocks)".into()));
                 }
-                kinds.pop(); stack.pop(); set_block.pop(); stmt_start = k + 1;
+                kinds.pop(); stack.pop(); set_block.pop(); type_at.pop(); stmt_start = k + 1;
             }
             Tok::Comma if depth == 0 && matches!(kinds.last(), Some(&1) | Some(&3)) => {
                 let t = &toks[k];
@@ -1800,7 +1808,10 @@ fn fields_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     // a type entry (no `fn` / `op` in it) loses its `;`; a `set` holds types only
                     Some(2) => {
                         let operation = toks[stmt_start..k].iter().any(|t| matches!(&t.tok, Tok::Word(w) if w == "fn" || w == "op"));
-                        if !operation { drop.insert(k); }
+                        if !operation {
+                            drop.insert(k);
+                            if stmt_start < k { if let Some(first @ None) = type_at.last_mut() { *first = Some(stmt_start); } }
+                        }
                         else if set_block.last().copied().unwrap_or(false) {
                             let t = &toks[stmt_start];
                             return Err((t.line, t.col, "a `set` lists types only; operations go in a `sig` (owner, 2026-10-27)".into()));

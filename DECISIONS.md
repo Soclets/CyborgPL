@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign two: a `sig` and a `set` never mix; `<T: Whole and Ordered>` (owner)
+
+Settles the question left open by the `set` ruling. 2026-10-02 let one interface list types and operations ("Both
+works"; examples/interface_types.cy's `WholeOrdered`). Asked whether a `sig` may still list types, design claude
+recommended (a) no, the types go in a `set` joined where used with `and`, over (b) a `sig` may list types too. The owner:
+"Well, would (b) make it inaccurate?" (design claude: yes, a signature is a list of operations, and "only these types may
+fill it" is not one; ML's `type t` names a type the block provides, not a closed list), then "your recom". So **(a)**:
+a `sig` holding a type entry beside its operations is refused, naming the split; `WholeOrdered` became `set Whole` and
+`fn smaller <T: Whole and Ordered>`. Built; the converter leaves a mixed interface for the writer to split (it would have
+to invent the `set`'s name), so interface_types.cy joins the round trip's hand edits.
+
 ### 2026-10-27 — Redesign two: a closed list of types is a `set`, `set Number:` … `end of set Number` (owner)
 
 With `interface` now `sig` (a list of operations), `sig Number: int.sign.32; float.%deci.64;` is no signature. Asked

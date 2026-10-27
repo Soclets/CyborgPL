@@ -119,6 +119,11 @@ interface announces its `<T>` after its name**, as every generic now is
 (owner, 2026-10-02): `interface Ordered <T> { … }`. "Any type"
 is the built-in `any` (`generics.md`). Not built yet.
 
+**Since 2026-10-27 they do not mix** (owner, 2026-10-27: "your recom", after "Well, would (b) make it inaccurate?"). A
+list of operations is a `sig`, a list of types a `set` (`set Number:` … `end of set Number`), and a blank needing both
+joins them with `and`: `<T: Whole and Ordered>`. A `sig` with a type entry, a `set` with an operation, and a `sig` of
+types only are each refused, naming the other.
+
 ## Open
 
 - Std's standard interfaces.

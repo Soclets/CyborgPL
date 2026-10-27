@@ -1,6 +1,6 @@
-# Generics announced after the name, each saying what it accepts (owner, 2026-10-02). An interface
-# may list types, one per line, as well as operations; a blank may need several, joined with `and`;
-# lifetime groups come after the generics, a `|` between the two kinds.
+# Generics announced after the name, each saying what it accepts (owner, 2026-10-02). A `set` lists
+# types, one per line, a `sig` operations, never both (owner, 2026-10-27); a blank may need several,
+# joined with `and`; lifetime groups come after the generics, a `|` between the two kinds.
 set Number:
     int.sign.32;
     int.sign.64;
@@ -12,11 +12,10 @@ sig Ordered <T>:
     op eq [$a: <T>, $b: <T>] -> bool;
 end of sig Ordered
 
-sig WholeOrdered <T>:
+set Whole:
     int.sign.32;
     int.sign.64;
-    op lt [$a: <T>, $b: <T>] -> bool;
-end of sig WholeOrdered
+end of set Whole
 
 fn bigger <T: Number and Ordered> [let $a: <T>, let $b: <T>] -> <T>:
     if $b lt $a:
@@ -25,7 +24,7 @@ fn bigger <T: Number and Ordered> [let $a: <T>, let $b: <T>] -> <T>:
     ret $b;
 end of fn bigger
 
-fn smaller <T: WholeOrdered> [let $a: <T>, let $b: <T>] -> <T>:
+fn smaller <T: Whole and Ordered> [let $a: <T>, let $b: <T>] -> <T>:
     if $a lt $b:
         ret $a;
     end of if
