@@ -34,6 +34,12 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: one of a function's `versions` closes `end of version` (owner)
+
+Inside `versions area:` … `end of versions area`, each version opens on its parameters alone (`[$side: int.sign.64] ->
+int.sign.64:`), with no name to repeat; the build closed it `end of version` (design claude's pick). Shown it, the owner:
+"yes". Already built.
+
 ### 2026-10-27 — Redesign: a `%whichever` arm is `case $msg from lend $inbox:` … `end of case $msg` (owner)
 
 The arms of `%whichever` had no spelling once blocks became words; the build wrote each like a `match` case, named by the

@@ -429,7 +429,7 @@ fn describe(toks: &[Token], start: usize, brace: usize, text: &dyn Fn(&Token) ->
                 return o;
             }
             if matches!(s.first().map(|t| &t.tok), Some(Tok::LBracket)) {
-                // PROVISIONAL: one version of `versions`, closed `end of version`
+                // one version of `versions`, closed `end of version` (owner, 2026-10-27: "yes")
                 o.close = "version".into();
                 return o;
             }
