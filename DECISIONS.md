@@ -34,6 +34,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): `-` in front is `neg`, `-5`, `-$x` (owner: (a))
+
+Asked whether `-` also spells `neg` in front of a value ((a) yes, in front `neg` and between two values `minus`, as in
+maths; (b) `neg` stays a word only), design claude recommending (a), the owner: "(a)". So, exploring: **`-5`, `-$x`,
+`$a - -$b`**, `neg` staying as the word. The other open point needed no ruling: `&` as a lend was retired 2026-10-16 ("a
+borrow is written as the word"), so `&` is free for `and`.
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): which operators get a symbol (owner)
 
 The owner: "`+`, `-`, `x` instead of (inof) `*`, `^`, `==`, `!=`, `<`, `>`, `<=`, `>=`, `&` is `and`, `&&` is
