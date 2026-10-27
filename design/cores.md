@@ -140,7 +140,7 @@ not limbs. And then, lang could be the absence of such"). The mark goes on the f
 claude's reading of the owner's examples):
 
 ```
-%extern.C proc puts [$s: ptr[int.unsign.8]] -> %C.int;             # CNC
+%extern.C proc puts [let $s: ptr[int.unsign.8]] -> %C.int;             # CNC
 incl.%C["sdl.h"];                                      # `incl` is the base's
 let $price: float.%deci.64 = 19.50;                              # Money
 let $odd: %not_std.i24 = 5;                            # WSMW: `not_std` is only its

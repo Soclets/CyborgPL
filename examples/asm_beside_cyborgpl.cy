@@ -5,7 +5,7 @@
 # oracle reads it but cannot run assembly, so it stops at the first block (`.oracle`).
 
 # a times b plus c, in one instruction
-proc mul_add_asm [$a: int.sign.64, $b: int.sign.64, $c: int.sign.64] -> int.sign.64:
+proc mul_add_asm [let $a: int.sign.64, let $b: int.sign.64, let $c: int.sign.64] -> int.sign.64:
     !no_check inline.ASM with [$a -> x0, $b -> x1, $c -> x2, $r <- x0]:
         madd x0, x0, x1, x2
     end of inline.ASM
@@ -13,7 +13,7 @@ proc mul_add_asm [$a: int.sign.64, $b: int.sign.64, $c: int.sign.64] -> int.sign
 end of proc mul_add_asm
 
 # how many zero bits before the first 1, counting from the top
-proc leading_zeros_asm [$n: int.unsign.64] -> int.unsign.64:
+proc leading_zeros_asm [let $n: int.unsign.64] -> int.unsign.64:
     var $z: int.unsign.64 = $n;
     !no_check inline.ASM with [$z <-> x0]:
         clz x0, x0
@@ -21,7 +21,7 @@ proc leading_zeros_asm [$n: int.unsign.64] -> int.unsign.64:
     ret $z;
 end of proc leading_zeros_asm
 
-fn leading_zeros_zag [$n: int.unsign.64] -> int.unsign.64:
+fn leading_zeros_zag [let $n: int.unsign.64] -> int.unsign.64:
     var $z: int.unsign.64 = 0;
     var $mask: int.unsign.64 = 9223372036854775808;   # the top bit
     while $mask not_eq 0 and ($n and.bit $mask) eq 0:

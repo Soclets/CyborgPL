@@ -7,7 +7,7 @@
     b = 66;
     escape = 256;
 end of enum Key
-fn on_key [$code: int.sign.32] -> int.sign.32:
+fn on_key [let $code: int.sign.32] -> int.sign.32:
     let $k := to.Key($code)-
     otherwise:
         !case out_of_range:

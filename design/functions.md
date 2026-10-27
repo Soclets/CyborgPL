@@ -6,7 +6,7 @@ Decided 2026-09-14; spelling revised 2026-09-19 (`fn`, name-then-type
 parameters, `--> T`).
 
 ```
-fn add [$a: int.sign.32, $b: int.sign.32] -> int.sign.32:
+fn add [let $a: int.sign.32, let $b: int.sign.32] -> int.sign.32:
     ret $a plus $b;
 end of fn add
 let $sum := add(10, 20);              # this Kit: bare

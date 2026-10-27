@@ -5,7 +5,7 @@
     var w: int.sign.32[min: 0, max: 4096];
     var h: int.sign.32[min: 0, max: 4096];
 end of rec Rect
-%extern.C proc DrawRect [$r: Rect];
+%extern.C proc DrawRect [let $r: Rect];
 !MAIN:
     let $r := Rect[w = 640, h = 480];
     std::print.shortest($r.w, "x", $r.h, " ", size.of[Rect], newln);

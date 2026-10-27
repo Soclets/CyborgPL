@@ -1,4 +1,4 @@
-fn f [$x: %not_std.int24]:
+fn f [let $x: %not_std.int24]:
 end of fn f
 
 !MAIN:

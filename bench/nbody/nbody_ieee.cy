@@ -12,10 +12,10 @@
 # nbody.cy with every bin operation in its `.ieee` form, which keeps IEEE's -0 as the other five
 # languages do, so kayo adds no +0.0 after each one (owner, 2026-10-21: "add the .ieee row").
 incl.%C.system["stdio.h"];
-%extern.C proc exit [$code: int.sign.32];
-%extern.C proc getenv [$name: ptr[int.unsign.8]] -> ptr[int.unsign.8];
-%extern.C proc atoll [$s: ptr[int.unsign.8]] -> int.sign.64[min: 0, max: 1_000_000_000];
-%extern.C proc sqrt [$x: float.bin.64] -> float.bin.64;
+%extern.C proc exit [let $code: int.sign.32];
+%extern.C proc getenv [let $name: ptr[int.unsign.8]] -> ptr[int.unsign.8];
+%extern.C proc atoll [let $s: ptr[int.unsign.8]] -> int.sign.64[min: 0, max: 1_000_000_000];
+%extern.C proc sqrt [let $x: float.bin.64] -> float.bin.64;
 
 const $pi: float.bin.64 = 3.141592653589793;
 const $solar_mass: float.bin.64 = 4.0 times.ieee $pi times.ieee $pi;
@@ -33,7 +33,7 @@ end of rec Body
 
 # N, from the text in the environment: missing when there is none, and out
 # of range when it is not a number this program takes.
-proc read_n [$text: ptr[int.unsign.8]] -> int.sign.64[min: 0, max: 1_000_000_000] or fail[missing, out_of_range]:
+proc read_n [let $text: ptr[int.unsign.8]] -> int.sign.64[min: 0, max: 1_000_000_000] or fail[missing, out_of_range]:
     if ptr.is_null($text):
         fail missing;
     end of if
@@ -41,7 +41,7 @@ proc read_n [$text: ptr[int.unsign.8]] -> int.sign.64[min: 0, max: 1_000_000_000
     ret $n;
 end of proc read_n
 
-proc advance [lent.mut $bodies: std::ls[Body], $dt: float.bin.64]:
+proc advance [lent.mut $bodies: std::ls[Body], let $dt: float.bin.64]:
     let $n := std::ls.len(lend $bodies);
     for $i: int.unsign.64 [from: 1, to: $n, by: 1]:
         for $j: int.unsign.64 [from: $i plus 1, to: $n, by: 1]:

@@ -2,6 +2,6 @@
 %layout.C enum Key:
     a = 65;
 end of enum Key
-%extern.C proc set_handler [$h: fn[Key]];
+%extern.C proc set_handler [let $h: fn[Key]];
 !MAIN:
 !end of MAIN

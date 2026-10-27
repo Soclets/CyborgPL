@@ -1,7 +1,7 @@
-fn one [$a: int.sign.32] -> int.sign.32:
+fn one [let $a: int.sign.32] -> int.sign.32:
     ret $a;
 end of fn one
-fn apply [$f: fn[int.sign.32, int.sign.32] -> int.sign.32] -> int.sign.32:
+fn apply [let $f: fn[int.sign.32, int.sign.32] -> int.sign.32] -> int.sign.32:
     ret $f(1, 2);
 end of fn apply
 !MAIN:

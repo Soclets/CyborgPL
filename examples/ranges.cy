@@ -3,7 +3,7 @@ rec Percent:
     var value: int.unsign.8[min: 0, max: 100];
 end of rec Percent
 
-fn scale [$p: Percent, $total: int.sign.32[min: 0, max: 1000]] -> int.sign.32[min: 0, max: 1000]:
+fn scale [let $p: Percent, let $total: int.sign.32[min: 0, max: 1000]] -> int.sign.32[min: 0, max: 1000]:
     ret ($total times to.int.sign.32($p.value)) div.floor 100;
 end of fn scale
 

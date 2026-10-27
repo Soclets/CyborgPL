@@ -1,4 +1,4 @@
-fn.int.sign.32 add [$a: int.sign.32]:
+fn.int.sign.32 add [let $a: int.sign.32]:
     ret $a;
 end of fn
 !MAIN:

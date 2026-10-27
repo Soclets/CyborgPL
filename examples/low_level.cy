@@ -1,9 +1,9 @@
 # Low level: raw memory from C, bits, a wrapping hash, SIMD, C layout, and the OS through `write`.
 # a block of C's functions (owner, 2026-10-02); one alone may be a line, `extern.C fn exit [$code: i32];`
 %extern.C:
-    proc write [$fd: int.sign.32, $buf: ptr[int.unsign.8], $len: int.unsign.64] -> int.sign.64;
-    proc malloc [$bytes: int.unsign.64] -> ptr.mut[int.unsign.8];
-    proc free [$p: ptr.mut[int.unsign.8]];
+    proc write [let $fd: int.sign.32, let $buf: ptr[int.unsign.8], let $len: int.unsign.64] -> int.sign.64;
+    proc malloc [let $bytes: int.unsign.64] -> ptr.mut[int.unsign.8];
+    proc free [let $p: ptr.mut[int.unsign.8]];
 end of %extern.C
 
 %layout.C rec Header:
@@ -22,7 +22,7 @@ fn fnv1a [lent $bytes: arr[int.unsign.8]] -> int.unsign.64:
 end of fn fnv1a
 
 # count the 1 bits, one shift at a time
-fn popcount [$x: int.unsign.32] -> int.unsign.32:
+fn popcount [let $x: int.unsign.32] -> int.unsign.32:
     var $n: int.unsign.32 = $x;
     var $count: int.unsign.32 = 0;
     while $n greater_than 0:

@@ -1,7 +1,7 @@
-fn f [$a: int.sign.64] -> int.sign.64:
+fn f [let $a: int.sign.64] -> int.sign.64:
     ret 1;
 end of fn f
-fn f [$b: float.bin.64] -> int.sign.64:
+fn f [let $b: float.bin.64] -> int.sign.64:
     ret 2;
 end of fn f
 !MAIN:

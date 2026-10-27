@@ -352,6 +352,25 @@ pub fn convert(src: &str, toks: &[Token], info: Option<&Info>) -> Result<String,
         k += 1;
     }
     inline_blocks(toks, &chars, &mut edits, &line_indent);
+    // a plain parameter something changes is a `variable` (then `var`); the others get `let` in the second step
+    if let Some(inf) = info {
+        let mut open: Vec<(i32, usize)> = Vec::new();
+        let mut d = 0i32;
+        for k in 0..toks.len() {
+            match toks[k].tok {
+                Tok::LBracket => { d += 1; if param_list_at(toks, k) { open.push((d, toks[k].line)); } }
+                Tok::RBracket => { if open.last().map(|o| o.0) == Some(d) { open.pop(); } d -= 1; }
+                Tok::LParen => d += 1, Tok::RParen => d -= 1,
+                _ => {}
+            }
+            if let (Some(&(od, line)), Tok::Var(v)) = (open.last(), &toks[k].tok) {
+                if od == d && k > 0 && matches!(toks[k - 1].tok, Tok::LBracket | Tok::Comma | Tok::Ellipsis) && inf.changed.contains(&(line, v.clone())) {
+                    let at = if toks[k - 1].tok == Tok::Ellipsis { toks[k - 1].at } else { toks[k].at };
+                    edits.push(Edit { at, end: at, text: "variable ".into() });
+                }
+            }
+        }
+    }
     words(toks, &text, info, &mut edits, &chars)?;
     apply(&chars, edits)
 }
@@ -1160,6 +1179,8 @@ thread_local! {
     pub static KINDS_BY_MODULE: std::cell::RefCell<HashMap<(Vec<String>, usize), bool>> = std::cell::RefCell::new(HashMap::new());
     /// the module of the file being read
     pub static LEX_MODULE: std::cell::RefCell<Vec<String>> = std::cell::RefCell::new(Vec::new());
+    /// the bracket depths of the parameter lists open while `lengthen` reads
+    pub static PARAMS: std::cell::RefCell<Vec<i32>> = std::cell::RefCell::new(Vec::new());
     /// where a member line's word `member` stood: the token after it, by line and column
     pub static MEMBERS: std::cell::RefCell<HashSet<(usize, usize)>> = std::cell::RefCell::new(HashSet::new());
 }
@@ -1355,6 +1376,7 @@ fn shown(t: &Tok) -> String {
 pub fn front(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
     WRITTEN_KINDS.with(|k| k.borrow_mut().clear());
     MEMBERS.with(|m| m.borrow_mut().clear());
+    PARAMS.with(|p| p.borrow_mut().clear());
     // redesign two's words read as redesign one's (owner, 2026-10-27: "It's done, build it"), then as the parser's
     let toks = lengthen(toks)?;
     let toks = words_back(toks).map_err(|(l, c, m)| (l, c, if m.contains("is an old spelling") { m } else { twos(&m) }))?;
@@ -1485,6 +1507,8 @@ fn words_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     "variable" if out.iter().rev().take(4).any(|x| matches!(&x.tok, Tok::Word(e) if e == "extern")) || matches!(out.last().map(|x| &x.tok), Some(Tok::LBracket | Tok::Comma)) => out.push(word_tok("mut", t)),
                     // a shadow says first whether it changes: `let shadow $x`, `variable shadow $x` (owner, 2026-10-27: "(a)")
                     "shadow" => return fault("a shadow says whether it changes, as every declaration does: `let shadow $x := …;` or `variable shadow $x := …;` (owner, 2026-10-27)".into()),
+                    // a parameter's `let`: the parser's `immut`
+                    "let" if matches!(out.last().map(|x| &x.tok), Some(Tok::LBracket | Tok::Comma)) && matches!(toks.get(i + 1).map(|x| &x.tok), Some(Tok::Var(_) | Tok::Ellipsis)) => out.push(word_tok("immut", t)),
                     "variable" | "let" if is_w(i + 1, "shadow") => {
                         // `let shadow $x` / `variable shadow $x`: the parser's `shadow immut $x` / `shadow mut $x`
                         out.push(word_tok("shadow", &toks[i + 1]));
@@ -2081,7 +2105,8 @@ pub fn shorten(src: &str) -> Result<String, String> {
             let top = stack.last().cloned();
             let starts_member = |i: usize| -> bool { matches!((tok(i), &coll_name), (Tok::Word(w), Some(c)) if w == c) };
             if opens {
-                let is_coll = matches!(tok(f), Tok::Word(w) if w == "coll" || w == "collection") && *tok(f + 1) == Tok::Dot;
+                let is_coll = matches!(tok(f), Tok::Word(w) if w == "coll" || w == "collection") && *tok(f + 1) == Tok::Dot
+                    && matches!(tok(f + 2), Tok::Word(k) if matches!(k.as_str(), "fn" | "proc" | "handler" | "function" | "procedure"));
                 if is_coll {
                     let name = if let Tok::Word(nm) = tok(f + 3) { nm.clone() } else { String::new() };
                     stack.push(B::Coll(name));
@@ -2104,6 +2129,23 @@ pub fn shorten(src: &str) -> Result<String, String> {
             }
             let _ = &line;
             k = e + 1;
+        }
+    }
+    // an owned parameter says whether it changes (owner, 2026-10-27): a bare one is a `let`
+    {
+        let mut open: Vec<i32> = Vec::new();
+        let mut d = 0i32;
+        for k in 0..n {
+            match toks[k].tok {
+                Tok::LBracket => { d += 1; if param_list_at(&toks, k) { open.push(d); } }
+                Tok::RBracket => { if open.last() == Some(&d) { open.pop(); } d -= 1; }
+                Tok::LParen => d += 1,
+                Tok::RParen => d -= 1,
+                _ => {}
+            }
+            if open.last() == Some(&d) && k > 0 && matches!(toks[k - 1].tok, Tok::LBracket | Tok::Comma) && matches!(toks[k].tok, Tok::Var(_) | Tok::Ellipsis) && toks[k].at != usize::MAX {
+                edits.push(Edit { at: toks[k].at, end: toks[k].at, text: "let ".into() });
+            }
         }
     }
     // a record's fields each say whether they change (owner, 2026-10-27): a bare one is a `var`
@@ -2209,6 +2251,22 @@ fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
         let std_kit = after_kit && prev_i.is_some_and(|k| k >= 1 && matches!(&toks[k - 1].tok, Tok::Word(s) if s == "std"));
         let next = toks.get(i + 1).map(|x| x.tok.clone()).unwrap_or(Tok::Eof);
         let push_as = |out: &mut Vec<Token>, w: &str| out.push(word_tok(w, t));
+        // a parameter says whether it changes (owner, 2026-10-27: "Or do we say it?", then "Yes"): `let $a: T` / `var $a: T`
+        if t.tok == Tok::LBracket && param_list_at(&toks, i) { PARAMS.with(|p| p.borrow_mut().push(depth)); }
+        if t.tok == Tok::RBracket { PARAMS.with(|p| { let mut p = p.borrow_mut(); if p.last() == Some(&(depth + 1)) { p.pop(); } }); }
+        let in_params = PARAMS.with(|p| p.borrow().last() == Some(&depth));
+        if in_params && i > 0 && matches!(toks[i - 1].tok, Tok::LBracket | Tok::Comma) {
+            match &t.tok {
+                Tok::Word(w) if (w == "let" || w == "var") && matches!(next, Tok::Var(_) | Tok::Ellipsis) => {
+                    out.push(word_tok(if w == "let" { "let" } else { "variable" }, t));
+                    i += 1;
+                    continue;
+                }
+                Tok::Var(v) => return fault(format!("a parameter says whether it changes: `let ${v}` or `var ${v}` (owner, 2026-10-27)")),
+                Tok::Ellipsis => return fault("a parameter says whether it changes: `let ...$values` or `var ...$values` (owner, 2026-10-27)".into()),
+                _ => {}
+            }
+        }
         match &t.tok {
             // a long `otherwise` goes below the call's line (owner, 2026-10-27)
             Tok::Word(o) if o == "otherwise" && next == Tok::Colon && toks.get(i + 2).map_or(true, |x| x.line > t.line) && !starts_line
@@ -2413,4 +2471,36 @@ fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
         i += 1;
     }
     Ok(out)
+}
+
+/// The `[` at `i` opens a parameter list: a declaration's (`fn add [`, `proc`, `op`, `member greet.loud [`, `!MAIN [`), a
+/// lambda's (`fn [`), or a `versions` entry's or a template member's, alone at the line's start. A lifetime list
+/// (`[@x]`) and a function type (`fn[int.sign.32]`) are not.
+pub fn param_list_at(toks: &[Token], i: usize) -> bool {
+    if toks.get(i).map(|t| &t.tok) != Some(&Tok::LBracket) { return false; }
+    let first_in = toks.get(i + 1).map(|t| &t.tok);
+    let param_start = matches!(first_in, Some(Tok::Var(_) | Tok::Ellipsis)) || matches!(first_in, Some(Tok::Word(w)) if matches!(w.as_str(), "let" | "var" | "lent" | "mut" | "immut" | "give" | "variable")) || matches!(first_in, Some(Tok::Op(o)) if o == "&" || o == "&@");
+    if !param_start { return false; }
+    // a preset fills arguments, `[$word = "hi"]`; it declares none
+    if matches!(first_in, Some(Tok::Var(_))) && matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Eq)) { return false; }
+    let line = toks[i].line;
+    let mut j = i;
+    let mut depth = 0i32;
+    while j > 0 && toks[j - 1].line == line {
+        j -= 1;
+        match &toks[j].tok {
+            Tok::RBracket | Tok::RParen => depth += 1,
+            Tok::LBracket | Tok::LParen => { if depth == 0 { return false; } depth -= 1; }
+            Tok::Arrow if depth == 0 => return false,
+            // an operator's operands are lent unless `give`, and MAIN's are C's: neither says `let` (design claude's reading)
+            Tok::Word(w) if depth == 0 && matches!(w.as_str(), "op" | "operator" | "MAIN") => return false,
+            Tok::Word(w) if depth == 0 && matches!(w.as_str(), "fn" | "proc" | "function" | "procedure") => {
+                // a function's type, `$f: fn[…]`, names no parameters
+                return !(j + 1 == i && j > 0 && matches!(toks[j - 1].tok, Tok::Colon | Tok::Arrow | Tok::Comma | Tok::LBracket));
+            }
+            Tok::Word(w) if depth == 0 && w == "member" => return true,
+            _ => {}
+        }
+    }
+    j == i
 }

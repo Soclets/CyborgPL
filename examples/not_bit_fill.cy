@@ -5,9 +5,9 @@
 # many". With ('v17' plus 5) it runs, as it does for not.bit (5 plus 'v17') in a comparison or a
 # print: inside simd.fill it looks at the left operand only. kayo runs it.
 # check claude generator, seed 24126
-%extern.C proc write [$fd: int.sign.32, $buf: ptr[int.unsign.8], $len: int.unsign.64] -> int.sign.64;
+%extern.C proc write [let $fd: int.sign.32, let $buf: ptr[int.unsign.8], let $len: int.unsign.64] -> int.sign.64;
 
-proc emit [$m: int.unsign.64, $neg: bool]:
+proc emit [let $m: int.unsign.64, let $neg: bool]:
     var $buf: std::ls[int.unsign.8] = [];
     if $neg:
         std::ls.append(lend.mut $buf, value: 45);
@@ -29,11 +29,11 @@ proc emit [$m: int.unsign.64, $neg: bool]:
     !no_check write(1, lend $buf, std::ls.len(lend $buf));
 end of proc emit
 
-proc put_u [$n: int.unsign.64]:
+proc put_u [let $n: int.unsign.64]:
     emit($n, false);
 end of proc put_u
 
-proc put_i [$n: int.sign.64]:
+proc put_i [let $n: int.sign.64]:
     if $n less_than 0:
         emit(to.int.unsign.64(0 minus ($n plus 1)) plus 1, true);
     end of if

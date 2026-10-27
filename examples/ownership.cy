@@ -11,7 +11,7 @@ proc shout [lent.mut $text: str.utf8]:
     change $text = copy $text concat "!";
 end of proc shout
 
-fn greet [$name: str.utf8] -> str.utf8:
+fn greet [let $name: str.utf8] -> str.utf8:
     ret "hello " concat $name;
 end of fn greet
 

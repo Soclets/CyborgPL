@@ -1,5 +1,5 @@
 # The digits of pi, by the Rabinowitz–Wagon spigot: integers only, no bin anywhere.
-proc pi_digits [$n: int.sign.32]:
+proc pi_digits [let $n: int.sign.32]:
     let $len := (10 times $n) div.floor 3 plus 1;
     var $a := std::ls.empty;
     for $i [from: 1, to: $len, by: 1]:

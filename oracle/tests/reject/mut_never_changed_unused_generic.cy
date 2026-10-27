@@ -1,4 +1,4 @@
-fn keep <T: any> [$v: <T>] -> <T>:
+fn keep <T: any> [let $v: <T>] -> <T>:
     var $x := $v;
     ret $x;
 end of fn keep

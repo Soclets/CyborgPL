@@ -8,7 +8,7 @@ fn helper [] -> str.utf8:
 end of fn helper
 
 module report:
-    pub.kit proc line [$label: str.utf8, $v: float.bin.64]:
+    pub.kit proc line [let $label: str.utf8, let $v: float.bin.64]:
         std::print.shortest($label, ": ", $v, newln);
     end of proc line
 end of module report

@@ -1,4 +1,4 @@
-fn f [$a: int.sign.32, ...$rest]:
+fn f [let $a: int.sign.32, let ...$rest]:
 end of fn f
 !MAIN:
     f();

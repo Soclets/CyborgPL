@@ -8,20 +8,20 @@ module counter:
     pub rec Count:
         var n: int.sign.32;
     end of rec Count
-    pub fn bump [$c: Count] -> Count:
+    pub fn bump [let $c: Count] -> Count:
         ret Count[n = $c.n plus step()];
     end of fn bump
     fn step [] -> int.sign.32:
         ret my.$scale;
     end of fn step      # private; reaches the root's const
     pub.kit module inner:
-        pub.kit fn twice [$n: int.sign.32] -> int.sign.32:
+        pub.kit fn twice [let $n: int.sign.32] -> int.sign.32:
             ret $n times 2;
         end of fn twice
     end of module inner
 end of module counter
 
-proc show [$c: counter.Count]:
+proc show [let $c: counter.Count]:
     std::print.shortest("count ", $c.n, newln);
 end of proc show
 

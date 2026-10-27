@@ -3,7 +3,7 @@
 # which took in UniTect and CAPS on 2026-10-12). Testing (TAS) and range types (ASP) are the base's again.
 case.any [fn];
 
-fn Halve [$n: int.sign.%128] -> int.sign.%128:
+fn Halve [let $n: int.sign.%128] -> int.sign.%128:
     ret $n div.floor 2;
 end of fn Halve
 

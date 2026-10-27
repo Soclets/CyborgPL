@@ -4,7 +4,7 @@ case.any [fn, rec, field, const];
 
 pub const $Volume := 11;
 
-pub fn Shout [$s: str.utf8] -> str.utf8:
+pub fn Shout [let $s: str.utf8] -> str.utf8:
     ret $s concat "!";
 end of fn Shout
 

@@ -1,4 +1,4 @@
-fn twice [$d: duration] -> std::duration:
+fn twice [let $d: duration] -> std::duration:
     ret $d plus $d;
 end of fn twice
 !MAIN:

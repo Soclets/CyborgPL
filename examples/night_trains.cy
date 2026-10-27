@@ -277,8 +277,8 @@ proc try_reach [
     lent $done: std::map[str.utf8, bool],
     lent $next: str.utf8,
     lent $pick: str.utf8,
-    $minutes: int.sign.32,
-    $km: int.sign.32
+    let $minutes: int.sign.32,
+    let $km: int.sign.32
 ]:
     if std::map.has(lend $done, key: lend $next):
         ret;
@@ -346,7 +346,7 @@ end of proc journey
 # Clock times: minutes since midnight of the departure day as "07:40", with "+1" for the next morning
 # ---------------------------------------------------------------------------------------------------
 
-fn clock [$minutes: int.sign.32] -> str.utf8:
+fn clock [let $minutes: int.sign.32] -> str.utf8:
     let $day := $minutes div.floor 1440;
     let $in_day := $minutes mod.floor 1440;
     let $text := std::format("{zeros, width: 2 cols}:{zeros, width: 2 cols}", $in_day div.floor 60, $in_day mod.floor 60);
@@ -379,7 +379,7 @@ end of proc Clock.next
 # Fares, in exact decimals
 # ---------------------------------------------------------------------------------------------------
 
-fn distance_fare [$km: int.sign.32] -> float.%deci.64:
+fn distance_fare [let $km: int.sign.32] -> float.%deci.64:
     if $km at_most $near_km:
         ret $near_rate times to.float.%deci.64($km);
     end of if
@@ -402,7 +402,7 @@ fn supplement [lent $seat: Seat] -> float.%deci.64:
     end of match
 end of fn supplement
 
-fn discount [$age: Age] -> int.sign.32[min: 0, max: 50]:
+fn discount [let $age: Age] -> int.sign.32[min: 0, max: 50]:
     let $percent: int.sign.32[min: 0, max: 50] = match $age:
         case adult:
             is 0;
@@ -419,7 +419,7 @@ end of fn discount
 
 # The fare before rounding can hold more than two places (30% of 0.15 is 0.045): it is rounded to the
 # cent once, at the end, half to even, and said so.
-fn fare [$km: int.sign.32, lent $seat: Seat, $age: Age] -> float.%deci.64:
+fn fare [let $km: int.sign.32, lent $seat: Seat, let $age: Age] -> float.%deci.64:
     let $full := distance_fare($km) plus supplement(lend $seat);
     let $off := to.float.%deci.64(discount(copy $age));
     let $exact := $full minus ($full times $off) div.near 100;
@@ -440,7 +440,7 @@ fn seat_name [lent $seat: Seat] -> str.utf8:
     end of match
 end of fn seat_name
 
-fn age_name [$age: Age] -> str.utf8:
+fn age_name [let $age: Age] -> str.utf8:
     match $age:
         case adult:
             ret "adult";
@@ -548,7 +548,7 @@ proc book [
     lent $net: Network,
     lent.mut $left: std::map.ordered[str.utf8, int.sign.32],
     lent $req: Request,
-    $ticket: int.sign.32
+    let $ticket: int.sign.32
 ] -> Booking or fail[unknown_station: str.utf8, same_station, no_route, sold_out: str.utf8]:
     let $trip := journey(lend $net, lend $req.origin, lend $req.destination) otherwise fail;
     let $kind := seat_name(lend $req.seat);
@@ -571,7 +571,7 @@ end of proc book
 # whom it is explaining to. Its arms act as if written at the call, so `continue` moves on to the next
 # request there (owner, 2026-10-25).
 coll.handler booking_failed:
-    member booking_failed.explain [$who: str.utf8]:
+    member booking_failed.explain [let $who: str.utf8]:
         !case unknown_station $name:
             std::print.shortest("  ", $who, ": no station called ", $name, " on this network", newln);
             continue;
@@ -591,7 +591,7 @@ coll.handler booking_failed:
     end of member booking_failed.explain
 end of coll.handler booking_failed
 
-proc show_booking [lent $b: Booking, $age: Age]:
+proc show_booking [lent $b: Booking, let $age: Age]:
     let $changes := std::ls.len(lend $b.journey.stops) minus 2;
     std::print.shortest("  #", $b.ticket, " ", $b.traveller, " (", age_name(copy $age), "), ", seat_name(lend $b.seat), newln);
     std::print.shortest("    ", std::str.join(lend $b.journey.stops, between: " → "), newln);
@@ -654,7 +654,7 @@ end of proc board
 # worked out by its own task, which reports back over a channel
 # ---------------------------------------------------------------------------------------------------
 
-proc reached_by [lent $net: Network, lent $hub: str.utf8, $deadline: int.sign.32] -> int.unsign.64:
+proc reached_by [lent $net: Network, lent $hub: str.utf8, let $deadline: int.sign.32] -> int.unsign.64:
     let $best := quickest_from(lend $net, lend $hub);
     var $reached: std::ls[str.utf8] = std::ls.empty;
     for $e in std::map.pairs(lend $best):
@@ -691,7 +691,7 @@ end of proc compare_hubs
 # Looking things up: the stations whose names hold a given letter
 # ---------------------------------------------------------------------------------------------------
 
-fn stations_where [lent $net: Network, $keep: fn[str.utf8] -> bool] -> std::ls[str.utf8]:
+fn stations_where [lent $net: Network, let $keep: fn[str.utf8] -> bool] -> std::ls[str.utf8]:
     var $out: std::ls[str.utf8] = std::ls.empty;
     for $s in lend $net.stations:
         if $keep(copy $s):

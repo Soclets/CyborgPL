@@ -1,7 +1,7 @@
 # Two failing tasks in one block: each handler runs where its own `concur` was written
 # (found by the compiler session, 2026-09-23). Exits with 1 plus 10 = 11.
-%extern.C proc exit [$code: int.sign.32];
-fn judge [$n: int.sign.32] -> fail[small]:
+%extern.C proc exit [let $code: int.sign.32];
+fn judge [let $n: int.sign.32] -> fail[small]:
     if $n less_than 10:
         fail small;
     end of if

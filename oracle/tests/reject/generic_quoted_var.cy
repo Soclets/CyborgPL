@@ -1,4 +1,4 @@
-fn f [$a: <$T>] -> int.sign.32:
+fn f [let $a: <$T>] -> int.sign.32:
     ret 1;
 end of fn f
 !MAIN:

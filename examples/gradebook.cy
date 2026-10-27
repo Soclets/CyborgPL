@@ -17,7 +17,7 @@ fn average [lent $s: Student] -> int.sign.32 or fail[no_scores]:
     check ret $total div.floor std::ls.len(lend $s.scores);     # the if above proves the divisor is not 0
 end of fn average
 
-proc add_score [lent.mut $s: Student, $score: int.sign.32] -> fail[out_of_range: int.sign.32]:
+proc add_score [lent.mut $s: Student, let $score: int.sign.32] -> fail[out_of_range: int.sign.32]:
     if $score less_than 0 or $score greater_than 100:
         fail out_of_range[$score];
     end of if

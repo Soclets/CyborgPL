@@ -1,4 +1,4 @@
-fn twice [$n: int.sign.64] -> int.sign.64:
+fn twice [let $n: int.sign.64] -> int.sign.64:
     ret $n times 2;
 end of fn twice
 !MAIN:

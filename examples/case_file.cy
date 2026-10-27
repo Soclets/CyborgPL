@@ -8,7 +8,7 @@ rec Point:
     var Y: int.sign.32;
 end of rec Point
 
-fn Sum [$p: Point] -> int.sign.32:
+fn Sum [let $p: Point] -> int.sign.32:
     ret $P.x plus $p.y plus $LIMIT;
 end of fn Sum
 

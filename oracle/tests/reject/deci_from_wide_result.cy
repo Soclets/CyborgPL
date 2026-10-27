@@ -1,4 +1,4 @@
-fn f [$a: int.sign.64] -> float.%deci.64:
+fn f [let $a: int.sign.64] -> float.%deci.64:
     let $b := $a times 1000;
     ret to.float.%deci.64($b);
 end of fn f

@@ -1,7 +1,7 @@
 # A kit's front door (owner, 2026-10-19): a `coll.fn` whose members point at functions written elsewhere in the kit,
 # each line writing the full name it makes. Users write geometry::area.square[…] whatever the folders look like.
 pub coll.fn area:
-    member area [$w: int.sign.64, $h: int.sign.64] -> int.sign.64:
+    member area [let $w: int.sign.64, let $h: int.sign.64] -> int.sign.64:
         ret $w times $h;
     end of member area
     member area.square = shapes.square.area;

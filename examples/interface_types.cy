@@ -18,14 +18,14 @@ interface WholeOrdered <T>:
     op less_than [$a: <T>, $b: <T>] -> bool;
 end of interface WholeOrdered
 
-fn bigger <T: Number and Ordered> [$a: <T>, $b: <T>] -> <T>:
+fn bigger <T: Number and Ordered> [let $a: <T>, let $b: <T>] -> <T>:
     if $b less_than $a:
         ret $a;
     end of if
     ret $b;
 end of fn bigger
 
-fn smaller <T: WholeOrdered> [$a: <T>, $b: <T>] -> <T>:
+fn smaller <T: WholeOrdered> [let $a: <T>, let $b: <T>] -> <T>:
     if $a less_than $b:
         ret $a;
     end of if

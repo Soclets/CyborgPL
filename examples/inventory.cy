@@ -4,7 +4,7 @@ rec Item:
     var grams: int.sign.32[min: 1, max: 50_000];
 end of rec Item
 
-fn heaviest [...$items: Item] -> Item or fail[none]:
+fn heaviest [var ...$items: Item] -> Item or fail[none]:
     if std::ls.len(lend $items) eq 0:
         fail none;
     end of if
@@ -17,7 +17,7 @@ fn heaviest [...$items: Item] -> Item or fail[none]:
     ret give $best;
 end of fn heaviest
 
-fn kilos [$grams: int.sign.32] -> int.sign.32 or fail[not_whole, out_of_range]:
+fn kilos [let $grams: int.sign.32] -> int.sign.32 or fail[not_whole, out_of_range]:
     let $k: float.bin.64 = to.float.bin.64($grams) div.near 1000.0;
     ret to.int.sign.32($k) otherwise fail;
 end of fn kilos

@@ -1,4 +1,4 @@
-fn half [$n: int.sign.32] -> int.sign.32 or fail[odd]:
+fn half [let $n: int.sign.32] -> int.sign.32 or fail[odd]:
     if $n times 1 eq 3:
         fail odd;
     end of if

@@ -5,7 +5,7 @@
 coll.fn say:
     labels [$text as value, $times as count];
     defaults [$times = 1];
-    member say [$n: int.sign.32, $text: str.utf8, $times: int.sign.32] -> str.utf8:
+    member say [let $n: int.sign.32, let $text: str.utf8, let $times: int.sign.32] -> str.utf8:
         ret to.stored.str.utf8($n) concat ": " concat $text concat " x" concat to.stored.str.utf8($times);
     end of member say
 end of coll.fn say
@@ -13,17 +13,17 @@ end of coll.fn say
 pub coll.fn box:
     labels.any_order [$w as width, $h as height, $b as border];
     defaults [$b = 0];
-    member box [$w: int.unsign.32, $h: int.unsign.32, $b: int.unsign.32] -> int.unsign.32:
+    member box [let $w: int.unsign.32, let $h: int.unsign.32, let $b: int.unsign.32] -> int.unsign.32:
         ret ($w plus $b plus $b) times ($h plus $b plus $b);
     end of member box
 end of coll.fn box
 
 coll.fn area:
     versions area:
-        [$side: int.sign.64] -> int.sign.64:
+        [let $side: int.sign.64] -> int.sign.64:
             ret $side times $side;
         end of version
-        [$w: int.sign.64, $h: int.sign.64] -> int.sign.64:
+        [let $w: int.sign.64, let $h: int.sign.64] -> int.sign.64:
             ret $w times $h;
         end of version
     end of versions area

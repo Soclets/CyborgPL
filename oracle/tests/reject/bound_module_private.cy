@@ -3,7 +3,7 @@ module till:
     coll.bounded coin:
         coin = int.sign.32[min: 1, max: 200];
     end of coll.bounded coin
-    pub fn show [$c: coin] -> int.sign.32:
+    pub fn show [let $c: coin] -> int.sign.32:
         ret $c;
     end of fn show
 end of module till

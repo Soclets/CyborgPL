@@ -1,4 +1,4 @@
-fn first <T>: any [$a: <T>] -> <T>:
+fn first <T>: any [let $a: <T>] -> <T>:
     ret $a;
 end of fn first
 !MAIN:

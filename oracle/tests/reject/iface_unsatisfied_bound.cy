@@ -1,7 +1,7 @@
 interface Ordered <T>:
     op less_than [$a: <T>, $b: <T>] -> bool;
 end of interface Ordered
-fn max <T: Ordered> [$a: <T>, $b: <T>] -> <T>:
+fn max <T: Ordered> [let $a: <T>, let $b: <T>] -> <T>:
     if $b less_than $a:
         ret $a;
     end of if

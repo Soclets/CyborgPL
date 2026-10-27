@@ -1,6 +1,6 @@
 # A `coll.handler` member taking arguments (owner, 2026-10-23: "Yes"): defined in `[ ]`, given in `( )` with their
 # words, always through the collection's name, since `otherwise f(…)` alone is a fallback value from a call.
-fn half [$n: int.sign.32] -> int.sign.32 or fail[odd, negative: int.sign.32]:
+fn half [let $n: int.sign.32] -> int.sign.32 or fail[odd, negative: int.sign.32]:
     if $n less_than 0:
         fail negative[$n];
     end of if
@@ -11,7 +11,7 @@ fn half [$n: int.sign.32] -> int.sign.32 or fail[odd, negative: int.sign.32]:
 end of fn half
 
 coll.handler half_failed:
-    member half_failed.or_default [$default: int.sign.32, $label: str.utf8]:
+    member half_failed.or_default [let $default: int.sign.32, let $label: str.utf8]:
         !case odd:
             std::print.shortest($label, ": odd, using ", $default, newln); ret $default;
         !end of case odd
@@ -21,7 +21,7 @@ coll.handler half_failed:
     end of member half_failed.or_default
 end of coll.handler half_failed
 
-proc half_or [$n: int.sign.32, $d: int.sign.32] -> int.sign.32:
+proc half_or [let $n: int.sign.32, let $d: int.sign.32] -> int.sign.32:
     let $h := half($n) otherwise half_failed.!or_default(default: $d, label: "half_or");
     ret $h;
 end of proc half_or

@@ -1,4 +1,4 @@
-%extern.C proc getenv [$name: ptr[int.unsign.8]] -> ptr[int.unsign.8];
+%extern.C proc getenv [let $name: ptr[int.unsign.8]] -> ptr[int.unsign.8];
 !MAIN:
     let $key := "HOME";
     !no_check let $home := getenv(lend $key);

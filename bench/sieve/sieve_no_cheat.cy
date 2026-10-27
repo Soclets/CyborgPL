@@ -4,13 +4,13 @@
 # The primes up to N, by the sieve of Eratosthenes; the exit code is their
 # count's low byte. N comes from the environment and must be 0 to
 # 200_000_000; anything else ends the program with exit code 2, as does no N at all.
-%extern.C proc exit [$code: int.sign.32];
-%extern.C proc getenv [$name: ptr[int.unsign.8]] -> ptr[int.unsign.8];
-%extern.C proc atoll [$s: ptr[int.unsign.8]] -> int.sign.64[min: 0, max: 200_000_000];
+%extern.C proc exit [let $code: int.sign.32];
+%extern.C proc getenv [let $name: ptr[int.unsign.8]] -> ptr[int.unsign.8];
+%extern.C proc atoll [let $s: ptr[int.unsign.8]] -> int.sign.64[min: 0, max: 200_000_000];
 
 # N, from the text in the environment: missing when there is none, and out
 # of range when it is not a number this program takes.
-proc read_n [$text: ptr[int.unsign.8]] -> int.sign.64[min: 0, max: 200_000_000] or fail[missing, out_of_range]:
+proc read_n [let $text: ptr[int.unsign.8]] -> int.sign.64[min: 0, max: 200_000_000] or fail[missing, out_of_range]:
     if ptr.is_null($text):
         fail missing;
     end of if

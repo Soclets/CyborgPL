@@ -2,10 +2,10 @@
 # written together in a `coll.fn` (owner: b), in a `versions` block that names them once (owner, 2026-10-21).
 coll.fn describe:
     versions describe:
-        [$n: int.sign.64] -> str.utf8:
+        [let $n: int.sign.64] -> str.utf8:
             ret "a whole number";
         end of version
-        [$x: float.bin.64] -> str.utf8:
+        [let $x: float.bin.64] -> str.utf8:
             ret "a binary float";
         end of version
         [lent $s: str.utf8] -> str.utf8:
@@ -16,16 +16,16 @@ end of coll.fn describe
 
 coll.fn width:
     versions width:
-        [$n: int.sign.16] -> str.utf8:
+        [let $n: int.sign.16] -> str.utf8:
             ret "16 bits";
         end of version
-        [$n: int.sign.64] -> str.utf8:
+        [let $n: int.sign.64] -> str.utf8:
             ret "64 bits";
         end of version
-        [$x: float.bin.32] -> str.utf8:
+        [let $x: float.bin.32] -> str.utf8:
             ret "a f32";
         end of version
-        [$x: float.bin.64] -> str.utf8:
+        [let $x: float.bin.64] -> str.utf8:
             ret "a f64";
         end of version
     end of versions width
@@ -33,10 +33,10 @@ end of coll.fn width
 
 coll.fn which:
     versions which:
-        [$x: float.bin.32] -> str.utf8:
+        [let $x: float.bin.32] -> str.utf8:
             ret "f32";
         end of version
-        [$x: float.bin.64] -> str.utf8:
+        [let $x: float.bin.64] -> str.utf8:
             ret "f64";
         end of version
     end of versions which
@@ -44,10 +44,10 @@ end of coll.fn which
 
 coll.fn area:
     versions area.rect:
-        [$side: int.sign.64] -> int.sign.64:
+        [let $side: int.sign.64] -> int.sign.64:
             ret $side times $side;
         end of version
-        [$w: int.sign.64, $h: int.sign.64] -> int.sign.64:
+        [let $w: int.sign.64, let $h: int.sign.64] -> int.sign.64:
             ret $w times $h;
         end of version
     end of versions area

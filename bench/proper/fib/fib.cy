@@ -1,13 +1,13 @@
 # The Nth Fibonacci number, recursively; the exit code is its low byte. N
 # comes from the environment and must be 0 to 92 — fib(93) does not fit an
 # int64 — and anything else ends the program with exit code 2, as does no N at all.
-%extern.C proc exit [$code: int32];
-%extern.C proc getenv [$name: ptr[uint8]] -> ptr[uint8];
-%extern.C proc atoll [$s: ptr[uint8]] -> int64[min 0, max 92];
+%extern.C proc exit [let $code: int32];
+%extern.C proc getenv [let $name: ptr[uint8]] -> ptr[uint8];
+%extern.C proc atoll [let $s: ptr[uint8]] -> int64[min 0, max 92];
 
 # N, from the text in the environment: missing when there is none, and out
 # of range when it is not a number this program takes.
-proc read_n [$text: ptr[uint8]] -> int64[min 0, max 92] or fail[missing, out_of_range]:
+proc read_n [let $text: ptr[uint8]] -> int64[min 0, max 92] or fail[missing, out_of_range]:
     if ptr.is_null[$text]:
         fail missing;
     end of if
@@ -15,7 +15,7 @@ proc read_n [$text: ptr[uint8]] -> int64[min 0, max 92] or fail[missing, out_of_
     ret $n;
 end of proc read_n
 
-fn fib [$n: int64[min 0, max 92]] -> int64:
+fn fib [let $n: int64[min 0, max 92]] -> int64:
     if $n less_than 2:
         ret $n;
     end of if

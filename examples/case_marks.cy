@@ -12,7 +12,7 @@ case.exact rec Exact:
     var n: int.sign.32;
 end of rec Exact
 
-fn Describe [$m: Mood] -> str.utf8:
+fn Describe [let $m: Mood] -> str.utf8:
     ret match $M:
         case Happy:
             is "happy";

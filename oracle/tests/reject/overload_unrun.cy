@@ -1,9 +1,9 @@
 coll.fn ov:
     versions ov.flip:
-        [$x: int.sign.32] -> int.sign.32:
+        [let $x: int.sign.32] -> int.sign.32:
             ret 1;
         end of version
-        [$x: int.sign.64] -> int.sign.32:
+        [let $x: int.sign.64] -> int.sign.32:
             ret 2;
         end of version
     end of versions ov

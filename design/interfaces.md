@@ -79,7 +79,7 @@ noun-named interfaces; `satisfies` reads right for any name).
 ## 4. Asking — `<T>: Ordered`
 
 ```
-fn max <T: Ordered> [$a: <T>, $b: <T>] -> <T>:
+fn max <T: Ordered> [let $a: <T>, let $b: <T>] -> <T>:
     if $b less_than $a:
         ret give $a;
     end of if

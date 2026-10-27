@@ -18,7 +18,7 @@ comptime and Rust's monomorphisation do the same.
 ## Spelling (revised 2026-10-02)
 
 ```
-fn max <T: Number> [$a: <T>, $b: <T>] -> <T>:
+fn max <T: Number> [let $a: <T>, let $b: <T>] -> <T>:
     …
 end of fn max           # announced after the name, with what it accepts
 fn first <T: any> [lent $xs: std::ls[<T>]] -> <T> or fail[empty]:

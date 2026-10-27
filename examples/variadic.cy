@@ -1,5 +1,5 @@
 # Functions that take any number of arguments, typed or not.
-fn sum [...$nums] -> float.bin.64:
+fn sum [let ...$nums] -> float.bin.64:
     var $total: float.bin.64 = 0;
     for $n in lend $nums:
         change $total = $total plus to.float.bin.64($n);
@@ -7,7 +7,7 @@ fn sum [...$nums] -> float.bin.64:
     ret $total;
 end of fn sum
 
-fn count_ints [...$nums: int.sign.32] -> int.unsign.64:
+fn count_ints [let ...$nums: int.sign.32] -> int.unsign.64:
     ret std::ls.len(lend $nums);
 end of fn count_ints
 

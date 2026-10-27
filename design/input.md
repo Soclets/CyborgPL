@@ -63,7 +63,7 @@ it goes.
 
 ```
 let $n: int.sign.32[min: 0, max: 100] = …;
-fn draw [$x: int.sign.32[min: 0, max: 1023], $y: int.sign.32[min: 0, max: 767]]:
+fn draw [let $x: int.sign.32[min: 0, max: 1023], let $y: int.sign.32[min: 0, max: 767]]:
     …
 end of fn draw
 rec Percent:

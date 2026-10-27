@@ -3,7 +3,7 @@
 # never shadowed, and it is seen only in its block. `let immut` holds a value worked out while running.
 const $base := 100;
 
-fn tries [$n: int.sign.32] -> int.sign.32:
+fn tries [let $n: int.sign.32] -> int.sign.32:
     const $extra := 2;
     ret $n plus $extra;
 end of fn tries

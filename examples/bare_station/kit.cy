@@ -19,7 +19,7 @@
 
 module board:
     # The serial port is a PL011 at 0x0900_0000: a byte written to its data register goes out.
-    pub.kit proc write [$b: int.unsign.8]:
+    pub.kit proc write [let $b: int.unsign.8]:
         !no_check inline.ASM with [$b -> x0, clobber x9]:
             mov x9, #0x09000000
             strb w0, [x9]
@@ -27,7 +27,7 @@ module board:
     end of proc write
 
     # Power off through PSCI's SYSTEM_OFF (0x8400_0008), over `hvc`; QEMU ends with it.
-    pub.kit proc off [$code: int.unsign.8]:
+    pub.kit proc off [let $code: int.unsign.8]:
         !no_check inline.ASM with [$code -> x1, clobber x0]:
             movz x0, #0x0008
             movk x0, #0x8400, lsl #16
@@ -162,7 +162,7 @@ end of fn crc32
 # ---------------------------------------------------------------------------------------------------
 
 # Tenths of a degree as degrees: `-3.5`, `21.0`.
-proc show_tenths [$t: day.tenths]:
+proc show_tenths [let $t: day.tenths]:
     var $a := $t;
     if $t less_than 0:
         std::print.shortest("-");
@@ -172,14 +172,14 @@ proc show_tenths [$t: day.tenths]:
 end of proc show_tenths
 
 # An hour of the day as a clock time, `07:00`.
-proc show_hour [$h: day.hour]:
+proc show_hour [let $h: day.hour]:
     if $h less_than 10:
         std::print.shortest("0");
     end of if
     std::print.shortest($h, ":00");
 end of proc show_hour
 
-proc show_digit [$d: int.unsign.32]:
+proc show_digit [let $d: int.unsign.32]:
     if $d less_than 10:
         std::print.shortest($d); ret;
     end of if
@@ -202,7 +202,7 @@ proc show_digit [$d: int.unsign.32]:
 end of proc show_digit
 
 # A 32-bit word in hex, its eight digits from the top: `0x0018_0803`.
-proc show_hex [$x: int.unsign.32]:
+proc show_hex [let $x: int.unsign.32]:
     std::print.shortest("0x");
     for $k [from: 1, to: 8, by: 1]:
         let $shift := to.int.unsign.32(32 minus 4 times $k);
@@ -223,7 +223,7 @@ union.tag Alarm:
     hot;
 end of union.tag Alarm
 
-fn alarm_for [$t: temp] -> Alarm:
+fn alarm_for [let $t: temp] -> Alarm:
     if $t greater_than 250:
         ret Alarm.hot;
     end of if
@@ -233,7 +233,7 @@ fn alarm_for [$t: temp] -> Alarm:
     ret Alarm.calm;
 end of fn alarm_for
 
-fn rank [$a: Alarm] -> int.sign.32:
+fn rank [let $a: Alarm] -> int.sign.32:
     let $r := match $a:
         case calm:
             is 0;
@@ -248,7 +248,7 @@ fn rank [$a: Alarm] -> int.sign.32:
     ret $r;
 end of fn rank
 
-proc show_alarm [$a: Alarm]:
+proc show_alarm [let $a: Alarm]:
     match $a:
         case calm:
             std::print.shortest("calm");
@@ -271,7 +271,7 @@ interface Number:
     int.unsign.32;
 end of interface Number
 
-fn larger <T: Number> [$a: <T>, $b: <T>] -> <T>:
+fn larger <T: Number> [let $a: <T>, let $b: <T>] -> <T>:
     if $a greater_than $b:
         ret $a;
     end of if

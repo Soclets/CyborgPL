@@ -5,7 +5,7 @@ rec Particle:
     var place: simd[float.bin.32, count: 4];
     var vel: simd[float.bin.32, count: 4];
 end of rec Particle
-fn step [$p: Particle] -> Particle:
+fn step [let $p: Particle] -> Particle:
     ret Particle[place = $p.place plus $p.vel, vel = $p.vel];
 end of fn step
 !MAIN:

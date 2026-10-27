@@ -105,7 +105,7 @@ against a vector (`'v' plus 1`), and `simd.sum` is a check site while
 ## A mask is a type: `simd[bool, N]` (owner, 2026-09-27: a)
 
 ```
-fn all_on [$m: simd[bool, count: 4]] -> bool:
+fn all_on [let $m: simd[bool, count: 4]] -> bool:
     ret simd.all($m);
 end of fn all_on
 let $m: simd[bool, count: 4] = $a greater_than simd.fill(value: 10);

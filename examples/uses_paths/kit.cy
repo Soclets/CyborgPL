@@ -2,7 +2,7 @@
 # Its operators, word and glyph, may be written bare or with the path, and a `use` names one of its functions for this file.
 use greet::formal as formal;
 
-fn describe [$t: greet::Tone] -> str.utf8:
+fn describe [let $t: greet::Tone] -> str.utf8:
     ret match $t:
         case soft:
             is "soft";

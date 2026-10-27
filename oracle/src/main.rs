@@ -999,6 +999,12 @@ fn check_redeclared(prog: &ast::Program) -> Result<Option<String>, String> {
         }
         block(&mut w, body, &[])?;
         CHANGED.with(|c| c.borrow_mut().extend(w.muts.iter().map(|(n, l, ch, _)| (*l, n.clone(), *ch))));
+        // a parameter written `let` never changes (owner, 2026-10-27)
+        for (k, p) in params.iter().enumerate() {
+            if p.mutability == Some(Mutability::Immut) && w.muts.get(k).is_some_and(|m| m.2) {
+                return Err(format!("line {}: '{}' is a `let` parameter, which never changes, but something changes it: write `var '{}'` (owner, 2026-10-27)", fline, p.name, p.name));
+            }
+        }
         if let Some(&(i, shadow)) = w.fixed.iter().find(|&&(i, _)| w.muts[i].2) {
             let (n, line, _, _) = &w.muts[i];
             return Err(if shadow {
@@ -1416,7 +1422,8 @@ fn redesign_path(path: &Path, show: bool) -> Result<(), String> {
     };
     let out = redesign::convert(&src, &marked, info.as_ref()).map_err(|m| format!("{}: {m}", path.display()))?;
     // then redesign two's words (owner, 2026-10-27)
-    let out = redesign::shorten(&out).map_err(|m| format!("{}: redesign two: {m}", path.display()))?;
+    // twice: the first writes `member`, which the second's parameter lists read
+    let out = redesign::shorten(&out).and_then(|o| redesign::shorten(&o)).map_err(|m| format!("{}: redesign two: {m}", path.display()))?;
     if show { print!("{out}"); return Ok(()); }
     let out = if concise { concise::encode(&out) } else { out };
     if out != raw {

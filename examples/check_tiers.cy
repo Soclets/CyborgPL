@@ -1,5 +1,5 @@
 # `check`: proving a narrowing safe, with a guard the prover can see.
-proc draw [$y: float.bin.16]:
+proc draw [let $y: float.bin.16]:
     std::print.shortest("drawing ", $y, newln);
 end of proc draw
 !MAIN:

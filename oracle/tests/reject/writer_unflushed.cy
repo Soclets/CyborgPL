@@ -1,4 +1,4 @@
-proc report [lent.mut $out: std::print.writer, $name: str.utf8, $total: int.sign.64]:
+proc report [lent.mut $out: std::print.writer, let $name: str.utf8, let $total: int.sign.64]:
     std::print.shortest(lend.mut $out, $name, ": ", $total, newln);
 end of proc report
 

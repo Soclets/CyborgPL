@@ -8,7 +8,7 @@
     end of fn;
     let $again := copy $count;        # its own copy of the list inside
     let $moved := give $count;        # 'count' is gone after this
-    let $inc := fn [$a: int.sign.32] -> int.sign.32:
+    let $inc := fn [let $a: int.sign.32] -> int.sign.32:
         ret $a plus 1;
     end of fn;
     let $inc2 := $inc;                # carries nothing: no word needed

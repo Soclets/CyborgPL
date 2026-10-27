@@ -1,7 +1,7 @@
 # `and.then` / `or.else` (owner, 2026-09-25): the right side is worked out only when the
 # left has not already decided — "A, and then (only if A held) B", "A, or else (only if
 # A failed) B". Plain `and` / `or` always work out both (examples/and_runs_both.cy).
-proc loud [$name: str.utf8, $answer: bool] -> bool:
+proc loud [let $name: str.utf8, let $answer: bool] -> bool:
     std::print.shortest("checked ", $name, newln);
     ret $answer;
 end of proc loud

@@ -6,9 +6,9 @@
     emacs = 0;
     vi = 1;
 end of enum Mode
-%extern.C proc malloc [$bytes: int.unsign.64] -> ptr.mut[Mode];
+%extern.C proc malloc [let $bytes: int.unsign.64] -> ptr.mut[Mode];
 %extern.C var $edit_mode: int.sign.32;
-proc mode_at [$p: ptr[Mode]] -> int.sign.32:
+proc mode_at [let $p: ptr[Mode]] -> int.sign.32:
     !no_check let $m := ptr.read($p) otherwise Mode.emacs;
     match $m:
         case emacs:

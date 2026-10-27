@@ -7,7 +7,7 @@ const $greeting := "hello " concat "world";
 pub rec P:
     var x: int.sign.32;
 end of rec P
-pub fn area [$r: float.bin.64] -> float.bin.64:
+pub fn area [let $r: float.bin.64] -> float.bin.64:
     ret $pi times $r times $r;
 end of fn area
 !MAIN:

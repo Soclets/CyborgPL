@@ -1,4 +1,4 @@
-fn keep [$text: str.utf8]:
+fn keep [let $text: str.utf8]:
 end of fn keep
 !MAIN:
     let $s := "a";

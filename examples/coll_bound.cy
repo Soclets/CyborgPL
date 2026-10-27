@@ -17,7 +17,7 @@ rec Line:
     var count: quantity;
 end of rec Line
 
-fn apply_discount [$amount: float.%deci.64, $percent: order.discount] -> float.%deci.64:
+fn apply_discount [let $amount: float.%deci.64, let $percent: order.discount] -> float.%deci.64:
     ret $amount minus ($amount times to.float.%deci.64($percent)) div.near 100;
 end of fn apply_discount
 

@@ -1,4 +1,4 @@
-fn max <T: any> [$a: <T>, $b: <T>] -> <T>:
+fn max <T: any> [let $a: <T>, let $b: <T>] -> <T>:
     ret $a;
 end of fn max
 !MAIN:

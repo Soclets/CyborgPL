@@ -1,9 +1,9 @@
 coll.fn f:
     versions f:
-        [$a: int.sign.64] -> int.sign.64:
+        [let $a: int.sign.64] -> int.sign.64:
             ret 1;
         end of version
-        [$b: int.sign.64] -> int.sign.64:
+        [let $b: int.sign.64] -> int.sign.64:
             ret 2;
         end of version
     end of versions f

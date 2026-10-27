@@ -1,9 +1,9 @@
 coll.fn mx:
     versions mx:
-        [$a: int.sign.32, $b: int.sign.32] -> int.sign.32:
+        [let $a: int.sign.32, let $b: int.sign.32] -> int.sign.32:
             ret $a plus $b;
         end of version
-        [$a: int.sign.32, $b: int.sign.64] -> int.sign.32:
+        [let $a: int.sign.32, let $b: int.sign.64] -> int.sign.32:
             ret $a minus to.int.sign.32($b);
         end of version
     end of versions mx

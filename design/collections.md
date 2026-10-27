@@ -17,11 +17,11 @@ A collection writes a function and its dot narrowings (`cum`, `cum.quick`,
 
 ```
 pub coll.fn cum:
-    member cum [$x: int.sign.32, $step: int.sign.32] -> int.sign.32:
+    member cum [let $x: int.sign.32, let $step: int.sign.32] -> int.sign.32:
         ret $x plus $step;
     end of member cum
     member cum.quick [$step = 2];
-    member cum.double [$x: int.sign.32] -> int.sign.32:
+    member cum.double [let $x: int.sign.32] -> int.sign.32:
         ret $x times 2;
     end of member cum.double
 end of coll.fn cum
@@ -57,7 +57,7 @@ A member may point at a function written elsewhere in the kit, so a kit's `kit.c
 
 ```
 pub coll.fn area:
-    member area [$w: int.sign.64, $h: int.sign.64] -> int.sign.64:
+    member area [let $w: int.sign.64, let $h: int.sign.64] -> int.sign.64:
         ret $w times $h;
     end of member area
     member area.square = shapes.square.area;           # body in shapes/square.cy
@@ -114,7 +114,7 @@ A collection also says how its own function is called:
 pub coll.fn say:
     labels.in_order [$text as value, $times as count];
     defaults [$times = 1];
-    member say [$n: int.sign.32, $text: str.utf8, $times: int.sign.32] -> str.utf8:
+    member say [let $n: int.sign.32, let $text: str.utf8, let $times: int.sign.32] -> str.utf8:
         …
     end of member say
 end of coll.fn say

@@ -2,7 +2,7 @@
 # Operators, true-value numbers, `to.` conversions, range types and generics are the base's now;
 # Signatar, CyborgPL's base, had none of them. Nothing is printed: printing is std's.
 
-fn biggest <T: any> [$a: <T>, $b: <T>, $pick_a: bool] -> <T>:
+fn biggest <T: any> [let $a: <T>, let $b: <T>, let $pick_a: bool] -> <T>:
     if $pick_a:
         ret give $a;
     end of if

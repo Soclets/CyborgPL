@@ -21,7 +21,7 @@ fn hidden [] -> int.sign.32:
 end of fn hidden
 
 pub module shapes:
-    pub fn square [$s: int.sign.32] -> int.sign.32:
+    pub fn square [let $s: int.sign.32] -> int.sign.32:
         ret $s times $s;
     end of fn square
 end of module shapes

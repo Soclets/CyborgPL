@@ -5,8 +5,8 @@
 
 module text:
     %extern.C:
-        pub proc strlen [$s: ptr[int.unsign.8]] -> int.unsign.64;
-        proc write [$fd: int.sign.32, $buf: ptr[int.unsign.8], $len: int.unsign.64] -> int.sign.64;
+        pub proc strlen [let $s: ptr[int.unsign.8]] -> int.unsign.64;
+        proc write [let $fd: int.sign.32, let $buf: ptr[int.unsign.8], let $len: int.unsign.64] -> int.sign.64;
     end of %extern.C
     pub proc say [lent $msg: str.utf8]:
         !no_check let $n := write(1, lend $msg, std::str.bytes(lend $msg));

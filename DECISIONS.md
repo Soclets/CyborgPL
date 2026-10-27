@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign two: every owned parameter says `let` or `var` (owner)
+
+A parameter could still change unannounced (`fn countdown [$n: int.sign.32]` with `change $n = …`). Asked whether a
+plain parameter never changes, with `var` for one that does, the owner: "Or do we say it?", then, shown it, "Yes". So
+**`fn add [let $a: int.sign.32, let $b: int.sign.32]`, `fn countdown [var $n: int.sign.32]`**; a borrowed one already
+says it (`lent` cannot change, `lent.mut` can) and takes no word; an owned one without `let` or `var` is refused, and a
+`let` one that something changes is refused naming `var`. Design claude's readings, said with it or found building: a
+lambda, a member, a `versions` entry and a handler's parameters follow it (a handler's never changes, so `let`); an
+operator's operands are lent unless `give` and take none; `MAIN`'s two are C's argc and argv and take none. Built: the
+oracle, its converter (a parameter its body changes becomes `var`, the rest `let`), examples, tests and the notes' code.
+
 ### 2026-10-27 — Redesign: every member of a collection says `member`, on both lines (owner: (b))
 
 A template's member had closed `end of named` (design claude's pick). Asked whether that is right ("what", then simpler),

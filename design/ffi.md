@@ -16,13 +16,13 @@ enforced; the oracle cannot link C, so it emulates `write`, `exit`,
 ## `extern.C` — a function whose body is somewhere else
 
 ```
-%extern.C proc write [$fd: int.sign.32, $buf: ptr[int.unsign.8], $len: int.unsign.64] -> int.sign.64;
-%extern.C proc exit [$code: int.sign.32];
-%extern.C proc printf [$fmt: ptr[int.unsign.8], ...$args] -> int.sign.32;      # C's own varargs
+%extern.C proc write [let $fd: int.sign.32, let $buf: ptr[int.unsign.8], let $len: int.unsign.64] -> int.sign.64;
+%extern.C proc exit [let $code: int.sign.32];
+%extern.C proc printf [let $fmt: ptr[int.unsign.8], let ...$args] -> int.sign.32;      # C's own varargs
 
 %extern.C:                                  # a library's worth at once
-    proc malloc [$bytes: int.unsign.64] -> ptr.mut[int.unsign.8];
-    proc free [$p: ptr.mut[int.unsign.8]];
+    proc malloc [let $bytes: int.unsign.64] -> ptr.mut[int.unsign.8];
+    proc free [let $p: ptr.mut[int.unsign.8]];
     $lib_version: int.sign.32;
     var $lib_verbose: int.sign.32;
 end of %extern.C
@@ -102,10 +102,10 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
 ## Callbacks — a Cyborg function C calls (decided 2026-09-21)
 
 ```
-%extern.C proc qsort [$base: ptr.mut[int.sign.32], $n: int.unsign.64, $size: int.unsign.64,
-                 $cmp: fn[ptr[int.sign.32], ptr[int.sign.32]] -> int.sign.32];
+%extern.C proc qsort [let $base: ptr.mut[int.sign.32], let $n: int.unsign.64, let $size: int.unsign.64,
+                 let $cmp: fn[ptr[int.sign.32], ptr[int.sign.32]] -> int.sign.32];
 
-proc ascending [$a: ptr[int.sign.32], $b: ptr[int.sign.32]] -> int.sign.32:
+proc ascending [let $a: ptr[int.sign.32], let $b: ptr[int.sign.32]] -> int.sign.32:
     !no_check ret ptr.read($a) minus ptr.read($b);
 end of proc ascending
 !no_check qsort(lend.mut $nums, 5, size.of[int.sign.32], ascending);
@@ -129,7 +129,7 @@ end of proc ascending
 ## A ranged return — C's contract, checked at the door (decided 2026-09-22)
 
 ```
-%extern.C proc strlen [$s: ptr[int.unsign.8]] -> int.unsign.64[min: 0, max: 1_000_000];
+%extern.C proc strlen [let $s: ptr[int.unsign.8]] -> int.unsign.64[min: 0, max: 1_000_000];
 !no_check let $n := strlen(lend $s) otherwise fail too_long;    # can fail out_of_range
 ```
 
@@ -351,7 +351,7 @@ A C string is bytes ending in a 0 byte; a `str.utf8` knows its own length. Two w
 `C.int` (owner: "Isn't it `str`?"):
 
 ```
-%extern.C proc puts [$s: ptr[int.unsign.8]] -> int.sign.32;
+%extern.C proc puts [let $s: ptr[int.unsign.8]] -> int.sign.32;
 let $name := %C.str.read($p)-
 otherwise:
     case not_utf8:
@@ -401,7 +401,7 @@ Both forms (owner: "What about both?"):
 incl.%C.system["stdio.h"];                                        # printf comes with C's `...`
 !no_check printf(lend $fmt, 5, lend $name);                     # the open form: any extras, on your word
 
-%extern.C proc printf_count = %C.printf [$format: ptr[int.unsign.8], ...$n: int.sign.32] -> int.sign.32;
+%extern.C proc printf_count = %C.printf [let $format: ptr[int.unsign.8], let ...$n: int.sign.32] -> int.sign.32;
 !no_check printf_count(lend $fmt, 5);                            # a fixed shape: its extras' types checked
 ```
 

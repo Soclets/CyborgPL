@@ -3617,7 +3617,10 @@ impl Parser {
                         self.advance();
                         loop {
                             if *self.peek() == Tok::RBracket { break; }
-                            let Tok::Var(_) = self.advance().tok else { return self.err(format!("a handler's parameter is `$name: type`: `{name}.{m} [$code: u8] {{ … }}`")); };
+                            // `let $code: u8` (owner, 2026-10-27: a parameter says whether it changes); a handler's never does
+                            if self.is_word("immut") { self.advance(); }
+                            else if self.is_word("mut") { return self.err("a handler's parameter never changes: `let $code: …`"); }
+                            let Tok::Var(_) = self.advance().tok else { return self.err(format!("a handler's parameter is `let $name: type`: `{name}.{m} [let $code: u8]:`")); };
                             self.expect(Tok::Colon, "`:` and the parameter's type")?;
                             self.ty()?;
                             if *self.peek() == Tok::Comma { self.advance(); continue; }
@@ -3664,6 +3667,8 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
                             let close = matching(t, open, &Tok::LBracket, &Tok::RBracket)?;
                             let mut k = open + 1;
                             while k < close {
+                                // `let $code: u8` (owner, 2026-10-27), read as `immut` here
+                                if matches!(&t[k].tok, Tok::Word(w) if w == "immut") { k += 1; }
                                 let Tok::Var(p) = &t[k].tok else { break };
                                 let (start, mut e, mut d) = (k + 2, k + 2, 0i32);
                                 while e < close {
