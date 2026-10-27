@@ -25,10 +25,14 @@ calls it. Since `pos` went (2026-09-27), a list read looks the same
 ## 2. The type of a function is its signature without the names
 
 ```
-fn by_number [lent $a: Locker, lent $b: Locker] -> bool { … }     # the definition
-                fn[lent Locker,      lent Locker]  -> bool           # its type
+function by_number [lent $a: Locker, lent $b: Locker] -> boolean:
+    …
+end of function by_number     # the definition
+                function[lent Locker,      lent Locker]  -> boolean           # its type
 
-fn sort <T: any> [lent.mut $xs: std::list[<T>], $less: fn[lent <T>, lent <T>] -> bool] { … }
+procedure sort <T: any> [lent.mutable $xs: std::list[<T>], $less: function[lent <T>, lent <T>] -> boolean]:
+    …
+end of procedure sort
 ```
 
 Parameter kinds (`lent`, `lent.mut`, none) are part of the type — the
@@ -41,8 +45,12 @@ difference.
 
 ```
 let $limit := 60;
-let $passing := keep(lend $scores, fn [$s: i32] -> bool with [lend $limit] { return $s at_least $limit; });
-let $evens   := keep(lend $scores, fn [$s: i32] -> bool { return ($s mod.floor 2) equal_to 0; });   # captures nothing
+let $passing := keep(lend $scores, function [$s: integer.signed.32_bit] -> boolean with [lend $limit]:
+    return $s at_least $limit;
+end of function);
+let $evens   := keep(lend $scores, function [$s: integer.signed.32_bit] -> boolean:
+    return ($s modulo.floor 2) equal_to 0;
+end of function);   # captures nothing
 ```
 
 An anonymous function is `fn` with its parameters, return, and body,
@@ -57,8 +65,8 @@ silently, which is where "why is this borrowed" bugs come from.
 ### The short form (owner, 2026-10-24: "(c)"; not built)
 
 ```
-let $passing := keep(lend $scores, fn [$s] with [lend $limit] = $s at_least $limit);
-let $evens   := keep(lend $scores, fn [$s] = ($s mod.floor 2) equal_to 0);
+let $passing := keep(lend $scores, function [$s] with [lend $limit] = $s at_least $limit);
+let $evens   := keep(lend $scores, function [$s] = ($s modulo.floor 2) equal_to 0);
 ```
 
 One value after `=`, no `{ return …; }`; the parameters' types and the return type come from the `fn[…]` type of
@@ -69,10 +77,10 @@ stays. A named function has no short form (owner: "no"), its body always in `{ }
 ## 4. An operator is a value as `op plus` (owner, 2026-09-29)
 
 ```
-let $sum     := fold(lend $xs, 0, op plus);
-let $product := fold(lend $xs, 1, op times);
-let $flipped := map(lend $xs, op neg);
-let $f: fn[i32, i32] -> i32 = op mod.floor;
+let $sum     := fold(lend $xs, 0, operator plus);
+let $product := fold(lend $xs, 1, operator times);
+let $flipped := map(lend $xs, operator neg);
+let $f: function[integer.signed.32_bit, integer.signed.32_bit] -> integer.signed.32_bit = operator modulo.floor;
 ```
 
 `op` — the word that defines an operator — before any operator makes it

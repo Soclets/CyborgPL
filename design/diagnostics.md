@@ -25,10 +25,10 @@ fix:   let $a := $b + 1;
 ```
 check[index_out_of_range] at shop.cy:31:20
 where: in pick(), called from MAIN at line 48
-code:  $xs[pos: $k]
+code:  $xs[position: $k]
 when:  $k is 101, and $xs holds 100
 fix:   line 4:
-       let $n := to.i32[min: 1, max: 99]($text) otherwise 0;
+       let $n := to.integer.signed.32_bit[minimum: 1, maximum: 99]($text) otherwise 0;
 ```
 
 - **An error is named, and the name is its title**: `error[unclosed_name]`, `error[borrow_outlives_owner]`,
@@ -82,9 +82,9 @@ or lent mutably while the borrow is still used later, the location is the change
 ```
 error[changed_while_borrowed] at shop.cy:24:5
 where: in MAIN
-code:  std::list.append(lend.mut $s, value: 4);
+code:  std::list.append(lend.mutable $s, value: 4);
 fix:   line 26:
-       std::list.append(lend.mut $s, value: 4);
+       std::list.append(lend.mutable $s, value: 4);
 ```
 
 (the fix moving the change below the borrow's last use, line 25; design claude's sketch in the new shape.)

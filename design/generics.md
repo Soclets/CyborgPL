@@ -18,14 +18,26 @@ comptime and Rust's monomorphisation do the same.
 ## Spelling (revised 2026-10-02)
 
 ```
-fn max <T: Number> [$a: <T>, $b: <T>] -> <T> { … }           # announced after the name, with what it accepts
-fn first <T: any> [lent $xs: std::list[<T>]] -> <T> or fail[empty] { … }
-fn pick <T: any> [@x] [lent @x $xs: std::list[<T>]] -> lent @x <T> { … }   # then the lifetime groups, after a `|`
+function max <T: Number> [$a: <T>, $b: <T>] -> <T>:
+    …
+end of function max           # announced after the name, with what it accepts
+function first <T: any> [lent $xs: std::list[<T>]] -> <T> or fail[empty]:
+    …
+end of function first
+function pick <T: any> [@x] [lent @x $xs: std::list[<T>]] -> lent @x <T>:
+    …
+end of function pick   # then the lifetime groups, after a `|`
 
-struct Pair <A: any, B: any> { left: <A>, right: <B> }         # blanks in the order announced
-enum Maybe <T: any> { none, some: <T> }
+record Pair <A: any, B: any>:
+    left: <A>;
+    right: <B>;
+end of record Pair         # blanks in the order announced
+union.tagged Maybe <T: any>:
+    none;
+    some: <T>;
+end of union.tagged Maybe
 
-let $p: Pair[i32, str.utf8] = Pair[left = 7, right = "seven"];   # filled at the use
+let $p: Pair[integer.signed.32_bit, string.utf8] = Pair[left = 7, right = "seven"];   # filled at the use
 let $m := Maybe.some[42];                                          # filled from the value
 ```
 
@@ -80,7 +92,9 @@ a plain `T` they do nothing (`interfaces.md`).
 ## A generic `op` (owner, 2026-09-29)
 
 ```
-op ~= <T>: Number [$a: <T>, $b: <T>] -> bool { … }   # once, for any type keeping Number's promises
+operator ~= <T>: Number [$a: <T>, $b: <T>] -> boolean:
+    …
+end of operator ~=   # once, for any type keeping Number's promises
 ```
 
 An operator may be generic, with the rules of a generic `fn`: announced

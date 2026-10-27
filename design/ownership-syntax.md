@@ -16,7 +16,7 @@ Handing an **owned** value (heap types: `str`, lists, `char.grapheme`,
 change $s = give $t;          # ownership transfers; 't' is dead after this
 change $s = copy $t;          # a second, independent value; an allocation
 process(lend $s);       # temporary shared access; 's' still owns
-process(lend.mut $s);   # temporary exclusive access, may modify
+process(lend.mutable $s);   # temporary exclusive access, may modify
 ```
 
 - **`give`** — move. I give it away.
@@ -79,8 +79,10 @@ question: a parameter receives whatever the caller wrote.
 ## A lend's sizes must match (owner, 2026-09-24: a)
 
 ```
-fn total [lent $xs: std::list[i32]] -> i64 { … }
-let $big: std::list[i64] = [1, 2, 3];
+function total [lent $xs: std::list[integer.signed.32_bit]] -> integer.signed.64_bit:
+    …
+end of function total
+let $big: std::list[integer.signed.64_bit] = [1, 2, 3];
 total(lend $big);          # error: a list[i64] lent where a list[i32] is looked at
 ```
 
@@ -100,9 +102,11 @@ whether `'x'` is ever reassigned, so nothing needs saying. The programmer
 a chain segment, `var.!mut.i32`), and the compiler then holds them to it:
 
 ```
-let immut $limit: i32 = 10;      # assigning to 'limit' later is an error
-let mut $counter := 0;             # a promise that it changes: refused if nothing does (2026-10-10)
-fn twice [immut $n: i32] -> i32 { … }
+let $limit: integer.signed.32_bit = 10;      # assigning to 'limit' later is an error
+variable $counter := 0;             # a promise that it changes: refused if nothing does (2026-10-10)
+function twice [$n: integer.signed.32_bit] -> integer.signed.32_bit:
+    …
+end of function twice
 ```
 
 `!mut` is a verified contract, like `check` and the optional lifetime
@@ -128,9 +132,15 @@ A parameter declares what it accepts, so the signature *is* the ownership
 contract:
 
 ```
-fn count [lent $text: str.utf8] -> i32 { … }    # looks at it
-fn edit  [lent.mut $text: str.utf8] { … }         # may modify it
-fn keep  [$text: str.utf8] { … }                  # owns it
+function count [lent $text: string.utf8] -> integer.signed.32_bit:
+    …
+end of function count    # looks at it
+procedure edit  [lent.mutable $text: string.utf8]:
+    …
+end of procedure edit         # may modify it
+function keep  [$text: string.utf8]:
+    …
+end of function keep                  # owns it
 ```
 
 - **`lent`** — receives a shared borrow. The caller writes `lend`.
@@ -165,11 +175,15 @@ outliving `'s'`.
 ## Handing back a borrow: `--> lent@x T` (owner, 2026-09-29)
 
 ```
-fn longer [@x] [lent @x $a: str.utf8, lent @x $b: str.utf8] -> lent @x str.utf8 {
-    if std::str.bytes(lend $a) at_least std::str.bytes(lend $b) { return lend $a; }
+function longer [@x] [lent @x $a: string.utf8, lent @x $b: string.utf8] -> lent @x string.utf8:
+    if std::string.bytes(lend $a) at_least std::string.bytes(lend $b):
+        return lend $a;
+    end of if
     return lend $b;
-}
-fn pick [@x, @y] [lent @x $a: str.utf8, lent @y $b: str.utf8] -> lent @x str.utf8 { return lend $a; }
+end of function longer
+function pick [@x, @y] [lent @x $a: string.utf8, lent @y $b: string.utf8] -> lent @x string.utf8:
+    return lend $a;
+end of function pick
 ```
 
 A function may hand back a borrow of what it was lent (2026-09-21: a lend

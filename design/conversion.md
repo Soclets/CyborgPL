@@ -6,11 +6,18 @@ Decided 2026-09-19. Nothing converts by itself; a conversion is spelled as
 `to`, the target type, and the value in brackets.
 
 ```
-to.stored.str.utf8($avg)          # number → text, in its stored form; never fails
-to.f64($n)                      # int → bin, widening; never fails
-to.i8($big)                     # narrowing: a check site (does it fit?), like a typed assignment
-to.i32("42") otherwise 0         # text → number: can fail with `not_a_number` or `out_of_range`
-to.i32("7") otherwise { not_a_number { std::exit(code: 2); } out_of_range { std::exit(code: 3); } }
+to.stored.string.utf8($avg)          # number → text, in its stored form; never fails
+to.float.binary.64_bit($n)                      # int → bin, widening; never fails
+to.integer.signed.8_bit($big)                     # narrowing: a check site (does it fit?), like a typed assignment
+to.integer.signed.32_bit("42") otherwise 0         # text → number: can fail with `not_a_number` or `out_of_range`
+to.integer.signed.32_bit("7") otherwise:
+    case not_a_number:
+        std::exit(code: 2);
+    end of case not_a_number
+    case out_of_range:
+        std::exit(code: 3);
+    end of case out_of_range
+end of otherwise
 ```
 
 - **`to`** is a keyword and the head of the chain, like `list` in
@@ -126,10 +133,10 @@ A literal may carry its type after `:`, as a name does in `'x': u8`. The `:` cov
 before it, so no brackets are needed inside maths (owner: "(a)", over brackets required):
 
 ```
-let $r: i64 = to.i64(1) shl (5: u8 shr 1);   # the count gives no width, so the literal says it
-let $a := 200: u8;
-let $p := 5: u64[min: 1];
-let $d := exactly 0.1: %d64;
+let $r: integer.signed.64_bit = to.integer.signed.64_bit(1) shift_left (5: integer.unsigned.8_bit shift_right 1);   # the count gives no width, so the literal says it
+let $a := 200: integer.unsigned.8_bit;
+let $p := 5: integer.unsigned.64_bit[minimum: 1];
+let $d := exactly 0.1: float.%decimal.64_bit;
 ```
 
 - **Literals only.** A variable is converted with `to.u8['x']`; `'x': u8` in an expression is refused,

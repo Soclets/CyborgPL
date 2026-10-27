@@ -12,36 +12,44 @@ The 2026-09-14 form is under **History** at the bottom.
 ## The sample
 
 ```
-struct Locker {
-    name: str.utf8,
-    immut number: i32,
-    occupied: bool
-}
+record Locker:
+    name: string.utf8;
+    let number: integer.signed.32_bit;
+    occupied: boolean;
+end of record Locker
 
-fn count [lent $text: str.utf8] -> i32 { … }
+function count [lent $text: string.utf8] -> integer.signed.32_bit:
+    …
+end of function count
 
-MAIN {
+!MAIN:
     let $mine := Locker[name = "A", number = 7, occupied = false];
-    let mut $total: i32 = 0;
-    for $i [from: 1, to: 10, by: 1] {
-        if ($i mod.floor 2) equal_to 0 { change $total = $total plus $i; }
-        else if $i equal_to 7 { break; }
-        else { continue; }
-    }
-    let $s := "line 1" concat newln concat "line 2";
-    std::print.useful("total: ", $total, newln);
-}
+    variable $total: integer.signed.32_bit = 0;
+    for $i [from: 1, to: 10, by: 1]:
+        if ($i modulo.floor 2) equal_to 0:
+            change $total = $total plus $i;
+        end of if
+        else if $i equal_to 7:
+            break;
+        end of else if
+        else:
+            continue;
+        end of else
+    end of for
+    let $s := "line 1" concatenate newline concatenate "line 2";
+    std::print.shortest("total: ", $total, newline);
+!end of MAIN
 ```
 
 ## Declarations (revised 2026-09-19)
 
 ```
 let $x := 1000;                 # Precog picks the best type
-let $x: f16 = 1000;           # explicit type; must be fully explicit
-let mut $n: i32 = 0;          # mutability, when stated, before the name
-let immut $limit := 10;
+let $x: float.binary.16_bit = 1000;           # explicit type; must be fully explicit
+variable $n: integer.signed.32_bit = 0;          # mutability, when stated, before the name
+let $limit := 10;
 let $r: std::uenr = 1000;        # a Kit-provided type: `::` crosses, `.` narrows
-pub const $max := 8;            # a Kit-level value: top level only, see kits.md
+public constant $max := 8;            # a Kit-level value: top level only, see kits.md
 ```
 
 - **`let` declares, `change` changes** (owner, 2026-10-02: "Kinda want

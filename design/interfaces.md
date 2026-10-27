@@ -15,9 +15,15 @@ that can be compared," and a type needs a way to *be* comparable.
 ## 1. A type may define the language's operators for itself (owner: yes)
 
 ```
-op < [$a: Vec, $b: Vec] -> bool { … }
-op equal_to [$a: Vec, $b: Vec] -> bool { … }
-op plus [$a: Vec, $b: Vec] -> Vec { … }
+operator less_than [$a: Vec, $b: Vec] -> boolean:
+    …
+end of operator less_than
+operator equal_to [$a: Vec, $b: Vec] -> boolean:
+    …
+end of operator equal_to
+operator plus [$a: Vec, $b: Vec] -> Vec:
+    …
+end of operator plus
 ```
 
 Revises 2026-09-19's "the language's operators cannot be redefined": they
@@ -30,18 +36,18 @@ language's.
 ## 2. The promise — `interface`
 
 ```
-interface Ordered <T> {
-    op < [$a: <T>, $b: <T>] -> bool;
-    op equal_to [$a: <T>, $b: <T>] -> bool;
-}
-interface Printable <T> {
-    fn show [lent $x: <T>] -> str.utf8;
-}
-interface Number {
-    i32
-    i64
-    f64
-}
+interface Ordered <T>:
+    operator less_than [$a: <T>, $b: <T>] -> boolean;
+    operator equal_to [$a: <T>, $b: <T>] -> boolean;
+end of interface Ordered
+interface Printable <T>:
+    function show [lent $x: <T>] -> string.utf8;
+end of interface Printable
+interface Number:
+    integer.signed.32_bit;
+    integer.signed.64_bit;
+    float.binary.64_bit;
+end of interface Number
 ```
 
 Top level beside `struct`; `pub` works; entries are `fn` and `op`
@@ -73,10 +79,12 @@ noun-named interfaces; `satisfies` reads right for any name).
 ## 4. Asking — `<T>: Ordered`
 
 ```
-fn max <T: Ordered> [$a: <T>, $b: <T>] -> <T> {
-    if $b < $a { return give $a; }
+function max <T: Ordered> [$a: <T>, $b: <T>] -> <T>:
+    if $b less_than $a:
+        return give $a;
+    end of if
     return give $b;
-}
+end of function max
 ```
 
 The bound is written once, where the blank is announced after the name

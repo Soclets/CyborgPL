@@ -16,11 +16,15 @@ A collection writes a function and its dot narrowings (`cum`, `cum.quick`,
 ## The shape
 
 ```
-pub coll.fn cum {
-    cum [$x: i32, $step: i32] -> i32 { return $x plus $step; }
+public collection.function cum:
+    cum [$x: integer.signed.32_bit, $step: integer.signed.32_bit] -> integer.signed.32_bit:
+        return $x plus $step;
+    end of cum
     cum.quick [$step = 2];
-    cum.double [$x: i32] -> i32 { return $x times 2; }
-}
+    cum.double [$x: integer.signed.32_bit] -> integer.signed.32_bit:
+        return $x times 2;
+    end of cum.double
+end of collection.function cum
 ```
 
 - `coll.fn`, then the name, bare as a function's is (`cum`, never
@@ -52,12 +56,14 @@ naming `cum.quick`. Generated members are written the same way.
 A member may point at a function written elsewhere in the kit, so a kit's `kit.cy` can be its front door:
 
 ```
-pub coll.fn area {
-    area [$w: i64, $h: i64] -> i64 { return $w x $h; }
+public collection.function area:
+    area [$w: integer.signed.64_bit, $h: integer.signed.64_bit] -> integer.signed.64_bit:
+        return $w times $h;
+    end of area
     area.square = shapes.square.area;           # body in shapes/square.cy
     area.triangle = shapes.triangle.area;
     area.unit [$w = 1, $h = 1];               # a preset of the own function
-}
+end of collection.function area
 # users write geometry::area.square[5]
 ```
 
@@ -72,11 +78,17 @@ picked by how many arguments it has and their types. This is the only place over
 `fn` twice anywhere else is refused, naming `coll.fn` (owner: "(b)").
 
 ```
-pub coll.fn round {
-    round.near [$x: f64] -> f64 { … }
-    round.near [$x: %d64] -> %d64 { … }
-    round.near [$x: f64, $decimals: i32] -> f64 { … }
-}
+public collection.function round:
+    round.nearest [$x: float.binary.64_bit] -> float.binary.64_bit:
+        …
+    end of round.nearest
+    round.nearest [$x: float.%decimal.64_bit] -> float.%decimal.64_bit:
+        …
+    end of round.nearest
+    round.nearest [$x: float.binary.64_bit, $decimals: integer.signed.32_bit] -> float.binary.64_bit:
+        …
+    end of round.nearest
+end of collection.function round
 ```
 
 - **Who**: any kit's functions, std's and yours (owner: "(a)"). Two versions with the same types are refused.
@@ -99,11 +111,13 @@ are, each line its full name.
 A collection also says how its own function is called:
 
 ```
-pub coll.fn say {
+public collection.function say:
     labels.in_order [$text as value, $times as count];
     defaults [$times = 1];
-    say [$n: i32, $text: str.utf8, $times: i32] -> str.utf8 { … }
-}
+    say [$n: integer.signed.32_bit, $text: string.utf8, $times: integer.signed.32_bit] -> string.utf8:
+        …
+    end of say
+end of collection.function say
 # say[2, value: "Hi"]               'times' is 1
 # say[2, value: "Hi", count: 3]
 ```
@@ -132,10 +146,14 @@ as `std::print` does: `std::print.useful[…]` and `std::print.stored[…]`
 exist, a bare `std::print[…]` does not.
 
 ```
-coll.fn zero {
-    zero.of_int16 [] -> i16 { return 0; }
-    zero.of_int64 [] -> i64 { return 0; }
-}
+collection.function zero:
+    zero.of_int16 [] -> integer.signed.16_bit:
+        return 0;
+    end of zero.of_int16
+    zero.of_int64 [] -> integer.signed.64_bit:
+        return 0;
+    end of zero.of_int64
+end of collection.function zero
 ```
 
 `zero.of_int16[]` exists, `zero[…]` does not. Such a collection has no
@@ -148,15 +166,21 @@ cannot do (Good practice 14, `style.md`): where the value changes a
 member's signature, or no own function takes it.
 
 ```
-coll.fn zero {
-    for $T in [i16, i64] {
-        named "of_" concat $T;
-        [] -> $T { return 0; }
-    }
-    #generated_2_lines_below
-    zero.of_int16 [] -> i16 { return 0; }
-    zero.of_int64 [] -> i64 { return 0; }
-}
+collection.function zero:
+    for $T in [integer.signed.16_bit, integer.signed.64_bit]:
+        named "of_" concatenate std::string.replace(lend $T, from: ".", to: "_");
+        [] -> $T:
+            return 0;
+        end of named
+    end of for
+    #generated_6_lines_below
+    zero.of_integer_signed_16_bit [] -> integer.signed.16_bit:
+        return 0;
+    end of zero.of_integer_signed_16_bit
+    zero.of_integer_signed_64_bit [] -> integer.signed.64_bit:
+        return 0;
+    end of zero.of_integer_signed_64_bit
+end of collection.function zero
 ```
 
 - **The loop is the usual `for`** (owner: "(a)"): over a list, `for 'n' in
@@ -202,14 +226,18 @@ owner rules:
 ## `coll.handler` (owner, 2026-10-13; built in the oracle)
 
 ```
-coll.handler cum_failed {
-    cum_failed.flow_back_to_bladder {
-        odd { return 0; }
-        negative $v { report($v); return 0; }
-    }
-}
+collection.handler cum_failed:
+    cum_failed.flow_back_to_bladder:
+        !case odd:
+            return 0;
+        !end of case odd
+        !case negative $v:
+            report($v); return 0;
+        !end of case negative
+    end of cum_failed.flow_back_to_bladder
+end of collection.handler cum_failed
 
-let $b := half(-4) otherwise cum_failed.flow_back_to_bladder;
+let $b := half(negative 4) otherwise cum_failed.!flow_back_to_bladder;
 ```
 
 - A member is a **named `otherwise` block**: the arms written inline today,

@@ -10,12 +10,12 @@ of every field.
 ## Declaring the blueprint
 
 ```
-struct Locker {
-    name: str.utf8,
-    number: i32,
-    capacity: i32,
-    occupied: bool
-}
+record Locker:
+    name: string.utf8;
+    number: integer.signed.32_bit;
+    capacity: integer.signed.32_bit;
+    occupied: boolean;
+end of record Locker
 ```
 
 - Top level, beside `fn`; `pub struct` exports it (`kits.md`). The name is

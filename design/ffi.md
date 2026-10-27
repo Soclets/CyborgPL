@@ -16,16 +16,16 @@ enforced; the oracle cannot link C, so it emulates `write`, `exit`,
 ## `extern.C` — a function whose body is somewhere else
 
 ```
-%extern.C fn write [$fd: i32, $buf: ptr[u8], $len: u64] -> i64;
-%extern.C fn exit [$code: i32];
-%extern.C fn printf [$fmt: ptr[u8], ...$args] -> i32;      # C's own varargs
+%external.C procedure write [$fd: integer.signed.32_bit, $buf: pointer[integer.unsigned.8_bit], $len: integer.unsigned.64_bit] -> integer.signed.64_bit;
+%external.C procedure exit [$code: integer.signed.32_bit];
+%external.C procedure printf [$fmt: pointer[integer.unsigned.8_bit], ...$args] -> integer.signed.32_bit;      # C's own varargs
 
-%extern.C {                                  # a library's worth at once
-    fn malloc [$bytes: u64] -> ptr.mut[u8];
-    fn free [$p: ptr.mut[u8]];
-    $lib_version: i32;
-    mut $lib_verbose: i32;
-}
+%external.C:                                  # a library's worth at once
+    procedure malloc [$bytes: integer.unsigned.64_bit] -> pointer.mutable[integer.unsigned.8_bit];
+    procedure free [$p: pointer.mutable[integer.unsigned.8_bit]];
+    $lib_version: integer.signed.32_bit;
+    variable $lib_verbose: integer.signed.32_bit;
+end of %external.C
 ```
 
 **`extern` names its language, `extern.C`, and may be a block** (owner,
@@ -102,13 +102,13 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
 ## Callbacks — a Cyborg function C calls (decided 2026-09-21)
 
 ```
-%extern.C fn qsort [$base: ptr.mut[i32], $n: u64, $size: u64,
-                 $cmp: fn[ptr[i32], ptr[i32]] -> i32];
+%external.C procedure qsort [$base: pointer.mutable[integer.signed.32_bit], $n: integer.unsigned.64_bit, $size: integer.unsigned.64_bit,
+                 $cmp: function[pointer[integer.signed.32_bit], pointer[integer.signed.32_bit]] -> integer.signed.32_bit];
 
-fn ascending [$a: ptr[i32], $b: ptr[i32]] -> i32 {
-    no_check return ptr.read($a) minus ptr.read($b);
-}
-no_check qsort(lend.mut $nums, 5, size.of[i32], ascending);
+procedure ascending [$a: pointer[integer.signed.32_bit], $b: pointer[integer.signed.32_bit]] -> integer.signed.32_bit:
+    !no_check return pointer.read($a) minus pointer.read($b);
+end of procedure ascending
+!no_check qsort(lend.mutable $nums, 5, size.of[integer.signed.32_bit], ascending);
 ```
 
 - **Only capture-free functions cross** (owner: a, over smuggling captures
@@ -129,8 +129,8 @@ no_check qsort(lend.mut $nums, 5, size.of[i32], ascending);
 ## A ranged return — C's contract, checked at the door (decided 2026-09-22)
 
 ```
-%extern.C fn strlen [$s: ptr[u8]] -> u64[min: 0, max: 1_000_000];
-no_check let $n := strlen(lend $s) otherwise fail too_long;    # can fail out_of_range
+%external.C procedure strlen [$s: pointer[integer.unsigned.8_bit]] -> integer.unsigned.64_bit[minimum: 0, maximum: 1_000_000];
+!no_check let $n := strlen(lend $s) otherwise fail too_long;    # can fail out_of_range
 ```
 
 An extern's return may be a range type. It is a promise about C that
@@ -170,7 +170,11 @@ type is the request to check. To skip the check, write the plain type
 (`i32`), and convert when you want the enum:
 
 ```
-let $k := to.Key($code) otherwise { out_of_range { return; } };
+let $k := to.Key($code) otherwise:
+    !case out_of_range:
+        return;
+    !end of case out_of_range
+end of otherwise;
 ```
 
 `no_check` does not remove these. It turns off *check sites*, the bugs
@@ -192,7 +196,10 @@ tier trusting C's answers too. The owner asked whether `no_check` was then
 ## A range type as a C struct's field (owner, 2026-09-27: a)
 
 ```
-%layout.C struct Rect { w: i32[min: 0, max: 4096], h: i32[min: 0, max: 4096] }
+%layout.C record Rect:
+    w: integer.signed.32_bit[minimum: 0, maximum: 4096];
+    h: integer.signed.32_bit[minimum: 0, maximum: 4096];
+end of record Rect
 ```
 
 C sees the plain number, so the layout is unchanged (`Rect` is 8 bytes).
@@ -206,8 +213,12 @@ refusing it, with plain fields checked by hand. A range on an `extern.C fn`
 ## `layout.C enum` — C's enum (owner, 2026-09-27: a)
 
 ```
-%layout.C enum Key { a = 65, b = 66, escape = 256 }
-%extern.C fn IsKeyDown [$key: Key] -> bool;
+%layout.C enumeration Key:
+    a = 65;
+    b = 66;
+    escape = 256;
+end of enumeration Key
+%external.C procedure IsKeyDown [$key: Key] -> boolean;
 ```
 
 A C enum is a number with names, and here it is a Cyborg enum laid out
@@ -227,11 +238,11 @@ design claude's recommendation with a, not asked separately.
 ## `extern.C 'x': T` — a C global (decided 2026-09-21; `let` dropped 2026-09-25)
 
 ```
-%extern.C $lib_version: i32;        # C: extern int lib_version;   read-only
-%extern.C mut $lib_verbose: i32;    # C: extern int lib_verbose;   may be written
+%external.C $lib_version: integer.signed.32_bit;        # C: extern int lib_version;   read-only
+%external.C variable $lib_verbose: integer.signed.32_bit;    # C: extern int lib_verbose;   may be written
 
-no_check let $v := $lib_version;       # reading C's variable is a no_check site
-no_check change $lib_verbose = 1;              # so is writing one
+!no_check let $v := $lib_version;       # reading C's variable is a no_check site
+!no_check change $lib_verbose = 1;              # so is writing one
 ```
 
 A C library's variables, named the way `extern.C fn` names its functions.
@@ -263,10 +274,10 @@ naming `layout.C`.
 kayo compiling the block with Clang; it is CNC's (owner: "Yup"). Not designed yet.
 
 ```
-%layout.C struct Timeval {
-    sec: i64,
-    usec: i64
-}
+%layout.C record Timeval:
+    sec: integer.signed.64_bit;
+    usec: integer.signed.64_bit;
+end of record Timeval
 ```
 
 Only a `layout.C` struct may cross to C (in a signature or a `ptr[…]`); a
@@ -293,10 +304,10 @@ block, the same rules. Capitals, as every language's name: `inline.s` is
 refused.
 
 ```
-no_check inline.ASM {
+!no_check inline.ASM with [$fd -> x0, $buf -> x1, $len -> x2, $n <- x0, clobber x16]:
     mov x16, #4
     svc 0
-} with [$fd -> x0, $buf -> x1, $len -> x2, $n <- x0, clobber x16];
+end of inline.ASM
 ```
 
 - **`inline.<LANGUAGE>`** — owner's shape, over bare `asm`: a family, with
@@ -339,9 +350,17 @@ A C string is bytes ending in a 0 byte; a `str.utf8` knows its own length. Two w
 `C.int` (owner: "Isn't it `str`?"):
 
 ```
-%extern.C fn puts [$s: ptr[u8]] -> i32;
-let $name := %C.str.read($p) otherwise { not_utf8 { … } };              # a char* to its 0 byte → str.utf8
-let $cs := %C.str.make(lend $name) otherwise { has_zero_byte { … } };   # str.utf8 → a C string
+%external.C procedure puts [$s: pointer[integer.unsigned.8_bit]] -> integer.signed.32_bit;
+let $name := %C.string.read($p) otherwise:
+    case not_utf8:
+        …
+    end of case not_utf8
+end of otherwise;              # a char* to its 0 byte → str.utf8
+let $cs := %C.string.make(lend $name) otherwise:
+    case has_zero_byte:
+        …
+    end of case has_zero_byte
+end of otherwise;   # str.utf8 → a C string
 puts(lend $cs);
 ```
 
@@ -376,11 +395,11 @@ said any size. The calling rules are kayo's; the oracle has nothing to stand in 
 Both forms (owner: "What about both?"):
 
 ```
-incl.%C.system["stdio.h"];                                        # printf comes with C's `...`
-no_check printf(lend $fmt, 5, lend $name);                     # the open form: any extras, on your word
+include.%C.system["stdio.h"];                                        # printf comes with C's `...`
+!no_check printf(lend $fmt, 5, lend $name);                     # the open form: any extras, on your word
 
-%extern.C fn printf_count = %C.printf [$format: ptr[u8], ...$n: i32] -> i32;
-no_check printf_count(lend $fmt, 5);                            # a fixed shape: its extras' types checked
+%external.C procedure printf_count = %C.printf [$format: pointer[integer.unsigned.8_bit], ...$n: integer.signed.32_bit] -> integer.signed.32_bit;
+!no_check printf_count(lend $fmt, 5);                            # a fixed shape: its extras' types checked
 ```
 
 - The open form is `...'args'` (owner, 2026-10-19: "(a)", as decided before), any extras, each call a `no_check` site.
@@ -394,11 +413,18 @@ no_check printf_count(lend $fmt, 5);                            # a fixed shape:
 ## Unions and bit-fields (owner, 2026-10-19)
 
 ```
-%layout.C union Number { i: i32, f: f32 }        # one of them at a time; C knows which
-no_check let $x := $n.i;                          # reading a field: on your word, listed in the build report
+%layout.C union Number:
+    i: integer.signed.32_bit;
+    f: float.binary.32_bit;
+end of union Number        # one of them at a time; C knows which
+!no_check let $x := $n.i;                          # reading a field: on your word, listed in the build report
 change $n.f = 1.5;                                 # writing: always safe
 
-%layout.C struct Status { mode: u8[bits: 3], ready: bool[bits: 1], level: u8[bits: 4] }
+%layout.C record Status:
+    mode: integer.unsigned.8_bit[bits: 3];
+    ready: boolean[bits: 1];
+    level: integer.unsigned.8_bit[bits: 4];
+end of record Status
 change $s.mode = 5;                                # checked to fit: 3 bits hold 0 to 7
 ```
 

@@ -258,7 +258,8 @@ pub fn convert(src: &str, toks: &[Token], info: Option<&Info>) -> Result<String,
             Tok::LBrace => {
                 let open = describe(toks, stmt_start, k, &text, info, stack.last());
                 if open.list {
-                    edits.push(Edit { at: t.at, end: t.end, text: "[".into() });
+                    let inner = toks.get(k + 1).map_or(t.end, |nx| if nx.line == t.line { nx.at } else { t.end });
+                    edits.push(Edit { at: t.at, end: inner, text: "[".into() });
                     list_braces.push(true);
                     stack.push(open);
                     k += 1;
@@ -294,7 +295,8 @@ pub fn convert(src: &str, toks: &[Token], info: Option<&Info>) -> Result<String,
                 let Some(open) = stack.pop() else { return Err(format!("line {}: a `}}` with no block open", t.line)); };
                 let was_list = list_braces.pop().unwrap_or(false);
                 if was_list {
-                    edits.push(Edit { at: t.at, end: t.end, text: "]".into() });
+                    let from = if k > 0 && toks[k - 1].line == t.line && toks[k - 1].end != usize::MAX { toks[k - 1].end } else { t.at };
+                    edits.push(Edit { at: from, end: t.end, text: "]".into() });
                     k += 1;
                     continue;
                 }
@@ -436,10 +438,11 @@ fn describe(toks: &[Token], start: usize, brace: usize, text: &dyn Fn(&Token) ->
                 o.close = format!("{} {n}", fn_kind(info, s[0].line, toks, brace)).trim().to_string();
                 return o;
             }
-            let mut name = String::new();
+            // the member's path, each segment as the rewrite spells it (`round.near` is `round.nearest`)
+            let mut segs: Vec<String> = Vec::new();
             let mut last_word = false;
-            for t in &s { match &t.tok { Tok::Word(w) if !last_word => { name.push_str(w); last_word = true; } Tok::Dot => { name.push('.'); last_word = false; } _ => break } }
-            o.close = name;
+            for t in &s { match &t.tok { Tok::Word(w) if !last_word => { let n = segs.last().and_then(|b| segment(b, w)).map(str::to_string).unwrap_or(w.clone()); segs.push(n); last_word = true; } Tok::Dot => { last_word = false; } _ => break } }
+            o.close = segs.join(".");
             if coll.starts_with("handler") { o.arms = true; o.handler = true; }
             return o;
         }
@@ -499,7 +502,7 @@ fn describe(toks: &[Token], start: usize, brace: usize, text: &dyn Fn(&Token) ->
         while j < rest.len() {
             match &rest[j].tok {
                 Tok::Word(w) => { name.push_str(w); }
-                Tok::Op(op) if name.is_empty() => { name.push_str(op); j += 1; break; }
+                Tok::Op(op) if name.is_empty() => { name.push_str(operator_word(op).filter(|_| op.len() == 1).unwrap_or(op)); break; }
                 _ => break,
             }
             if matches!(rest.get(j + 1).map(|t| &t.tok), Some(Tok::Dot)) && matches!(rest.get(j + 2).map(|t| &t.tok), Some(Tok::Word(_))) { name.push('.'); j += 2; } else { break; }
@@ -754,8 +757,10 @@ fn words(toks: &[Token], text: &dyn Fn(&Token) -> String, info: Option<&Info>, e
                 if depth > 0 && *tok(i + 1) == Tok::Colon && !after_dot {
                     if let Some(l) = label(w) { put(edits, l.into()); continue; }
                 }
+                let std_kit = pi >= 1 && matches!(tok(pi - 1), Tok::Word(k) if k == "std");
+                if after_kit && !std_kit { continue; }
                 if after_kit {
-                    // a kit's path: std's own names, `std::str.split`, `std::pow`
+                    // std's path: its own names, `std::str.split`, `std::pow`
                     let r = match w.as_str() { "str" => Some("string".to_string()), "pow" => Some("power".into()), "xx" => Some("power".into()), "shl" => Some("shift_left".into()), "shr" => Some("shift_right".into()), "div" => Some("divide".into()), "mod" => Some("modulo".into()), "printu" | "println" | "printf" => None, _ => None };
                     if let Some(r) = r { put(edits, r); }
                     continue;
@@ -786,7 +791,7 @@ fn words(toks: &[Token], text: &dyn Fn(&Token) -> String, info: Option<&Info>, e
                 match w.as_str() {
                     "fn" => {
                         // a declaration, a lambda or a function type
-                        let kind = if *tok(i + 1) == Tok::LBracket && i > 0 && matches!(prev, Tok::Colon | Tok::Arrow | Tok::Comma | Tok::LBracket) { "function" }
+                        let kind = if *tok(i + 1) == Tok::LBracket && (matches!(prev, Tok::Colon | Tok::Arrow | Tok::Comma | Tok::LBracket) || fn_is_type(toks, i)) { "function" }
                             else if i > 0 && is_word(i - 1, "test") { "procedure" }
                             else if statement_has(toks, i, "extern") { "procedure" }
                             else {
@@ -892,6 +897,35 @@ fn for_modifier(toks: &[Token], i: usize) -> bool {
         }
     }
     false
+}
+
+/// `fn [ … ] -> R` with neither a body (`{`) nor a short body (`=`, `with`) after it: a function's type
+fn fn_is_type(toks: &[Token], i: usize) -> bool {
+    let mut d = 0;
+    let mut j = i + 1;
+    while j < toks.len() {
+        match toks[j].tok { Tok::LBracket => d += 1, Tok::RBracket => { d -= 1; if d == 0 { break; } } _ => {} }
+        j += 1;
+    }
+    // past the return type: up to what follows it at this depth
+    let mut k = j + 1;
+    let mut dd = 0;
+    while k < toks.len() {
+        match &toks[k].tok {
+            Tok::LBracket | Tok::LParen => dd += 1,
+            Tok::RBracket | Tok::RParen if dd == 0 => return true,
+            Tok::RBracket | Tok::RParen => dd -= 1,
+            Tok::LBrace if dd == 0 => return false,
+            Tok::Eq if dd == 0 => return false,
+            Tok::Word(w) if dd == 0 && w == "with" => return false,
+            Tok::Semi | Tok::Comma if dd == 0 => return true,
+            Tok::Word(w) if dd == 0 && w == "fn" => return true,
+            _ => {}
+        }
+        if toks[k].line > toks[i].line && dd == 0 && !matches!(toks[k - 1].tok, Tok::Arrow | Tok::Comma | Tok::LBracket) { return true; }
+        k += 1;
+    }
+    true
 }
 
 /// A word inside the kinds of a `case` or `bare` mark, `case.any [fn, var];`
@@ -1008,7 +1042,9 @@ fn is_format_text(toks: &[Token], i: usize) -> bool {
         match &toks[j].tok {
             Tok::RParen | Tok::RBracket => d += 1,
             Tok::LParen | Tok::LBracket if d > 0 => d -= 1,
-            Tok::LParen | Tok::LBracket => return j >= 1 && matches!(&toks[j - 1].tok, Tok::Word(w) if w == "format"),
+            // `print.format(`, `std::format(`, `print.format.stderr(`
+            Tok::LParen | Tok::LBracket => return j >= 1 && (matches!(&toks[j - 1].tok, Tok::Word(w) if w == "format")
+                || (j >= 3 && matches!(&toks[j - 1].tok, Tok::Word(w) if w == "stderr" || w == "stdout") && toks[j - 2].tok == Tok::Dot && matches!(&toks[j - 3].tok, Tok::Word(f) if f == "format"))),
             Tok::Text(..) if d == 0 => return false,
             Tok::Semi | Tok::LBrace | Tok::RBrace => return false,
             _ => {}
@@ -1359,6 +1395,8 @@ fn words_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     if let Some(l) = new_label(w) { out.push(word_tok(l, t)); i += 1; continue; }
                     if let Some(l) = label(w) { return fault(format!("`{w}:` is an old spelling: write `{l}:` (owner, 2026-10-27)")); }
                 }
+                let std_kit = { let mut k = out.len(); while k > 0 && out[k - 1].tok == Tok::Mark { k -= 1; } k >= 2 && matches!(&out[k - 2].tok, Tok::Word(s) if s == "std") };
+                if after_kit && !std_kit { out.push(t.clone()); i += 1; continue; }
                 if after_kit {
                     let r = match w { "string" => Some("str"), "power" => Some("pow"), "divide" => Some("div"), "modulo" => Some("mod"), "shift_left" => Some("shl"), "shift_right" => Some("shr"), _ => None };
                     if let Some(r) = r { out.push(word_tok(r, t)); i += 1; continue; }

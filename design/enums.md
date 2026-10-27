@@ -10,11 +10,11 @@ carry a detail. A function's `fail[…]` list has this shape already
 ## Declaring
 
 ```
-enum Status {
-    empty,
-    claimed: str.utf8,       # this case carries who claimed it
-    locked
-}
+union.tagged Status:
+    empty;
+    claimed: string.utf8;       # this case carries who claimed it
+    locked;
+end of union.tagged Status
 ```
 
 Top level beside `struct`; `pub` works the same. The name is bare (a type);
@@ -28,7 +28,10 @@ namespace. The keyword is `enum` (Rust/C/Swift/TypeScript) over `variant`.
 ```
 let $a := Status.empty;                 # a case with no data: bare
 let $b := Status.claimed["Tankun"];     # a case with data: the bracket builds it
-struct Locker { number: i32, status: Status }
+record Locker:
+    number: integer.signed.32_bit;
+    status: Status;
+end of record Locker
 ```
 
 - **An enum value is always owned**, like a struct (one rule; adding a
@@ -40,13 +43,19 @@ struct Locker { number: i32, status: Status }
 ## `match` — when every case matters
 
 ```
-fn describe [lent $l: Locker] -> str.utf8 {
-    match $l.status {
-        empty         { return "free"; }
-        claimed $who { return "taken by " concat $who; }
-        locked        { return "locked"; }
-    }
-}
+function describe [lent $l: Locker] -> string.utf8:
+    match $l.status:
+        case empty:
+            return "free";
+        end of case empty
+        case claimed $who:
+            return "taken by " concatenate $who;
+        end of case claimed
+        case locked:
+            return "locked";
+        end of case locked
+    end of match
+end of function describe
 ```
 
 - The arms are the same shape as `otherwise { … }` (`failures.md`): the
@@ -71,11 +80,17 @@ in one scope (open: state that rule).
 ## A `match` that gives a value (owner, 2026-09-29)
 
 ```
-let $label := match $s {
-    empty         { "free" }
-    claimed $who { "taken by " concat $who }
-    locked        { return "(locked)"; }      # a case may still leave instead
-};
+let $label := match $s:
+    case empty:
+        "free"
+    end of case empty
+    case claimed $who:
+        "taken by " concatenate $who
+    end of case claimed
+    case locked:
+        return "(locked)";
+    end of case locked      # a case may still leave instead
+end of match;
 ```
 
 A case whose block holds only a value is that value (a). A block is
@@ -103,11 +118,35 @@ is that match's value. In a `#strict` file a bare nested `match` is
 always a statement, since a value says `giveS` (owner: "yes"):
 
 ```
-match $o {
-    cancelled { }
-    paid { match $s { pickup { … } post { … } } }                 # runs
-}
-let $price := match $o { cancelled { 0 } paid { match $s { pickup { 5 } post { 9 } } } };
+match $o:
+    case cancelled:
+    end of case cancelled
+    case paid:
+        match $s:
+            case pickup:
+                …
+            end of case pickup
+            case post:
+                …
+            end of case post
+        end of match
+    end of case paid                 # runs
+end of match
+let $price := match $o:
+    case cancelled:
+        0
+    end of case cancelled
+    case paid:
+        match $s:
+            case pickup:
+                5
+            end of case pickup
+            case post:
+                9
+            end of case post
+        end of match
+    end of case paid
+end of match;
 #strict: paid { giveS match 's' { pickup { giveS 5; } post { giveS 9; } }; }
 ```
 

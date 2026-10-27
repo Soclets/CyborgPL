@@ -47,11 +47,11 @@ bare".
 other kits, own stays bare."): its functions, types, enums and enum values, std's included.
 
 ```
-std::print.useful(greet::hello(), newln);
-let mut $xs: std::list[i64] = [];
-std::list.append(lend.mut $xs, value: 3);
+std::print.shortest(greet::hello(), newline);
+variable $xs: std::list[integer.signed.64_bit] = [];
+std::list.append(lend.mutable $xs, value: 3);
 let $b: greet::Note = greet::Note[text = "hi"];
-let $up := std::str.upper.full(lend $s, lang: std::casing.tr);
+let $up := std::string.uppercase.full(lend $s, lang: std::casing.tr);
 ```
 
 - **Your own kit's names stay bare** (`helper[]`; `my.helper[]` where needed), and so do the base's: `+`, `plus`,
@@ -71,7 +71,7 @@ of a file:
 
 ```
 use std::list as list;                  # list[i64], list.append[…], list.length[…] in this file
-use std::print.useful as say;           # say[…]
+use std::print.shortest as say;           # say[…]
 use greet::formal as formal;
 use std::print.stored as std::print;    # a rename onto a path is allowed ("it's their choice")
 ```
@@ -101,10 +101,14 @@ modules keep the strict rule — their names appear bare in type positions.
 ## `pub` and `const` (decided 2026-09-19)
 
 ```
-pub fn add [$a: i32, $b: i32] -> i32 { … }
-pub struct Locker { … }
-pub const $max_players := 8;
-const $pi: f64 = 3.141_592_653_589_793;      # private to the Kit
+public function add [$a: integer.signed.32_bit, $b: integer.signed.32_bit] -> integer.signed.32_bit:
+    …
+end of function add
+public record Locker:
+    …;
+end of record Locker
+public constant $max_players := 8;
+constant $pi: float.binary.64_bit = 3.141_592_653_589_793;      # private to the Kit
 ```
 
 - **`pub`** is a bare word before `fn`, `struct`, or `const` at the top
@@ -200,10 +204,18 @@ shapes.circle.$pi             # a const through modules
 ### Visibility — three audiences
 
 ```
-fn helper [] { … }                 # this module and its descendants
-pub.kit fn shared [] { … }        # the whole Kit, not outside
-pub fn api [] { … }                # other Kits too
-pub.kit module tests { … }        # modules carry it as well
+function helper []:
+    …
+end of function helper                 # this module and its descendants
+public.kit function shared []:
+    …
+end of function shared        # the whole Kit, not outside
+public function api []:
+    …
+end of function api                # other Kits too
+public.kit module tests:
+    …
+end of module tests        # modules carry it as well
 ```
 
 - Nothing: private to the module it is declared in, visible to that module
@@ -232,12 +244,16 @@ refusal: nothing to disambiguate, for the reader or for the prover.
 
 ```
 # geometry/shapes/circle.cy
-pub.kit fn area [$r: f64] -> f64 { … }
-pub.kit struct Circle { r: f64 }
+public.kit function area [$r: float.binary.64_bit] -> float.binary.64_bit:
+    …
+end of function area
+public.kit record Circle:
+    r: float.binary.64_bit;
+end of record Circle
 
 # geometry/kit.cy
-pub fn area = shapes.circle.area;          # users write geometry::area[…]
-pub struct Circle = shapes.circle.Circle;  # users write geometry::Circle[…]
+public function area = shapes.circle.area;          # users write geometry::area[…]
+public record Circle = shapes.circle.Circle;  # users write geometry::Circle[…]
 ```
 
 Read it as: other kits get a function called `area`, and it is the one
@@ -269,8 +285,8 @@ reach a `module` block.
 name before `=` is whatever users should type:
 
 ```
-pub fn new_circle = shapes.circle.new;
-pub fn new_square = shapes.square.new;
+public function new_circle = shapes.circle.new;
+public function new_square = shapes.square.new;
 ```
 
 Two files that each have a `new` can both be offered at the root. The
@@ -283,7 +299,7 @@ adds the name to that module:
 
 ```
 # std/str.cy
-pub fn split = split.split;      # users write std::str.split[…]
+public function split = split.split;      # users write std::str.split[…]
 ```
 
 So a big kit keeps its grouping (`std::str.…`) while the code behind

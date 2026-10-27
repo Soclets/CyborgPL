@@ -140,13 +140,17 @@ not limbs. And then, lang could be the absence of such"). The mark goes on the f
 claude's reading of the owner's examples):
 
 ```
-%extern.C fn puts [$s: ptr[u8]] -> %C.int;             # CNC
-incl.%C["sdl.h"];                                      # `incl` is the base's
-let $price: %d64 = 19.50;                              # Money
+%external.C procedure puts [$s: pointer[integer.unsigned.8_bit]] -> %C.int;             # CNC
+include.%C["sdl.h"];                                      # `incl` is the base's
+let $price: float.%decimal.64_bit = 19.50;                              # Money
 let $odd: %not_std.i24 = 5;                            # WSMW: `not_std` is only its
-let $name: str.utf8[max: 40 %graphemes] = "café";      # unicode
-%concur with [lend $ch] { %channel.send(lend $ch, value: 1); }   # MCPS
-no_check inline.%MSL threads 64 { … } with [lend.mut $xs -> buffer(0)];   # Metal
+let $name: string.utf8[maximum: 40 %grapheme_clusters] = "café";      # unicode
+%spawn.task with [lend $ch]:
+    %channel.send(lend $ch, value: 1);
+end of %spawn.task   # MCPS
+!no_check inline.%MSL threads 64 with [lend.mutable $xs -> buffer(0)]:   # Metal
+    …
+end of inline.%MSL
 ```
 
 So `%` no longer means percent: `80 percent`, `percent[d32]`. A program's limbs show where they are used, and `%C`
@@ -308,11 +312,25 @@ have to change a strike's prefix themselves" (owner).
 Chosen **when compiling**, with `else` for the rest:
 
 ```
-on.target.chip aarch64 { no_check inline.ASM { neg x0, x0 } with [ … ]; }
-else on.target.chip x86_64 { no_check inline.ASM { neg rax } with [ … ]; }
-else { let $y := -$x; }
-on.target.os macos 15 { … }          # a minimum: refuses to start on older
-on.target aarch64-macos { … }        # one exact target
+on.target.chip aarch64:
+    !no_check inline.ASM with [ … ]:
+        neg x0, x0
+    end of inline.ASM
+end of on.target.chip
+else on.target.chip x86_64:
+    !no_check inline.ASM with [ … ]:
+        neg rax
+    end of inline.ASM
+end of else on.target.chip
+else:
+    let $y := negate $x;
+end of else
+on.target.os macos 15:
+    …
+end of on.target.os          # a minimum: refuses to start on older
+on.target aarch64-macos:
+    …
+end of on.target        # one exact target
 ```
 
 and **when running**, checking the actual machine once at startup:

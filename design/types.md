@@ -91,7 +91,7 @@ and `deci`/`uenr` are ours to write rather than vendored.
 ## Integers of any width: `!std.int24` (owner, 2026-10-03; the `.` since 2026-10-06)
 
 ```
-let $sample: %not_std.i24 = -8_000_000;     # Rust-style: !std.i24
+let $sample: %not_std.i24 = negative 8_000_000;     # Rust-style: !std.i24
 let $flags: %not_std.u4 = 9;               # !std.u4
 ```
 
@@ -111,9 +111,9 @@ bits (`operators.md`). `examples/any_width.cy`,
 ## A whole number in another base: `binary`, `hex`, `octal` (owner, 2026-10-19)
 
 ```
-let $flags: u8 = bin 1010_0101;    # 165
-let $mask: u32 = hex FF00_00FF;       # A-F in either case
-let $mode: u16 = oct 755;
+let $flags: integer.unsigned.8_bit = binary 1010_0101;    # 165
+let $mask: integer.unsigned.32_bit = hexadecimal FF00_00FF;       # A-F in either case
+let $mode: integer.unsigned.16_bit = octal 755;
 ```
 
 A word in front, as `exactly` is (owner: "Should we make it a word infront? Like `format` or `exactly`?", then "(a)"),

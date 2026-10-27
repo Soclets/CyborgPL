@@ -38,10 +38,11 @@ def fix(path):
         open(path, 'w').write(new)
         print("split", path)
 
-for t in sys.argv[1:]:
-    if os.path.isdir(t):
-        for root, _, names in os.walk(t):
-            for n in names:
-                if n.endswith('.cy'): fix(os.path.join(root, n))
-    else:
-        fix(t)
+if __name__ == "__main__":
+    for t in sys.argv[1:]:
+        if os.path.isdir(t):
+            for root, _, names in os.walk(t):
+                for n in names:
+                    if n.endswith('.cy'): fix(os.path.join(root, n))
+        else:
+            fix(t)

@@ -120,9 +120,15 @@ block is a statement, so a region is `check { … }` with no second rule.
 
 ```
 check change $xs[$i] = $total plus $score;     # prove: index in range, add fits
-no_check change $hash = $hash times 31 plus $c;          # I want the wrap; on my word
-check { for $i [from: 1, to: $n, by: 1] { … } }     # every site in the region
-check if $x > 0 { … }                       # an if or a loop is a statement too
+!no_check change $hash = $hash times 31 plus $c;          # I want the wrap; on my word
+check:
+    for $i [from: 1, to: $n, by: 1]:
+        …
+    end of for
+end of check     # every site in the region
+check if $x greater_than 0:
+    …
+end of if                       # an if or a loop is a statement too
 ```
 
 - Innermost word wins when they nest. **No alias** for `no_check` (owner,

@@ -9,14 +9,18 @@ over cores or a GPU, the programmer writes nothing). Concurrency is
 download beside a keyboard — where the waiting is the point.
 
 ```
-let $results: %channel[str.utf8] = %channel.empty;
+let $results: %channel[string.utf8] = %channel.empty;
 let $a := "a.com";
-%concur with [lend $results, give $a] { %channel.send(lend $results, value: fetch(lend $a)); }   # a call's result is fresh: no verb
-%concur with [lend $results] { %channel.send(lend $results, value: fetch("b.com")); }
-for $i [from: 1, to: 2, by: 1] {
+%spawn.task with [lend $results, give $a]:
+    %channel.send(lend $results, value: fetch(lend $a));
+end of %spawn.task   # a call's result is fresh: no verb
+%spawn.task with [lend $results]:
+    %channel.send(lend $results, value: fetch("b.com"));
+end of %spawn.task
+for $i [from: 1, to: 2, by: 1]:
     let $page := %channel.take(lend $results) otherwise "";    # waits; whichever finished first
-    std::print.useful(std::str.bytes(lend $page), newln);
-}
+    std::print.shortest(std::string.bytes(lend $page), newline);
+end of for
 ```
 
 ## The model — tasks and channels (owner: b)
@@ -32,8 +36,10 @@ caller).
 ## `concur` (owner, over `task`)
 
 ```
-%concur { … }                       # a block, run alongside
-%concur fetch(lend $url);          # a call, run alongside
+%spawn.task:
+    …
+end of %spawn.task                       # a block, run alongside
+%spawn.task fetch(lend $url);          # a call, run alongside
 ```
 
 A bare word in front of a statement, the family of `check` / `no_check`.
@@ -65,8 +71,14 @@ the goroutine leak).
 ## A task's failure — `otherwise` on the `concur` (owner: a)
 
 ```
-%concur with [give $url] { let $p := fetch($url) otherwise fail; … }
-    otherwise { no_network { std::print.useful("offline", newln); } };
+%spawn.task with [give $url]:
+    let $p := fetch($url) otherwise fail; …
+end of %spawn.task
+    otherwise:
+        case no_network:
+            std::print.shortest("offline", newline);
+        end of case no_network
+    end of otherwise;
 ```
 
 A task that can fail says so where it is written, like every failing
@@ -78,10 +90,16 @@ the block; tasks cannot fail (plumb it through a channel by hand).
 task, the moment it fails** (owner, 2026-09-23):
 
 ```
-fn setup [give $doc: Document] {
-    %concur.detached with [give $doc] { save(lend $doc) otherwise fail; }
-        otherwise { disk_full { … } };        # runs here, in the task, at once
-}
+procedure setup [give $doc: Document]:
+    %spawn.task.detached with [give $doc]:
+        save(lend $doc) otherwise fail;
+    end of %spawn.task.detached
+        otherwise:
+            case disk_full:
+                …
+            end of case disk_full
+        end of otherwise;        # runs here, in the task, at once
+end of procedure setup
 ```
 
 It can print, log, or retry; it cannot `return` or fail outward, since
@@ -96,8 +114,8 @@ while the program carries on.
 ## Channels
 
 ```
-let $c: %channel[str.utf8] = %channel.empty;                    # hand-off: send waits for a taker
-let $q: %channel[str.utf8][max: 100] = %channel.empty;            # a buffer: send waits only when full
+let $c: %channel[string.utf8] = %channel.empty;                    # hand-off: send waits for a taker
+let $q: %channel[string.utf8][maximum: 100] = %channel.empty;            # a buffer: send waits only when full
 %channel.send(lend $c, value: give $line);             # a value is given, never lent
 let $v := %channel.take(lend $c) otherwise …;   # waits; fails `closed` when no sender is left
 ```
@@ -113,10 +131,14 @@ check site too — a deadlock the prover can see.
 ## `whichever` — whichever comes first (owner: a; the word, owner)
 
 ```
-%whichever {
-    $msg from lend $inbox     { handle(give $msg); }
-    $why from lend $shutdown  { return; }
-}
+%whichever:
+    case $msg from lend $inbox:
+        handle(give $msg);
+    end of case $msg
+    case $why from lend $shutdown:
+        return;
+    end of case $why
+end of %whichever
 ```
 
 Waits until any listed channel has a value, takes from that one, runs
@@ -133,13 +155,17 @@ without it). The word: first `pick`; owner asked why not `pick_first`
 Time is the outside world, so it is std's, like input:
 
 ```
-std::time.wait(for: 5 secs);
-let $deadline := std::time.after(500 millis);     # a channel that sends once
-let $tick := std::time.every(1 sec);           # a channel that sends every second
-%whichever {
-    $msg from lend $inbox     { … }
-    $now from lend $deadline  { std::print.useful("timed out", newln); }
-}
+std::time.wait(for: 5 seconds);
+let $deadline := std::time.after(500 milliseconds);     # a channel that sends once
+let $tick := std::time.every(1 second);           # a channel that sends every second
+%whichever:
+    case $msg from lend $inbox:
+        …
+    end of case $msg
+    case $now from lend $deadline:
+        std::print.shortest("timed out", newline);
+    end of case $now
+end of %whichever
 ```
 
 A number followed by a unit word is a **duration literal** — a

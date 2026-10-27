@@ -6,9 +6,9 @@ Decided 2026-09-14; spelling revised 2026-09-19 (`fn`, name-then-type
 parameters, `--> T`).
 
 ```
-fn add [$a: i32, $b: i32] -> i32 {
+function add [$a: integer.signed.32_bit, $b: integer.signed.32_bit] -> integer.signed.32_bit:
     return $a plus $b;
-}
+end of function add
 let $sum := add(10, 20);              # this Kit: bare
 let $big := mathstuff::pow(2, 64);    # another Kit: Kit::path
 ```
@@ -16,10 +16,18 @@ let $big := mathstuff::pow(2, 64);    # another Kit: Kit::path
 ## Definition
 
 ```
-fn count [lent $text: str.utf8] -> i32 { … }     # looks at it
-fn edit  [lent.mut $text: str.utf8] { … }          # may modify it
-fn keep  [$text: str.utf8] { … }                   # owns it
-fn twice [immut $n: i32] -> i32 { … }          # stated mutability
+function count [lent $text: string.utf8] -> integer.signed.32_bit:
+    …
+end of function count     # looks at it
+procedure edit  [lent.mutable $text: string.utf8]:
+    …
+end of procedure edit          # may modify it
+function keep  [$text: string.utf8]:
+    …
+end of function keep                   # owns it
+function twice [$n: integer.signed.32_bit] -> integer.signed.32_bit:
+    …
+end of function twice          # stated mutability
 ```
 
 - **`fn`**, bare name, parameters in one `[ ]`, optional `--> type`, body in
@@ -109,17 +117,17 @@ the parameters. A call is a value and stands bare wherever a value goes:
 
 ```
 return $a plus $b;
-return "hello " concat $name;    # text joins with ++ (2026-09-19)
+return "hello " concatenate $name;    # text joins with ++ (2026-09-19)
 return;                       # in a nothing-function
 ```
 
 ## Entry point: `MAIN { }` (decided 2026-09-14, kept 2026-09-19)
 
 ```
-MAIN {
+!MAIN:
     let $sum := add(10, 20);
-    std::print.useful("sum: ", $sum, newln);
-}
+    std::print.shortest("sum: ", $sum, newline);
+!end of MAIN
 ```
 
 `MAIN` is the program's block — not a function. No `fn`, no return type,
@@ -146,10 +154,10 @@ depends on may have one too, run only when that kit is run itself
 "low-level shit, decided" — "we're at Rust, C, C++ level"):
 
 ```
-MAIN [$argc: i32, $argv: ptr[ptr[u8]]] {
-    no_check let $first := ptr.read(ptr.at($argv, by: 1));     # the first word after the program's name
+!MAIN [$argc: integer.signed.32_bit, $argv: pointer[pointer[integer.unsigned.8_bit]]]:
+    !no_check let $first := pointer.read(pointer.at($argv, by: 1));     # the first word after the program's name
     …
-}
+!end of MAIN
 ```
 
 Exactly these two types (the names are free); the program's name comes

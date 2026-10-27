@@ -8,13 +8,15 @@ conditions without `[ ]`, one `for`.
 ## Branching
 
 ```
-if $x > 10 {
+if $x greater_than 10:
     …
-} else if $x > 5 {
+end of if
+else if $x greater_than 5:
     …
-} else {
+end of else if
+else:
     …
-}
+end of else
 ```
 
 - The condition is a bare expression followed by `{`. It must be a `bool`.
@@ -34,10 +36,10 @@ deliberately hidden with `shadow 'x' := …;` (owner, 2026-10-08; `$:=` / `$=` u
 
 ```
 let $x := 1;
-if true {
+if true:
     shadow $x := 2;            # shadows the outer 'x' until the block ends
-    shadow $y: i32 = 3;      # error: there is no 'y' to shadow
-}
+    shadow $y: integer.signed.32_bit = 3;      # error: there is no 'y' to shadow
+end of if
 ```
 
 A name marked `!$` cannot be shadowed, and neither can a loop's
@@ -50,21 +52,21 @@ Three bare keywords (revised 2026-09-19; until then `loop`, `loop.while`,
 `loop.temp.for`, `loop.temp.range`):
 
 ```
-loop {                                         # forever, until break
+loop:                                         # forever, until break
     …
-}
+end of loop
 
-while $count < 100 {                          # while a condition holds
+while $count less_than 100:                          # while a condition holds
     …
-}
+end of while
 
-for $item in lend $items {                   # each element; 'item' gone after
+for $item in lend $items:                   # each element; 'item' gone after
     …
-}
+end of for
 
-for $i [from: 0, to: 1000, by: 1] {                    # 'i' from 0 to 1000 inclusive
+for $i [from: 0, to: 1000, by: 1]:                    # 'i' from 0 to 1000 inclusive
     …
-}
+end of for
 ```
 
 ### `temp` (default) / `perm` — before the name
@@ -78,10 +80,12 @@ body ran with after a full run (the stop value when the step lands on it; for
 body never ran. One rule for every way a loop can end.
 
 ```
-for perm $i [from: 0, to: 100, by: 1] {
-    if found($i) { break; }
-}
-std::print.useful("stopped at ", $i, newln);
+for permanent $i [from: 0, to: 100, by: 1]:
+    if found($i):
+        break;
+    end of if
+end of for
+std::print.shortest("stopped at ", $i, newline);
 ```
 
 `perm` on a list loop keeps the last element visited (an empty list is an
@@ -126,8 +130,10 @@ file each bound is labelled and the step always written,
 `range[from: 2, to: 8, by: 2]` (owner, 2026-09-27; `core-features.md`):
 
 ```
-for $i [from: 0, to: 9, by: 1] { }                 # like  'i' := 0;
-for $i: i8 [from: 0, to: 9, by: 1] { }           # like  'i': i8 = 0;
+for $i [from: 0, to: 9, by: 1]:
+end of for                 # like  'i' := 0;
+for $i: integer.signed.8_bit [from: 0, to: 9, by: 1]:
+end of for           # like  'i': i8 = 0;
 ```
 
 **`range[…]` stays part of the `for`** (owner, 2026-09-23): it is not a
