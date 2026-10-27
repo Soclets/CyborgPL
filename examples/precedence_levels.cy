@@ -7,10 +7,10 @@ rec Vec:
 end of rec Vec
 
 precedence.low_first:
-    level 1 [ eq, ~= ] refused
-    level 2 [ plus ] left_first
-    level 3 [ times, dot ] left_first
-    level 4 [ scale ] left_first
+    level 1 [eq, ~=] refused;
+    level 2 [plus] left_first;
+    level 3 [times, dot] left_first;
+    level 4 [scale] left_first;
 end of precedence.low_first
 
 op dot [$a: Vec, $b: Vec] -> float.bin.64:

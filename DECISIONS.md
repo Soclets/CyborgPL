@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: a precedence level lists its operators in brackets, `level 2 [plus, minus] left_first;` (owner)
+
+A level's `{ equal_to, ~= }` had become `[eq, ~=]` in the build (design claude's pick). The owner: "Why not block?" Shown
+both, then "What's more consistent?": design claude, brackets, since a block holds things being declared (a record's
+fields, a union's cases, an interface's entries) and brackets list existing things by name (`fail[odd, negative]`,
+`with [lend $x]`, `case.any [fn, var]`), and a level names existing operators. The owner: "Yes". So **`level 2 [plus,
+minus] left_first;`**, the line ending `;` as every line in a block (design claude's reading, shown with it; built, a level
+without it refused).
+
 ### 2026-10-27 — Redesign two: every owned parameter says `let` or `var` (owner)
 
 A parameter could still change unannounced (`fn countdown [$n: int.sign.32]` with `change $n = …`). Asked whether a

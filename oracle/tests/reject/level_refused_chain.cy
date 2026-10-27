@@ -2,7 +2,7 @@ op ~= [$a: float.bin.64, $b: float.bin.64] -> bool:
     ret $a eq $b;
 end of op ~=
 precedence.low_first:
-    level 1 [ eq, ~= ] refused
+    level 1 [eq, ~=] refused;
 end of precedence.low_first
 !MAIN:
     let $x: float.bin.64 = 1.0;

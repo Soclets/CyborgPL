@@ -4881,11 +4881,13 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
                 names.push(name);
             }
             self.advance();
-            let chain_err = "say how a chain of this level reads, after its operators: `left_first`, `right_first` or `refused` (`level 2 { plus, minus } left_first`, owner 2026-10-14)";
+            let chain_err = "say how a chain of this level reads, after its operators: `left_first`, `right_first` or `refused` (`level 2 [plus, minus] left_first;`, owner 2026-10-14)";
             let chain = match self.advance().tok {
                 Tok::Word(w) if w == "left_first" => 0, Tok::Word(w) if w == "right_first" => 1, Tok::Word(w) if w == "refused" => 2,
                 _ => return self.err(chain_err),
             };
+            // `level 2 [plus, minus] left_first;` (owner, 2026-10-27: semicolons inside blocks)
+            if *self.peek() == Tok::Semi { self.advance(); }
             levels.push((n, chain, names, line));
         }
         self.advance();

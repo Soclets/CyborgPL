@@ -30,8 +30,8 @@ end of module shapes
 # with this kit's path, `areas::mean.low`.
 # its levels apply wherever `mean` is used, in other kits too (owner, 2026-10-03)
 precedence.low_first:
-    level 1 [ plus ] left_first
-    level 2 [ times, mean, mean.low ] left_first
+    level 1 [plus] left_first;
+    level 2 [times, mean, mean.low] left_first;
 end of precedence.low_first
 
 pub op mean [$a: float.bin.64, $b: float.bin.64] -> float.bin.64:

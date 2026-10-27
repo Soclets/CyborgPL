@@ -1712,6 +1712,15 @@ fn blocks_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                 match out[j].tok { Tok::LBracket => d += 1, Tok::RBracket => { d -= 1; if d == 0 { out[j].tok = Tok::RBrace; break; } } _ => {} }
             }
             out[k + 2].tok = Tok::LBrace;
+            // the level's line ends `;`, after how a chain reads (owner, 2026-10-27)
+            let mut e = k + 2;
+            let mut d = 0;
+            while e < out.len() { match out[e].tok { Tok::LBrace => d += 1, Tok::RBrace => { d -= 1; if d == 0 { break; } } _ => {} } e += 1; }
+            let chain_word = out.get(e + 1).is_some_and(|t| matches!(&t.tok, Tok::Word(w) if w == "left_first" || w == "right_first" || w == "refused"));
+            if chain_word && e + 2 < out.len() && out[e + 2].tok != Tok::Semi {
+                let t = &out[e + 1];
+                return Err((t.line, t.col, "a level's line ends with `;`: `level 2 [plus, minus] left_first;` (owner, 2026-10-27)".into()));
+            }
         }
         k += 1;
     }
@@ -2129,6 +2138,13 @@ pub fn shorten(src: &str) -> Result<String, String> {
             }
             let _ = &line;
             k = e + 1;
+        }
+    }
+    // a precedence level's line ends `;` (owner, 2026-10-27)
+    for k in 0..n.saturating_sub(1) {
+        if matches!(&toks[k].tok, Tok::Word(c) if c == "left_first" || c == "right_first" || c == "refused") && toks[k].at != usize::MAX
+            && k >= 1 && toks[k - 1].tok == Tok::RBracket && toks[k + 1].tok != Tok::Semi {
+            edits.push(Edit { at: toks[k].end, end: toks[k].end, text: ";".into() });
         }
     }
     // an owned parameter says whether it changes (owner, 2026-10-27): a bare one is a `let`
