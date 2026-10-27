@@ -400,10 +400,10 @@ operators are not offered.
 
 ```
 precedence.low_first:                          # level 1 binds loosest (good practice)
-    level 1 [eq, ~=] refused;# a language operator pins its level
+    level 1 [eq, ~=] refused;     # a language operator pins its level
     level 2 [plus] left_first;
     level 3 [times, dot] left_first;
-    level 4 [scale] left_first;# no language operator: above times, by number
+    level 4 [scale] left_first;     # no language operator: above times, by number
 end of precedence.low_first
 ```
 
