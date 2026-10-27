@@ -34,6 +34,36 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign two: the words are abbreviated, aggressively; the structure stays (owner; not built)
+
+The owner: "Let's do another redesign", then "We aggressively abbreviate things. `float.deci.32_bits`? And stuff".
+Shown a piece of night_trains so, the owner wrote it out: `fn`, `proc`, `ret`, `eq`, `var`, `int.sign.32`, `std::ls.len`,
+`float.%deci.64`, the width bare digits. Then "Isn't it `not_eq`, `less_than`, `greater_than`?" (design claude had guessed
+`ne`, `lt`, `gt`). Shown the full table, the owner: "Seems good, except `union.tagged`. I mean, isn't it already
+`.sign`?", so `union.tag`. This **reverses this morning's no abbreviations** for the words below; the structure stays
+(blocks `kind name:` … `end of kind name`, `!`, narrowing with `.`, operator words, `$` names, function / procedure in
+the maths sense), and names stay names (`std`, `ASM`, `MSL`, `utf8`, `C`, `MAIN`):
+- `function` / `procedure` → `fn` / `proc`; `operator` → `op`; `variable` / `constant` → `var` / `const`; `record` →
+  `rec`; `union.tagged` → `union.tag`; C's `enumeration` → `enum`; `public` → `pub`; `collection.function` /
+  `.procedure` / `.handler` → `coll.fn` / `coll.proc` / `coll.handler`, `.bounded` kept; `external.C` → `extern.C`;
+  `include.` → `incl.`; `sequential` / `parallel` / `temporary` / `permanent` → `seq` / `para` / `temp` / `perm`;
+  `return` → `ret`; kept: `interface`, `module`, `otherwise`, `spawn.task`, `no_skip`;
+- `integer.signed.32_bit` / `integer.unsigned.32_bit` → `int.sign.32` / `int.unsign.32`; `float.binary.64_bit` /
+  `float.decimal.64_bit` / `float.brain.16_bit` → `float.bin.64` / `float.deci.64` / `float.brain.16`; `string`,
+  `boolean`, `character` → `str`, `bool`, `char`; `list`, `array` → `ls`, `arr`; `pointer` → `ptr`; `.mutable` → `.mut`;
+- `equal_to` / `not_equal_to` → `eq` / `not_eq`; `power` → `pow`; `concatenate` → `concat`; `divide.` / `modulo.` →
+  `div.` / `mod.`, with `.near` / `.trunc` / `.ceil`; `shift_left` / `shift_right` → `shl` / `shr`; `negative 5` /
+  `negate $x` → `neg 5` / `neg $x`; `binary` / `hexadecimal` / `octal` → `bin` / `hex` / `oct`; kept: `plus`, `minus`,
+  `times`, `less_than`, `greater_than`, `at_most`, `at_least`;
+- `minimum:` / `maximum:` / `position:` → `min:` / `max:` / `pos:`; `newline` → `newln`; `seconds` / `minutes` /
+  `milliseconds` / `microseconds` / `nanoseconds` → `secs` / `mins` / `millis` / `micros` / `nanos`; `columns` → `cols`;
+  `%grapheme_clusters` / `%code_points` → `%clusters` / `%points`;
+- std: `std::string.…` → `std::str.…`; `.uppercase` / `.lowercase` → `.upper` / `.lower`; `.code_point(s)` /
+  `.grapheme_cluster(s)` → `.point(s)` / `.cluster(s)`; `round.nearest` / `.truncate` / `.ceiling` → `round.near` /
+  `.trunc` / `.ceil`; `std::power` → `std::pow`; kept: `print.shortest`, `print.arrows`, `map.count`.
+Design claude's readings, said with the table: a width written bare after `.` (`int.sign.32`) is a segment, not a
+number; the limb marks stay on the limb's part (`float.%deci.64`, `int.sign.%128`). Not built.
+
 ### 2026-10-27 — Redesign: a shadow says first whether it changes, `let shadow $x` / `variable shadow $x` (owner: (a))
 
 The rulings left `shadow` open; the build had read a plain `shadow $x` as never changing and `shadow variable $x` as
