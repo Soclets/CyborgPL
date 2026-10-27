@@ -10,7 +10,7 @@ end of %extern.C
     var magic: int.unsign.32;
     var flags: int.unsign.8;
     var length: int.unsign.64;
-end of rec Header
+end of %layout.C rec Header
 
 # FNV-1a: the wrap *is* the algorithm, so `x~`, never a check
 fn fnv1a [lent $bytes: arr[int.unsign.8]] -> int.unsign.64:

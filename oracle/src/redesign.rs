@@ -507,6 +507,8 @@ fn describe(toks: &[Token], start: usize, brace: usize, text: &dyn Fn(&Token) ->
     }
     // skip what comes in front: `pub`, `pub.kit`, `bare.…` marks, the check words, `%layout.C`, `#strict`
     let mut i = 0;
+    // the layout as written, `C` (any other is refused later, naming `%layout.C`)
+    let mut layout: Option<String> = None;
     loop {
         match s.get(i).map(|t| &t.tok) {
             Some(Tok::Word(w)) if w == "pub" => { i += 1; if matches!(s.get(i).map(|t| &t.tok), Some(Tok::Dot)) { i += 2; } }
@@ -516,8 +518,9 @@ fn describe(toks: &[Token], start: usize, brace: usize, text: &dyn Fn(&Token) ->
             Some(Tok::Word(w)) if (w == "no_check" || w == "NO_FUCKING_CHECKS" || w == "check" || w == "no_cheat") && s.len() > i + 1 => { i += 1; }
             Some(Tok::Mark) => { i += 1; }
             Some(Tok::Strict) => { i += 1; }
-            // `%layout.C record Timeval`: the layout goes in front, as `public` does
-            Some(Tok::Word(w)) if w == "layout" && matches!(s.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) => { i += 3; }
+            // `%layout.C rec Rect:`: the layout goes in front and is part of the kind, so the block closes on it, `end of
+            // %layout.C rec Rect` (owner, 2026-10-27: "But it's C's layout, though", then "yes")
+            Some(Tok::Word(w)) if w == "layout" && matches!(s.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) => { layout = Some(s.get(i + 2).map(|t| shown(&t.tok)).unwrap_or_default()); i += 3; }
             // `table_bytes 1_024 fn square …` (owner, 2026-10-19)
             Some(Tok::Word(w)) if w == "table_bytes" && matches!(s.get(i + 1).map(|t| &t.tok), Some(Tok::Int(_))) => { i += 2; }
             _ => break,
@@ -539,7 +542,6 @@ fn describe(toks: &[Token], start: usize, brace: usize, text: &dyn Fn(&Token) ->
         }
         name
     };
-    let layout_c = s.iter().any(|t| matches!(&t.tok, Tok::Word(w) if w == "layout"));
     match w0.as_str() {
         "fn" => {
             let line = rest[0].line;
@@ -549,9 +551,12 @@ fn describe(toks: &[Token], start: usize, brace: usize, text: &dyn Fn(&Token) ->
         }
         "test" => { o.close = format!("test procedure {}", path_after(2)); }
         "op" => { o.close = format!("operator {}", path_after(1)); }
-        "struct" => { o.close = format!("record {}", path_after(1)); o.fields = true; }
-        "union" => { o.close = format!("union {}", path_after(1)); o.fields = true; }
-        "enum" => { o.close = format!("{} {}", if layout_c { "enumeration" } else { "union.tagged" }, path_after(1)); o.fields = true; }
+        "struct" | "union" | "enum" => {
+            let kind = match w0.as_str() { "struct" => "record", "union" => "union", _ if layout.is_some() => "enumeration", _ => "union.tagged" };
+            let front = layout.as_ref().map(|l| format!("%layout.{l} ")).unwrap_or_default();
+            o.close = format!("{front}{kind} {}", path_after(1));
+            o.fields = true;
+        }
         "interface" => { o.close = format!("interface {}", path_after(1)); o.fields = true; }
         "module" => { o.close = format!("module {}", path_after(1)); }
         "coll" => {
@@ -1768,7 +1773,7 @@ fn fields_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                 set_block.push(sets.contains(&toks[k].line));
                 type_at.push(None);
                 let o = describe(&toks, stmt_start, k, &text, None, stack.last());
-                kinds.push(if o.close.starts_with("interface ") { 2 } else if o.close.starts_with("record ") { 3 } else if o.fields { 1 } else { 0 });
+                kinds.push(if o.close.starts_with("interface ") { 2 } else if o.close.split_once("record ").is_some_and(|(f, _)| f.is_empty() || f.starts_with("%layout.")) { 3 } else if o.fields { 1 } else { 0 });
                 stack.push(o);
                 stmt_start = k + 1;
             }

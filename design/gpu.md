@@ -170,7 +170,7 @@ matching the kernel's `[[buffer(0)]]`, as `inline.ASM` writes ARM's `x0`
     var y: float.bin.32;
     var vx: float.bin.32;
     var vy: float.bin.32;
-end of rec Body
+end of %layout.C rec Body
 
 !no_check inline.%MSL threads $n with [lend.mut $bodies -> buffer(0), copy $dt -> buffer(1)]:
     #include "shaders/common.metal"

@@ -6,7 +6,7 @@
 %layout.C rec Point:
     var x: int.sign.32;
     var y: int.sign.32;
-end of rec Point
+end of %layout.C rec Point
 
 !MAIN:
     !no_check let $raw := malloc(size.of[Point]);

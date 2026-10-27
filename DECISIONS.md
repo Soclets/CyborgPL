@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign two: C's layout is part of the kind; `%layout.C rec Rect:` … `end of %layout.C rec Rect` (owner)
+
+Design claude's provisional pick from the build, asked: (a) `%layout.C` in front and left off the closing line, as
+`pub` is (`end of rec Rect`), or (b) the closing line repeats it, recommending (a), a mark on the record. The owner:
+"But it's C's layout, though". Design claude agreed: `pub` says who sees a thing, `%layout.C` changes what it is (fields
+in the written order, laid out as C does), so it belongs to the kind a closing line names, and recommended (b). The
+owner: "yes". So **`end of %layout.C rec Rect`**, `end of %layout.C enum Key`, `end of %layout.C union Number`; the old
+close is refused naming the new one. Built, and every `.cy` file and design code block swept (the layout as written
+goes in the close, so a misspelt `%layout.c` still reaches its own refusal).
+
 ### 2026-10-27 — Redesign two: a lone `on.target.chip` block closes on its full kind, `end of on.target.chip` (owner: (a))
 
 Design claude's provisional pick from the build, asked: (a) a lone block closes on its whole kind, `end of on.target.chip`

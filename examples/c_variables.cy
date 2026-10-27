@@ -5,7 +5,7 @@
 %layout.C enum Mode:
     emacs = 0;
     vi = 1;
-end of enum Mode
+end of %layout.C enum Mode
 %extern.C proc malloc [let $bytes: int.unsign.64] -> ptr.mut[Mode];
 %extern.C var $edit_mode: int.sign.32;
 proc mode_at [let $p: ptr[Mode]] -> int.sign.32:

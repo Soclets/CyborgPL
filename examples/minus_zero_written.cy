@@ -4,7 +4,7 @@
     i: int.sign.32;
     u: int.unsign.32;
     f: float.bin.32;
-end of union Un
+end of %layout.C union Un
 
 !MAIN:
     let $a: float.bin.32 := neg 0.0;

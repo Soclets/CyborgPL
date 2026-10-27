@@ -2,7 +2,7 @@
 %layout.C enum Mode:
     emacs = 0;
     vi = 1;
-end of enum Mode
+end of %layout.C enum Mode
 %extern.C $m: Mode;
 !MAIN:
 !end of MAIN

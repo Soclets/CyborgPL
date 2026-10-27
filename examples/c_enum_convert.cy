@@ -6,7 +6,7 @@
     a = 65;
     b = 66;
     escape = 256;
-end of enum Key
+end of %layout.C enum Key
 fn on_key [let $code: int.sign.32] -> int.sign.32:
     let $k := to.Key($code)-
     otherwise:

@@ -200,7 +200,7 @@ tier trusting C's answers too. The owner asked whether `no_check` was then
 %layout.C rec Rect:
     var w: int.sign.32[min: 0, max: 4096];
     var h: int.sign.32[min: 0, max: 4096];
-end of rec Rect
+end of %layout.C rec Rect
 ```
 
 C sees the plain number, so the layout is unchanged (`Rect` is 8 bytes).
@@ -278,7 +278,7 @@ kayo compiling the block with Clang; it is CNC's (owner: "Yup"). Not designed ye
 %layout.C rec Timeval:
     var sec: int.sign.64;
     var usec: int.sign.64;
-end of rec Timeval
+end of %layout.C rec Timeval
 ```
 
 Only a `layout.C` struct may cross to C (in a signature or a `ptr[…]`); a
@@ -427,7 +427,7 @@ change $n.f to 1.5;                                 # writing: always safe
     var mode: int.unsign.8[bits: 3];
     var ready: bool[bits: 1];
     var level: int.unsign.8[bits: 4];
-end of rec Status
+end of %layout.C rec Status
 change $s.mode to 5;                                # checked to fit: 3 bits hold 0 to 7
 ```
 

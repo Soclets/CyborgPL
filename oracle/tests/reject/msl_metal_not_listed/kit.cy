@@ -3,7 +3,7 @@
 %layout.C rec Body:
     var x: float.bin.32;
     var vx: float.bin.32;
-end of rec Body
+end of %layout.C rec Body
 
 !MAIN:
     var $bodies: std::ls[Body] = [Body[x = 1.0, vx = 2.0], Body[x = 0.0, vx = neg 1.0]];

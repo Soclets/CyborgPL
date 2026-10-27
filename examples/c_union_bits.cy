@@ -3,12 +3,12 @@
 %layout.C union Number:
     i: int.sign.32;
     f: float.bin.32;
-end of union Number
+end of %layout.C union Number
 %layout.C rec Status:
     var mode: int.unsign.8[bits: 3];
     var ready: bool[bits: 1];
     var level: int.sign.8[bits: 4];
-end of rec Status
+end of %layout.C rec Status
 
 !MAIN:
     var $n = Number[f = 1.0];

@@ -6,7 +6,7 @@
     a = 65;
     b = 66;
     escape = 256;
-end of enum Key
+end of %layout.C enum Key
 %extern.C proc IsKeyDown [let $key: Key] -> bool;
 
 fn name [let $k: Key] -> str.utf8:

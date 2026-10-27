@@ -9,7 +9,7 @@
 %layout.C rec Timeval:
     var sec: int.sign.64;
     var usec: int.sign.64;
-end of rec Timeval
+end of %layout.C rec Timeval
 
 proc say [lent $text: str.utf8] -> fail[io]:
     !no_check let $n := write(1, lend $text, strlen(lend $text));   # a lend is the pointer; the call is a no_check site
