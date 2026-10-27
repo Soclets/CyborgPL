@@ -39,7 +39,8 @@ Nothing here is final until the owner says so; open questions live at the bottom
 The owner: "pconcise is default, but state again is not refused. It could just be `words`, because I don't think some are
 "plain", `shr`". So, exploring: **a kit with no style line is practical concise; writing it anyway is allowed, never refused
 as saying nothing** (as `case.exact` was, 2026-10-06); **the other style is `words`** (over design claude's `plain_words`:
-`shr` is a word but hardly plain). Asked: whether the value is spelled `pconcise` or `practical_concise`.
+`shr` is a word but hardly plain). Asked whether "pconcise" is the value as written, the owner: "no". So **`style =
+practical_concise`** (the default) or **`style = words`**, in `CyJet.toml` under `my details:`.
 
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): the setting is a kit's style, covering every short form; the symbol style is `practical concise` (owner)
 
