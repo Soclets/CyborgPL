@@ -34,6 +34,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): a limb's own new number type is named with `.`, `%quantum.ezeral.32` (owner)
+
+The owner: "A limb could still add their own shit, say `%quantum.ezeral.32` or some shit". So, exploring: **the short
+names are a closed list of the types the language and its own limbs know; a type a limb adds follows the usual rules**:
+its name with `.` (`quantum.ezeral.32`, never glued), and the limb's mark in front, the whole type being the limb's part
+(2026-10-26's "the mark goes on the part the limb adds"). The exception cannot grow.
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): the number types' short names are the one exception to "`.` narrows"; brain float is `%bf16` (owner)
 
 Asked whether the number types' short names (`i32`, `u8`, `f64`, `%d64`) are the one true exception to "`.` narrows" (the
