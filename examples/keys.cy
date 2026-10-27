@@ -2,7 +2,7 @@
 # or a type's own `op equal_to ` and `fn hash` (it satisfies `Key`), with "equal keys hash the same"
 # a check site the compiler must prove.
 sig Key <T>:
-    op eq [$a: <T>, $b: <T>] -> bool;  fn hash [lent $v: <T>] -> int.unsign.64;
+    op eq [lent $a: <T>, lent $b: <T>] -> bool;  fn hash [lent $v: <T>] -> int.unsign.64;
 end of sig Key
 
 rec Point:
@@ -13,7 +13,7 @@ end of rec Point                      # structural: fields decide
 rec User:
     var name: str.utf8;
 end of rec User                           # its own rule: names compare lowercased
-op eq [$a: User, $b: User] -> bool:
+op eq [lent $a: User, lent $b: User] -> bool:
     ret std::str.lower.full(lend $a.name) eq std::str.lower.full(lend $b.name);
 end of op eq
 fn hash [lent $v: User] -> int.unsign.64:

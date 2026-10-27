@@ -1,7 +1,7 @@
 rec V:
     var x: int.sign.32;
 end of rec V
-op <+> [$a: V, $b: V] -> V:
+op <+> [lent $a: V, lent $b: V] -> V:
     ret V[x = $a.x plus $b.x];
 end of op <+>
 !MAIN:

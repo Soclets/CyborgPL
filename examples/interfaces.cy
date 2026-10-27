@@ -1,7 +1,7 @@
 # Interfaces (design/interfaces.md): a named list of promises about some <T>, announced after the name.
 sig Ordered <T>:
-    op lt [$a: <T>, $b: <T>] -> bool;
-    op eq [$a: <T>, $b: <T>] -> bool;
+    op lt [lent $a: <T>, lent $b: <T>] -> bool;
+    op eq [lent $a: <T>, lent $b: <T>] -> bool;
 end of sig Ordered
 
 sig Printable <T>:
@@ -15,10 +15,10 @@ end of rec Vec
 
 # a struct keeps a promise by having the operations — the language's own operators
 # may be defined for a user type (never for the language's types)
-op lt [$a: Vec, $b: Vec] -> bool:
+op lt [lent $a: Vec, lent $b: Vec] -> bool:
     ret ($a.x times $a.x plus $a.y times $a.y) lt ($b.x times $b.x plus $b.y times $b.y);
 end of op lt
-op eq [$a: Vec, $b: Vec] -> bool:
+op eq [lent $a: Vec, lent $b: Vec] -> bool:
     ret $a.x eq $b.x and $a.y eq $b.y;
 end of op eq
 fn show [lent $v: Vec] -> str.utf8:

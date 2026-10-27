@@ -1,7 +1,7 @@
 rec User:
     var name: str.utf8;
 end of rec User
-op eq [$a: User, $b: User] -> bool:
+op eq [lent $a: User, lent $b: User] -> bool:
     ret std::str.lower.full(lend $a.name) eq std::str.lower.full(lend $b.name);
 end of op eq
 fn hash [lent $v: User] -> int.unsign.64:

@@ -1,4 +1,4 @@
-op plus [$a: int.sign.32, $b: int.sign.32] -> int.sign.32:
+op plus [lent $a: int.sign.32, lent $b: int.sign.32] -> int.sign.32:
     ret $a;
 end of op plus
 !MAIN:

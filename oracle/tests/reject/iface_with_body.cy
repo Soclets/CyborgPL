@@ -1,5 +1,5 @@
 sig Ordered <T>:
-    op lt [$a: <T>, $b: <T>] -> bool:
+    op lt [lent $a: <T>, lent $b: <T>] -> bool:
         ret true;
     end of op lt;
 end of sig Ordered

@@ -1,4 +1,4 @@
-op ~= [$a: float.bin.64, $b: float.bin.64] -> bool:
+op ~= [lent $a: float.bin.64, lent $b: float.bin.64] -> bool:
     ret $a eq $b;
 end of op ~=
 precedence.low_first:

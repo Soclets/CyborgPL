@@ -34,9 +34,9 @@ precedence.low_first:
     level 2 [times, mean, mean.low] left_first;
 end of precedence.low_first
 
-pub op mean [$a: float.bin.64, $b: float.bin.64] -> float.bin.64:
+pub op mean [lent $a: float.bin.64, lent $b: float.bin.64] -> float.bin.64:
     ret ($a plus $b) div.near 2.0;
 end of op mean
-pub op mean.low [$a: float.bin.64, $b: float.bin.64] -> float.bin.64:
+pub op mean.low [lent $a: float.bin.64, lent $b: float.bin.64] -> float.bin.64:
     ret ($a plus $b) div.floor 2.0;
 end of op mean.low

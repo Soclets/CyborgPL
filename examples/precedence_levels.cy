@@ -13,15 +13,15 @@ precedence.low_first:
     level 4 [scale] left_first;
 end of precedence.low_first
 
-op dot [$a: Vec, $b: Vec] -> float.bin.64:
+op dot [lent $a: Vec, lent $b: Vec] -> float.bin.64:
     ret ($a.x times $b.x) plus ($a.y times $b.y);
 end of op dot
 
-op scale [$a: Vec, $k: float.bin.64] -> Vec:
+op scale [lent $a: Vec, lent $k: float.bin.64] -> Vec:
     ret Vec[x = $a.x times $k, y = $a.y times $k];
 end of op scale
 
-op ~= [$a: float.bin.64, $b: float.bin.64] -> bool:
+op ~= [lent $a: float.bin.64, lent $b: float.bin.64] -> bool:
     ret ($a minus $b) lt 0.000001 and ($b minus $a) lt 0.000001;
 end of op ~=
 

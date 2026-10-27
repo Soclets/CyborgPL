@@ -8,8 +8,8 @@ set Number:
 end of set Number
 
 sig Ordered <T>:
-    op lt [$a: <T>, $b: <T>] -> bool;
-    op eq [$a: <T>, $b: <T>] -> bool;
+    op lt [lent $a: <T>, lent $b: <T>] -> bool;
+    op eq [lent $a: <T>, lent $b: <T>] -> bool;
 end of sig Ordered
 
 set Whole:

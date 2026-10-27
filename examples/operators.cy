@@ -5,17 +5,18 @@ rec Vec:
 end of rec Vec
 
 # a glyph operator: any run of  not % & * plus minus / < > = ? @ ^ | ~
-op <+> [$a: Vec, $b: Vec] -> Vec:
+op <+> [lent $a: Vec, lent $b: Vec] -> Vec:
     ret Vec[x = $a.x plus $b.x, y = $a.y plus $b.y];
 end of op <+>
 
 # a word operator, like times / pow / mod.floor
-op dot [$a: Vec, $b: Vec] -> float.bin.64:
+op dot [lent $a: Vec, lent $b: Vec] -> float.bin.64:
     ret $a.x times $b.x plus $a.y times $b.y;
 end of op dot
 
-# operands are lent unless the op says give; then the caller says give too
-op <*> [give $a: Vec, $b: float.bin.64] -> Vec:
+# an operand says how it comes, as a function's parameter does: `lent`, or its own (`var` here, since it changes),
+# and then the caller says give
+op <*> [var $a: Vec, lent $b: float.bin.64] -> Vec:
     change $a.x to $a.x times $b;
     change $a.y to $a.y times $b;
     ret give $a;

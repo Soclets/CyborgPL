@@ -17,7 +17,7 @@ pub rec Tally:
     var n: int.sign.32;
 end of rec Tally
 
-pub op merge [$a: Tally, $b: Tally] -> Tally:
+pub op merge [lent $a: Tally, lent $b: Tally] -> Tally:
     ret Tally[n = $a.n plus $b.n];
 end of op merge
 
@@ -30,6 +30,6 @@ pub union.tag Tone:
     loud;
 end of union.tag Tone
 
-pub op <+> [$a: Tally, $b: Tally] -> Tally:
+pub op <+> [lent $a: Tally, lent $b: Tally] -> Tally:
     ret Tally[n = $a.n plus $b.n plus 1];
 end of op <+>

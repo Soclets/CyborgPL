@@ -364,7 +364,10 @@ pub fn convert(src: &str, toks: &[Token], info: Option<&Info>) -> Result<String,
                 _ => {}
             }
             if let (Some(&(od, line)), Tok::Var(v)) = (open.last(), &toks[k].tok) {
-                if od == d && k > 0 && matches!(toks[k - 1].tok, Tok::LBracket | Tok::Comma | Tok::Ellipsis) && inf.changed.contains(&(line, v.clone())) {
+                // an old operand taken with `give` that its body changes is a `variable` (owner, 2026-10-27: (a1))
+                if od == d && k > 0 && matches!(&toks[k - 1].tok, Tok::Word(g) if g == "give") && inf.changed.contains(&(line, v.clone())) {
+                    edits.push(Edit { at: toks[k - 1].at, end: toks[k - 1].end, text: "variable".into() });
+                } else if od == d && k > 0 && matches!(toks[k - 1].tok, Tok::LBracket | Tok::Comma | Tok::Ellipsis) && inf.changed.contains(&(line, v.clone())) {
                     let at = if toks[k - 1].tok == Tok::Ellipsis { toks[k - 1].at } else { toks[k].at };
                     edits.push(Edit { at, end: at, text: "variable ".into() });
                 }
@@ -2385,8 +2388,14 @@ pub fn shorten(src: &str) -> Result<String, String> {
                 Tok::RParen => d -= 1,
                 _ => {}
             }
-            if open.last() == Some(&d) && k > 0 && matches!(toks[k - 1].tok, Tok::LBracket | Tok::Comma) && matches!(toks[k].tok, Tok::Var(_) | Tok::Ellipsis) && toks[k].at != usize::MAX {
-                edits.push(Edit { at: toks[k].at, end: toks[k].at, text: "let ".into() });
+            if open.last() == Some(&d) && k > 0 && matches!(toks[k - 1].tok, Tok::LBracket | Tok::Comma) && toks[k].at != usize::MAX {
+                let list = (0..k).rev().find(|&j| toks[j].tok == Tok::LBracket && param_list_at(&toks, j) && toks[j].line == toks[k].line).unwrap_or(k);
+                let operand = operand_list_at(&toks, list);
+                match &toks[k].tok {
+                    Tok::Var(_) | Tok::Ellipsis => edits.push(Edit { at: toks[k].at, end: toks[k].at, text: if operand { "lent ".into() } else { "let ".into() } }),
+                    Tok::Word(g) if operand && g == "give" => edits.push(Edit { at: toks[k].at, end: toks[k].end, text: "let".into() }),
+                    _ => {}
+                }
             }
         }
     }
@@ -2497,9 +2506,10 @@ fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
         let next = toks.get(i + 1).map(|x| x.tok.clone()).unwrap_or(Tok::Eof);
         let push_as = |out: &mut Vec<Token>, w: &str| out.push(word_tok(w, t));
         // a parameter says whether it changes (owner, 2026-10-27: "Or do we say it?", then "Yes"): `let $a: T` / `var $a: T`
-        if t.tok == Tok::LBracket && param_list_at(&toks, i) { PARAMS.with(|p| p.borrow_mut().push(depth)); }
-        if t.tok == Tok::RBracket { PARAMS.with(|p| { let mut p = p.borrow_mut(); if p.last() == Some(&(depth + 1)) { p.pop(); } }); }
-        let in_params = PARAMS.with(|p| p.borrow().last() == Some(&depth));
+        if t.tok == Tok::LBracket && param_list_at(&toks, i) { PARAMS.with(|p| p.borrow_mut().push(if operand_list_at(&toks, i) { -depth - 1000 } else { depth })); }
+        if t.tok == Tok::RBracket { PARAMS.with(|p| { let mut p = p.borrow_mut(); if p.last().is_some_and(|&l| l == depth + 1 || l == -(depth + 1) - 1000) { p.pop(); } }); }
+        let operands = PARAMS.with(|p| p.borrow().last() == Some(&(-depth - 1000)));
+        let in_params = operands || PARAMS.with(|p| p.borrow().last() == Some(&depth));
         if in_params && i > 0 && matches!(toks[i - 1].tok, Tok::LBracket | Tok::Comma) {
             match &t.tok {
                 Tok::Word(w) if (w == "let" || w == "var") && matches!(next, Tok::Var(_) | Tok::Ellipsis) => {
@@ -2507,6 +2517,8 @@ fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     i += 1;
                     continue;
                 }
+                Tok::Var(v) if operands => return fault(format!("an operand says how it comes, as a function's parameter does: `lent ${v}`, `let ${v}` or `var ${v}` (owner, 2026-10-27)")),
+                Tok::Word(g) if operands && g == "give" => return fault("`give` on an operand is an old spelling: an operand that is its own says `let` (or `var`), as a function's parameter does (owner, 2026-10-27)".into()),
                 Tok::Var(v) => return fault(format!("a parameter says whether it changes: `let ${v}` or `var ${v}` (owner, 2026-10-27)")),
                 Tok::Ellipsis => return fault("a parameter says whether it changes: `let ...$values` or `var ...$values` (owner, 2026-10-27)".into()),
                 _ => {}
@@ -2727,6 +2739,19 @@ fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
 /// The `[` at `i` opens a parameter list: a declaration's (`fn add [`, `proc`, `op`, `member greet.loud [`, `!MAIN [`), a
 /// lambda's (`fn [`), or a `versions` entry's or a template member's, alone at the line's start. A lifetime list
 /// (`[@x]`) and a function type (`fn[int.sign.32]`) are not.
+/// An operator's operand list, `op lt [lent $a: Vec, …]`: before the redesign a bare operand was lent and `give` owned
+fn operand_list_at(toks: &[Token], i: usize) -> bool {
+    if !param_list_at(toks, i) { return false; }
+    let line = toks[i].line;
+    let mut j = i;
+    while j > 0 && toks[j - 1].line == line {
+        j -= 1;
+        if matches!(&toks[j].tok, Tok::Word(w) if w == "op" || w == "operator") { return true; }
+        if matches!(&toks[j].tok, Tok::Word(w) if w == "fn" || w == "proc" || w == "function" || w == "procedure" || w == "MAIN") { return false; }
+    }
+    false
+}
+
 pub fn param_list_at(toks: &[Token], i: usize) -> bool {
     if toks.get(i).map(|t| &t.tok) != Some(&Tok::LBracket) { return false; }
     let first_in = toks.get(i + 1).map(|t| &t.tok);
@@ -2743,8 +2768,8 @@ pub fn param_list_at(toks: &[Token], i: usize) -> bool {
             Tok::RBracket | Tok::RParen => depth += 1,
             Tok::LBracket | Tok::LParen => { if depth == 0 { return false; } depth -= 1; }
             Tok::Arrow if depth == 0 => return false,
-            // an operator's operands are lent unless `give`, and MAIN's are C's: neither says `let` (design claude's reading)
-            Tok::Word(w) if depth == 0 && matches!(w.as_str(), "op" | "operator" | "MAIN") => return false,
+            // an operator's operands and MAIN's parameters say how they come, as a function's do (owner, 2026-10-27: (a1))
+            Tok::Word(w) if depth == 0 && matches!(w.as_str(), "op" | "operator" | "MAIN") => return true,
             Tok::Word(w) if depth == 0 && matches!(w.as_str(), "fn" | "proc" | "function" | "procedure") => {
                 // a function's type, `$f: fn[…]`, names no parameters; a lambda, `fn [$s] with […] = …`, does
                 let type_spot = j + 1 == i && j > 0 && matches!(toks[j - 1].tok, Tok::Colon | Tok::Arrow | Tok::Comma | Tok::LBracket);

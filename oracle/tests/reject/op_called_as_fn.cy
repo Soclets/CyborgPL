@@ -1,4 +1,4 @@
-op dot [$a: int.sign.32, $b: int.sign.32] -> int.sign.32:
+op dot [lent $a: int.sign.32, lent $b: int.sign.32] -> int.sign.32:
     ret $a times $b;
 end of op dot
 !MAIN:

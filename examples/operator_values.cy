@@ -5,7 +5,7 @@ rec Vec:
     var x: float.bin.64;
     var y: float.bin.64;
 end of rec Vec
-op dot [$a: Vec, $b: Vec] -> float.bin.64:
+op dot [lent $a: Vec, lent $b: Vec] -> float.bin.64:
     ret $a.x times $b.x plus $a.y times $b.y;
 end of op dot
 fn fold [lent $xs: std::ls[int.sign.32], let $start: int.sign.32, let $f: fn[int.sign.32, int.sign.32] -> int.sign.32] -> int.sign.32:

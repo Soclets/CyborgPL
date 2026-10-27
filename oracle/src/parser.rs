@@ -1263,6 +1263,9 @@ impl Parser {
                         let mut names = Vec::new();
                         let want = ["i32", "ptr[ptr[u8]]"];
                         for (k, w) in want.iter().enumerate() {
+                            // `let $argc` (owner, 2026-10-27: (a1)): the front's `immut`; C's two never change
+                            if self.is_word("immut") { self.advance(); }
+                            else if self.is_word("mut") { return self.err("MAIN's parameters are C's and never change: `let $argc`, `let $argv`"); }
                             let name = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("MAIN's parameters are C's: `MAIN [$argc: i32, $argv: ptr[ptr[u8]]]`; found {other}")) };
                             self.expect(Tok::Colon, "`:` and the type")?;
                             self.at_boundary = true;
@@ -1450,16 +1453,20 @@ impl Parser {
         let mut params = Vec::new();
         loop {
             let pline = self.line();
+            let mut omut = None;
             let kind = match self.peek().clone() {
                 Tok::Word(w) if w == "give" => { self.advance(); ParamKind::Owned }
-                Tok::Word(w) if w == "lent" || w == "lend" => return self.err("an operator's operands are lent by default; write just `$a: T` (or `give $a: T` to take it by value)"),
-                Tok::Word(w) if w == "mut" || w == "immut" || w == "copy" => return self.err(format!("`{w}` has no meaning on an operand; an operand is lent, or `give`")),
+                // redesign two's operands say it as a function's parameters do (owner, 2026-10-27: (a1)): `lent`, or its own,
+                // `let` / `var` (the front's `immut` / `mut`)
+                Tok::Word(w) if w == "lent" => { self.advance(); ParamKind::Lent }
+                Tok::Word(w) if w == "immut" || w == "mut" => { omut = Some(if w == "mut" { Mutability::Mut } else { Mutability::Immut }); self.advance(); ParamKind::Owned }
+                Tok::Word(w) if w == "lend" || w == "copy" => return self.err(format!("`{w}` has no meaning on an operand; an operand is `lent`, or its own (`let`)")),
                 Tok::Ellipsis => return self.err("an operator takes exactly two operands; no `...`"),
                 _ => ParamKind::Lent,
             };
             let pname = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("expected a quoted operand name, found {other}")) };
             let ty = if *self.peek() == Tok::Colon { self.advance(); Some(self.ty()?) } else { None };
-            params.push(Param { kind, mutability: None, ty, name: pname, variadic: false, life: None, line: pline });
+            params.push(Param { kind, mutability: omut, ty, name: pname, variadic: false, life: None, line: pline });
             if *self.peek() == Tok::Comma { self.advance(); continue; }
             break;
         }

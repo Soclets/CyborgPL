@@ -1,5 +1,5 @@
 sig Ordered <T>:
-    op lt [$a: <T>, $b: <T>] -> bool;
+    op lt [lent $a: <T>, lent $b: <T>] -> bool;
 end of sig Ordered
 rec V:
     var x: int.sign.32;

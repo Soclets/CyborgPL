@@ -342,13 +342,13 @@ rec Vec:
     var x: float.bin.64;
     var y: float.bin.64;
 end of rec Vec
-op <+> [$a: Vec, $b: Vec] -> Vec:
+op <+> [lent $a: Vec, lent $b: Vec] -> Vec:
     ret Vec[x = $a.x plus $b.x, y = $a.y plus $b.y];
 end of op <+>
-op dot [$a: Vec, $b: Vec] -> float.bin.64:
+op dot [lent $a: Vec, lent $b: Vec] -> float.bin.64:
     ret $a.x times $b.x plus $a.y times $b.y;
 end of op dot
-op **  [give $a: Vec, $b: float.bin.64] -> Vec:
+op **  [let $a: Vec, lent $b: float.bin.64] -> Vec:
     … ret give $a;
 end of op **
 

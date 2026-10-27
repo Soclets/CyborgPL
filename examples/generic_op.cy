@@ -2,10 +2,10 @@
 # promises, like a generic fn. An operator may also be written for several types by name; two
 # meanings for the same type are an error, a generic one covering a specific one's type included.
 sig Number <T>:
-    op minus [$a: <T>, $b: <T>] -> <T>;
-    op lt [$a: <T>, $b: <T>] -> bool;
+    op minus [lent $a: <T>, lent $b: <T>] -> <T>;
+    op lt [lent $a: <T>, lent $b: <T>] -> bool;
 end of sig Number
-op ~= <T: Number> [$a: <T>, $b: <T>] -> bool:
+op ~= <T: Number> [lent $a: <T>, lent $b: <T>] -> bool:
     if $a lt $b:
         ret $b minus $a lt 10;
     end of if
@@ -17,10 +17,10 @@ end of rec A
 rec B:
     var y: int.sign.32;
 end of rec B
-op <+> [$a: A, $b: A] -> int.sign.32:
+op <+> [lent $a: A, lent $b: A] -> int.sign.32:
     ret $a.x plus $b.x;
 end of op <+>
-op <+> [$a: B, $b: B] -> int.sign.32:
+op <+> [lent $a: B, lent $b: B] -> int.sign.32:
     ret $a.y times $b.y;
 end of op <+>
 !MAIN:

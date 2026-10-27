@@ -34,6 +34,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign two: an operator's operands and `MAIN`'s parameters say how they come, as a function's do (owner: (a1))
+
+Design claude's provisional pick from the build, asked: an operator's operands and `MAIN`'s two parameters took no `let`
+/ `var`. Offered (a) they say it too, (b) they stay bare, recommending (a) and saying there was no design reason to leave
+them out. The owner: "(a)". Before building, design claude corrected that: an operand with no word is lent, `give`
+making it its own (design/functions-as-values.md), so `let` there would change its meaning; offered (a1) operators follow
+`fn`, every operand saying `lent`, `let` or `var` and `give` going, or (a2) operators keep their way and only `MAIN`
+gets `let`, recommending (a1). The owner: "What", asked again plainly, then "(a1)". So **`op lt [lent $a: Vec, lent $b:
+Vec]`, `op <*> [var $a: Vec, lent $b: float.bin.64]`, `!MAIN [let $argc: int.sign.32, let $argv: ptr[ptr[int.unsign.8]]]`**;
+a bare operand is refused, and `give` on one is refused as the old word. `var $argc` is refused: MAIN's two never
+changed (the oracle always declared them fixed). Built; the converter writes `lent` for an old bare operand and `let`
+(or `var`, if its body changes it) for `give`, and the code was swept.
+
 ### 2026-10-27 — Redesign two: C's layout is part of the kind; `%layout.C rec Rect:` … `end of %layout.C rec Rect` (owner)
 
 Design claude's provisional pick from the build, asked: (a) `%layout.C` in front and left off the closing line, as

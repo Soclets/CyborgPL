@@ -105,6 +105,9 @@ OCaml), `op[+]`.
 - A custom operator's operands are lent unless its definition says
   `give`, so `op dot` is a `fn[lent Vec, lent Vec] --> f64` *(the
   oracle's reading)*.
+  **Since 2026-10-27 an operand says it**, as a function's parameter does (owner, 2026-10-27: "(a1)"): `op dot
+  [lent $a: Vec, lent $b: Vec]`, one taken as its own `let $a` (or `var $a`, if it changes; `give` was the old
+  word), and a bare operand is refused. `MAIN`'s two say `let` too: `!MAIN [let $argc: …, let $argv: …]`.
 
 ## Consequences
 

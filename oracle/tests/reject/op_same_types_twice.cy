@@ -2,10 +2,10 @@
 rec A:
     var x: int.sign.32;
 end of rec A
-op <+> [$a: A, $b: A] -> int.sign.32:
+op <+> [lent $a: A, lent $b: A] -> int.sign.32:
     ret 1;
 end of op <+>
-op <+> [$a: A, $b: A] -> int.sign.32:
+op <+> [lent $a: A, lent $b: A] -> int.sign.32:
     ret 2;
 end of op <+>
 !MAIN:

@@ -154,7 +154,7 @@ depends on may have one too, run only when that kit is run itself
 "low-level shit, decided" — "we're at Rust, C, C++ level"):
 
 ```
-!MAIN [$argc: int.sign.32, $argv: ptr[ptr[int.unsign.8]]]:
+!MAIN [let $argc: int.sign.32, let $argv: ptr[ptr[int.unsign.8]]]:
     !no_check let $first := ptr.read(ptr.at($argv, by: 1));     # the first word after the program's name
     …
 !end of MAIN
