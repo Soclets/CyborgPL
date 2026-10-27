@@ -1897,6 +1897,8 @@ pub fn short_word(w: &str) -> Option<&'static str> {
         "return" => "ret", "boolean" => "bool", "character" => "char", "pointer" => "ptr",
         "concatenate" => "concat", "shift_left" => "shl", "shift_right" => "shr",
         "power" => "pow",
+        // `sig`, a signature: a list of operations and their types (owner, 2026-10-27)
+        "interface" => "sig",
         _ => return None,
     })
 }
@@ -2554,7 +2556,7 @@ fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                 }
                 let layout_before = (i.saturating_sub(4)..i).any(|k| is_w(k, "layout"));
                 let long: Option<&str> = match w {
-                    "fn" => Some("function"), "proc" => Some("procedure"), "op" => Some("operator"),
+                    "fn" => Some("function"), "proc" => Some("procedure"), "op" => Some("operator"), "sig" => Some("interface"),
                     "var" => Some("variable"), "const" => Some("constant"), "rec" => Some("record"),
                     "enum" if layout_before => Some("enumeration"),
                     "pub" => Some("public"), "extern" => Some("external"), "ret" => Some("return"),
@@ -2571,7 +2573,7 @@ fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                 if let Some(l) = long { push_as(&mut out, l); i += 1; continue; }
                 // redesign one's words, and the older spellings still old
                 let was: Option<String> = match w {
-                    "function" | "procedure" | "operator" | "variable" | "constant" | "record" | "enumeration" | "public" | "external" | "return" | "boolean" | "character" | "pointer" | "concatenate" | "shift_left" | "shift_right" | "power" => Some(short_word(w).unwrap().into()),
+                    "function" | "procedure" | "operator" | "variable" | "constant" | "record" | "enumeration" | "public" | "external" | "return" | "boolean" | "character" | "pointer" | "concatenate" | "shift_left" | "shift_right" | "power" | "interface" => Some(short_word(w).unwrap().into()),
                     // `negative 5`, `negate $x`, `op negate`; a case called so is a name
                     "negative" if matches!(next, Tok::Int(_) | Tok::Bin(..) | Tok::BigInt(_) | Tok::PercentLit(..)) => Some("neg".into()),
                     "negate" if (value_start(Some(&next)) || next == Tok::Dot || matches!(prev, Tok::Word(ref o) if o == "op")) && !matches!(prev, Tok::Word(ref c) if c == "case" || c == "fail") => Some("neg".into()),

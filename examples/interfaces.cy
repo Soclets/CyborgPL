@@ -1,12 +1,12 @@
 # Interfaces (design/interfaces.md): a named list of promises about some <T>, announced after the name.
-interface Ordered <T>:
+sig Ordered <T>:
     op lt [$a: <T>, $b: <T>] -> bool;
     op eq [$a: <T>, $b: <T>] -> bool;
-end of interface Ordered
+end of sig Ordered
 
-interface Printable <T>:
+sig Printable <T>:
     fn show [lent $x: <T>] -> str.utf8;
-end of interface Printable
+end of sig Printable
 
 rec Vec:
     var x: float.bin.64;

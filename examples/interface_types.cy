@@ -1,22 +1,22 @@
 # Generics announced after the name, each saying what it accepts (owner, 2026-10-02). An interface
 # may list types, one per line, as well as operations; a blank may need several, joined with `and`;
 # lifetime groups come after the generics, a `|` between the two kinds.
-interface Number:
+sig Number:
     int.sign.32;
     int.sign.64;
     float.bin.64;
-end of interface Number
+end of sig Number
 
-interface Ordered <T>:
+sig Ordered <T>:
     op lt [$a: <T>, $b: <T>] -> bool;
     op eq [$a: <T>, $b: <T>] -> bool;
-end of interface Ordered
+end of sig Ordered
 
-interface WholeOrdered <T>:
+sig WholeOrdered <T>:
     int.sign.32;
     int.sign.64;
     op lt [$a: <T>, $b: <T>] -> bool;
-end of interface WholeOrdered
+end of sig WholeOrdered
 
 fn bigger <T: Number and Ordered> [let $a: <T>, let $b: <T>] -> <T>:
     if $b lt $a:

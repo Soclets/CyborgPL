@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign two: `interface` becomes `sig`, a signature (owner)
+
+From multifinity's review (`interface Number` lists types, not behaviour), the owner: "Is `interface` accurate?" Design
+claude: not in the maths sense, a software-engineering word; the maths word for a list of operations and their types is a
+signature (universal algebra, model theory, ML). "What's more accurate?": signature, which is exactly what is written;
+a theory would add laws, a class names the types that have the operations, interface has no maths meaning. The owner:
+"`sig`". So **`sig Ordered <T>:` … `end of sig Ordered`**, `Vec satisfies Ordered;` unchanged; `interface` is refused
+naming it. Built. The closed list of types (`sig Number: int.sign.32; float.%deci.64;`) is a separate question.
+
 ### 2026-10-27 — Redesign: an `if`'s branches are one block; `end of if` comes once, after the last (owner: (b))
 
 From multifinity's review of the redesigned night trains (a Claude with no context): "`end of if` doesn't actually end

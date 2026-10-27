@@ -1,6 +1,6 @@
-interface Ordered <T>:
+sig Ordered <T>:
     op lt [$a: <T>, $b: <T>] -> bool;
-end of interface Ordered
+end of sig Ordered
 fn max <T: Ordered> [let $a: <T>, let $b: <T>] -> <T>:
     if $b lt $a:
         ret $a;

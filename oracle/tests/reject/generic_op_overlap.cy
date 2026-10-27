@@ -1,9 +1,9 @@
 # A generic operator and a specific one for a type it covers: two meanings, an error — the specific
 # one does not quietly win (owner, 2026-09-29: a).
-interface Number <T>:
+sig Number <T>:
     op minus [$a: <T>, $b: <T>] -> <T>;
     op lt [$a: <T>, $b: <T>] -> bool;
-end of interface Number
+end of sig Number
 op ~= <T: Number> [$a: <T>, $b: <T>] -> bool:
     ret $a lt $b;
 end of op ~=

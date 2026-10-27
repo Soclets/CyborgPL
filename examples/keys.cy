@@ -1,9 +1,9 @@
 # Map keys (decided 2026-09-22): plain values, text, chars, structs and enums by structure —
 # or a type's own `op equal_to ` and `fn hash` (it satisfies `Key`), with "equal keys hash the same"
 # a check site the compiler must prove.
-interface Key <T>:
+sig Key <T>:
     op eq [$a: <T>, $b: <T>] -> bool;  fn hash [lent $v: <T>] -> int.unsign.64;
-end of interface Key
+end of sig Key
 
 rec Point:
     var x: int.sign.32;

@@ -1,7 +1,7 @@
-interface Number:
+sig Number:
     int.sign.32;
     float.bin.64;
-end of interface Number
+end of sig Number
 fn f <T: Number> [let $a: <T>] -> <T>:
     ret $a;
 end of fn f

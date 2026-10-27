@@ -1,6 +1,6 @@
-interface O <T>:
+sig O <T>:
     op lt [$a: <T>, $b: <T>] -> bool;
-end of interface O
+end of sig O
 fn f <T: any and O> [let $a: <T>] -> <T>:
     ret $a;
 end of fn f

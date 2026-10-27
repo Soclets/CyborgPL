@@ -1,6 +1,6 @@
-interface Number:
+sig Number:
     int.sign.32;
-end of interface Number
+end of sig Number
 rec Box <T: Number>:
     var item: <T>;
 end of rec Box

@@ -1,7 +1,7 @@
 # A shop: an interface, an enum, structs and prices.
-interface Priced <T>:
+sig Priced <T>:
     fn price [lent $x: <T>] -> int.sign.32;
-end of interface Priced
+end of sig Priced
 
 union.tag Stock:
     out;

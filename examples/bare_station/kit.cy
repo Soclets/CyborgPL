@@ -265,10 +265,10 @@ end of proc show_alarm
 # The day
 # ---------------------------------------------------------------------------------------------------
 
-interface Number:
+sig Number:
     int.sign.32;
     int.unsign.32;
-end of interface Number
+end of sig Number
 
 fn larger <T: Number> [let $a: <T>, let $b: <T>] -> <T>:
     if $a gt $b:

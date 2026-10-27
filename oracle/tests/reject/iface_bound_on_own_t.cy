@@ -1,5 +1,5 @@
-interface O <T: any>:
+sig O <T: any>:
     op lt [$a: <T>, $b: <T>] -> bool;
-end of interface O
+end of sig O
 !MAIN:
 !end of MAIN

@@ -36,18 +36,18 @@ language's.
 ## 2. The promise — `interface`
 
 ```
-interface Ordered <T>:
+sig Ordered <T>:
     op lt [$a: <T>, $b: <T>] -> bool;
     op eq [$a: <T>, $b: <T>] -> bool;
-end of interface Ordered
-interface Printable <T>:
+end of sig Ordered
+sig Printable <T>:
     fn show [lent $x: <T>] -> str.utf8;
-end of interface Printable
-interface Number:
+end of sig Printable
+sig Number:
     int.sign.32;
     int.sign.64;
     float.bin.64;
-end of interface Number
+end of sig Number
 ```
 
 Top level beside `struct`; `pub` works; entries are `fn` and `op`

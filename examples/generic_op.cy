@@ -1,10 +1,10 @@
 # A generic operator (owner, 2026-09-29): written once for any type that keeps its interface's
 # promises, like a generic fn. An operator may also be written for several types by name; two
 # meanings for the same type are an error, a generic one covering a specific one's type included.
-interface Number <T>:
+sig Number <T>:
     op minus [$a: <T>, $b: <T>] -> <T>;
     op lt [$a: <T>, $b: <T>] -> bool;
-end of interface Number
+end of sig Number
 op ~= <T: Number> [$a: <T>, $b: <T>] -> bool:
     if $a lt $b:
         ret $b minus $a lt 10;
