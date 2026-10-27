@@ -34,6 +34,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): a limb's number type may end its width with a unit, its writer's choice (owner: (a))
+
+The owner: "backfixs? `.32_bits`" (a unit suffix on a limb's own number type). Design claude: the built-in list needs
+none (`i32` is read as bits), but a limb's unit may not be obvious (`%quantum.ezeral.32` could count qubits); offered (a)
+no rule, the limb's writer adding `32_bits` / `32_qubits` where it helps, (b) every limb number type ending its width with
+a unit; recommended (a), a writer's own names staying free (2026-09-24). The owner: "(a)".
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): a limb's own new number type is named with `.`, `%quantum.ezeral.32` (owner)
 
 The owner: "A limb could still add their own shit, say `%quantum.ezeral.32` or some shit". So, exploring: **the short
