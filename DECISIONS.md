@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign two: no one-line `otherwise` arm; one answer for every reason is `otherwise fail …;` (owner: (a))
+
+From multifinity's review of the redesigned night trains (a smaller point): a one-line form for single-statement arms
+(`case not_a_number: fail bad_row[copy $row];`) would shrink `parse_link`. Design claude found its two handlers give
+every reason the same answer, which the existing one-line form already says (`… otherwise fail bad_row[copy $row];`,
+"leave, whatever the reason", 2026-09-19), and offered (a) no new form, an arm always `case X:` … `end of case X`, or (b)
+a one-line arm with no `end of`, recommending (a): every block ends in its own `end of`, and (b) would be the one that
+doesn't. Asked too whether to rewrite `parse_link` that way, the owner: "(a), yes". So **(a)**, and night_trains'
+`$minutes` and `$km` each take one line (its output unchanged).
+
 ### 2026-10-27 — Redesign two: a handler that can `break` or `continue` says nothing more; its use outside a loop is refused (owner: (b))
 
 From multifinity's review of the redesigned night trains (point 4): `!case … continue;` arms only make sense at a call

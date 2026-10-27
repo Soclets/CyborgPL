@@ -78,6 +78,10 @@ otherwise:
 end of otherwise;
 ```
 
+An arm is always a block, `case X:` … `end of case X`; there is no one-line arm (owner, 2026-10-27: "(a)", over
+`case not_a_number: fail bad_row[copy $row];` with no `end of`). Where every reason gets the same answer, the
+one-line forms above say it once: `… otherwise fail bad_row[copy $row];`.
+
 - **A value** — used instead. **A leaving statement** (`return …`, `fail …`,
   `break`, `continue`, `std::exit[…]`) — for every reason alike. **`fail`** — the failure
   climbs to *my* caller; my own `fail[…]` must list every name the callee

@@ -153,24 +153,8 @@ fn parse_link [lent $row: str.utf8] -> Link or fail[bad_row: str.utf8]:
     if $n lt 3:
         fail bad_row[copy $row];
     end of if
-    let $minutes: int.sign.32[min: 1, max: 1440] := to.int.sign.32[min: 1, max: 1440]($words[pos: $n minus 1])-
-    otherwise:
-        case not_a_number:
-            fail bad_row[copy $row];
-        end of case not_a_number
-        case out_of_range:
-            fail bad_row[copy $row];
-        end of case out_of_range
-    end of otherwise;
-    let $km: int.sign.32[min: 1, max: 3000] := to.int.sign.32[min: 1, max: 3000]($words[pos: $n])-
-    otherwise:
-        case not_a_number:
-            fail bad_row[copy $row];
-        end of case not_a_number
-        case out_of_range:
-            fail bad_row[copy $row];
-        end of case out_of_range
-    end of otherwise;
+    let $minutes: int.sign.32[min: 1, max: 1440] := to.int.sign.32[min: 1, max: 1440]($words[pos: $n minus 1]) otherwise fail bad_row[copy $row];
+    let $km: int.sign.32[min: 1, max: 3000] := to.int.sign.32[min: 1, max: 3000]($words[pos: $n]) otherwise fail bad_row[copy $row];
     let $name_words := std::ls.slice(lend $words, from: pos 1, before: pos $n minus 1);
     let $b := std::str.join(lend $name_words, between: " ");
     ret Link[a = copy $sides[pos: 1], b = give $b, minutes = $minutes, km = $km];
