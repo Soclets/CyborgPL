@@ -34,6 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): `!` loses its "needs attention" meaning; CyborgPL concise where possible (owner)
+
+Asked about `!` with `;` closers ((a) `!MAIN:` … `!;MAIN`, (b) on the opening line only, (c) none on `MAIN`; design claude
+recommending (b)), the owner: "I'm feeling like removing that `!` meaning. Also, feeling like making CyborgPL concise
+where possible". So, exploring: **no `!` marks** (2026-10-26's `!MAIN`, `!no_check`, a jumping arm's `!case`, a jumping
+handler's use `otherwise h.!m`): `MAIN:` … `;MAIN`, `no_check:` … `;no_check`. And a direction for this redesign:
+**concise where possible**.
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): a block closes with `;` and its kind and name, `;fn total` (owner: (a))
 
 The owner, after "Let's do another redesign": "First, I'm feeling:" `MAIN:` / `;MAIN`, then "Btw, don't build yet. But
