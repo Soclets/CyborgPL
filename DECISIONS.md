@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): `*` marks a handler that can jump, only where it is used (owner: (b))
+
+With `!` losing its meaning, the owner: "Now, what about `*` for that kind of handler?" (a handler whose arm can `ret`,
+`break` or `continue`; `*` is free, `x` having taken multiplication). Offered (a) on the jumping arm and at the use, as
+`!` was on 2026-10-26, (b) only at the use, (c) only on the arm; design claude recommended (a). The owner: "Or only where
+it's used?" Design claude agreed: inside the handler the arm's `continue;` / `ret` is already in plain sight (the reason
+there is no `in loop` mark), while the use shows nothing of what the handler does. The owner: "(b)". So, exploring:
+**`otherwise booking_failed.*explain($r.who)`**, required on a handler that can jump and refused on one that cannot; the
+arms are plain, `case same_station:` … `;case same_station`.
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): `-` in front is `neg`, `-5`, `-$x` (owner: (a))
 
 Asked whether `-` also spells `neg` in front of a value ((a) yes, in front `neg` and between two values `minus`, as in
