@@ -390,6 +390,59 @@ fn main() {
         "same" => same_run(&tools(), &a),
         "recref" => recref_run(&tools(), &a),
         "clayout" => clayout_run(&tools(), &a),
+        "redesign" => {
+            // the 2026-10-26/27 redesign (oracle b82572d1): each program, in today's
+            // syntax, run by an oracle from before it, against the same program put
+            // into the redesign by `oracle --redesign-show` and run by this clone's
+            // oracle. The output must be the same and both must stop or both run to
+            // the end (lines move and messages are reworded, so not those). A check
+            // of the new reader and the converter together, while kayo reads only
+            // today's syntax (compiler claude waits for the owner's go).
+            let new = oracle_only();
+            let old_path = a.flags.get("old-oracle").cloned().unwrap_or_else(|| repo().join("check/.keep/oracle-ee74f837/oracle/target/release/oracle").display().to_string());
+            let old = Tools { oracle: std::path::PathBuf::from(&old_path), cca: new.cca.clone() };
+            if !old.oracle.exists() {
+                die(&format!("{old_path} not found: build an oracle from before b82572d1 there (check/README.md)"));
+            }
+            let dir = work().join("redesign");
+            std::fs::create_dir_all(&dir).unwrap();
+            let (mut same, mut differ, mut unconverted) = (0, 0, 0);
+            let short = |o: &engines::Oracle| match o {
+                engines::Oracle::Ran { out } => format!("ran, {} bytes out", out.len()),
+                engines::Oracle::Stopped { out, msg, .. } => format!("stopped ({}), {} bytes out", msg.chars().take(90).collect::<String>(), out.len()),
+                engines::Oracle::Timeout => "timed out".into(),
+            };
+            for seed in a.num("from", 1)..a.num("from", 1) + a.num("cases", 100) {
+                let p = generate(seed, &a.config());
+                let (f, g) = (dir.join("old.cy"), dir.join("new.cy"));
+                std::fs::write(&f, p.render()).unwrap();
+                let c = engines::run(std::process::Command::new(&new.oracle).arg("--redesign-show").arg(&f), &dir, &[], false, engines::RUN_LIMIT);
+                if c.code != Some(0) || c.stdout.is_empty() {
+                    unconverted += 1;
+                    println!("seed {seed}: the converter stopped: {}", c.stderr.lines().next().unwrap_or("").chars().take(160).collect::<String>());
+                    continue;
+                }
+                std::fs::write(&g, &c.stdout).unwrap();
+                let (o, n) = (engines::oracle(&old, &f, &dir, &[]), engines::oracle(&new, &g, &dir, &[]));
+                let agree = match (&o, &n) {
+                    (engines::Oracle::Ran { out: a }, engines::Oracle::Ran { out: b }) => a == b,
+                    (engines::Oracle::Stopped { out: a, .. }, engines::Oracle::Stopped { out: b, .. }) => a == b,
+                    (engines::Oracle::Timeout, engines::Oracle::Timeout) => true,
+                    _ => false,
+                };
+                if agree {
+                    same += 1;
+                } else {
+                    differ += 1;
+                    let keep = work().join("redesign").join(seed.to_string());
+                    let _ = std::fs::create_dir_all(&keep);
+                    let _ = std::fs::copy(&f, keep.join("old.cy"));
+                    let _ = std::fs::copy(&g, keep.join("new.cy"));
+                    println!("seed {seed}: before the redesign {}; after it {}; files in {}", short(&o), short(&n), keep.display());
+                }
+            }
+            println!("{} programs: {same} the same after the redesign, {differ} differ, {unconverted} the converter stopped on", same + differ + unconverted);
+        }
         "bare" => {
             // a chip with no OS: kayo's aarch64-none build booted in QEMU against
             // the oracle (2026-10-26; oracle 29b59ddc)

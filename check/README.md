@@ -26,6 +26,12 @@ input and output lists are of a kind, `std::list`, `.page_aligned` or `.not_page
 and narrowed by `to.list.…(give …)` (owner, 2026-10-25; oracle 8054704c). Left out: `<<`
 (CyborgPL checks what it shifts out) and signed overflow in a plain block. `harness/src/metal.rs`.
 
+**The 2026-10-26/27 redesign** (oracle b82572d1): `check redesign --cases N` runs each generated program, in today's
+syntax, on an oracle from before the redesign (`check/.keep/oracle-ee74f837`, or `--old-oracle PATH`), and the same
+program put into the redesign by `oracle --redesign-show` on this clone's oracle: the same output, and both stopping
+or both running to the end (lines and messages change, so not those). kayo reads only today's syntax until the owner's
+go, so the differential runs against the pinned oracle meanwhile (`CHECK_ORACLE`).
+
 **A chip with no operating system** (`aarch64-none`; oracle 29b59ddc): `check bare --cases N` generates programs
 with no C and no heap (the printer through `std::print`, no lists, borrows, inputs, text operations or episodes),
 and has kayo build each as a kit for QEMU's `virt`
