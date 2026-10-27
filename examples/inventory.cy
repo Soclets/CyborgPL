@@ -1,6 +1,7 @@
 # An inventory: range types, a function that takes any number of items, and failures.
 record Item:
-    name: string.utf8; grams: integer.signed.32_bit[minimum: 1, maximum: 50_000];
+    name: string.utf8;
+    grams: integer.signed.32_bit[minimum: 1, maximum: 50_000];
 end of record Item
 
 function heaviest [...$items: Item] -> Item or fail[none]:

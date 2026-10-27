@@ -2,7 +2,8 @@
 # as the loosest (good practice), each level says how a chain reads, and a language operator in a
 # level pins it where that operator is. std's `pow` binds above a negative, right pair first.
 record Vec:
-    x: float.binary.64_bit; y: float.binary.64_bit;
+    x: float.binary.64_bit;
+    y: float.binary.64_bit;
 end of record Vec
 
 precedence.low_first:

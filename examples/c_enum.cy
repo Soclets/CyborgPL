@@ -3,8 +3,10 @@
 # case, and it is owned like every enum (2026-09-20) — and C-shaped, so `extern.C fn`
 # can take and return it. A number C hands back that no case has fails `out_of_range`.
 %layout.C enumeration Key:
-    a = 65, b = 66, escape = 256
-end of layout
+    a = 65;
+    b = 66;
+    escape = 256;
+end of enumeration Key
 %external.C procedure IsKeyDown [$key: Key] -> boolean;
 
 function name [$k: Key] -> string.utf8:

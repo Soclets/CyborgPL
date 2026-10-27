@@ -4,7 +4,8 @@ record Price:
     amount: float.%decimal.64_bit;
 end of record Price
 union.tagged Pay:
-    cash; voucher: float.%decimal.64_bit;
+    cash;
+    voucher: float.%decimal.64_bit;
 end of union.tagged Pay
 !MAIN:
     let $p := Price[amount = 0.45];

@@ -1,5 +1,7 @@
 union.tagged S:
-    a; b; c;
+    a;
+    b;
+    c;
 end of union.tagged S
 !MAIN:
     let $s := S.a;

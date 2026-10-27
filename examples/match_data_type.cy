@@ -1,7 +1,9 @@
 # A match arm's data name has the case's type (found by check claude, 2026-09-29): 'd' is an i32,
 # so not.bit and times.wrap know their width, and 'b' is a u8, so plus.wrap wraps at 8 bits.
 union.tagged E1:
-    c1: integer.signed.32_bit; c2: integer.unsigned.8_bit; c3;
+    c1: integer.signed.32_bit;
+    c2: integer.unsigned.8_bit;
+    c3;
 end of union.tagged E1
 !MAIN:
     let $e := E1.c1(5);

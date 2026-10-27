@@ -1,5 +1,6 @@
 union.tagged Mood:
-    calm; loud;
+    calm;
+    loud;
 end of union.tagged Mood
 function say [$m: Mood] -> integer.signed.32_bit:
     return 1;

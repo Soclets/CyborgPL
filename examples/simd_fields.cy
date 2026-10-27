@@ -2,7 +2,8 @@
 # element, a parameter, a return value. It is plain, a fixed-size value that copies by
 # itself, and the compiler keeps it on its register-width boundary (16 bytes here).
 record Particle:
-    place: simd[float.binary.32_bit, count: 4]; vel: simd[float.binary.32_bit, count: 4];
+    place: simd[float.binary.32_bit, count: 4];
+    vel: simd[float.binary.32_bit, count: 4];
 end of record Particle
 function step [$p: Particle] -> Particle:
     return Particle[place = $p.place plus $p.vel, vel = $p.vel];

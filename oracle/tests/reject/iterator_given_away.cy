@@ -1,5 +1,6 @@
 record Counter:
-    now: integer.signed.32_bit; stop: integer.signed.32_bit;
+    now: integer.signed.32_bit;
+    stop: integer.signed.32_bit;
 end of record Counter
 procedure Counter.next [lent.mutable $c: Counter] -> optional[integer.signed.32_bit]:
     if $c.now equal_to $c.stop:

@@ -1,13 +1,16 @@
 # A path reads as deep as it goes (2026-10-25): a field of a field, a field of a list item, an item of a field's
 # list. A plain value at the end is read bare; an owned one takes `copy` or `lend`, as one step does.
 record Stop:
-    name: string.utf8; minutes: integer.signed.32_bit;
+    name: string.utf8;
+    minutes: integer.signed.32_bit;
 end of record Stop
 record Trip:
-    stops: std::list[Stop]; km: integer.signed.32_bit;
+    stops: std::list[Stop];
+    km: integer.signed.32_bit;
 end of record Trip
 record Booking:
-    who: string.utf8; trip: Trip;
+    who: string.utf8;
+    trip: Trip;
 end of record Booking
 
 function shout [lent $s: string.utf8] -> string.utf8:

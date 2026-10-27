@@ -3,8 +3,10 @@
 # library added — so the program decides what an unknown key means instead of hitting
 # undefined behaviour in the `match`. A callback, which C calls, takes the plain number.
 %layout.C enumeration Key:
-    a = 65, b = 66, escape = 256
-end of layout
+    a = 65;
+    b = 66;
+    escape = 256;
+end of enumeration Key
 function on_key [$code: integer.signed.32_bit] -> integer.signed.32_bit:
     let $k := to.Key($code) otherwise:
         !case out_of_range:

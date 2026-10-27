@@ -4,9 +4,9 @@
 %external.C procedure free [$p: pointer.mutable[integer.unsigned.8_bit]];
 
 %layout.C record Point:
-    x: integer.signed.32_bit,
-    y: integer.signed.32_bit
-end of layout
+    x: integer.signed.32_bit;
+    y: integer.signed.32_bit;
+end of record Point
 
 !MAIN:
     !no_check let $raw := malloc(size.of[Point]);

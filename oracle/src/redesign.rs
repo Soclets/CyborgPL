@@ -483,6 +483,8 @@ fn describe(toks: &[Token], start: usize, brace: usize, text: &dyn Fn(&Token) ->
             Some(Tok::Word(w)) if (w == "no_check" || w == "NO_FUCKING_CHECKS" || w == "check" || w == "no_cheat") && s.len() > i + 1 => { i += 1; }
             Some(Tok::Mark) => { i += 1; }
             Some(Tok::Strict) => { i += 1; }
+            // `%layout.C record Timeval`: the layout goes in front, as `public` does
+            Some(Tok::Word(w)) if w == "layout" && matches!(s.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) => { i += 3; }
             // `table_bytes 1_024 fn square …` (owner, 2026-10-19)
             Some(Tok::Word(w)) if w == "table_bytes" && matches!(s.get(i + 1).map(|t| &t.tok), Some(Tok::Int(_))) => { i += 2; }
             _ => break,

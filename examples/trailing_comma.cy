@@ -4,7 +4,8 @@ record P:
     y: integer.signed.32_bit;
 end of record P
 union.tagged S:
-    a; b;
+    a;
+    b;
 end of union.tagged S
 !MAIN:
     let $p := P[x = 1, y = 2];

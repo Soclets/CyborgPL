@@ -1,5 +1,6 @@
 record Point:
-    x: integer.signed.32_bit; y: integer.signed.32_bit;
+    x: integer.signed.32_bit;
+    y: integer.signed.32_bit;
 end of record Point
 !MAIN:
     variable $p := Point[x = 1, y = 2];

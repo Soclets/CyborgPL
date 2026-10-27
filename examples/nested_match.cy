@@ -1,10 +1,12 @@
 # A `match` alone in a case is a statement (owner, 2026-09-29); a nested match that is the case's value
 # says `is match …` (owner, 2026-10-07: a case says its value with `is`).
 union.tagged Order:
-    cancelled; paid;
+    cancelled;
+    paid;
 end of union.tagged Order
 union.tagged Ship:
-    pickup; post;
+    pickup;
+    post;
 end of union.tagged Ship
 !MAIN:
     let $o := Order.paid;

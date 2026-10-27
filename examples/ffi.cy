@@ -7,9 +7,9 @@
 %external.C procedure free [$p: pointer.mutable[integer.unsigned.8_bit]];
 
 %layout.C record Timeval:
-    sec: integer.signed.64_bit,
-    usec: integer.signed.64_bit
-end of layout
+    sec: integer.signed.64_bit;
+    usec: integer.signed.64_bit;
+end of record Timeval
 
 procedure say [lent $text: string.utf8] -> fail[io]:
     !no_check let $n := write(1, lend $text, strlen(lend $text));   # a lend is the pointer; the call is a no_check site

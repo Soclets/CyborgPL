@@ -1,5 +1,6 @@
 record P:
-    n: string.utf8; x: integer.signed.32_bit;
+    n: string.utf8;
+    x: integer.signed.32_bit;
 end of record P
 !MAIN:
     let $p := P[n = "a", x = 2];

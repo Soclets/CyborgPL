@@ -1,8 +1,9 @@
 # A list of `layout.C` structs bound to a kernel, kayo writing the struct's Metal declaration at the top of the block,
 # and shared code from a `.metal` file of the kit, `#include`d from the kit's root (owner, 2026-10-22).
 %layout.C record Body:
-    x: float.binary.32_bit, vx: float.binary.32_bit
-end of layout
+    x: float.binary.32_bit;
+    vx: float.binary.32_bit;
+end of record Body
 
 !MAIN:
     variable $bodies: std::list[Body] = [Body[x = 1.0, vx = 2.0], Body[x = 0.0, vx = negative 1.0]];

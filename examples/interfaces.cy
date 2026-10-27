@@ -9,7 +9,8 @@ interface Printable <T>:
 end of interface Printable
 
 record Vec:
-    x: float.binary.64_bit; y: float.binary.64_bit;
+    x: float.binary.64_bit;
+    y: float.binary.64_bit;
 end of record Vec
 
 # a struct keeps a promise by having the operations — the language's own operators

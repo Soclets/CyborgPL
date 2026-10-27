@@ -1,6 +1,7 @@
 # Declaring operators: a symbol one, `<+>`, and a word one, `dot`.
 record Vec:
-    x: float.binary.64_bit; y: float.binary.64_bit;
+    x: float.binary.64_bit;
+    y: float.binary.64_bit;
 end of record Vec
 
 # a glyph operator: any run of  not % & * plus minus / < > = ? @ ^ | ~

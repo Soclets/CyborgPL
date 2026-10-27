@@ -6,7 +6,8 @@ interface Key <T>:
 end of interface Key
 
 record Point:
-    x: integer.signed.32_bit; y: integer.signed.32_bit;
+    x: integer.signed.32_bit;
+    y: integer.signed.32_bit;
 end of record Point                      # structural: fields decide
 
 record User:

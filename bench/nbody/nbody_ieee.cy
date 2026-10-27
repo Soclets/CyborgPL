@@ -22,7 +22,13 @@ constant $solar_mass: float.binary.64_bit = 4.0 times.ieee $pi times.ieee $pi;
 constant $days_per_year: float.binary.64_bit = 365.24;
 
 record Body:
-    x: float.binary.64_bit; y: float.binary.64_bit; z: float.binary.64_bit; vx: float.binary.64_bit; vy: float.binary.64_bit; vz: float.binary.64_bit; mass: float.binary.64_bit;
+    x: float.binary.64_bit;
+    y: float.binary.64_bit;
+    z: float.binary.64_bit;
+    vx: float.binary.64_bit;
+    vy: float.binary.64_bit;
+    vz: float.binary.64_bit;
+    mass: float.binary.64_bit;
 end of record Body
 
 # N, from the text in the environment: missing when there is none, and out

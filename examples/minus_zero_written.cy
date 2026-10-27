@@ -1,8 +1,10 @@
 # A written -0.0 is 0: no bin is -0 except through the .ieee forms (owner, 2026-10-07: "a").
 # check claude, 2026-10-19 (corpus 3878ea56): the oracle kept the sign of a written -0.0.
 %layout.C union Un:
-    i: integer.signed.32_bit, u: integer.unsigned.32_bit, f: float.binary.32_bit
-end of layout
+    i: integer.signed.32_bit;
+    u: integer.unsigned.32_bit;
+    f: float.binary.32_bit;
+end of union Un
 
 !MAIN:
     let $a: float.binary.32_bit = negative 0.0;

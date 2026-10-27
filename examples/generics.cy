@@ -21,11 +21,13 @@ function first <T: any> [lent $xs: std::list[<T>]] -> <T> or fail[empty]:
 end of function first
 
 record Pair <A: any, B: any>:
-    left: <A>; right: <B>;
+    left: <A>;
+    right: <B>;
 end of record Pair     # blanks in the order announced: A, B
 
 union.tagged Maybe <T: any>:
-    none; some: <T>;
+    none;
+    some: <T>;
 end of union.tagged Maybe
 
 function describe [lent $p: Pair[integer.signed.32_bit, string.utf8]] -> string.utf8:

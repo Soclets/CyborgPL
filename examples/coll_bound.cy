@@ -13,7 +13,8 @@ collection.bounded order:
 end of collection.bounded order
 
 record Line:
-    name: order.name; count: quantity;
+    name: order.name;
+    count: quantity;
 end of record Line
 
 function apply_discount [$amount: float.%decimal.64_bit, $percent: order.discount] -> float.%decimal.64_bit:

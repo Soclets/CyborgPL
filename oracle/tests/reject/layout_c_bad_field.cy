@@ -1,5 +1,5 @@
 %layout.C record P:
-    name: string.utf8
-end of layout
+    name: string.utf8;
+end of record P
 !MAIN:
 !end of MAIN

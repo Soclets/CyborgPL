@@ -1,6 +1,7 @@
 # Functions as values (design/functions-as-values.md, 2026-09-21).
 record Locker:
-    number: integer.signed.32_bit; owner: string.utf8;
+    number: integer.signed.32_bit;
+    owner: string.utf8;
 end of record Locker
 
 function by_number [lent $a: Locker, lent $b: Locker] -> boolean:

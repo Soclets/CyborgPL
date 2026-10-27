@@ -7,8 +7,10 @@
 end of %external.C
 
 %layout.C record Header:
-    magic: integer.unsigned.32_bit, flags: integer.unsigned.8_bit, length: integer.unsigned.64_bit
-end of layout
+    magic: integer.unsigned.32_bit;
+    flags: integer.unsigned.8_bit;
+    length: integer.unsigned.64_bit;
+end of record Header
 
 # FNV-1a: the wrap *is* the algorithm, so `x~`, never a check
 function fnv1a [lent $bytes: array[integer.unsigned.8_bit]] -> integer.unsigned.64_bit:

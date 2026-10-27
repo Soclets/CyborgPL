@@ -3,8 +3,9 @@
 # with `to.i32(Mode.vi)`, which never fails. `ptr.read` of a C enum is a call, so it takes
 # `otherwise` and fails `out_of_range` for a number no case has (7 here).
 %layout.C enumeration Mode:
-    emacs = 0, vi = 1
-end of layout
+    emacs = 0;
+    vi = 1;
+end of enumeration Mode
 %external.C procedure malloc [$bytes: integer.unsigned.64_bit] -> pointer.mutable[Mode];
 %external.C variable $edit_mode: integer.signed.32_bit;
 procedure mode_at [$p: pointer[Mode]] -> integer.signed.32_bit:

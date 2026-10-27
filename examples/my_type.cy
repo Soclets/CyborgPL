@@ -1,7 +1,8 @@
 # A module names the root's types through `my.` (owner, 2026-10-06: `my.` is the root), as std's `str.cy` names
 # `my.casing`: in a parameter, a return type and a value built.
 union.tagged Color:
-    red; blue;
+    red;
+    blue;
 end of union.tagged Color
 record P:
     x: integer.signed.32_bit;

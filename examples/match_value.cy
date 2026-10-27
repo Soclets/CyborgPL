@@ -2,7 +2,9 @@
 # that value; a case may still leave instead (`return`, `fail`, `break`). The same holds for
 # `otherwise` with several reasons. Every case is still covered.
 union.tagged Status:
-    empty; claimed: string.utf8; locked;
+    empty;
+    claimed: string.utf8;
+    locked;
 end of union.tagged Status
 function label [$s: Status] -> string.utf8:
     let $text := match $s:
