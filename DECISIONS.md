@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): which operators get a symbol (owner)
+
+The owner: "`+`, `-`, `x` instead of (inof) `*`, `^`, `==`, `!=`, `<`, `>`, `<=`, `>=`, `&` is `and`, `&&` is
+`and.then`, `|` is `or`, `||` is `or.else`, `++`". So, exploring, each a second spelling of its word: **`+` `plus`,
+`-` `minus`, `x` `times` (not `*`), `^` `pow`, `==` `eq`, `!=` `not_eq`, `<` `lt`, `>` `gt`, `<=` `at_most`, `>=`
+`at_least`, `&` `and`, `&&` `and.then`, `|` `or`, `||` `or.else`, `++` `concat`**. Words only, as the list leaves them:
+`div.X`, `mod.X`, `not`, `shl` / `shr`, the bit operators (`and.bit`, `or.bit`, `xor.bit`, `not.bit`), and every
+`.wrap` / `.ieee` form. Open, asked next: whether `-` also spells `neg` in front (`-5`), which 2026-10-27's redesign two
+made `neg 5`; whether `&` keeps its other use as a lend (`&'text': T`, 2026-09-21).
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): operators get symbols again, the words staying as their other spelling; which ones is the owner's (owner)
 
 Asked where conciseness pays most (design claude counted lines in the examples and recommended printing), the owner: "Not
