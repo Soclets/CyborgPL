@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): a bare `std::print(…)` is `std::print.shortest(…)` (owner)
+
+The owner: "`std::print("Hello, World!");` Is there a "correct" assumption?" Design claude: for text every form prints the
+same; for numbers the shortest digits that read back as the same value never mislead (`0.1`, not the stored
+`0.1000000000000000055…`) and are what Python, JavaScript, Swift and Rust print, so `shortest` is a safe default; the
+newline has no correct answer, only a convention. Asked whether `std::print` means `shortest`, reversing 2026-10-13's "a
+bare `std::print[…]` does not exist", the owner: "yes". So, exploring: **`std::print(…)` is `std::print.shortest(…)`**;
+the other forms are still named (`print.stored`, `print.format`, …). Asked next: the newline.
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): `change $total += …`, the short form of `change $total to $total + …` (owner: (a))
 
 Shown the redesign beside Swift (design claude's sample first passed a record, a tagged union and text bare; the owner:
