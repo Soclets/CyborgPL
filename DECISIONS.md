@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): `ln` is the one glued suffix; every other variant keeps its `.` (owner)
+
+After `std::println`, the owner: "Can `.stored` attach like `ln`? Say, `prints`. My personally opinion is that it's too big
+of a feature to attach like that, and if we want it consisent, we'll have to do those things at other places too. Which
+basically means `.` isn't a useful feature anymore". Design claude agreed: `ln` is a tiny suffix every writer knows, glued
+twice as fixed names (`newln`, `println`); `.stored` is a real variant, and gluing variants would leave `.` (2026-10-21's
+"`.` narrows", one of the four core features) without a job. So **`ln` is the one glued exception; a variant keeps its
+`.`**: `print.stored`, `println.stored`, never `prints`.
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): `std::println` ends its line; `std::print` stays on it (owner: (a))
 
 Asked whether a bare `std::print` ends its line (503 of the examples' 566 `print.shortest` calls end with `newln`), the
