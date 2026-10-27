@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: every definition is `:=`, typed or not, `let $x: int.sign.32 := 5;` (owner; not built)
+
+The owner: "Anyways, you never asked me about the `:=` `=` accuracy". Design claude: in maths `:=` is "is defined as",
+which a `let` is, and `=` states that two things are equal, so it is inaccurate twice: in a typed definition (`let $x:
+int.sign.32 = 5;`) and in an update (`change $x = 6;`); `Line[name = "apple"]` and a preset's `[$by = 2]` say what a field
+or argument is in the thing made, an equation, and stay. Asked first whether a typed `let` uses `:=` too, recommended,
+the owner: "yes, so that means type inference is only visible via the absence of the type" (design claude: yes; before,
+the sign and the type said it twice). So **every definition is `:=`: `let $x := 5;`, `let $x: int.sign.32 := 5;`**, and
+so `var`, `const`, `let shadow` / `var shadow` (design claude's reading); a typed `=` becomes an old spelling. This
+reverses 2026-09-19's "`:=` only without a type, `=` only with one". Not built: built with the update's answer.
+
 ### 2026-10-27 — Redesign: a lambda with a body closes on its kind alone, `end of fn` / `end of proc` (owner)
 
 A lambda has no name, so the build closed it on its kind, as `if` closes (design claude's pick). Shown it, the owner:
