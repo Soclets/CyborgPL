@@ -829,6 +829,24 @@ fn words(toks: &[Token], text: &dyn Fn(&Token) -> String, info: Option<&Info>, e
                         let gap = toks[i + 1].at;
                         edits.push(Edit { at: t.at, end: gap, text: String::new() });
                     }
+                    // `shadow mut $x` → `shadow variable $x`, `shadow immut $x` → `shadow $x`, a plain one by what changes it
+                    // (PROVISIONAL: a shadow never changes unless it says `variable`, as `let` / `variable`)
+                    "shadow" => {
+                        let ns = *tok(i + 1) == Tok::NoShadow;
+                        let m_at = if ns { i + 2 } else { i + 1 };
+                        let flagged = toks.get(m_at).is_some_and(|x| x.mtm.is_some());
+                        if is_word(m_at, "mut") && !flagged {
+                            let m = &toks[m_at];
+                            edits.push(Edit { at: m.at, end: m.end, text: "variable".into() });
+                        } else if is_word(m_at, "immut") && !flagged {
+                            let m = &toks[m_at];
+                            let gap_end = toks.get(m_at + 1).map_or(m.end, |x| x.at);
+                            edits.push(Edit { at: m.at, end: gap_end, text: String::new() });
+                        } else if let Tok::Var(name) = tok(m_at) {
+                            let changed = info.map_or_else(|| changed_in_text(toks, i, name), |inf| inf.changed.contains(&(t.line, name.clone())) || (!inf.declared.contains(&(t.line, name.clone())) && changed_in_text(toks, i, name)));
+                            if changed { let a = toks[m_at].at; edits.push(Edit { at: a, end: a, text: "variable ".into() }); }
+                        }
+                    }
                     "immut" if matches!(tok(i + 1), Tok::Word(_)) => {
                         // PROVISIONAL: a field that never changes, `immut number: i32`, is `let number: …`
                         put(edits, "let".into());
@@ -1449,6 +1467,17 @@ fn words_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     }
                     // a writable C variable, `%external.C variable $x: C.int;`; a parameter that changes, `[variable $n: i32]`
                     "variable" if out.iter().rev().take(4).any(|x| matches!(&x.tok, Tok::Word(e) if e == "extern")) || matches!(out.last().map(|x| &x.tok), Some(Tok::LBracket | Tok::Comma)) => out.push(word_tok("mut", t)),
+                    // `shadow $x` never changes, `shadow variable $x` does (PROVISIONAL)
+                    "shadow" => {
+                        out.push(t.clone());
+                        let ns = toks.get(i + 1).is_some_and(|x| x.tok == Tok::NoShadow);
+                        if ns { out.push(toks[i + 1].clone()); }
+                        let m = if ns { i + 2 } else { i + 1 };
+                        if is_w(m, "variable") { out.push(word_tok("mut", &toks[m])); i = m + 1; continue; }
+                        if matches!(toks.get(m).map(|x| &x.tok), Some(Tok::Var(_))) { out.push(word_tok("immut", t)); }
+                        i = m;
+                        continue;
+                    }
                     "variable" | "let" => {
                         let ns = toks.get(i + 1).is_some_and(|x| x.tok == Tok::NoShadow);
                         let m = if ns { i + 2 } else { i + 1 };

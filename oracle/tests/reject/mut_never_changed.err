@@ -1,1 +1,1 @@
-'total' is `mut`, but nothing changes it
+'total' is a `variable`, but nothing changes it

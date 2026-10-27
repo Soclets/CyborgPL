@@ -819,7 +819,7 @@ fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
 fn check_redeclared(prog: &ast::Program) -> Result<Option<String>, String> {
     use ast::{Stmt, Expr, Handler, AsmBind, Mutability, Verb};
     type Entry = (String, bool, Option<usize>);   // (name, sealed, which `mut` it is)
-    struct W { sc: Vec<Vec<Entry>>, muts: Vec<(String, usize, bool, bool)>, fixed: Vec<usize> }   // (name, line, changed, written `mut`); the `let`s
+    struct W { sc: Vec<Vec<Entry>>, muts: Vec<(String, usize, bool, bool)>, fixed: Vec<(usize, bool)> }   // (name, line, changed, written `mut`); the `let`s
     // a const sits in the outermost scope, its name marked `const:`
     fn find<'a>(sc: &'a [Vec<Entry>], n: &str) -> Option<&'a Entry> { sc.iter().rev().flat_map(|s| s.iter().rev()).find(|(m, _, _)| m == n || m.strip_prefix("const:") == Some(n)) }
     fn decl(w: &mut W, n: &str, shadow: bool, sealed: bool, is_mut: bool, line: usize) -> Result<(), String> {
@@ -936,7 +936,7 @@ fn check_redeclared(prog: &ast::Program) -> Result<Option<String>, String> {
                 bracket(w, value)?;
                 decl(w, name, *shadow, *sealed, *mutability == Some(Mutability::Mut), *line)?;
                 // a `let` never changes (owner, 2026-10-27): checked once the walk has seen everything
-                if *mutability == Some(Mutability::Immut) { w.fixed.push(w.muts.len() - 1); }
+                if *mutability == Some(Mutability::Immut) { w.fixed.push((w.muts.len() - 1, *shadow)); }
                 Ok(())
             }
             Stmt::LocalConst { name, value, line, .. } => {
@@ -999,13 +999,17 @@ fn check_redeclared(prog: &ast::Program) -> Result<Option<String>, String> {
         }
         block(&mut w, body, &[])?;
         CHANGED.with(|c| c.borrow_mut().extend(w.muts.iter().map(|(n, l, ch, _)| (*l, n.clone(), *ch))));
-        if let Some(&i) = w.fixed.iter().find(|&&i| w.muts[i].2) {
+        if let Some(&(i, shadow)) = w.fixed.iter().find(|&&(i, _)| w.muts[i].2) {
             let (n, line, _, _) = &w.muts[i];
-            return Err(format!("line {line}: '{n}' is a `let`, which never changes, but something changes it: declare it `variable '{n}' := …;` (owner, 2026-10-27)"));
+            return Err(if shadow {
+                format!("line {line}: '{n}' is a `shadow` that never changes, but something changes it: declare it `shadow variable '{n}' := …;` (owner, 2026-10-27)")
+            } else {
+                format!("line {line}: '{n}' is a `let`, which never changes, but something changes it: declare it `variable '{n}' := …;` (owner, 2026-10-27)")
+            });
         }
         if unkept.is_none() {
             if let Some((n, line, _, _)) = w.muts.iter().find(|m| m.3 && !m.2) {
-                unkept = Some(format!("line {line}: '{n}' is `mut`, but nothing changes it: drop `mut`, or change it (`mut` is a promise that it changes, as `immut` is that it does not)"));
+                unkept = Some(format!("line {line}: '{n}' is a `variable`, but nothing changes it: make it a `let`, or change it (`variable` is a promise that it changes, as `let` is that it does not; owner, 2026-10-27)"));
             }
         }
         Ok(())

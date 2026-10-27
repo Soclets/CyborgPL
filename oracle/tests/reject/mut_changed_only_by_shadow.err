@@ -1,1 +1,1 @@
-line 2: 'x' is `mut`, but nothing changes it
+line 2: 'x' is a `variable`, but nothing changes it

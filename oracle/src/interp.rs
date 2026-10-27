@@ -188,11 +188,14 @@ pub struct Interp<'p> {
     bare_of: HashMap<String, crate::ast::Bare>,
     /// each variable's literal as it was typed, while it still holds it (owner, 2026-10-17, for `print.written`): by its cell
     written: HashMap<usize, String>,
+    /// the cells `written` and `int_bounds` are keyed by, held weakly so their addresses are never reused: a later
+    /// variable at a freed one's address took its written form, about one run in 25 (check claude, 2026-10-27, seed 208)
+    pinned: Vec<std::rc::Weak<RefCell<Value>>>,
 }
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { int_bounds: HashMap::new(), prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, must_fail_depth: 0, cur_ret: None, args: Vec::new(), consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, fallback_ty: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), tfill: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), mut_walks: Vec::new(), scopes: vec![HashMap::new()], out, bare_of: HashMap::new(), written: HashMap::new() }
+        Interp { int_bounds: HashMap::new(), prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, must_fail_depth: 0, cur_ret: None, args: Vec::new(), consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, fallback_ty: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), tfill: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), mut_walks: Vec::new(), scopes: vec![HashMap::new()], out, bare_of: HashMap::new(), written: HashMap::new(), pinned: Vec::new() }
     }
 
     /// Ok(code): the program ran; Err: it failed.
@@ -990,11 +993,11 @@ impl<'p> Interp<'p> {
                         let cell = Rc::new(RefCell::new(v));
                         if ty.is_none() && is_int {
                             if let [crate::ast::Value::Expr(e)] = value.values.as_slice() {
-                                if let Some(b) = self.static_bound(e) { self.int_bounds.insert(Rc::as_ptr(&cell) as usize, b); }
+                                if let Some(b) = self.static_bound(e) { self.int_bounds.insert(Rc::as_ptr(&cell) as usize, b); self.pinned.push(Rc::downgrade(&cell)); }
                             }
                         }
                         if let [crate::ast::Value::Expr(e)] = value.values.as_slice() {
-                            if let Some(t) = written_text(e) { self.written.insert(Rc::as_ptr(&cell) as usize, t); }
+                            if let Some(t) = written_text(e) { self.written.insert(Rc::as_ptr(&cell) as usize, t); self.pinned.push(Rc::downgrade(&cell)); }
                         }
                         Slot { cell, ty, kind: SlotKind::Owned, alive: true, immut, sized, sealed: *sealed , since: 0, deps: Vec::new() }
                     }
@@ -1031,7 +1034,8 @@ impl<'p> Interp<'p> {
                 let sized = Self::sized_from(value, ty.as_ref());
                 if let Some(s) = self.lookup(name) {
                     let key = Rc::as_ptr(&s.cell) as usize;
-                    match value.values.as_slice() { [crate::ast::Value::Expr(e)] if written_text(e).is_some() => { self.written.insert(key, written_text(e).unwrap()); } _ => { self.written.remove(&key); } }
+                    let weak = Rc::downgrade(&s.cell);
+                    match value.values.as_slice() { [crate::ast::Value::Expr(e)] if written_text(e).is_some() => { self.written.insert(key, written_text(e).unwrap()); self.pinned.push(weak); } _ => { self.written.remove(&key); } }
                 }
                 if kind == SlotKind::ExternMut {
                     // C's variable: the cell lives beside the consts
