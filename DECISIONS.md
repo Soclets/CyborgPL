@@ -65,7 +65,8 @@ the maths sense), and names stay names (`std`, `ASM`, `MSL`, `utf8`, `C`, `MAIN`
 Then "where's the `-` for "this line has more"?": design claude had built the converter keeping a long `otherwise:` on
 the call's line, but 2026-10-26's ruling chose option 3 over option 1 (the same line): **an `otherwise` with arms goes on
 the next line, the call's line ending in `-`** (`…($words[pos: $n minus 1])-` / `otherwise:`). Design claude's mistake,
-to be fixed with this redesign's build; the oracle already reads the `-`.
+to be fixed with this redesign's build; the oracle already reads the `-`. Asked whether an `otherwise:` with arms on the
+call's own line is then refused, one way to write it (design claude recommending yes), the owner: "yes".
 Design claude's readings, said with the table: a width written bare after `.` (`int.sign.32`) is a segment, not a
 number; the limb marks stay on the limb's part (`float.%deci.64`, `int.sign.%128`). Not built.
 
