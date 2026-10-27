@@ -248,6 +248,10 @@ let $b := half(neg 4) otherwise cum_failed.!flow_back_to_bladder;
   `otherwise order_failed.!apologize(…)`.)* Until then the use carried no mark of it (owner, 2026-10-25:
   "you already wrote what that handler is supposed to do in the
   `coll,handler`, right?"; design claude's reading until then).
+- **A handler whose arm can `break` or `continue` is used only inside a loop**, and says nothing more about it
+  (owner, 2026-10-27: "yes" to (b), over (a) `member booking_failed.explain […] in loop:`, after "`let $x := 1000;
+  in cypl`"): the `continue;` in its arm already says so. A use outside a loop is refused before the program runs,
+  as a `break` or `continue` written there is.
 - It is refused on a call it does not cover: every reason the call can
   fail with needs its arm, as inline.
 - A payload is bound as inline, `negative 'v'`, its type the call's

@@ -34,6 +34,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign two: a handler that can `break` or `continue` says nothing more; its use outside a loop is refused (owner: (b))
+
+From multifinity's review of the redesigned night trains (point 4): `!case … continue;` arms only make sense at a call
+inside a loop, so maybe the declaration says so, `member booking_failed.explain [...] in loop:`. Design claude offered
+(a) that `in loop`, required on a handler with a `break` or `continue` arm, or (b) no mark, the build refusing the
+handler's use outside a loop, recommending (b): the arm's `!` and its `continue;` already say it, and the use already
+wears `!`. Asked again plainly ("what"), the owner: "```let $x := 1000; in cypl```"; design claude read it as `in loop`
+being as redundant as tagging a line `in cypl`, asked, and the owner: "yes". So **(b)**. Found checking it: the oracle
+refused a `break` or `continue` with no loop around it only when it ran, with no line, and not at all when the arm was
+never reached. Now every `break` / `continue` outside a loop (written there, after `otherwise`, or in a handler used
+there) is refused before running; a handler's own arms are exempt, written for the caller's loop. Built.
+
 ### 2026-10-27 — Redesign two: a `sig` and a `set` never mix; `<T: Whole and Ordered>` (owner)
 
 Settles the question left open by the `set` ruling. 2026-10-02 let one interface list types and operations ("Both

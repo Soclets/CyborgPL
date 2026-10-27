@@ -648,7 +648,10 @@ fn body_has_effect_word(toks: &[Token], brace: usize) -> bool {
 
 /// A handler arm that jumps, holding a `continue`, a `break` or a `return` outside any loop of its own (owner,
 /// 2026-10-26: "`!` means 'needs your attention', it would also apply to … a handler holding a `continue`")
-fn arm_jumps(toks: &[Token], brace: usize) -> bool {
+fn arm_jumps(toks: &[Token], brace: usize) -> bool { arm_jumps_to(toks, brace, false) }
+
+/// `loop_only`: only a `break` or `continue` counts, which needs a loop around the handler's use (owner, 2026-10-27)
+fn arm_jumps_to(toks: &[Token], brace: usize, loop_only: bool) -> bool {
     let mut d = 0;
     let mut loops: Vec<i32> = Vec::new();
     let mut j = brace;
@@ -658,7 +661,7 @@ fn arm_jumps(toks: &[Token], brace: usize) -> bool {
             Tok::LBrace => { d += 1; if pending_loop { loops.push(d); pending_loop = false; } }
             Tok::RBrace => { if loops.last() == Some(&d) { loops.pop(); } d -= 1; if d == 0 { break; } }
             Tok::Word(w) if w == "for" || w == "while" || w == "loop" => pending_loop = true,
-            Tok::Word(w) if w == "return" => return true,
+            Tok::Word(w) if w == "return" && !loop_only => return true,
             Tok::Word(w) if (w == "break" || w == "continue") && loops.is_empty() => return true,
             _ => {}
         }
@@ -668,7 +671,9 @@ fn arm_jumps(toks: &[Token], brace: usize) -> bool {
 }
 
 /// The handlers of this file that jump: `half_failed.as_zero` for a `coll.handler` member, `half_failed` for its own
-fn jumping_handlers(toks: &[Token]) -> HashSet<String> {
+fn jumping_handlers(toks: &[Token]) -> HashSet<String> { handlers_jumping(toks, false) }
+
+fn handlers_jumping(toks: &[Token], loop_only: bool) -> HashSet<String> {
     let mut out = HashSet::new();
     let w = |i: usize| -> Option<&str> { toks.get(i).and_then(|t| if let Tok::Word(x) = &t.tok { Some(x.as_str()) } else { None }) };
     let mut i = 0;
@@ -690,7 +695,7 @@ fn jumping_handlers(toks: &[Token]) -> HashSet<String> {
                         let mut dd = 1;
                         let mut jumps = false;
                         while k < toks.len() && dd > 0 {
-                            match toks[k].tok { Tok::LBrace => { if dd == 1 && arm_jumps(toks, k) { jumps = true; } dd += 1; } Tok::RBrace => dd -= 1, _ => {} }
+                            match toks[k].tok { Tok::LBrace => { if dd == 1 && arm_jumps_to(toks, k, loop_only) { jumps = true; } dd += 1; } Tok::RBrace => dd -= 1, _ => {} }
                             k += 1;
                         }
                         if jumps { out.insert(if name == coll { coll.clone() } else { name.clone() }); }
@@ -1841,7 +1846,38 @@ fn check_blocks(toks: &[Token], closes: &[(String, bool, usize, usize)], arm_ban
     // the chain an `else` continues: the first branch's kind, for the `end of` closing the last
     let mut heads: Vec<Option<String>> = Vec::new();
     let mut last_closed: Option<String> = None;
+    // where a handler that can `break` or `continue` is used: like those words, only inside a loop (owner, 2026-10-27:
+    // (b), no `in loop` on the handler)
+    let looping = handlers_jumping(toks, true);
+    let mut loop_uses: HashMap<usize, String> = HashMap::new();
+    for k in 1..toks.len() {
+        if !matches!(&toks[k - 1].tok, Tok::Word(o) if o == "otherwise") { continue; }
+        let Tok::Word(c) = &toks[k].tok else { continue };
+        let name = match (toks.get(k + 1).map(|t| &t.tok), toks.get(k + 2).map(|t| &t.tok)) { (Some(Tok::Dot), Some(Tok::Word(m))) => format!("{c}.{m}"), _ => c.clone() };
+        if looping.contains(&name) { loop_uses.insert(k, name); }
+    }
+    let in_loop = |stack: &[(Open, usize)]| -> bool {
+        for (i, (o, _)) in stack.iter().enumerate().rev() {
+            if matches!(o.close.as_str(), "for" | "while" | "loop") && !o.template { return true; }
+            // a handler's own arms are written for the caller's loop
+            if o.close.starts_with("collection.handler ") { return true; }
+            if o.close.starts_with("member ") || o.close == "member" {
+                return i >= 1 && stack[i - 1].0.close.starts_with("collection.handler ");
+            }
+            if o.close == "MAIN" || o.close.starts_with("%spawn.task") || o.close.starts_with("function") || o.close.starts_with("procedure")
+                || o.close.starts_with("operator") || o.close.starts_with("test ") { return false; }
+        }
+        false
+    };
     for (k, t) in toks.iter().enumerate() {
+        if let Tok::Word(w) = &t.tok {
+            if (w == "break" || w == "continue") && (k == stmt_start || k >= 1 && matches!(&toks[k - 1].tok, Tok::Word(o) if o == "otherwise")) && !in_loop(&stack) {
+                return Err((t.line, t.col, format!("`{w}` here is in no loop: it goes inside a `for`, `while` or `loop` (owner, 2026-10-27)")));
+            }
+            if let Some(name) = loop_uses.get(&k) { if !in_loop(&stack) {
+                return Err((t.line, t.col, format!("`{name}` can `break` or `continue`, so it is used only inside a loop (owner, 2026-10-27)")));
+            } }
+        }
         // a line inside a collection that is one of its members says `member` (owner, 2026-10-27)
         if k == stmt_start && depth == 0 {
             let in_coll = stack.last().is_some_and(|(o, _)| o.members.is_some());
