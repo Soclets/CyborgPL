@@ -34,6 +34,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: `concur` becomes `spawn.task`, `concur.detached` `spawn.task.detached` (owner; not built)
+
+The owner: "More syntax shit, no shit. Find more inaccurate terms, if not already accurate". Design claude listed
+`concur` (in English "concur" means agree), `range[1, 10]` (in maths a range is a function's outputs; 1 to 10 is an
+interval), `enum` (cases carrying data make a variant, not an enumeration), `collection.bound` (a bound is a limit
+value, not a type), `print.useful`, `print.weird`, `no_cheat`, and the missed abbreviations `op`, `extern`; found
+accurate: `map`, `structure`, `give` / `copy` / `lend`, `shadow`, `change`, `fail`, `otherwise`, `channel`,
+`interface`, `satisfies`, `exactly`, `percent`, `minimum:` / `maximum:`, `match`, `is`, `my`. For `concur`, offered
+`concurrent`, `alongside`, `task` (recommended); the owner: "`spawn.task`? Btw, `concur` is an abbrev for `concurrent`",
+then "`spawn.task` or `spawn_task`?" (`.` narrows into a variant: a task is one kind of thing spawned, beside a thread
+or a process later; `_` would make one indivisible name), then "yes". So **`%spawn.task with […]:` … `end of
+%spawn.task`, and `%spawn.task.detached`**, the mark on `%spawn`. Not built; the other inaccurate terms follow.
+
 ### 2026-10-27 — Redesign: no abbreviations; a name stays a name (`std`, `ASM`, `MSL`, `utf8`, `C`) (owner; not built)
 
 After the operator purge, shown a piece of the bare station still with `div`, `mod`, `min:`, `max:`, the owner: "No
