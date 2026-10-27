@@ -1,7 +1,7 @@
-sig Number:
+set Number:
     int.sign.32;
     float.bin.64;
-end of sig Number
+end of set Number
 fn f <T: Number> [let $a: <T>] -> <T>:
     ret $a;
 end of fn f

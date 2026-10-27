@@ -1,10 +1,10 @@
 # Generics (design/generics.md): a blank, <T>, filled per use by the compiler. Every blank is
 # announced after the name with what it accepts (owner, 2026-10-02): `<T>: Number`, `<T>: any`.
-sig Number:
+set Number:
     int.sign.32;
     int.sign.64;
     float.bin.64;
-end of sig Number
+end of set Number
 
 fn max <T: Number> [let $a: <T>, let $b: <T>] -> <T>:
     if $a gt $b:

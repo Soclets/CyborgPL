@@ -1180,6 +1180,8 @@ thread_local! {
     pub static KINDS_BY_MODULE: std::cell::RefCell<HashMap<(Vec<String>, usize), bool>> = std::cell::RefCell::new(HashMap::new());
     /// the module of the file being read
     pub static LEX_MODULE: std::cell::RefCell<Vec<String>> = std::cell::RefCell::new(Vec::new());
+    /// the lines a `set` opens on, a closed list of types (its block the parser's interface)
+    pub static SET_LINES: std::cell::RefCell<HashSet<usize>> = std::cell::RefCell::new(HashSet::new());
     /// the bracket depths of the parameter lists open while `lengthen` reads
     pub static PARAMS: std::cell::RefCell<Vec<i32>> = std::cell::RefCell::new(Vec::new());
     /// where a member line's word `member` stood: the token after it, by line and column
@@ -1378,6 +1380,7 @@ pub fn front(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
     WRITTEN_KINDS.with(|k| k.borrow_mut().clear());
     MEMBERS.with(|m| m.borrow_mut().clear());
     PARAMS.with(|p| p.borrow_mut().clear());
+    SET_LINES.with(|s| s.borrow_mut().clear());
     // redesign two's words read as redesign one's (owner, 2026-10-27: "It's done, build it"), then as the parser's
     let toks = lengthen(toks)?;
     let toks = words_back(toks).map_err(|(l, c, m)| (l, c, if m.contains("is an old spelling") { m } else { twos(&m) }))?;
@@ -1749,22 +1752,35 @@ fn fields_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
     let mut drop: HashSet<usize> = HashSet::new();
     let mut comma: HashSet<usize> = HashSet::new();
     let mut stack: Vec<Open> = Vec::new();
+    let sets = SET_LINES.with(|s| s.borrow().clone());
+    let mut set_block: Vec<bool> = Vec::new();
     for k in 0..toks.len() {
         match toks[k].tok { Tok::LBracket | Tok::LParen => depth += 1, Tok::RBracket | Tok::RParen => depth -= 1, _ => {} }
         match &toks[k].tok {
             Tok::LBrace => {
+                set_block.push(sets.contains(&toks[k].line));
                 let o = describe(&toks, stmt_start, k, &text, None, stack.last());
                 kinds.push(if o.close.starts_with("interface ") { 2 } else if o.close.starts_with("record ") { 3 } else if o.fields { 1 } else { 0 });
                 stack.push(o);
                 stmt_start = k + 1;
             }
             Tok::RBrace => {
+                // a `sig` of types only is a `set` (owner, 2026-10-27)
+                if kinds.last() == Some(&2) && !set_block.last().copied().unwrap_or(false) {
+                    let open_at = (0..k).rev().find(|&j| toks[j].tok == Tok::LBrace && toks[j..k].iter().filter(|t| t.tok == Tok::LBrace).count() == toks[j..k].iter().filter(|t| t.tok == Tok::RBrace).count() + 1).unwrap_or(0);
+                    let body = &toks[open_at + 1..k];
+                    let has_op = body.iter().any(|t| matches!(&t.tok, Tok::Word(w) if w == "fn" || w == "op"));
+                    if !has_op && !body.is_empty() {
+                        let t = &toks[open_at];
+                        return Err((t.line, t.col, "a list of types only is a `set`: `set Number:` … `end of set Number` (owner, 2026-10-27)".into()));
+                    }
+                }
                 // a field or case before the end with no `;` of its own
                 if matches!(kinds.last(), Some(&1) | Some(&3)) && stmt_start < k {
                     let t = &toks[k - 1];
                     return Err((t.line, t.col, "each field and case ends with `;` (owner, 2026-10-26: commas inside brackets, semicolons inside blocks)".into()));
                 }
-                kinds.pop(); stack.pop(); stmt_start = k + 1;
+                kinds.pop(); stack.pop(); set_block.pop(); stmt_start = k + 1;
             }
             Tok::Comma if depth == 0 && matches!(kinds.last(), Some(&1) | Some(&3)) => {
                 let t = &toks[k];
@@ -1781,8 +1797,15 @@ fn fields_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
             Tok::Semi if depth == 0 => {
                 match kinds.last() {
                     Some(1) | Some(3) => { if toks.get(k + 1).is_some_and(|t| t.tok == Tok::RBrace) { drop.insert(k); } else { comma.insert(k); } }
-                    // a type entry (no `fn` / `op` in it) loses its `;`
-                    Some(2) => { if !toks[stmt_start..k].iter().any(|t| matches!(&t.tok, Tok::Word(w) if w == "fn" || w == "op")) { drop.insert(k); } }
+                    // a type entry (no `fn` / `op` in it) loses its `;`; a `set` holds types only
+                    Some(2) => {
+                        let operation = toks[stmt_start..k].iter().any(|t| matches!(&t.tok, Tok::Word(w) if w == "fn" || w == "op"));
+                        if !operation { drop.insert(k); }
+                        else if set_block.last().copied().unwrap_or(false) {
+                            let t = &toks[stmt_start];
+                            return Err((t.line, t.col, "a `set` lists types only; operations go in a `sig` (owner, 2026-10-27)".into()));
+                        }
+                    }
                     _ => {}
                 }
                 stmt_start = k + 1;
@@ -1836,7 +1859,7 @@ fn check_blocks(toks: &[Token], closes: &[(String, bool, usize, usize)], arm_ban
                 stmt_start = k + 1;
             }
             Tok::RBrace => {
-                let Some((open, _)) = stack.pop() else { return Err((t.line, t.col, "an `end of` line with no block open".into())); };
+                let Some((open, opened_at)) = stack.pop() else { return Err((t.line, t.col, "an `end of` line with no block open".into())); };
                 if open.list { continue; }
                 let head = heads.pop().flatten();
                 let Some((written, bang, line, col)) = closes.get(close_at).cloned() else { return Err((t.line, t.col, "a block's end".into())); };
@@ -1845,7 +1868,9 @@ fn check_blocks(toks: &[Token], closes: &[(String, bool, usize, usize)], arm_ban
                 if written == "<else>" { last_closed = Some(head.unwrap_or_else(|| open.close.clone())); stmt_start = k + 1; continue; }
                 last_closed = None;
                 // the block's kind and name as redesign two writes them; a chain's last branch closes on its first's
-                let want = short_code(&head.unwrap_or_else(|| open.close.clone()));
+                let mut want = short_code(&head.unwrap_or_else(|| open.close.clone()));
+                let opened_on = toks[opened_at].line;
+                if want.starts_with("sig ") && SET_LINES.with(|s| s.borrow().contains(&opened_on)) { want = want.replacen("sig ", "set ", 1); }
                 if written != want { return Err((line, col, format!("`end of {written}` closes `{want}`: write `{}end of {want}` (owner, 2026-10-26)", if open.bang { "!" } else { "" }))); }
                 if bang != open.bang {
                     return Err((line, col, if open.bang { format!("this block's last line wears `!`, as its first does: `!end of {want}` (owner, 2026-10-26)") } else { format!("`!end of {want}`: `!` goes only where something needs attention (owner, 2026-10-26)") }));
@@ -1897,7 +1922,7 @@ pub fn short_word(w: &str) -> Option<&'static str> {
         "return" => "ret", "boolean" => "bool", "character" => "char", "pointer" => "ptr",
         "concatenate" => "concat", "shift_left" => "shl", "shift_right" => "shr",
         "power" => "pow",
-        // `sig`, a signature: a list of operations and their types (owner, 2026-10-27)
+        // `sig`, a signature: a list of operations and their types (owner, 2026-10-27); a list of types only is a `set`
         "interface" => "sig",
         _ => return None,
     })
@@ -2077,6 +2102,8 @@ pub fn shorten(src: &str) -> Result<String, String> {
                     "sequential" | "parallel" | "temporary" | "permanent" if for_modifier(&toks, i) => Some(match w { "sequential" => "seq", "parallel" => "para", "temporary" => "temp", _ => "perm" }),
                     "divide" | "modulo" if *tok(i + 1) == Tok::Dot => Some(if w == "divide" { "div" } else { "mod" }),
                     "boolean" | "character" | "string" => Some(match w { "boolean" => "bool", "character" => "char", _ => "str" }),
+                    // `interface` goes to `sig` or `set` by what its block holds, in the block pass
+                    "interface" => None,
                     _ => short_word(w),
                 };
                 if let Some(r) = r { put(&mut edits, r); shortened.insert(i, r.into()); } else { shortened.insert(i, w.into()); }
@@ -2096,6 +2123,38 @@ pub fn shorten(src: &str) -> Result<String, String> {
             _ => {}
         }
         i += 1;
+    }
+    // a signature of types only is a `set`, on its opening and its `end of` line (owner, 2026-10-27)
+    {
+        let lines: Vec<(usize, usize)> = {
+            let mut v = Vec::new(); let mut st = 0;
+            for (k, c) in chars.iter().enumerate() { if *c == '\n' { v.push((st, k)); st = k + 1; } }
+            v.push((st, chars.len())); v
+        };
+        let text_of = |l: usize| -> String { chars[lines[l].0..lines[l].1].iter().collect() };
+        for l in 0..lines.len() {
+            let t = text_of(l);
+            let tr = t.trim_start();
+            let rest = tr.strip_prefix("pub ").or_else(|| tr.strip_prefix("public ")).unwrap_or(tr);
+            let word = if rest.starts_with("sig ") { "sig" } else if rest.starts_with("interface ") { "interface" } else { continue };
+            if !t.trim_end().ends_with(':') { continue; }
+            let name: String = rest[word.len() + 1..].chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
+            let close = format!("end of {word} {name}");
+            let mut e = l + 1;
+            let mut has_op = false;
+            while e < lines.len() && text_of(e).trim() != close {
+                let b = text_of(e); let b = b.trim();
+                if ["fn ", "op ", "proc ", "function ", "operator ", "procedure "].iter().any(|p| b.starts_with(p)) { has_op = true; }
+                e += 1;
+            }
+            if e >= lines.len() || (has_op && word == "sig") { continue; }
+            let new = if has_op { "sig" } else { "set" };
+            let at = lines[l].0 + (t.len() - tr.len()) + (tr.len() - rest.len());
+            edits.push(Edit { at, end: at + word.len(), text: new.into() });
+            let et = text_of(e);
+            let eat = lines[e].0 + (et.len() - et.trim_start().len()) + "end of ".len();
+            edits.push(Edit { at: eat, end: eat + word.len(), text: new.into() });
+        }
     }
     // an if's branches are one block: no `end of` before an `else`, and the last branch closes on the first's kind
     // (owner, 2026-10-27: "(b)")
@@ -2557,6 +2616,11 @@ fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                 let layout_before = (i.saturating_sub(4)..i).any(|k| is_w(k, "layout"));
                 let long: Option<&str> = match w {
                     "fn" => Some("function"), "proc" => Some("procedure"), "op" => Some("operator"), "sig" => Some("interface"),
+                    // `set Number:` … a closed list of types (owner, 2026-10-27: "`set`")
+                    "set" if matches!(next, Tok::Word(_)) && toks[i + 1..].iter().take_while(|x| x.line == t.line).last().is_some_and(|x| x.tok == Tok::Colon) => {
+                        SET_LINES.with(|s| s.borrow_mut().insert(t.line));
+                        Some("interface")
+                    }
                     "var" => Some("variable"), "const" => Some("constant"), "rec" => Some("record"),
                     "enum" if layout_before => Some("enumeration"),
                     "pub" => Some("public"), "extern" => Some("external"), "ret" => Some("return"),

@@ -265,10 +265,10 @@ end of proc show_alarm
 # The day
 # ---------------------------------------------------------------------------------------------------
 
-sig Number:
+set Number:
     int.sign.32;
     int.unsign.32;
-end of sig Number
+end of set Number
 
 fn larger <T: Number> [let $a: <T>, let $b: <T>] -> <T>:
     if $a gt $b:

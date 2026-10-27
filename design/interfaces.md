@@ -43,11 +43,11 @@ end of sig Ordered
 sig Printable <T>:
     fn show [lent $x: <T>] -> str.utf8;
 end of sig Printable
-sig Number:
+set Number:
     int.sign.32;
     int.sign.64;
     float.bin.64;
-end of sig Number
+end of set Number
 ```
 
 Top level beside `struct`; `pub` works; entries are `fn` and `op`

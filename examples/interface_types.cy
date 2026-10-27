@@ -1,11 +1,11 @@
 # Generics announced after the name, each saying what it accepts (owner, 2026-10-02). An interface
 # may list types, one per line, as well as operations; a blank may need several, joined with `and`;
 # lifetime groups come after the generics, a `|` between the two kinds.
-sig Number:
+set Number:
     int.sign.32;
     int.sign.64;
     float.bin.64;
-end of sig Number
+end of set Number
 
 sig Ordered <T>:
     op lt [$a: <T>, $b: <T>] -> bool;

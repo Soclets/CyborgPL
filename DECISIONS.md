@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign two: a closed list of types is a `set`, `set Number:` … `end of set Number` (owner)
+
+With `interface` now `sig` (a list of operations), `sig Number: int.sign.32; float.%deci.64;` is no signature. Asked
+whether a closed list of types is its own kind, design claude recommended `types`; the owner: "What about `generic`?"
+(design claude: against, "generic" means any type, and the list narrows to a few), "Anything else?" (offered `set`,
+`types`, `one.of`, `family`, now recommending `set`: in maths `Number` is the set {int.sign.32, float.deci.64} and `<T:
+Number>` reads T ∈ Number; the cost, `set` no longer free for a future collection's name). The owner: "`set`". So
+**`set Number:` … `end of set Number`**, types only, an operation in it refused; a `sig` of types only refused naming
+`set`. Built. Left open, asked next: a `sig` mixing types and operations (2026-10-02 allows it, examples/interface_types.cy's
+`WholeOrdered`).
+
 ### 2026-10-27 — Redesign two: `interface` becomes `sig`, a signature (owner)
 
 From multifinity's review (`interface Number` lists types, not behaviour), the owner: "Is `interface` accurate?" Design

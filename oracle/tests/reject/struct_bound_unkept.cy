@@ -1,6 +1,6 @@
-sig Number:
+set Number:
     int.sign.32;
-end of sig Number
+end of set Number
 rec Box <T: Number>:
     var item: <T>;
 end of rec Box

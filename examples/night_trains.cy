@@ -98,10 +98,10 @@ end of rec Booking
 # Small generic helpers
 # ---------------------------------------------------------------------------------------------------
 
-sig Number:
+set Number:
     int.sign.32;
     float.%deci.64;
-end of sig Number
+end of set Number
 
 fn total_of <T: Number> [lent $xs: std::ls[<T>]] -> <T>:
     var $sum: <T> = 0;

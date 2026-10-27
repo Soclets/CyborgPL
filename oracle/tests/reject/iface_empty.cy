@@ -1,4 +1,4 @@
-sig Nothing:
-end of sig Nothing
+set Nothing:
+end of set Nothing
 !MAIN:
 !end of MAIN
