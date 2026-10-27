@@ -34,6 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): every printing form has its `println.` twin; `.auto_newline` retired (owner)
+
+Shown the print forms with their counts in the examples, design claude recommending a `println.` twin for each form that
+prints (`println.stored`, `println.format`, `println.written`, `println.arrows.shortest`), `print.flush` and the
+`print.writer` family staying `print` only (they print no line), and the `.auto_newline` forms retired (`println` is
+them). The owner: "yes". So, exploring: **`std::println.stored(0.1)`, `std::println.format("{} km", $km)`**;
+`print.shortest` stays the full name of a bare `print`.
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): `ln` is the one glued suffix; every other variant keeps its `.` (owner)
 
 After `std::println`, the owner: "Can `.stored` attach like `ln`? Say, `prints`. My personally opinion is that it's too big
