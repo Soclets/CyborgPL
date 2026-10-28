@@ -12,7 +12,7 @@ fn label [let $s: Status] -> str.utf8:
             is "free";
         ;case empty
         case claimed $who:
-            is "taken by " ++ $who;
+            is "taken by " concat $who;
         ;case claimed
         case locked:
             ret "(locked)";

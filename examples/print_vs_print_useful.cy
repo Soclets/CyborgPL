@@ -7,7 +7,7 @@ MAIN:
     std::print($y, newln);
     let $big := 1_000_000 x 1_000_000;
     std::print.stored($big, newln);
-    let $s := "x is " ++ to.stored.str.utf8($x);
+    let $s := "x is " concat to.stored.str.utf8($x);
     std::print.stored($s, newln);
     std::print($s, newln);
     std::print("x is ", $x, newln);

@@ -1,1 +1,1 @@
-two values next to each other (found \n after the value): join text with `++`
+two values next to each other (found \n after the value): join text with `concat`

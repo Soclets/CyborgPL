@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-28 — Redesign three: `++` goes back to `concat`; a symbol only where maths, or nearly every language, gives it exactly that meaning (owner)
+
+multifinity's Claude, on the naming rule taking shape, checked each symbol against "readers already know it to mean
+exactly that": `+ - < > <= >= == !=` yes; `^` power in maths and spreadsheets but XOR in C, Rust, Java, Go; `++` concat in
+Haskell and Zig but increment in C, Java, JS; `x` close to ×. Design claude: the rule needs a reference point, and
+CyborgPL's is maths ("accurate in the maths sense", since 2026-10-26): with it `+ - x ^ < > <= >=` are maths's, `==` /
+`!=` every language's spelling of `=` / `≠` (`=` taken), `++` has no meaning in maths, and `&` / `|` are not maths's
+and / or; so keep `^` and `x` (XOR is never a symbol here, it is `xor.bit`), turn `++` back into `concat`. The owner:
+"yes". So **`"a" concat "b"`**, `++` refused naming `concat` (and `change $i += 1;` for adding one), `++=` gone; the rule's
+symbol clause reads "only where maths, or nearly every language, already gives the symbol exactly that meaning". Built.
+
 ### 2026-10-28 — Redesign three: `std::println` dropped; a line ends with `newln`, in every printing form (owner: "drop")
 
 Shown the redesign run, the owner: "`prinln` feels so awkward". Design claude offered (a) `std::print.line` (the `.` rule),

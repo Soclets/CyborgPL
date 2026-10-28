@@ -117,7 +117,7 @@ the parameters. A call is a value and stands bare wherever a value goes:
 
 ```
 ret $a + $b;
-ret "hello " ++ $name;    # text joins with ++ (2026-09-19)
+ret "hello " concat $name;    # text joins with ++ (2026-09-19)
 ret;                       # in a nothing-function
 ```
 

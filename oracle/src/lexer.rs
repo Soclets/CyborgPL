@@ -152,7 +152,7 @@ fn raw_words() -> bool { RAW_WORDS.with(|r| r.get()) }
 
 /// The operator symbols of redesign three (owner, 2026-10-27), and its other marks: `?` / `??` for `otherwise`, `*` before a
 /// jumping handler, the `change` forms `+=` …
-pub const THREE_SYMBOLS: &[&str] = &["+", "-", "^", "==", "!=", "<", ">", "<=", ">=", "++", "?", "??", "*", "+=", "-=", "^=", "++="];
+pub const THREE_SYMBOLS: &[&str] = &["+", "-", "^", "==", "!=", "<", ">", "<=", ">=", "?", "??", "*", "+=", "-=", "^="];
 
 thread_local! {
     /// `oracle --mark-limbs`: the edits that would mark a file's limb words and spell its percentages out, gathered

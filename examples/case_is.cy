@@ -11,7 +11,7 @@ fn label [let $s: Status] -> str.utf8:
             is "free";
         ;case empty
         case claimed $who:
-            let $prefix := "taken by "; is $prefix ++ $who;
+            let $prefix := "taken by "; is $prefix concat $who;
         ;case claimed
         case locked:
             is "locked";

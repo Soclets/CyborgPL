@@ -336,7 +336,7 @@ fn clock [let $minutes: i32] -> str.utf8:
     if $day == 0:
         ret give $text;
     ;if
-    ret $text ++ " +" ++ to.stored.str.utf8($day);
+    ret $text concat " +" concat to.stored.str.utf8($day);
 ;fn clock
 
 # A clock that hands out the next quarter hour each time it is asked, until it reaches its end.
@@ -418,7 +418,7 @@ fn seat_name [lent $seat: Seat] -> str.utf8:
             ret "couchette";
         ;case couchette
         case sleeper $berths:
-            ret "sleeper for " ++ to.stored.str.utf8($berths);
+            ret "sleeper for " concat to.stored.str.utf8($berths);
         ;case sleeper
     ;match
 ;fn seat_name

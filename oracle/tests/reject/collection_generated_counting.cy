@@ -1,6 +1,6 @@
 coll.fn c:
     for $n [from: 1, before: 3, by: 1]:
-        named "t" ++ to.stored.str.utf8($n);
+        named "t" concat to.stored.str.utf8($n);
         member [] -> i32:
             ret $n;
         ;member

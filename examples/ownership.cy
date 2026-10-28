@@ -8,15 +8,15 @@ fn count [lent $items: std::ls[str.utf8]] -> i32:
 ;fn count
 
 proc shout [lent.mut $text: str.utf8]:
-    change $text to copy $text ++ "!";
+    change $text to copy $text concat "!";
 ;proc shout
 
 fn greet [let $name: str.utf8] -> str.utf8:
-    ret "hello " ++ $name;
+    ret "hello " concat $name;
 ;fn greet
 
 MAIN:
-    let $s := "line 1" ++ newln ++ "line 2";
+    let $s := "line 1" concat newln concat "line 2";
     let $t := give $s;
     var $u = copy $t;
     shout(lend.mut $u);

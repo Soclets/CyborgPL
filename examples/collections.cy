@@ -11,9 +11,9 @@ coll.fn greet:
         ;if
         var $out = str.empty;
         for $i [from: 1, to: $times, by: 1]:
-            change $out to $out ++ $word ++ ", ";
+            change $out to $out concat $word concat ", ";
         ;for
-        ret $out ++ $who;
+        ret $out concat $who;
     ;member greet
 
     member greet.hi [$word = "hi", $times = 1];
@@ -49,7 +49,7 @@ fn name_word [let $t: str.utf8] -> str.utf8:
 
 coll.fn zero:
     for $T in [i16, i64]:
-        named "of_" ++ name_word($T);
+        named "of_" concat name_word($T);
         member [] -> $T:
             ret 0;
         ;member

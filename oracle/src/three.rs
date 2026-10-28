@@ -168,7 +168,7 @@ pub fn from_three(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     let sym = match w {
                         "plus" if !narrowed => Some("+"), "minus" if !narrowed => Some("-"), "times" if !narrowed => Some("x"),
                         "pow" if !narrowed => Some("^"), "eq" => Some("=="), "not_eq" => Some("!="), "lt" => Some("<"), "gt" => Some(">"),
-                        "at_most" => Some("<="), "at_least" => Some(">="), "concat" => Some("++"),
+                        "at_most" => Some("<="), "at_least" => Some(">="),
                         // negation as a value keeps its name, `op neg` (owner, 2026-10-28: "keep it")
                         "neg" if !narrowed && !matches!(prev.map(|p| &p.tok), Some(Tok::Word(o)) if o == "op") => Some("-"),
                         _ => None,
@@ -200,9 +200,7 @@ pub fn from_three(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     ">" => out.push(wide(Tok::Op(">".into()), t, 2)),
                     "<=" => out.push(like(Tok::Op("at_most".into()), t)),
                     ">=" => out.push(like(Tok::Op("at_least".into()), t)),
-                    "++" if matches!(tok(i + 1), Tok::Semi | Tok::RParen | Tok::Comma) => return Err((t.line, t.col, "`++` joins two texts; adding one is `change $i += 1;` (owner, 2026-10-27)".into())),
-                    "++" => out.push(word("concat", t)),
-                    "+=" | "-=" | "^=" | "++=" => return Err((t.line, t.col, format!("a change starts with `change`: `change $i {o} 1;` (owner, 2026-10-27)"))),
+                    "+=" | "-=" | "^=" => return Err((t.line, t.col, format!("a change starts with `change`: `change $i {o} 1;` (owner, 2026-10-27)"))),
                     // `?` / `??` (owner, 2026-10-27): `otherwise fail` / `otherwise <value>`
                     "?" => { out.push(word("otherwise", t)); out.push(word("fail", t)); }
                     "??" => out.push(word("otherwise", t)),
@@ -234,7 +232,7 @@ fn compound_changes(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                 match &toks[k].tok {
                     Tok::LParen | Tok::LBracket => d += 1, Tok::RParen | Tok::RBracket => d -= 1,
                     Tok::Semi if d == 0 => break,
-                    Tok::Op(o) if d == 0 && at.is_none() => { at = match o.as_str() { "+=" => Some((k, "+", 1)), "-=" => Some((k, "-", 1)), "^=" => Some((k, "^", 1)), "++=" => Some((k, "++", 1)), _ => None }; }
+                    Tok::Op(o) if d == 0 && at.is_none() => { at = match o.as_str() { "+=" => Some((k, "+", 1)), "-=" => Some((k, "-", 1)), "^=" => Some((k, "^", 1)), _ => None }; }
                     Tok::Word(x) if d == 0 && at.is_none() && x == "x" && toks.get(k + 1).is_some_and(|e| e.tok == Tok::Eq) => { at = Some((k, "x", 2)); }
                     Tok::Word(w) if d == 0 && w == "to" && at.is_none() && !toks.get(k + 1).is_some_and(|x| x.tok == Tok::Dot) => break,
                     _ => {}
@@ -363,7 +361,7 @@ fn three_code(c: &str) -> String {
     for m in ["MAIN", "no_check", "NO_FUCKING_CHECKS", "case "] { if let Some(r) = s.strip_prefix('!') { if r.starts_with(m) { s = r.to_string(); } } }
     let words: Vec<String> = s.split(' ').map(|w| match w {
         "plus" => "+".into(), "minus" => "-".into(), "times" => "x".into(), "pow" => "^".into(), "eq" => "==".into(), "not_eq" => "!=".into(),
-        "lt" => "<".into(), "gt" => ">".into(), "at_most" => "<=".into(), "at_least" => ">=".into(), "concat" => "++".into(),
+        "lt" => "<".into(), "gt" => ">".into(), "at_most" => "<=".into(), "at_least" => ">=".into(),
         other => other.to_string(),
     }).collect();
     let mut s = words.join(" ");

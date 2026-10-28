@@ -6,7 +6,7 @@ coll.fn say:
     labels [$text as value, $times as count];
     defaults [$times = 1];
     member say [let $n: i32, let $text: str.utf8, let $times: i32] -> str.utf8:
-        ret to.stored.str.utf8($n) ++ ": " ++ $text ++ " x" ++ to.stored.str.utf8($times);
+        ret to.stored.str.utf8($n) concat ": " concat $text concat " x" concat to.stored.str.utf8($times);
     ;member say
 ;coll.fn say
 

@@ -3,7 +3,7 @@
 pub const $max := 8;
 const $pi: f64 := 3.141_592_653_589_793;
 const $twice_max := $max x 2;
-const $greeting := "hello " ++ "world";
+const $greeting := "hello " concat "world";
 pub rec P:
     var x: i32;
 ;rec P

@@ -126,7 +126,7 @@ proc run [] -> i32 or fail[missing, out_of_range]:
              vz = -0.0000951592254519715870 x $days_per_year, mass = 0.0000515138902046611451 x $solar_mass]
     ];
     offset_momentum(lend.mut $bodies);
-    let $fmt := %C.str.make("%.9f" ++ newln)-
+    let $fmt := %C.str.make("%.9f" concat newln)-
     otherwise:
         case has_zero_byte:
             ret 2;

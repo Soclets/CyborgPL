@@ -1,6 +1,6 @@
 # concur, channels, duration literals (design/concurrency.md, 2026-09-22).
 fn fetch [lent $url: str.utf8] -> str.utf8:
-    ret "page of " ++ $url;
+    ret "page of " concat $url;
 ;fn fetch
 
 MAIN:

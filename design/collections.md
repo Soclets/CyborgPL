@@ -168,7 +168,7 @@ member's signature, or no own function takes it.
 ```
 coll.fn zero:
     for $T in [i16, i64]:
-        named "of_" ++ std::str.replace(lend $T, from: ".", to: "_");
+        named "of_" concat std::str.replace(lend $T, from: ".", to: "_");
         member [] -> $T:
             ret 0;
         ;member

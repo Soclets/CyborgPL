@@ -3,7 +3,7 @@ fn fetch [lent $url: str.utf8] -> str.utf8 or fail[no_network]:
     if $url == "down.com":
         fail no_network;
     ;if
-    ret "page of " ++ $url;
+    ret "page of " concat $url;
 ;fn fetch
 
 MAIN:

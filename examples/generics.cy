@@ -31,7 +31,7 @@ union.tag Maybe <T: any>:
 ;union.tag Maybe
 
 fn describe [lent $p: Pair[i32, str.utf8]] -> str.utf8:
-    ret to.stored.str.utf8($p.left) ++ " " ++ $p.right;
+    ret to.stored.str.utf8($p.left) concat " " concat $p.right;
 ;fn describe
 
 MAIN:

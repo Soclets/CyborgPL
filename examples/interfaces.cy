@@ -22,7 +22,7 @@ op == [lent $a: Vec, lent $b: Vec] -> bool:
     ret $a.x == $b.x and $a.y == $b.y;
 ;op ==
 fn show [lent $v: Vec] -> str.utf8:
-    ret "(" ++ to.stored.str.utf8($v.x) ++ ", " ++ to.stored.str.utf8($v.y) ++ ")";
+    ret "(" concat to.stored.str.utf8($v.x) concat ", " concat to.stored.str.utf8($v.y) concat ")";
 ;fn show
 
 Vec satisfies Ordered;        # optional: a claim the compiler checks
@@ -37,7 +37,7 @@ fn max <T: Ordered> [let $a: <T>, let $b: <T>] -> <T>:
 ;fn max
 
 fn describe <T: Printable> [lent $x: <T>] -> str.utf8:
-    ret "value " ++ show(lend $x);
+    ret "value " concat show(lend $x);
 ;fn describe
 
 MAIN:

@@ -34,7 +34,7 @@ MAIN:
             continue;
         ;if
     ;for
-    let $s := "line 1" ++ newln ++ "line 2";
+    let $s := "line 1" concat newln concat "line 2";
     std::print("total: ", $total, newln);
 ;MAIN
 ```

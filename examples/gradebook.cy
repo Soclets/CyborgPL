@@ -25,11 +25,11 @@ proc add_score [lent.mut $s: Student, let $score: i32] -> fail[out_of_range: i32
 ;proc add_score
 
 fn grade [lent $s: Student] -> str.utf8:
-    let $avg := average(lend $s) otherwise ret to.stored.str.utf8($passing) ++ "? no scores";
+    let $avg := average(lend $s) otherwise ret to.stored.str.utf8($passing) concat "? no scores";
     if $avg >= $passing:
-        ret "pass (" ++ to.stored.str.utf8($avg) ++ ")";
+        ret "pass (" concat to.stored.str.utf8($avg) concat ")";
     ;if
-    ret "fail (" ++ to.stored.str.utf8($avg) ++ ")";
+    ret "fail (" concat to.stored.str.utf8($avg) concat ")";
 ;fn grade
 
 MAIN:

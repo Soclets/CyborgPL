@@ -20,7 +20,7 @@ proc stash [lent.mut $l: Locker, let $item: str.utf8] -> bool:
 ;proc stash
 
 fn label [lent $l: Locker] -> str.utf8:
-    ret "#" ++ to.stored.str.utf8($l.number) ++ " (" ++ $l.owner ++ ")";
+    ret "#" concat to.stored.str.utf8($l.number) concat " (" concat $l.owner concat ")";
 ;fn label
 
 MAIN:

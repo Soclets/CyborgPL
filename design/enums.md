@@ -49,7 +49,7 @@ fn describe [lent $l: Locker] -> str.utf8:
             ret "free";
         ;case empty
         case claimed $who:
-            ret "taken by " ++ $who;
+            ret "taken by " concat $who;
         ;case claimed
         case locked:
             ret "locked";
@@ -85,7 +85,7 @@ let $label := match $s:
         "free"
     ;case empty
     case claimed $who:
-        "taken by " ++ $who
+        "taken by " concat $who
     ;case claimed
     case locked:
         ret "(locked)";

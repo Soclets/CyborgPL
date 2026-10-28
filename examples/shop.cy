@@ -33,16 +33,16 @@ fn cheapest <T: Priced> [lent $xs: std::ls[<T>]] -> <T> or fail[empty]:
 ;fn cheapest
 
 fn describe [lent $i: Item] -> str.utf8:
-    let $dollars := to.stored.str.utf8($i.cents div.floor 100) ++ "." ++ to.stored.str.utf8($i.cents mod.floor 100);
+    let $dollars := to.stored.str.utf8($i.cents div.floor 100) concat "." concat to.stored.str.utf8($i.cents mod.floor 100);
     match $i.stock:
         case out:
-            ret $i.name ++ " — sold out";
+            ret $i.name concat " — sold out";
         ;case out
         case few $n:
-            ret $i.name ++ " — only " ++ to.stored.str.utf8($n) ++ " left at $" ++ $dollars;
+            ret $i.name concat " — only " concat to.stored.str.utf8($n) concat " left at $" concat $dollars;
         ;case few
         case plenty:
-            ret $i.name ++ " — $" ++ $dollars;
+            ret $i.name concat " — $" concat $dollars;
         ;case plenty
     ;match
 ;fn describe

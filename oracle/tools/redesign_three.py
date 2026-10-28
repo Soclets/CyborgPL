@@ -7,8 +7,8 @@ Only code changes: text in quotes, characters in backticks, comments and the cod
 are. What it rewrites:
   closers         `end of fn add` / `!end of MAIN`        → `;fn add` / `;MAIN`
   `!` marks       `!MAIN:`, `!no_check`, `!case`, `h.!m`    → `MAIN:`, `no_check`, `case`, `h.*m`
-  operators       `plus minus times pow eq not_eq lt gt at_most at_least concat` → `+ - x ^ == != < > <= >= ++`;
-                  `neg 5` → `-5` (`and`, `or` and their narrowings keep their words, owner 2026-10-28)
+  operators       `plus minus times pow eq not_eq lt gt at_most at_least` → `+ - x ^ == != < > <= >=`;
+                  `neg 5` → `-5` (`and`, `or`, `concat` keep their words, owner 2026-10-28)
   number types    `int.sign.32`, `float.%deci.64`, …       → `i32`, `%d64`, …
   failures        `…) otherwise fail;`, `… otherwise 0;`   → `…)?;`, `… ?? 0;`
   changes         `change $x to $x + 1;`                    → `change $x += 1;` (only where it means the same)
@@ -20,8 +20,7 @@ import re
 import sys
 
 OPS = [("not_eq", "!="), ("at_most", "<="), ("at_least", ">="),
-       ("plus", "+"), ("minus", "-"), ("times", "x"), ("pow", "^"), ("eq", "=="), ("lt", "<"), ("gt", ">"),
-       ("concat", "++")]
+       ("plus", "+"), ("minus", "-"), ("times", "x"), ("pow", "^"), ("eq", "=="), ("lt", "<"), ("gt", ">")]
 INLINE_OPEN = re.compile(r'^\s*(?:!?no_check\s+)?inline\.%?(\w+)\b.*:\s*(#.*)?$')
 
 
@@ -140,13 +139,13 @@ def convert(src):
     def change(m):
         target, op, e = m.group(1), m.group(2), m.group(3)
         ops = top_level_ops(e)
-        tighter = {'+': {'x', '^'}, '-': {'x', '^'}, 'x': {'^'}, '^': set(), '++': set()}
+        tighter = {'+': {'x', '^'}, '-': {'x', '^'}, 'x': {'^'}, '^': set()}
         if any(not (o in tighter[op] or o.startswith('div.') or o.startswith('mod.')) for o in ops):
             return m.group(0)
-        if op in ('x', '^', '++') and any(o.startswith('div.') or o.startswith('mod.') for o in ops):
+        if op in ('x', '^') and any(o.startswith('div.') or o.startswith('mod.') for o in ops):
             return m.group(0)
         return f'change {target} {op}= {e};'
-    code = re.sub(r'change (\$[\w.$\[\]: ]+?) to \1 (\+\+|[-+x^]) ([^;\n]+);', change, code)
+    code = re.sub(r'change (\$[\w.$\[\]: ]+?) to \1 ([-+x^]) ([^;\n]+);', change, code)
     # printing: a bare `std::print` is `print.shortest`; a line still ends with `newln` (owner, 2026-10-28: `println` dropped)
     code = re.sub(r'std::print\.shortest\.auto_newline\((.*?)\)', lambda m: f'std::print({m.group(1)}, newln)', code)
     code = re.sub(r'std::print\.shortest\(', 'std::print(', code)
