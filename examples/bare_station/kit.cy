@@ -81,12 +81,12 @@ proc next_reading [lent.mut $c: Cursor] -> temp or fail[done, bad_byte: u64]:
         ;if
         let $b := $log[pos: $at];
         if $b == $hash:
-            while $at <= $n && $log[pos: $at] != $newline:
+            while $at <= $n and.then $log[pos: $at] != $newline:
                 change $at += 1;
             ;while
             continue;
         ;if
-        if $b == $newline | $b == $space:
+        if $b == $newline or $b == $space:
             change $at += 1; continue;
         ;if
         change $first to $b;
@@ -97,7 +97,7 @@ proc next_reading [lent.mut $c: Cursor] -> temp or fail[done, bad_byte: u64]:
         change $at += 1;
     ;if
     var $value: i32 = 0;
-    while $at <= $n && $log[pos: $at] != $newline:
+    while $at <= $n and.then $log[pos: $at] != $newline:
         let $b := $log[pos: $at];
         if $b < $zero:
             fail bad_byte[$at];

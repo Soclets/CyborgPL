@@ -1,3 +1,5 @@
 MAIN:
-    let $x := 12 & 10;
+    let $a := 6;
+    let $b := 3;
+    let $c := $a & $b;
 ;MAIN

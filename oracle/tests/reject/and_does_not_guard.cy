@@ -3,6 +3,6 @@
 MAIN:
     let $xs := [3, 5, 8];
     let $i: u64 := 7;
-    if $i <= std::ls.len(lend $xs) & $xs[pos: $i] == 5:
+    if $i <= std::ls.len(lend $xs) and $xs[pos: $i] == 5:
     ;if
 ;MAIN

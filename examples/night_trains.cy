@@ -225,7 +225,7 @@ proc quickest_from [lent $net: Network, lent $from: str.utf8] -> std::map.ordere
                     continue;
                 ;case missing
             ;otherwise;
-            if not $found || $r.minutes < $pick_minutes:
+            if not $found or.else $r.minutes < $pick_minutes:
                 change $found to true;
                 change $pick to copy $s;
                 change $pick_minutes to $r.minutes;
@@ -267,7 +267,7 @@ proc try_reach [
         ret;
     ;if
     # past the longest trip sold, it is no way at all
-    if $minutes < 0 | $minutes > 14400 | $km < 0 | $km > 100000:
+    if $minutes < 0 or $minutes > 14400 or $km < 0 or $km > 100000:
         ret;
     ;if
     if std::map.has(lend $best, key: lend $next):
@@ -449,7 +449,7 @@ fn parse_seat [lent $text: str.utf8] -> Seat or fail[bad_request: str.utf8]:
         ret Seat.couchette;
     ;if
     let $words := std::str.split(lend $text, at: " ");
-    if std::ls.len(lend $words) != 2 || $words[pos: 1] != "sleeper":
+    if std::ls.len(lend $words) != 2 or.else $words[pos: 1] != "sleeper":
         fail bad_request[copy $text];
     ;if
     let $berths: i32[min: 1, max: 4] := to.i32[min: 1, max: 4]($words[pos: 2])-
@@ -599,7 +599,7 @@ fn soonest_first [lent $xs: std::ls[Arrival]] -> std::ls[Arrival]:
         var $next: std::ls[Arrival] = std::ls.empty;
         var $placed = false;
         for $y in lend $out:
-            if not $placed & $x.minutes < $y.minutes:
+            if not $placed and $x.minutes < $y.minutes:
                 std::ls.append(lend.mut $next, value: copy $x);
                 change $placed to true;
             ;if
@@ -641,7 +641,7 @@ proc reached_by [lent $net: Network, lent $hub: str.utf8, let $deadline: i32] ->
     let $best := quickest_from(lend $net, lend $hub);
     var $reached: std::ls[str.utf8] = std::ls.empty;
     for $e in std::map.pairs(lend $best):
-        if $e.key != $hub & $departure + $e.value.minutes <= $deadline:
+        if $e.key != $hub and $departure + $e.value.minutes <= $deadline:
             std::ls.append(lend.mut $reached, value: copy $e.key);
         ;if
     ;for

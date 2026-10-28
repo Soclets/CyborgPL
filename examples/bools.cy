@@ -2,7 +2,7 @@
 MAIN:
     let $'correct?': bool := true;
     let $'wrong?' := not $'correct?';
-    if $'correct?' & (not $'wrong?'):
+    if $'correct?' and (not $'wrong?'):
         std::println.stored("fine");
     ;if
     if $'wrong?' == false:

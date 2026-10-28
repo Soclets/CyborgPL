@@ -9,7 +9,7 @@ MAIN:
     let $a: simd[i32, count: 4] := simd.load(lend $xs, pos: 1);
     let $m: simd[bool, count: 4] := $a > simd.fill(value: 10);
     let $all: simd[bool, count: 4] := simd.fill(value: true);
-    let $both := $m & $all;
+    let $both := $m and $all;
     let $flip := not $m;
     std::println(simd.any($m), " ", simd.all($m), " ", count_on($both), " ", simd.any($flip));
 ;MAIN

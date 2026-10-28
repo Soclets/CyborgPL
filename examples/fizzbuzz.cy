@@ -2,7 +2,7 @@
 proc say [let $n: i32]:
     let $by3 := ($n mod.floor 3) == 0;
     let $by5 := ($n mod.floor 5) == 0;
-    if $by3 & $by5:
+    if $by3 and $by5:
         std::println.stored("FizzBuzz");
     else if $by3:
         std::println.stored("Fizz");

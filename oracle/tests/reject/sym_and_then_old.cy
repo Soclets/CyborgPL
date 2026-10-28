@@ -1,3 +1,4 @@
 MAIN:
-    let $b := true and.then false;
+    let $b := true && false;
+    let $c := $b;
 ;MAIN

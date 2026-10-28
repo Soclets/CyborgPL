@@ -7,8 +7,8 @@ Only code changes: text in quotes, characters in backticks, comments and the cod
 are. What it rewrites:
   closers         `end of fn add` / `!end of MAIN`        → `;fn add` / `;MAIN`
   `!` marks       `!MAIN:`, `!no_check`, `!case`, `h.!m`    → `MAIN:`, `no_check`, `case`, `h.*m`
-  operators       `plus minus times pow eq not_eq lt gt at_most at_least and or and.then or.else concat`
-                                                           → `+ - x ^ == != < > <= >= & | && || ++`; `neg 5` → `-5`
+  operators       `plus minus times pow eq not_eq lt gt at_most at_least concat` → `+ - x ^ == != < > <= >= ++`;
+                  `neg 5` → `-5` (`and`, `or` and their narrowings keep their words, owner 2026-10-28)
   number types    `int.sign.32`, `float.%deci.64`, …       → `i32`, `%d64`, …
   failures        `…) otherwise fail;`, `… otherwise 0;`   → `…)?;`, `… ?? 0;`
   changes         `change $x to $x + 1;`                    → `change $x += 1;` (only where it means the same)
@@ -19,7 +19,7 @@ import os
 import re
 import sys
 
-OPS = [("and.then", "&&"), ("or.else", "||"), ("not_eq", "!="), ("at_most", "<="), ("at_least", ">="),
+OPS = [("not_eq", "!="), ("at_most", "<="), ("at_least", ">="),
        ("plus", "+"), ("minus", "-"), ("times", "x"), ("pow", "^"), ("eq", "=="), ("lt", "<"), ("gt", ">"),
        ("concat", "++")]
 INLINE_OPEN = re.compile(r'^\s*(?:!?no_check\s+)?inline\.%?(\w+)\b.*:\s*(#.*)?$')
@@ -38,7 +38,7 @@ def mask(src):
             j = src.find('\n', i)
             j = n if j < 0 else j
             line = src[i:j]
-            if line.strip() == lines_raw_until or line.strip().startswith('end of inline') or line.strip().startswith('!end of'):
+            if line.strip() == lines_raw_until or line.strip().startswith(('end of inline', '!end of', ';inline')):
                 lines_raw_until = None
                 continue
             pieces.append(src[i:j]); out.append(f'\x00{len(pieces) - 1}\x00')
@@ -131,10 +131,6 @@ def convert(src):
     # operators: a word between two values, never one in a path (`std::pow`) or narrowed (`times.wrap`)
     for w, s in OPS:
         code = re.sub(r'(?<![\w.:$%])' + re.escape(w) + r'(?![\w.])', s, code)
-    # `and` / `or` as operators; `and` joining bounds (`Whole and Ordered`) and `or fail[…]` keep their words
-    code = re.sub(r'(?<![\w.:$])and(?![\w.])', '&', code)
-    code = re.sub(r'(\b[A-Z][\w.]*)\s+&\s+(?=[A-Z][\w.]*\s*[,>])', r'\1 and ', code)
-    code = re.sub(r'(?<![\w.:$])or(?![\w.])(?!\s+fail\b)', '|', code)
     code = re.sub(r'(?<![\w.:$])neg\s+(?=[\w$(\x00])', '-', code)
     # failures
     code = re.sub(r'\s+otherwise fail;', '?;', code)

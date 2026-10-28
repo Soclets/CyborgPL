@@ -24,7 +24,7 @@ proc leading_zeros_asm [let $n: u64] -> u64:
 fn leading_zeros_zag [let $n: u64] -> u64:
     var $z: u64 = 0;
     var $mask: u64 = 9223372036854775808;   # the top bit
-    while $mask != 0 & ($n and.bit $mask) == 0:
+    while $mask != 0 and ($n and.bit $mask) == 0:
         change $mask to $mask shr 1;
         change $z += 1;
     ;while

@@ -2,7 +2,7 @@
 MAIN:
     let $b: bool := false;
     let $v: i64 := 2;
-    if $b && ((3 shr to.i64($v)) >= 9):
+    if $b and.then ((3 shr to.i64($v)) >= 9):
         std::println("yes");
     ;if
     std::println("end");

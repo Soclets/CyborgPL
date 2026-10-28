@@ -1,3 +1,3 @@
 MAIN:
-    let $b := true and false;
+    let $b := true && false;
 ;MAIN

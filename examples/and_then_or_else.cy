@@ -9,15 +9,15 @@ MAIN:
     let $xs := [3, 5, 8];
     let $i: u64 := 7;
     # 'i' is past the end, so the list is never read
-    if $i <= std::ls.len(lend $xs) && $xs[pos: $i] == 5:
+    if $i <= std::ls.len(lend $xs) and.then $xs[pos: $i] == 5:
         std::println("found");
     ;if
     let $n: i32 := 0;
-    if $n == 0 || 100 div.floor $n < 2:
+    if $n == 0 or.else 100 div.floor $n < 2:
         std::println("small or nothing");
     ;if
-    let $a := loud("first", false) && loud("second", true);
-    let $b := loud("third", true) || loud("fourth", true);
-    let $c := loud("fifth", true) && loud("sixth", false);
+    let $a := loud("first", false) and.then loud("second", true);
+    let $b := loud("third", true) or.else loud("fourth", true);
+    let $c := loud("fifth", true) and.then loud("sixth", false);
     std::println($a, " ", $b, " ", $c);
 ;MAIN

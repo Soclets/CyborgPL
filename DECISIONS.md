@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-28 — Redesign three: `and` and `or` keep their words; `&`, `&&`, `|`, `||` are dropped (owner)
+
+Told of design claude's pick that `and` joining bounds and `or` before `fail` keep their words, the owner: "Wait, we
+already have `and` & `or` narrowings. I think we should drop `&`, `&&`, `|`, `||`". Design claude agreed: `and.then`,
+`or.else`, `and.bit`, `or.bit` are narrowings, which stay words, so symbols for the plain forms would split one family
+across two spellings; it also settles the bounds question, `and` and `or` being words everywhere. So **`$a and $b`,
+`$a or $b`, `and.then`, `or.else`**, in expressions, bounds (`<T: Whole and Ordered>`) and failing types alike; `&&` and
+`||` are old spellings again, refused naming `and.then` / `or.else`, as `$a & $b` is naming `$a and $b`, and `|` is no
+operator (a bitwise or is `or.bit`). Built: the lexer, `three.rs`, the converter and `spellings.cyr`; the code swept back
+to the words.
+
 ### 2026-10-28 — Built: redesign three, the one spelling (owner: "done, build it (not the other Claude yet)")
 
 Asked "Redesign done?", design claude named three small points never raised and its reading of each (no short form for

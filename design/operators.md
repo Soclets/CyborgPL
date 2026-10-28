@@ -264,7 +264,7 @@ alternative: 64-bit intermediates rounded once where stored.
 ## `and` / `or` always work out both sides (owner, 2026-09-25: b)
 
 ```
-let $ok := check_name($f) & check_age($f);     # both run, left then right
+let $ok := check_name($f) and check_age($f);     # both run, left then right
 if $i <= std::ls.len(lend $xs):             # a check that protects the next
     if $xs[pos: $i] == 5:
         …
@@ -287,10 +287,10 @@ run both and refuse such lines at compile time.
 day), for when the second half should depend on the first:
 
 ```
-if $i <= std::list.length(lend $xs) && $xs[position: $i] equal_to 5:
+if $i <= std::list.length(lend $xs) and.then $xs[position: $i] equal_to 5:
     …
 ;if
-if $n equal_to 0 || 100 divide.floor $n less_than 2:
+if $n equal_to 0 or.else 100 divide.floor $n less_than 2:
     …
 ;if
 ```

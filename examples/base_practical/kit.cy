@@ -16,5 +16,5 @@ MAIN:
     let $level: i32[min: 0, max: 10] := 7;
     let $wrapped: u8 := 250 plus.wrap 10;
     let $bigger := biggest($b, $a, $b > $a);
-    let $same := $bigger == $b & not ($small < 0);
+    let $same := $bigger == $b and not ($small < 0);
 ;MAIN

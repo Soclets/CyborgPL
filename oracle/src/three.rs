@@ -1,6 +1,6 @@
 //! Redesign three (owner, 2026-10-27/28: "done, build it"): the one spelling. A block closes `;kind name`, nothing wears
 //! `!`, the operators are symbols (`+ - x ^ == != < > <= >= & && | || ++`, `-5` a negative), `?` / `??` are `otherwise
-//! fail` / `otherwise <value>`, `*` marks a jumping handler where it is used, `change $x += …`, `std::print` /
+//! fail` / `otherwise <value>` (`and` / `or` keep their words, owner 2026-10-28), `*` marks a jumping handler where it is used, `change $x += …`, `std::print` /
 //! `std::println`, and the number types are `i32` … `%d64` `%bf16`. This pass reads it and hands the rest of the front
 //! redesign two's tokens, which it already checks; every redesign-two spelling is refused here by name.
 
@@ -171,16 +171,6 @@ pub fn from_three(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                         _ => None,
                     };
                     if let Some(s) = sym { return Err(old(t, w, if w == "neg" { "-5`, `-$x" } else { s })); }
-                    if (w == "and" || w == "or") && narrowed && matches!(tok(i + 2), Tok::Word(x) if x == "then" || x == "else") {
-                        return Err(old(t, &format!("{w}.{}", if w == "and" { "then" } else { "else" }), if w == "and" { "&&" } else { "||" }));
-                    }
-                    // `and` joining bounds (`<T: Whole and Ordered>`) and `or` before a failure (`-> T or fail[…]`) are not
-                    // operators and keep their words (design claude's reading, PROVISIONAL)
-                    let bound = w == "and" && matches!(prev.map(|p| &p.tok), Some(Tok::Word(a)) if a != "true" && a != "false") && matches!(tok(i + 1), Tok::Word(b) if b != "true" && b != "false" && b != "not");
-                    let failure = w == "or" && is_word(i + 1, "fail");
-                    if (w == "and" || w == "or") && !narrowed && !bound && !failure {
-                        return Err(old(t, w, if w == "and" { "&" } else { "|" }));
-                    }
                 }
                 out.push(t.clone());
             }
@@ -207,10 +197,6 @@ pub fn from_three(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     ">" => out.push(wide(Tok::Op(">".into()), t, 2)),
                     "<=" => out.push(like(Tok::Op("at_most".into()), t)),
                     ">=" => out.push(like(Tok::Op("at_least".into()), t)),
-                    "&" => out.push(word("and", t)),
-                    "|" => out.push(word("or", t)),
-                    "&&" => { out.push(word("and", t)); out.push(like(Tok::Dot, t)); out.push(word("then", t)); }
-                    "||" => { out.push(word("or", t)); out.push(like(Tok::Dot, t)); out.push(word("else", t)); }
                     "++" if matches!(tok(i + 1), Tok::Semi | Tok::RParen | Tok::Comma) => return Err((t.line, t.col, "`++` joins two texts; adding one is `change $i += 1;` (owner, 2026-10-27)".into())),
                     "++" => out.push(word("concat", t)),
                     "+=" | "-=" | "^=" | "++=" => return Err((t.line, t.col, format!("a change starts with `change`: `change $i {o} 1;` (owner, 2026-10-27)"))),
@@ -373,7 +359,7 @@ fn three_code(c: &str) -> String {
     let words: Vec<String> = s.split(' ').map(|w| match w {
         "plus" => "+".into(), "minus" => "-".into(), "times" => "x".into(), "pow" => "^".into(), "eq" => "==".into(), "not_eq" => "!=".into(),
         "lt" => "<".into(), "gt" => ">".into(), "at_most" => "<=".into(), "at_least" => ">=".into(), "concat" => "++".into(),
-        "and" => "&".into(), "or" => "|".into(), "and.then" => "&&".into(), "or.else" => "||".into(), other => other.to_string(),
+        other => other.to_string(),
     }).collect();
     let mut s = words.join(" ");
     for p in ["int.sign.", "int.unsign.", "float.bin.", "float.%deci.", "float.deci.", "float.%brain.", "int.sign.%", "int.unsign.%", "float.bin.%"] {

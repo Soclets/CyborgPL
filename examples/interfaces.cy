@@ -19,7 +19,7 @@ op < [lent $a: Vec, lent $b: Vec] -> bool:
     ret ($a.x x $a.x + $a.y x $a.y) < ($b.x x $b.x + $b.y x $b.y);
 ;op <
 op == [lent $a: Vec, lent $b: Vec] -> bool:
-    ret $a.x == $b.x & $a.y == $b.y;
+    ret $a.x == $b.x and $a.y == $b.y;
 ;op ==
 fn show [lent $v: Vec] -> str.utf8:
     ret "(" ++ to.stored.str.utf8($v.x) ++ ", " ++ to.stored.str.utf8($v.y) ++ ")";

@@ -8,7 +8,7 @@ MAIN:
     # walking a text says the unit too
     var $vowels = 0;
     for $g in std::str.each.cluster(lend $s):
-        if $g == `o` | $g == `e`:
+        if $g == `o` or $g == `e`:
             change $vowels += 1;
         ;if
     ;for

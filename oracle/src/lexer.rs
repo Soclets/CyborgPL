@@ -152,7 +152,7 @@ fn raw_words() -> bool { RAW_WORDS.with(|r| r.get()) }
 
 /// The operator symbols of redesign three (owner, 2026-10-27), and its other marks: `?` / `??` for `otherwise`, `*` before a
 /// jumping handler, the `change` forms `+=` …
-pub const THREE_SYMBOLS: &[&str] = &["+", "-", "^", "==", "!=", "<", ">", "<=", ">=", "&", "&&", "|", "||", "++", "?", "??", "*", "+=", "-=", "^=", "++="];
+pub const THREE_SYMBOLS: &[&str] = &["+", "-", "^", "==", "!=", "<", ">", "<=", ">=", "++", "?", "??", "*", "+=", "-=", "^=", "++="];
 
 thread_local! {
     /// `oracle --mark-limbs`: the edits that would mark a file's limb words and spell its percentages out, gathered
@@ -590,11 +590,11 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             // is less"); the comparisons are words (`equal_to`, `not_equal`, `at_most`, `at_least`); every
             // other spelling is refused by name, MTM being gone
             // redesign three's symbols (owner, 2026-10-27): read as written; the front turns them into the words inside
-            // `*` only before a jumping handler (after `.` or `otherwise`), `&` only between two values: elsewhere each is the
-            // old spelling it was, named as before (`*const`, `&mut`, `&$x`)
+            // `*` only before a jumping handler (after `.` or `otherwise`): elsewhere it is the old spelling it was, named as
+            // before (`*const`, `*$p`); `&` and `|` are no operators, `and` and `or` keeping their words with their narrowings
+            // (owner, 2026-10-28)
             let three_place = match run.as_str() {
                 "*" => matches!(toks.last().map(|t| &t.tok), Some(Tok::Dot)) || matches!(toks.last().map(|t| &t.tok), Some(Tok::Word(o)) if o == "otherwise"),
-                "&" => matches!(toks.last().map(|t| &t.tok), Some(Tok::Var(_) | Tok::Int(_) | Tok::BigInt(_) | Tok::Bin(..) | Tok::Text(..) | Tok::Char(_) | Tok::RParen | Tok::RBracket | Tok::Word(_))) && !chars[j..].iter().skip_while(|c| **c == ' ').collect::<String>().starts_with("mut"),
                 _ => true,
             };
             if !old_syntax() && !crate::spellings::loading() && three_place && THREE_SYMBOLS.contains(&run.as_str()) {

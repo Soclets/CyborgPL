@@ -11,7 +11,7 @@ MAIN:
     let $half := Percent[value = 50];
     std::println(scale(give $half, 800));
     let $raw := 250;
-    if $raw >= 0 & $raw <= 100:
+    if $raw >= 0 and $raw <= 100:
         let $ok: i32[min: 0, max: 100] := $raw;                   # the if is the guardrail; a check site
         std::println($ok);
     else:

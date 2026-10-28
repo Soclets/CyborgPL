@@ -7,7 +7,7 @@ proc loud [let $name: str.utf8, let $answer: bool] -> bool:
     ret $answer;
 ;proc loud
 MAIN:
-    let $ok := loud("first", false) & loud("second", true);    # both print
+    let $ok := loud("first", false) and loud("second", true);    # both print
     std::println($ok);
     let $xs := [3, 5, 8];
     let $i: u64 := 7;

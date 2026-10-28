@@ -22,7 +22,7 @@ fn origin [] -> Point:
 MAIN:
     let $p := origin();
     let $l := Light.lit;
-    if ready() && false:
+    if ready() and.then false:
         let $unused: i32 := 1;
     ;if
     match $l:

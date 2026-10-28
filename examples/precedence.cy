@@ -9,7 +9,7 @@ MAIN:
     std::println(((6 div.floor 2) x 3));
     let $a := 5;
     let $b := 7;
-    if $a + 1 > $b - 2 & not ($a == $b) | false:
+    if $a + 1 > $b - 2 and not ($a == $b) or false:
         std::println.stored("logic holds");
     ;if
 ;MAIN

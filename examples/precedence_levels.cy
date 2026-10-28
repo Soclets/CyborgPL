@@ -22,7 +22,7 @@ op scale [lent $a: Vec, lent $k: f64] -> Vec:
 ;op scale
 
 op ~= [lent $a: f64, lent $b: f64] -> bool:
-    ret ($a - $b) < 0.000001 & ($b - $a) < 0.000001;
+    ret ($a - $b) < 0.000001 and ($b - $a) < 0.000001;
 ;op ~=
 
 MAIN:

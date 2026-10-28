@@ -1,1 +1,1 @@
-`&` cannot combine integer and integer; a bitwise and is `and.bit`
+`$a & $b` is an old spelling: write `$a and $b`

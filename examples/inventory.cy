@@ -25,7 +25,7 @@ fn kilos [let $grams: i32] -> i32 or fail[not_whole, out_of_range]:
 fn initial [lent $name: str.utf8] -> char.%point:
     let $first := std::str.at.point(lend $name, pos: 1) ?? `?`;
     let $code := char.code($first);
-    if $code >= 97 & $code <= 122:
+    if $code >= 97 and $code <= 122:
         ret char.%point.from_code($code - 32) ?? `?`;
     ;if
     ret $first;

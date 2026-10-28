@@ -26,7 +26,7 @@ fix:   let $a := $b + 1;
 check[index_out_of_range] at shop.cy:31:20
 where: in pick(), called from MAIN at line 48
 code:  $xs[pos: $k]
-when:  $k is 101, & $xs holds 100
+when:  $k is 101, and $xs holds 100
 fix:   line 4:
        let $n := to.i32[min: 1, max: 99]($text) ?? 0;
 ```
