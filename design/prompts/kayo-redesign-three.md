@@ -17,12 +17,14 @@ The converters are tools you can run. Running them is fine; reading `oracle/src`
 - `oracle --redesign <file | folder>` rewrites pre-redesign code to redesign two in place (`--redesign-show <file>` prints it instead).
 - `python3 oracle/tools/redesign_three.py <file | folder>` then rewrites redesign two to three, code only.
 - `python3 oracle/tools/plain_verbs.py <file | kit>` then takes the `copy` off a plain union's values where the oracle refuses one.
-- Chained, they converted 224 of the 236 old examples cleanly. The rest needed a hand edit:
+- Chained, they converted 220 of the 236 old examples cleanly. The rest needed a hand edit:
   - the case marks are gone, so a program using them has to drop them;
   - a `use` that renamed onto `std::print` collides with the real `std::print` now;
   - a `sig` listing types next to operations must be split into a `set` and a `sig`;
+  - an operator on a `<T>` value needs a `sig` in the bound that lists it (`<T: Number and Ordered>`), and the converter cannot write that `sig`;
   - a template's generated part has to be regenerated;
-  - a few `fn`-versus-`proc` calls can't be inferred.
+  - a few `fn`-versus-`proc` calls can't be inferred;
+  - a function whose name became a keyword (`record` is now `rec`) has to be renamed, and the old `#wl` whole-line comment rewritten.
 - It rewrites code only, never comments, and old-spelling refusal tests must keep their old spelling. The owner's rule: "Better becareful with quoted design shit".
 
 New checks came with the redesigns, and kayo needs each one:

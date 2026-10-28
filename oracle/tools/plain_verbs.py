@@ -16,12 +16,15 @@ import sys
 ORACLE = os.path.join(os.path.dirname(__file__), '..', 'target', 'debug', 'oracle')
 MSG = re.compile(r"^(.*?): line (\d+)(?::\d+)?: '([^']+)'((?:\.\w+)*) is a plain \w+ and owns nothing")
 # a conversion that only reads an owned value (owner, 2026-10-28: a conversion is a call like any other)
-LEND = re.compile(r"^(.*?): line (\d+)(?::\d+)?: `(to\.[\w.%]+)` only looks at `\$([\w.]+)`: pass `lend")
+LEND = re.compile(r"^(.*?): line (\d+)(?::\d+)?: `(to\.[^`]+)` only looks at `\$([\w.]+)`: pass `lend")
 
 
 def fix(target):
     for _ in range(200):
-        r = subprocess.run([ORACLE, target], capture_output=True, text=True, timeout=600)
+        # run as the tests do: no input, and the program's arguments from its `.args`
+        base = target[:-3] if target.endswith('.cy') else target
+        args = ['--'] + open(base + '.args').read().splitlines() if os.path.exists(base + '.args') else []
+        r = subprocess.run([ORACLE, target] + args, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=600)
         m = next((MSG.match(l) for l in r.stderr.splitlines() if MSG.match(l)), None)
         lm = next((LEND.match(l) for l in r.stderr.splitlines() if LEND.match(l)), None)
         if lm and not m:
@@ -30,7 +33,9 @@ def fix(target):
                 path = os.path.join(path, 'kit.cy')
             lines = open(path).read().split('\n')
             before = lines[line - 1]
-            after = re.sub(re.escape(conv) + r'\((\s*)\$' + re.escape(name) + r'(?![\w.])', lambda x: conv + '(' + x.group(1) + 'lend $' + name, before, count=1)
+            # the message drops a limb's mark (`to.char.point` for `to.char.%point`) and the code may bound the target
+            # (`to.i32[min: 0, max: 100]`): find any conversion whose input is this name
+            after = re.sub(r'(\bto\.[\w.%]+(?:\[[^\]]*\])?\()(\s*)\$' + re.escape(name) + r'(?![\w.])', lambda x: x.group(1) + x.group(2) + 'lend $' + name, before, count=1)
             if after == before:
                 print(f'{path}:{line}: could not find {conv}(${name}', file=sys.stderr)
                 return

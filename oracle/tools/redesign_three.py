@@ -126,6 +126,11 @@ def convert(src):
                      (r'int\.sign\.(\d+)', r'i\1'), (r'int\.unsign\.(\d+)', r'u\1'), (r'float\.bin\.(\d+)', r'f\1'),
                      (r'float\.deci\.(\d+)', r'%d\1'), (r'float\.brain\.16', '%bf16')]:
         code = re.sub(r'(?<![\w$])' + pat + r'(?!\w)', rep, code)
+    # the base's operators never take `std::` (owner, 2026-10-28: "`plus` isn't even `std`")
+    code = re.sub(r'std::divide\.', 'div.', code)
+    code = re.sub(r'std::shift_left\b', 'shl', code)
+    code = re.sub(r'std::shift_right\b', 'shr', code)
+    code = re.sub(r'std::(?=(?:plus|minus|times|div|mod|and|or|xor|shl|shr|concat|not|neg)\b)', '', code)
     # operators: a word between two values, never one in a path (`std::pow`) or narrowed (`times.wrap`)
     for w, s in OPS:
         code = re.sub(r'(?<![\w.:$%])' + re.escape(w) + r'(?![\w.])', s, code)
