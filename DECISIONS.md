@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-28 — The base's operators take no `std::`; `std::plus` is refused (owner)
+
+multifinity's review led design claude to `examples/std_op_path.cy`, which still ran `2 std::plus 3 std::times 4`,
+`std::divide.floor` and `std::shift_left`: the oracle read the base's word operators with a `std::` path, from
+2026-10-06's "std is `bare.kit_prefix.optional` for everything" (the `bare.*` marks went 2026-10-22). Design claude asked
+whether to refuse them. The owner: "`plus` isn't even `std`". So **the base's operators (`+`, `-`, `x`, `div`, `mod`,
+`and`, `or`, `xor`, `shl`, `shr`, `concat`, `not`, and their narrowings) never take `std::`**; `std::plus` is refused,
+naming `+` (`std::div.floor` naming `div.floor`). std's own `pow` keeps its path, `std::pow`. Built: reject test
+`std_plus_is_base`; the example now shows `2 + 3 x 4` beside `2 std::pow 3`. The oracle's messages now keep a
+quotation as it was said, never rewriting a refused word inside one.
+
 ### 2026-10-28 — `( )` runs something, with one exception: maths grouping (owner)
 
 Answering the GO2 design session's question, for the owner, on what `( )` and `[ ]` mean, design claude gave

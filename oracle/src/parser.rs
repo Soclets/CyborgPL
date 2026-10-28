@@ -4685,14 +4685,8 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
     /// `times.wrap` is `x~`); `op_len` says how many tokens it takes, `op_old` whether it is a
     /// retired symbol (owner, 2026-10-03: the operators are words).
     fn binop(&self) -> Option<String> {
-        // `'a' std::plus 'b'`: std's word operators with their path (owner, 2026-10-06: std is
-        // `bare.kit_prefix.optional` for everything; `std::pow` since 2026-10-02)
-        if matches!(self.peek(), Tok::Word(w) if w == "std") && *self.peek_at(1) == Tok::ColonColon
-            && matches!(self.peek_at(2), Tok::Word(x) if ["plus", "minus", "times", "div", "mod", "and", "or", "xor", "shl", "shr"].contains(&x.as_str())) {
-            let r = self.binop_from(2);
-            if r.is_some() { self.op_len.set(self.op_len.get() + 2); }
-            return r;
-        }
+        // the base's operators take no `std::` (owner, 2026-10-28: "`plus` isn't even `std`"); `std::pow` is
+        // std's own, read where `pow` is
         self.binop_from(0)
     }
 

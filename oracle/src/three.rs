@@ -164,6 +164,15 @@ pub fn from_three(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     if declares { out.push(t.clone()); i += 1; continue; }
                     return Err((t.line, t.col, "a bare `x` is multiplication: a function or type named `x` is reached by its path, `my.x(…)` (owner, 2026-10-28)".into()));
                 }
+                // the base's operators are not std's, so they take no `std::` (owner, 2026-10-28: "`plus` isn't even
+                // `std`"); std's own `pow` keeps its path
+                if after_kit && i >= 2 && matches!(&toks[i - 2].tok, Tok::Word(k) if k == "std")
+                    && matches!(w, "plus" | "minus" | "times" | "div" | "mod" | "and" | "or" | "xor" | "shl" | "shr" | "concat" | "not" | "neg") {
+                    let narrowed = tok(i + 1) == &Tok::Dot;
+                    let write = match w { "plus" if !narrowed => "+", "minus" if !narrowed => "-", "times" if !narrowed => "x", "neg" if !narrowed => "-5`, `-$x", _ => w };
+                    let tail = if narrowed && write == w { format!("`{w}.{}`", match tok(i + 2) { Tok::Word(n) => n.as_str(), _ => "…" }) } else { format!("`{write}`") };
+                    return Err((t.line, t.col, format!("`{w}` is the base's, not std's: write {tail}, without `std::` (owner, 2026-10-28: \"`plus` isn't even `std`\")")));
+                }
                 // redesign two's operator words, refused naming their symbol; a narrowing keeps its word (`times.wrap`)
                 if !after_dot && !after_kit {
                     let narrowed = tok(i + 1) == &Tok::Dot;
@@ -298,6 +307,14 @@ pub fn threes(msg: &str) -> String {
     let mut out = String::new();
     let mut rest = msg;
     while let Some(a) = rest.find('`') {
+        // a quotation stays as it was said: (owner, 2026-10-28: "`plus` isn't even `std`")
+        if let Some(q) = rest[..a].find('"') {
+            out.push_str(&rest[..q + 1]);
+            let Some(e) = rest[q + 1..].find('"') else { out.push_str(&rest[q + 1..]); return out; };
+            out.push_str(&rest[q + 1..q + 2 + e]);
+            rest = &rest[q + 2 + e..];
+            continue;
+        }
         out.push_str(&rest[..a]);
         let after = &rest[a + 1..];
         let Some(b) = after.find('`') else { out.push_str(&rest[a..]); return out; };
