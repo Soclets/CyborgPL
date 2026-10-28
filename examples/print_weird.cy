@@ -1,7 +1,7 @@
-# `std::print.weird` — C++'s `cout <<`, CyborgPL style (owner, 2026-10-01): each value follows a `<-`,
-# the arrow pointing into the output, as `<-` points into a variable in `inline.ASM`. Plain
-# `.weird` shows the stored form, as `print` does; `.weird.useful` the useful one, as `print.useful`
-# does. The strongest modifier comes first: `.weird` before `.useful`.
+# `std::print.arrows` (was `print.weird`) — C++'s `cout <<`, CyborgPL style (owner, 2026-10-01): each value follows a `<-`,
+# the arrow pointing into the output, as `<-` points into a variable in `inline.ASM`. `.arrows.stored`
+# shows the stored form, as `print.stored` does; `.arrows.shortest` the shortest, as `print` does. The
+# strongest modifier comes first: `.arrows` before the form.
 MAIN:
     let $tenth: f64 := 0.1;
     let $n := 3;

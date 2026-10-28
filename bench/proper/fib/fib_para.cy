@@ -1,4 +1,4 @@
-# In parallel: the top of the recursion as four `concur` tasks, each sending its part on a channel;
+# In parallel: the top of the recursion as four `%spawn.task` tasks, each sending its part on a channel;
 # below that, naive recursion as the program asks.
 # The Nth Fibonacci number, recursively; the exit code is its low byte. N
 # comes from the environment and must be 0 to 92 — fib(93) does not fit an

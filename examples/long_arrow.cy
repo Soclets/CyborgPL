@@ -1,4 +1,4 @@
-# `->` in a signature and a function type, `<-` into `print.weird`: the short arrows are the only
+# `->` in a signature and a function type, `<-` into `print.arrows`: the short arrows are the only
 # ones (owner, 2026-10-07); `-->` and `<--`, main from 2026-10-03, are refused, naming the short one.
 fn double [let $n: i32] -> i32:
     ret $n x 2;

@@ -1,5 +1,5 @@
 # A `match` that gives a value (owner, 2026-09-29: a): a case whose block holds only a value is
-# that value; a case may still leave instead (`return`, `fail`, `break`). The same holds for
+# that value; a case may still leave instead (`ret`, `fail`, `break`). The same holds for
 # `otherwise` with several reasons. Every case is still covered.
 union.tag Status:
     empty;

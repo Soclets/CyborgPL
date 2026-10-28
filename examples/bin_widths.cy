@@ -1,5 +1,5 @@
 # A f16/f32 holds what its width holds: a value is rounded to it where it lands
-# (DECISIONS 2026-09-14). `print` shows what is stored, `print.useful` the shortest text that
+# (DECISIONS 2026-09-14). `print.stored` shows what is stored, `print` the shortest text that
 # gives the value back at its own width.
 MAIN:
     let $f: f32 := 0.1;

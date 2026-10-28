@@ -1,6 +1,5 @@
-# The operators are words (owner, 2026-10-02/03): `plus`, `minus`, `times`, and `.wrap` for the
-# wrapping ones; a negative keeps `-`. The power is std's `pow` (bare or `std::pow`), which has no
-# precedence yet, so it is bracketed beside another operator.
+# The operators (words 2026-10-02/03, symbols since 2026-10-28): `+`, `-`, `x`, `^`, and the words for the
+# narrowings, `plus.wrap`, `times.wrap`, `pow.wrap`; a negative is `-`. std's `pow` is still written `std::pow`.
 MAIN:
     let $a: i32 := 7;
     let $b: i32 := 3;

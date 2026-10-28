@@ -1,4 +1,4 @@
-# A length bound on a list: `list[T][lo, hi]` (decided 2026-09-21).
+# A length bound on a list: `std::ls[T][lo, hi]` (decided 2026-09-21).
 # Like `i32[min: 0, max: 100]`: the thing, then its bounds. Its length is a `u64[lo, hi]`.
 
 fn fill [let $count: i32] -> std::ls[i32][min: 0, max: 5] or fail[too_many]:

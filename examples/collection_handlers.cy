@@ -1,6 +1,6 @@
 # `coll.handler` (owner, 2026-10-13): named `otherwise` blocks. Each member holds the arms written
 # after `otherwise` today, one per way the call can fail, and `otherwise half_failed.as_zero` reads them
-# as if they were written at the call: an arm may `return`, `break`, `continue` or `fail` from where it
+# as if they were written at the call: an arm may `ret`, `break`, `continue` or `fail` from where it
 # is used, and a member that misses a way the call can fail is refused there.
 fn half [let $n: i32] -> i32 or fail[odd, negative: i32]:
     if $n < 0:

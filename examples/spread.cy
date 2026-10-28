@@ -1,5 +1,5 @@
 # `...$xs` at a call: unpack a list into the variadic part (decided 2026-09-21).
-# Only where the list's length is known — a literal, a `list[T][lo, hi]`, a bundle.
+# Only where the list's length is known — a literal, a `std::ls[T][lo, hi]`, a bundle.
 
 fn sum [let ...$nums: i32] -> i32:
     var $total = 0;

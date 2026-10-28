@@ -1,4 +1,4 @@
-# The same program with `no_cheat` in front of the work (owner, 2026-10-18/19): every call and loop under
+# The same program with `no_skip` (was `no_cheat`) in front of the work (owner, 2026-10-18/19): every call and loop under
 # it really runs, so kayo may not fold it, drop it, compute look-alike calls once, or use Precog's tables.
 # For the run-time bench's like-for-like rows (owner: "run a fresh one, with cheat and no_cheat").
 # The Nth Fibonacci number, recursively; the exit code is its low byte. N

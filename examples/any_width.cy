@@ -1,4 +1,4 @@
-# Integers of any width, marked as not standard (owner, 2026-10-03): `int.sign.%not_std.24` / `int.unsign.%not_std.4` since 2026-10-27. Each holds exactly its width's range; `plus.wrap` wraps at it.
+# Integers of any width, marked as not standard (owner, 2026-10-03): `%not_std.i24` / `%not_std.u4`. Each holds exactly its width's range; `plus.wrap` wraps at it.
 MAIN:
     let $sample: %not_std.i24 := -8_000_000;
     let $flags: %not_std.u4 := 9;

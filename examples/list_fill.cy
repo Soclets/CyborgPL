@@ -1,5 +1,5 @@
-# A list of n copies of one value (owner, 2026-09-30): `list.fill(value value, count count)`. A strict file
-# labels the count, `list.fill(value 0, count 10)`, as a position says `pos`.
+# A list of n copies of one value (owner, 2026-09-30): `std::ls.fill(value: …, count: …)`, the count
+# labelled as a position says `pos`.
 MAIN:
     var $scores = std::ls.fill(value: 0, count: 5);
     change $scores[pos: 2] to 7;

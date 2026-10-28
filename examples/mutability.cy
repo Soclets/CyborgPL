@@ -1,4 +1,4 @@
-# Plain, `mut` and `immut` variables, and an `immut` parameter.
+# `var` and `let` variables, and a `let` parameter.
 fn twice [let $n: i32] -> i32:
     ret $n x 2;
 ;fn twice

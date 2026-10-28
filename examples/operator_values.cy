@@ -1,5 +1,5 @@
 # An operator as a value (owner, 2026-09-29): `op +`, handed wherever a function goes. Its type
-# comes from where it goes. `op -` subtracts; negation is `op negate`. A custom operator's operands
+# comes from where it goes. `op -` subtracts; negation is `op neg`. A custom operator's operands
 # are lent, so `op dot` is a fn[lent Vec, lent Vec] -> f64.
 rec Vec:
     var x: f64;

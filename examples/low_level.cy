@@ -12,7 +12,7 @@
     var length: u64;
 ;%layout.C rec Header
 
-# FNV-1a: the wrap *is* the algorithm, so `x~`, never a check
+# FNV-1a: the wrap *is* the algorithm, so `times.wrap`, never a check
 fn fnv1a [lent $bytes: arr[u8]] -> u64:
     var $h: u64 = 14695981039346656037;
     for $b in lend $bytes:

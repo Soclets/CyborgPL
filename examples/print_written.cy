@@ -1,7 +1,7 @@
 # `print.written` (owner, 2026-10-17): each value as its literal was typed, so an f16 holding 0.123456789 prints
-# 0.123456789, where `print.stored` shows what the f16 holds and `print.useful` the shortest that reads back. A value
+# 0.123456789, where `print.stored` shows what the f16 holds and `print.shortest` the shortest that reads back. A value
 # that was not typed (computed, read, changed) has no written form: the print says what to do instead,
-# `otherwise std::print.useful` (or `.stored`), or it is refused.
+# `otherwise std::print.shortest` (or `.stored`), or it is refused.
 MAIN:
     let $x: f16 := 0.123456789;
     let $tax := exactly 7.5 percent;

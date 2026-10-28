@@ -1,4 +1,4 @@
-# A `return` inside a `match` arm lands in the function's return type, never in the declaration the
+# A `ret` inside a `match` arm lands in the function's return type, never in the declaration the
 # match sits in (found by check claude, seed 6868): the 64-bit shift below is a u64's, not a u16's.
 union.tag Pick:
     quick;

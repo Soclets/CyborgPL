@@ -1,8 +1,8 @@
 # No bin or brain16 result is ever -0 (owner, 2026-10-07: "`a`"): a zero times a negative, a
 # negated zero, a product too small to hold, are all plain 0. Each operator's `.ieee` form keeps
-# IEEE's -0 where it is wanted ("yea"), and `negate.ieee` (was `neg.ieee`) is IEEE's negation ("yea"): `-.ieee $x`
+# IEEE's -0 where it is wanted ("yea"), and `neg.ieee` (for a while `negate.ieee`) is IEEE's negation ("yea"): `-.ieee $x`
 # "defeats the purpose of a symbol". Every operator that can make a -0 has its `.ieee` form, `mod`
-# and `pow` included ("yea").
+# and `^` included ("yea").
 MAIN:
     let $z: f64 := 0.0;
     let $n: f64 := -2.0;
@@ -21,6 +21,6 @@ MAIN:
     std::print($b x $c, " ", $b times.ieee $c, " ", -$b, " ", neg.ieee $b, newln);
     let $w: f32 := $e30 x $e30 x (-1.0);
     std::print($w, " ", 3.0 mod.floor (-3.0), " ", 3.0 mod.floor.ieee (-3.0), " ", (-3.0) mod.trunc 3.0, " ", (-3.0) mod.trunc.ieee 3.0, newln);
-    # `mod` and `pow` keep it too (owner, 2026-10-07: "yea")
+    # `mod` and `^` keep it too (owner, 2026-10-07: "yea")
     std::print((-$e120) ^ 3, " ", (-$e120) pow.ieee 3, " ", (-$e120) std::pow.ieee 3, newln);
 ;MAIN

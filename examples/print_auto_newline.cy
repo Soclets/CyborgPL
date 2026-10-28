@@ -1,4 +1,5 @@
-# `std::print.useful.auto_newln` ends the line itself, so no `newln` is written (owner, 2026-09-30).
+# `std::print.useful.auto_newln` ended the line itself (owner, 2026-09-30); it was retired 2026-10-27, and every line
+# now ends with `newln`.
 MAIN:
     std::print("Hello, World!", newln);
     let $n := 3;

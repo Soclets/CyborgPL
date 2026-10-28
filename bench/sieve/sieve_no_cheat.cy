@@ -1,4 +1,4 @@
-# The same program with `no_cheat` in front of the work (owner, 2026-10-18/19): every call and loop under
+# The same program with `no_skip` (was `no_cheat`) in front of the work (owner, 2026-10-18/19): every call and loop under
 # it really runs, so kayo may not fold it, drop it, compute look-alike calls once, or use Precog's tables.
 # For the run-time bench's like-for-like rows (owner: "run a fresh one, with cheat and no_cheat").
 # The primes up to N, by the sieve of Eratosthenes; the exit code is their
@@ -21,7 +21,7 @@ proc read_n [let $text: ptr[u8]] -> i64[min: 0, max: 200_000_000] or fail[missin
 proc run [] -> i32 or fail[missing, out_of_range]:
     let $key := "N";
     no_check let $n := read_n(getenv(lend $key))?;
-    # n + 1 falses, as C's calloc gives them (`list.fill`, owner 2026-09-30).
+    # n + 1 falses, as C's calloc gives them (`std::ls.fill`, owner 2026-09-30).
     var $comp: std::ls[bool] = std::ls.fill(value: false, count: $n + 1);
     var $count: i64 = 0;
     for $p: i64 [from: 2, to: $n, by: 1]:

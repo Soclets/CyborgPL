@@ -22,18 +22,18 @@ def old_spellings():
     if m:
         olds.update(re.findall(r'"([^"]+)"', m.group(1)))
     # too short or too common to tell from today's code
-    for s in ["\\", "S", "!", "/", "%", "*", "--", "'x'", "{ }", "\\n", "LLVM", "Assembly", "lt", "gt", "eq", "neg"]:
+    for s in ["\\", "S", "!", "/", "%", "*", "--", "'x'", "{ }", "\\n", "LLVM", "Assembly", "lt", "gt", "eq", "neg", "std::round", "constant"]:
         olds.discard(s)
     return olds
 
 def pattern(old):
     p = re.escape(old)
     if re.match(r"\w", old): p = r"(?<![\w.$'])" + p
-    if re.search(r"\w$", old): p = p + r"(?![\w])"
+    if re.search(r"\w$", old): p = p + r"(?!\w|\.(wrap|ieee|near|half_up|trunc|floor|ceil|bit)\b)"
     return re.compile(p)
 
 DOTTED = re.compile(r"\b(int\.(sign|unsign)\.\d+|float\.%?(bin|deci|brain)\.\d+|print\.useful|to\.useful|end of (fn|if|for|while|MAIN|match|case|rec|proc)\b)|\+\+|\bprintln\b")
-HISTORY = re.compile(r"\b(was|were|old|retired|refused|before|replaced|replacing|owner|DECISIONS)\b|20\d\d-\d\d-\d\d")
+HISTORY = re.compile(r"\b(was|were|old|retired|refused|before|replaced|replacing|owner|DECISIONS|for a while|[Ff]inding|found)\b|20\d\d-\d\d-\d\d")
 
 def pieces(line):
     """The comment and the string literals of a line, as (kind, text)."""
@@ -59,7 +59,8 @@ def check(path, pats):
         for kind, text in pieces(line.rstrip("\n")):
             code = " ".join(re.findall(r"`([^`]*)`", text)) if kind == "comment" else text
             hits = {m.group(0) for m in DOTTED.finditer(text)}
-            hits |= {old for old, p in pats if p.search(code)}
+            # in a string, plain words are the program's own text; only code-shaped spellings count
+            hits |= {old for old, p in pats if p.search(code) and (kind == "comment" or not old.isalpha())}
             if hits:
                 found.append((no, kind, sorted(hits), line.strip(), bool(HISTORY.search(text))))
     return found

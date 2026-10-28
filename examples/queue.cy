@@ -1,4 +1,4 @@
-# `list.remove` hands the removed element back (decided 2026-09-21): no copy, no hole.
+# `std::ls.remove` hands the removed element back (decided 2026-09-21): no copy, no hole.
 
 rec Job:
     var name: str.utf8;

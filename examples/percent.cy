@@ -1,7 +1,7 @@
 # Percentages (owner, 2026-10-16): `80%` or `80 percent` is the number over 100, and `exactly 80%` exact, as every
 # decimal has its `exactly` form; any digits, `exactly 12.3456789%`. Under `:=` it is a `percent`, its own number
 # family (owner, 2026-10-17): percents combine with percents, a plain number is converted to or from one, and only
-# `print.useful` shows the `%`. Into a plain number's place it is that number (`let $f: f64 = 80% x 2.0;` is 1.6).
+# `print` (`print.shortest`) shows the `%`. Into a plain number's place it is that number (`let $f: f64 = 80% x 2.0;` is 1.6).
 MAIN:
     let $price := exactly 19.99;
     let $tax := exactly 7 percent;

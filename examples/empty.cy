@@ -1,4 +1,4 @@
-# Empty lists: `[]` with a type, and `list.empty`, then filled with `list.append`.
+# Empty lists: `[]` with a type, and `std::ls.empty`, then filled with `std::ls.append`.
 MAIN:
     var $xs: std::ls[i32] = [];
     std::ls.append(lend.mut $xs, value: 7);

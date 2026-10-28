@@ -1,7 +1,7 @@
 # Written out for the reader. This was a `#strict` file (owner, 2026-09-27); `#strict` is gone
 # (owner, 2026-10-07) and what it wrote out became the language's: `pos` on every position,
-# labelled ranges, every parameter's type and a return type. `immut` and `temp` may still be
-# written where they help, as here.
+# labelled ranges, every parameter's type and a return type. `temp` may still be
+# written where it helps, as here.
 fn ratio [let $n: i32[min: 1]] -> i32:
     ret 100 div.floor $n;
 ;fn ratio

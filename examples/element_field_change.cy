@@ -1,4 +1,4 @@
-# A field of a list's element changes in place, `change $bodies[pos: $i].vx -= …`: the record's field is
+# A field of a list's element changes in place, `change $bodies[pos: $i].vx to …`: the record's field is
 # checked as `change $b.vx to …` checks it, a `let` field refused.
 rec Body:
     let name: str.utf8;

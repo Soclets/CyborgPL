@@ -1,4 +1,4 @@
-# Each limb's words work once the kit lists the limb (owner, 2026-10-05/06): here MCPS's `concur`.
+# Each limb's words work once the kit lists the limb (owner, 2026-10-05/06): here MCPS's `%spawn.task`.
 # `to.`, `check`, `no_check` and generics were ASP's, IEG's and Genny's then and are the base's now; std
 # for printing.
 

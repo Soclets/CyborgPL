@@ -4,13 +4,13 @@ MAIN:
     let $count := 6;
     let $x: f64 := 0.1;
 
-    # print: any values, each in its stored form, nothing between
+    # print.stored: any values, each in its stored form, nothing between
     std::print.stored("x is ", $x, newln);
 
-    # print.useful: the same, each in its useful form
+    # print, which is print.shortest: the same, each in its shortest form
     std::print("x is ", $x, newln);
 
-    # a joined text is already text: print and print.useful agree on it
+    # a joined text is already text: print.stored and print agree on it
     let $line := $name concat " scored " concat to.stored.str.utf8($count);
     std::print.stored($line, newln);
     std::print($line, newln);

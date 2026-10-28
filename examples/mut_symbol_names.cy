@@ -1,4 +1,4 @@
-# A `mut` name kept changed through `lend.mut`, whatever it holds (check claude, 2026-10-16, corpus 65f59c7a:
+# A `var` name kept changed through `lend.mut`, whatever it holds (check claude, 2026-10-16, corpus 65f59c7a:
 # the oracle missed the change when the name held a `"` or a `\`).
 proc add [lent.mut $a: std::ls[u16]]:
     std::ls.append(lend.mut $a, value: 1);

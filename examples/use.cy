@@ -1,6 +1,6 @@
 # `use`, one per line at the top of a file, Kotlin's shape (owner, 2026-10-22): the name after `as` stands for another
-# kit's path in this file, and `as` is always written. It names a module or a type too, so `use std::list as list;`
-# brings back `list[i64]` and `list.append`. A rename onto a path, `as std::exact`, is allowed (owner: "it's their
+# kit's path in this file, and `as` is always written. It names a module or a type too, so `use std::ls as ls;`
+# lets `ls[i64]` and `ls.append` stand for std's. A rename onto a path, `as std::exact`, is allowed (owner: "it's their
 # choice"); every `use` gets a note in kayo's build report.
 use std::ls as ls;
 use std::print.shortest as say;

@@ -1,4 +1,4 @@
-# Which operator binds first: `times` before `plus`, `pow` before both, and brackets.
+# Which operator binds first: `x` before `+`, `^` before both, and brackets.
 MAIN:
     std::print((1 + 2 x 3), newln);
     std::print((2 x (3 ^ 2)), newln);

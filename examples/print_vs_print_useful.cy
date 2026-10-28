@@ -1,4 +1,4 @@
-# `print.stored` shows a value as stored; `print.useful` shows it for people.
+# `print.stored` shows a value as stored; `print`, which is `print.shortest`, shows it for people.
 MAIN:
     let $x: f64 := 0.1;
     std::print.stored($x, newln);

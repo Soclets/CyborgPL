@@ -1,4 +1,4 @@
-# Structs: building one, reading and changing its fields, an `immut` field.
+# Structs: building one, reading and changing its fields, a `let` field.
 rec Locker:
     var name: str.utf8;
     let number: i32;

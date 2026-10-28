@@ -1,5 +1,5 @@
 # Text in two forms (owner, 2026-09-30): `to.stored.str.utf8` is the exact value, as `print.stored` shows it;
-# `to.useful.str.utf8` is the useful one, as `print.useful` shows it. `.useful` follows the verb.
+# `to.shortest.str.utf8` is the shortest, as `print` shows it. `.shortest` follows the verb.
 union.tag Size:
     small;
     big;

@@ -1,7 +1,7 @@
 # deci, IEEE 754 decimal (owner, 2026-09-29): 0.1 plus 0.2 is exactly 0.3; every operation rounds to the
-# width half to even; trailing zeros are kept (print shows 2.50, print.useful 2.5); a literal with too
+# width half to even; trailing zeros are kept (`print.stored` shows 2.50, `print` 2.5); a literal with too
 # many digits is an error; text, and an integer whose type could have too many digits, fail
-# too_many_digits; to.useful.d64[bin] is the shortest decimal, to.stored.d64[bin] the exact value (the form is always written).
+# too_many_digits; `to.shortest.d64` of a bin is the shortest decimal, `to.stored.d64` the exact value (the form is always written).
 MAIN:
     let $a: %d64 := 0.1;
     let $b: %d64 := $a + 0.2;

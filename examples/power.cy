@@ -1,4 +1,4 @@
-# `pow`, and how it groups (to the right).
+# `^`, the power, and how it groups (to the right).
 MAIN:
     std::print((2 ^ (3 ^ 2)), newln);
     std::print(((2 ^ 3) ^ 2), newln);
