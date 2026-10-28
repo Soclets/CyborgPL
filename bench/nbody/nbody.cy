@@ -66,7 +66,7 @@ proc advance [lent.mut $bodies: std::ls[Body], let $dt: f64]:
     ;for
 ;proc advance
 
-fn energy [lent $bodies: std::ls[Body]] -> f64:
+proc energy [lent $bodies: std::ls[Body]] -> f64:
     let $n := std::ls.len(lend $bodies);
     var $e: f64 = 0.0;
     for $i: u64 [from: 1, to: $n, by: 1]:
@@ -82,7 +82,7 @@ fn energy [lent $bodies: std::ls[Body]] -> f64:
         ;for
     ;for
     ret $e;
-;fn energy
+;proc energy
 
 proc offset_momentum [lent.mut $bodies: std::ls[Body]]:
     var $px: f64 = 0.0;
@@ -102,7 +102,7 @@ proc offset_momentum [lent.mut $bodies: std::ls[Body]]:
     ;no_check
 ;proc offset_momentum
 
-fn run [] -> i32 or fail[missing, out_of_range]:
+proc run [] -> i32 or fail[missing, out_of_range]:
     let $key := "N";
     no_check let $n := read_n(getenv(lend $key))?;
     var $bodies: std::ls[Body] = [
@@ -138,7 +138,7 @@ fn run [] -> i32 or fail[missing, out_of_range]:
     ;for
     no_check printf(lend $fmt, energy(lend $bodies));
     ret 0;
-;fn run
+;proc run
 
 MAIN:
     let $code := run() ?? 2;
