@@ -22,10 +22,10 @@ MAIN:
     var $best = 0;
 
     for $score in lend $scores:
-        change $count += 1;
-        change $total += $score;
+        change $count to $count + 1;
+        change $total to $total + $score;
         if is_even($score):
-            change $evens += 1;
+            change $evens to $evens + 1;
         ;if
         if $score > $best:
             change $best to $score;

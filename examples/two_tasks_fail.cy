@@ -14,7 +14,7 @@ MAIN:
         ;%spawn.task
         otherwise:
             case small:
-                change $seen += 1;
+                change $seen to $seen + 1;
             ;case small
         ;otherwise;
         %spawn.task:
@@ -22,7 +22,7 @@ MAIN:
         ;%spawn.task
         otherwise:
             case small:
-                change $seen += 10;
+                change $seen to $seen + 10;
             ;case small
         ;otherwise;
     ;block

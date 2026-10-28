@@ -110,7 +110,7 @@ sig Addable <T>:
 fn total_of <T: Number and Addable> [lent $xs: std::ls[<T>]] -> <T>:
     var $sum: <T> = 0;
     for $x in lend $xs:
-        change $sum += $x;
+        change $sum to $sum + $x;
     ;for
     ret $sum;
 ;fn total_of
@@ -758,7 +758,7 @@ proc book_all [lent $net: Network, lent.mut $left: std::map.ordered[str.utf8, i3
             ;case bad_request
         ;otherwise;
         let $b := book(lend $net, lend.mut $left, lend $req, $ticket + 1) otherwise booking_failed.*explain(who: copy $req.traveller);
-        change $ticket += 1;
+        change $ticket to $ticket + 1;
         show_booking(lend $b, $req.age);
         std::ls.append(lend.mut $bookings, value: give $b);
     ;for

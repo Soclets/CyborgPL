@@ -34,7 +34,7 @@ proc run [] -> i32 or fail[missing, out_of_range]:
     var $count: i64 = 0;
     for %para $i: i64 [from: 2, to: $n, by: 1]:
         if not $comp[pos: to.u64($i + 1)]:
-            change $count += 1;
+            change $count to $count + 1;
         ;if
     ;for
     ret to.i32($count mod.floor 256);

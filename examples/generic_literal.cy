@@ -7,7 +7,7 @@ sig Addable <T>:
 fn total <T: Addable> [lent $xs: std::ls[<T>]] -> <T>:
     var $sum: <T> = 0;
     for $x in lend $xs:
-        change $sum += $x;
+        change $sum to $sum + $x;
     ;for
     ret $sum;
 ;fn total

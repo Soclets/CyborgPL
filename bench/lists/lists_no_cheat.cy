@@ -28,7 +28,7 @@ proc run [] -> i32 or fail[missing, out_of_range]:
     var $acc: i64 = 0;
     for $r: i64 [from: 1, to: 10, by: 1]:
         for $x in lend $xs:
-            change $acc += $x;
+            change $acc to $acc + $x;
         ;for
     ;for
     ret to.i32($acc mod.floor 256);

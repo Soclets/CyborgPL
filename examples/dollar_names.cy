@@ -8,7 +8,7 @@ fn twice [let $n: i64] -> i64:
 
 MAIN:
     var $total = 1;
-    change $total += 1;
+    change $total to $total + 1;
     let $'total due' := twice($total) x 10;
     let $xs: std::ls[i64] := [$total, $'total due'];
     std::print($total, " ", $'total due', " ", $xs[pos: 2], newln);

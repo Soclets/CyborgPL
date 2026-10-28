@@ -1,1 +1,1 @@
-a change starts with `change`: `change $i += 1;`
+`+=` is an old spelling: write `change $x to $x + …;`

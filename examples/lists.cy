@@ -2,7 +2,7 @@
 fn count <T: any> [lent $items: std::ls[<T>]] -> i32:
     var $n = 0;
     for $item in lend $items:
-        change $n += 1;
+        change $n to $n + 1;
     ;for
     ret $n;
 ;fn count

@@ -27,7 +27,7 @@ MAIN:
     var $total: i32 = 0;
     for $i [from: 1, to: 10, by: 1]:
         if ($i mod.floor 2) == 0:
-            change $total += $i;
+            change $total to $total + $i;
         else if $i == 7:
             break;
         else:

@@ -4,7 +4,7 @@ MAIN:
     let $xs: std::ls[i64] := [1, 2, 3, 4];
     var $total: i64 = 0;
     for %para $x in lend $xs:
-        change $total += $x;
+        change $total to $total + $x;
     ;for
     for seq $x in lend $xs:
         std::print.stored($x, " ");

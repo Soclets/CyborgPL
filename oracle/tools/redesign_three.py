@@ -11,7 +11,6 @@ are. What it rewrites:
                   `neg 5` → `-5` (`and`, `or`, `concat` keep their words, owner 2026-10-28)
   number types    `int.sign.32`, `float.%deci.64`, …       → `i32`, `%d64`, …
   failures        `…) otherwise fail;`, `… otherwise 0;`   → `…)?;`, `… ?? 0;`
-  changes         `change $x to $x + 1;`                    → `change $x += 1;` (only where it means the same)
   printing        `std::print.shortest(…)`                  → `std::print(…)` (a line still ends with `newln`)
 A program it cannot finish (a `copy` on a plain union, say) is left for the oracle to name.
 """
@@ -135,17 +134,6 @@ def convert(src):
     code = re.sub(r'\s+otherwise fail;', '?;', code)
     keep = r'(?:fail\b|ret\b|continue\b|break\b|:|\*|std::print' + ''.join(r'|' + re.escape(h) + r'\b' for h in handlers) + ')'
     code = re.sub(r'\botherwise (?!' + keep + ')', '?? ', code)
-    # `change $x to $x + e;` → `change $x += e;`, only where the two mean the same
-    def change(m):
-        target, op, e = m.group(1), m.group(2), m.group(3)
-        ops = top_level_ops(e)
-        tighter = {'+': {'x', '^'}, '-': {'x', '^'}, 'x': {'^'}, '^': set()}
-        if any(not (o in tighter[op] or o.startswith('div.') or o.startswith('mod.')) for o in ops):
-            return m.group(0)
-        if op in ('x', '^') and any(o.startswith('div.') or o.startswith('mod.') for o in ops):
-            return m.group(0)
-        return f'change {target} {op}= {e};'
-    code = re.sub(r'change (\$[\w.$\[\]: ]+?) to \1 ([-+x^]) ([^;\n]+);', change, code)
     # printing: a bare `std::print` is `print.shortest`; a line still ends with `newln` (owner, 2026-10-28: `println` dropped)
     code = re.sub(r'std::print\.shortest\.auto_newline\((.*?)\)', lambda m: f'std::print({m.group(1)}, newln)', code)
     code = re.sub(r'std::print\.shortest\(', 'std::print(', code)

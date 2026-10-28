@@ -7,7 +7,7 @@ rec Body:
 
 MAIN:
     var $bodies = [Body[name = "sun", vx = 0.0], Body[name = "jupiter", vx = 1.5]];
-    change $bodies[pos: 2].vx -= 0.25;
+    change $bodies[pos: 2].vx to $bodies[pos: 2].vx - 0.25;
     change $bodies[pos: 1].vx to $bodies[pos: 2].vx x 2.0;
     for $b in lend $bodies:
         std::print($b.name, " ", $b.vx, newln);

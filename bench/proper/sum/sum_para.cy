@@ -22,7 +22,7 @@ proc run [] -> i32 or fail[missing, out_of_range]:
     no_check let $n := read_n(getenv(lend $key))?;
     var $acc: i64 = 0;
     for %para $i: i64 [from: 1, to: $n, by: 1]:
-        change $acc += (($i x $i) mod.floor 7);
+        change $acc to $acc + (($i x $i) mod.floor 7);
     ;for
     ret to.i32(($acc mod.floor 1_000_000_007) mod.floor 256);
 ;proc run

@@ -17,8 +17,8 @@ op dot [lent $a: Vec, lent $b: Vec] -> f64:
 # an operand says how it comes, as a function's parameter does: `lent`, or its own (`var` here, since it changes),
 # and then the caller says give
 op <*> [var $a: Vec, lent $b: f64] -> Vec:
-    change $a.x x= $b;
-    change $a.y x= $b;
+    change $a.x to $a.x x $b;
+    change $a.y to $a.y x $b;
     ret give $a;
 ;op <*>
 

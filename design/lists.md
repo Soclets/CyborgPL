@@ -155,7 +155,7 @@ the loop's element is the list's own: changing it changes the list. Over
 
 ```
 for $x in lend.mut $prices:
-    change $x x= 2;
+    change $x to $x x 2;
 ;for
 ```
 

@@ -5,9 +5,9 @@ fn twice [let $n: i32] -> i32:
 
 MAIN:
     var $plain = 1;
-    change $plain += 1;
+    change $plain to $plain + 1;
     var $counter = 0;
-    change $counter += 1;
+    change $counter to $counter + 1;
     let $limit: i32 := 10;
     std::print($plain, " ", $counter, " ", $limit, " ", twice($limit), newln);
 ;MAIN

@@ -9,7 +9,7 @@ MAIN:
     let $xs: std::ls[i32] := [10, 20, 30, 40];
     var $total: i32 = 0;
     for temp $i: u64 [from: 1, to: 4, by: 1]:
-        change $total += $xs[pos: $i];
+        change $total to $total + $xs[pos: $i];
     ;for
     let $mid := std::ls.slice(lend $xs, from: pos 2, to: pos 3);
     let $f := fn [let $n: i32[min: 0, max: 1000]] -> i32:

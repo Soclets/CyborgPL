@@ -12,6 +12,6 @@ MAIN:
     std::print(-$a, " ", -$a, " ", -5, newln);
     std::print($a + $b, " ", $a div.floor $b, " ", $a == $b, newln);
     var $i = 1;
-    change $i += 1;
+    change $i to $i + 1;
     std::print($i, newln);
 ;MAIN

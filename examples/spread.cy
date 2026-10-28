@@ -4,7 +4,7 @@
 fn sum [let ...$nums: i32] -> i32:
     var $total = 0;
     for $n in lend $nums:
-        change $total += $n;
+        change $total to $total + $n;
     ;for
     ret $total;
 ;fn sum

@@ -9,7 +9,7 @@ MAIN:
     var $vowels = 0;
     for $g in std::str.each.cluster(lend $s):
         if $g == `o` or $g == `e`:
-            change $vowels += 1;
+            change $vowels to $vowels + 1;
         ;if
     ;for
     std::print($vowels, " vowels", newln);

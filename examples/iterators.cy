@@ -12,7 +12,7 @@ proc Counter.next [lent.mut $c: Counter] -> optional[i32]:
     if $c.now == $c.stop:
         ret optional.none;
     ;if
-    change $c.now += 1;
+    change $c.now to $c.now + 1;
     ret optional.value($c.now);
 ;proc Counter.next
 
@@ -21,7 +21,7 @@ rec Forever:
 ;rec Forever
 
 proc Forever.next [lent.mut $f: Forever] -> optional[i32]:
-    change $f.n += 1;
+    change $f.n to $f.n + 1;
     ret optional.value($f.n);
 ;proc Forever.next
 

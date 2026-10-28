@@ -3,11 +3,11 @@ MAIN:
     var $i = 0;
     while $i < 3:
         std::print("while ", $i, newln);
-        change $i += 1;
+        change $i to $i + 1;
     ;while
     var $n = 0;
     loop:
-        change $n += 1;
+        change $n to $n + 1;
         if $n == 2:
             continue;
         ;if

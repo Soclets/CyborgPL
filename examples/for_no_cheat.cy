@@ -12,11 +12,11 @@ fn fib [let $n: i64[min: 0, max: 92]] -> i64:
 MAIN:
     var $acc: i64 = 0;
     no_skip for $i: i64 [from: 1, to: 1000, by: 1]:
-        change $acc += $i;
+        change $acc to $acc + $i;
     ;for
     var $more: i64 = 0;
     no_skip for seq $i: i64 [from: 1, to: 10, by: 1]:
-        change $more += $i;
+        change $more to $more + $i;
     ;for
     no_skip let $f := fib(20);
     var $both: i64 = 0;

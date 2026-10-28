@@ -2,7 +2,7 @@
 fn sum [let ...$nums] -> f64:
     var $total: f64 = 0;
     for $n in lend $nums:
-        change $total += to.f64($n);
+        change $total to $total + to.f64($n);
     ;for
     ret $total;
 ;fn sum

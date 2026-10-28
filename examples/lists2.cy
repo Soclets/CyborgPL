@@ -2,7 +2,7 @@
 fn sum [lent $items: std::ls[i32]] -> i32:
     var $total = 0;
     for $n in lend $items:
-        change $total += $n;
+        change $total to $total + $n;
     ;for
     ret $total;
 ;fn sum

@@ -4,7 +4,7 @@ MAIN:
     var $xs: std::ls[i32] = [1, 2, 3];
     var $seen: std::ls[i32] = [];
     for $x in lend.mut $xs:
-        change $x x= 10;
+        change $x to $x x 10;
         std::ls.append(lend.mut $seen, value: $xs[pos: 1]);
     ;for
     std::print.stored($xs, newln);

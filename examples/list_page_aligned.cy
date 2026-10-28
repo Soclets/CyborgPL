@@ -5,7 +5,7 @@
 fn total [lent $xs: std::ls[i32]] -> i32:
     var $s: i32 = 0;
     for $x in lend $xs:
-        change $s += $x;
+        change $s to $s + $x;
     ;for
     ret $s;
 ;fn total

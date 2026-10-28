@@ -30,7 +30,7 @@ MAIN:
 
     for $n in lend $names:
         if stash(lend.mut $mine, copy $n):
-            change $stored += 1;
+            change $stored to $stored + 1;
         ;if
     ;for
     std::print(label(lend $mine), ": ", $stored, " stored, ", free_slots(lend $mine), " free", newln);

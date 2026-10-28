@@ -11,6 +11,6 @@ MAIN:
     let $y := $x + 0.5: f16;
     std::print.written($y, newln) otherwise std::print.shortest;
     var $z: f64 = 1.25;
-    change $z x= 2.0;
+    change $z to $z x 2.0;
     std::print.written($z, newln) otherwise std::print.stored;
 ;MAIN

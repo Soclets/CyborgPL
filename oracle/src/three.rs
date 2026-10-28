@@ -70,7 +70,6 @@ fn number_tokens(kind: &str, sub: &str, width: &str, limb: bool, t: &Token, out:
 }
 
 pub fn from_three(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
-    let toks = compound_changes(toks)?;
     let toks = prints(toks)?;
     let n = toks.len();
     let mut out: Vec<Token> = Vec::with_capacity(n + n / 4);
@@ -153,6 +152,9 @@ pub fn from_three(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     return Err(old(t, &s, &short_number(&s)));
                 }
                 // `x` is multiplication (owner, 2026-10-27: "`x` instead of (inof) `*`"); after a `.` it is a field's name
+                if w == "x" && tok(i + 1) == &Tok::Eq && toks[..i].iter().rev().take_while(|p| p.tok != Tok::Semi).any(|p| matches!(&p.tok, Tok::Word(c) if c == "change")) {
+                    return Err((t.line, t.col, "`x=` is an old spelling: write `change $x to $x x …;` (owner, 2026-10-28: symbols that break the reading go)".into()));
+                }
                 if w == "x" && !after_dot && !matches!(tok(i + 1), Tok::Colon | Tok::Eq | Tok::Walrus) && !matches!(prev.map(|p| &p.tok), Some(Tok::Op(a)) if a == "@") {
                     // used between two values, or named as an operator: `op x`, `level 3 [x, dot]`
                     let named = matches!(prev.map(|p| &p.tok), Some(Tok::Word(o)) if o == "op") || matches!(prev.map(|p| &p.tok), Some(Tok::LBracket | Tok::Comma)) && matches!(tok(i + 1), Tok::Comma | Tok::RBracket);
@@ -200,7 +202,6 @@ pub fn from_three(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     ">" => out.push(wide(Tok::Op(">".into()), t, 2)),
                     "<=" => out.push(like(Tok::Op("at_most".into()), t)),
                     ">=" => out.push(like(Tok::Op("at_least".into()), t)),
-                    "+=" | "-=" | "^=" => return Err((t.line, t.col, format!("a change starts with `change`: `change $i {o} 1;` (owner, 2026-10-27)"))),
                     // `?` / `??` (owner, 2026-10-27): `otherwise fail` / `otherwise <value>`
                     "?" => { out.push(word("otherwise", t)); out.push(word("fail", t)); }
                     "??" => out.push(word("otherwise", t)),
@@ -212,50 +213,6 @@ pub fn from_three(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
             }
             _ => out.push(t.clone()),
         }
-        i += 1;
-    }
-    Ok(out)
-}
-
-/// `change $total += $fare;` (owner, 2026-10-27: "(a)") read as `change $total to $total + ($fare);`: the target is copied,
-/// the value parenthesised, so its own operators bind as written
-fn compound_changes(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
-    let n = toks.len();
-    let mut out = Vec::with_capacity(n);
-    let mut i = 0;
-    while i < n {
-        let t = &toks[i];
-        if matches!(&t.tok, Tok::Word(c) if c == "change") {
-            // the statement's end, and an assignment operator at depth 0 before it
-            let mut d = 0i32; let mut k = i + 1; let mut at: Option<(usize, &'static str, usize)> = None;
-            while k < n {
-                match &toks[k].tok {
-                    Tok::LParen | Tok::LBracket => d += 1, Tok::RParen | Tok::RBracket => d -= 1,
-                    Tok::Semi if d == 0 => break,
-                    Tok::Op(o) if d == 0 && at.is_none() => { at = match o.as_str() { "+=" => Some((k, "+", 1)), "-=" => Some((k, "-", 1)), "^=" => Some((k, "^", 1)), _ => None }; }
-                    Tok::Word(x) if d == 0 && at.is_none() && x == "x" && toks.get(k + 1).is_some_and(|e| e.tok == Tok::Eq) => { at = Some((k, "x", 2)); }
-                    Tok::Word(w) if d == 0 && w == "to" && at.is_none() && !toks.get(k + 1).is_some_and(|x| x.tok == Tok::Dot) => break,
-                    _ => {}
-                }
-                k += 1;
-            }
-            if let Some((op_at, sym, len)) = at {
-                let end = k;
-                out.push(t.clone());
-                let target: Vec<Token> = toks[i + 1..op_at].to_vec();
-                out.extend(target.iter().cloned());
-                out.push(word("to", &toks[op_at]));
-                out.extend(target.iter().cloned());
-                let o = &toks[op_at];
-                out.push(if sym == "x" { word("x", o) } else { like(Tok::Op(sym.into()), o) });
-                out.push(like(Tok::LParen, o));
-                out.extend(toks[op_at + len..end].iter().cloned());
-                out.push(like(Tok::RParen, toks.get(end).unwrap_or(o)));
-                i = end;
-                continue;
-            }
-        }
-        out.push(t.clone());
         i += 1;
     }
     Ok(out)

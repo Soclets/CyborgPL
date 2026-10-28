@@ -18,6 +18,6 @@ MAIN:
     var $i = 1;
     while $i <= $limit:
         say($i);
-        change $i += 1;
+        change $i to $i + 1;
     ;while
 ;MAIN

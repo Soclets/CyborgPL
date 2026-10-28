@@ -4,7 +4,7 @@
 MAIN:
     var $prices: std::ls[i32] = [10, 20, 30];
     for $x in lend.mut $prices:
-        change $x x= 2;
+        change $x to $x x 2;
     ;for
     std::print.stored($prices, newln);
 ;MAIN

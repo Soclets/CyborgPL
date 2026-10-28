@@ -15,11 +15,11 @@ MAIN [let $argc: i32, let $argv: ptr[ptr[u8]]]:
                 break;
             ;if
             std::ls.append(lend.mut $bytes, value: $b);
-            change $k += 1;
+            change $k to $k + 1;
         ;loop
         let $text := to.str.utf8(lend $bytes) ?? "(not UTF-8)";      # bytes into text (owner, 2026-09-30)
         std::print.stored("argument ", $i, ": ", $text, newln);
-        change $i += 1;
+        change $i to $i + 1;
     ;while
     no_check let $end := ptr.read(ptr.at($argv, by: $argc));
     std::print.stored("argv[argc] is null: ", ptr.is_null($end), newln);

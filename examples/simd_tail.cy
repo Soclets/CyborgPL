@@ -11,12 +11,12 @@ MAIN:
         let $left := $n - $i + 1;
         if $left >= 4:
             let $v: simd[i32, count: 4] := simd.load(lend $xs, pos: $i);
-            change $acc += $v;
+            change $acc to $acc + $v;
         else:
             let $v: simd[i32, count: 4] := simd.load.some(lend $xs, pos: $i, count: $left);
-            change $acc += $v;
+            change $acc to $acc + $v;
         ;if
-        change $i += 4;
+        change $i to $i + 4;
     ;while
     let $twice: simd[i32, count: 4] := simd.fill(value: 2);
     let $last: simd[i32, count: 4] := simd.load(lend $xs, pos: 7);

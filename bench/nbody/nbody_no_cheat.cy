@@ -51,20 +51,20 @@ proc advance [lent.mut $bodies: std::ls[Body], let $dt: f64]:
                 let $dz: f64 := $bodies[pos: $i].z - $bodies[pos: $j].z;
                 let $distance: f64 := sqrt($dx x $dx + $dy x $dy + $dz x $dz);
                 let $mag: f64 := $dt div.near ($distance x $distance x $distance);
-                change $bodies[pos: $i].vx -= $dx x $bodies[pos: $j].mass x $mag;
-                change $bodies[pos: $i].vy -= $dy x $bodies[pos: $j].mass x $mag;
-                change $bodies[pos: $i].vz -= $dz x $bodies[pos: $j].mass x $mag;
-                change $bodies[pos: $j].vx += $dx x $bodies[pos: $i].mass x $mag;
-                change $bodies[pos: $j].vy += $dy x $bodies[pos: $i].mass x $mag;
-                change $bodies[pos: $j].vz += $dz x $bodies[pos: $i].mass x $mag;
+                change $bodies[pos: $i].vx to $bodies[pos: $i].vx - $dx x $bodies[pos: $j].mass x $mag;
+                change $bodies[pos: $i].vy to $bodies[pos: $i].vy - $dy x $bodies[pos: $j].mass x $mag;
+                change $bodies[pos: $i].vz to $bodies[pos: $i].vz - $dz x $bodies[pos: $j].mass x $mag;
+                change $bodies[pos: $j].vx to $bodies[pos: $j].vx + $dx x $bodies[pos: $i].mass x $mag;
+                change $bodies[pos: $j].vy to $bodies[pos: $j].vy + $dy x $bodies[pos: $i].mass x $mag;
+                change $bodies[pos: $j].vz to $bodies[pos: $j].vz + $dz x $bodies[pos: $i].mass x $mag;
             ;no_check
         ;for
     ;for
     for $i: u64 [from: 1, to: $n, by: 1]:
         no_check:
-            change $bodies[pos: $i].x += $dt x $bodies[pos: $i].vx;
-            change $bodies[pos: $i].y += $dt x $bodies[pos: $i].vy;
-            change $bodies[pos: $i].z += $dt x $bodies[pos: $i].vz;
+            change $bodies[pos: $i].x to $bodies[pos: $i].x + $dt x $bodies[pos: $i].vx;
+            change $bodies[pos: $i].y to $bodies[pos: $i].y + $dt x $bodies[pos: $i].vy;
+            change $bodies[pos: $i].z to $bodies[pos: $i].z + $dt x $bodies[pos: $i].vz;
         ;no_check
     ;for
 ;proc advance
@@ -73,14 +73,14 @@ proc energy [lent $bodies: std::ls[Body]] -> f64:
     let $n := std::ls.len(lend $bodies);
     var $e: f64 = 0.0;
     for $i: u64 [from: 1, to: $n, by: 1]:
-        no_check change $e += 0.5 x $bodies[pos: $i].mass x ($bodies[pos: $i].vx x $bodies[pos: $i].vx + $bodies[pos: $i].vy x $bodies[pos: $i].vy + $bodies[pos: $i].vz x $bodies[pos: $i].vz);
+        no_check change $e to $e + 0.5 x $bodies[pos: $i].mass x ($bodies[pos: $i].vx x $bodies[pos: $i].vx + $bodies[pos: $i].vy x $bodies[pos: $i].vy + $bodies[pos: $i].vz x $bodies[pos: $i].vz);
         for $j: u64 [from: $i + 1, to: $n, by: 1]:
             no_check:
                 let $dx: f64 := $bodies[pos: $i].x - $bodies[pos: $j].x;
                 let $dy: f64 := $bodies[pos: $i].y - $bodies[pos: $j].y;
                 let $dz: f64 := $bodies[pos: $i].z - $bodies[pos: $j].z;
                 let $distance: f64 := sqrt($dx x $dx + $dy x $dy + $dz x $dz);
-                change $e -= (($bodies[pos: $i].mass x $bodies[pos: $j].mass) div.near $distance);
+                change $e to $e - (($bodies[pos: $i].mass x $bodies[pos: $j].mass) div.near $distance);
             ;no_check
         ;for
     ;for
@@ -93,9 +93,9 @@ proc offset_momentum [lent.mut $bodies: std::ls[Body]]:
     var $pz: f64 = 0.0;
     for $b in lend $bodies:
         no_check:
-            change $px += $b.vx x $b.mass;
-            change $py += $b.vy x $b.mass;
-            change $pz += $b.vz x $b.mass;
+            change $px to $px + $b.vx x $b.mass;
+            change $py to $py + $b.vy x $b.mass;
+            change $pz to $pz + $b.vz x $b.mass;
         ;no_check
     ;for
     no_check:

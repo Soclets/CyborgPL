@@ -34,6 +34,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-28 — Redesign three: `+=` and its family dropped; a change is spelled out, `change $x to $x + 1` (owner)
+
+The owner: "Now, I think we should remove symbols that kill reading flow. Say `+=`, because the spelled way is `change $x
+to $x + 1` or something". Design claude agreed (`change $x to $x + 1` reads as a sentence, `+=` is a glued symbol to
+decode mid-line) and named the other candidates: `?` (a hidden exit, the common complaint about Rust's), `??` (two glyphs
+for a word), `*` (a mark meant to catch the eye, kept). The owner: "I don't see the problem of `?` & `??`, what is it?"
+Design claude: `??` barely any, it never jumps; `?` only that one character can leave the function. "What if `*?`?"
+(design claude: it fits the `*` rule, a jump not written on the line); "But wait, `?` already says `otherwise fail`,
+though" (yes: `*` marks a jump a name hides, as a handler's does, and `?` can only mean one thing; the reasoning that
+kept `in loop` off handlers). So **`+=`, `-=`, `x=`, `^=` are dropped, refused naming `change $x to $x + …;`**; `?` and
+`??` stay as they are. Built; 61 programs and three notes spelled out, a value parenthesised where leaving it bare would
+change it (`change $x to $x - ($a + $b)`). This reverses the evening's `change $total += …` entry.
+
 ### 2026-10-28 — A `set` gives a body only its types; an operation on a `<T>` comes from a `sig` in its bound (owner: (b))
 
 From multifinity's rules-first review, point 3: "`>` on a type that only requires a set ... Does membership in a closed

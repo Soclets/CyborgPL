@@ -26,7 +26,7 @@ fn popcount [let $x: u32] -> u32:
     var $n: u32 = $x;
     var $count: u32 = 0;
     while $n > 0:
-        change $count += ($n and.bit 1);
+        change $count to $count + ($n and.bit 1);
         change $n to $n shr 1;
     ;while
     ret $count;

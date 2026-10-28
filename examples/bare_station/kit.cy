@@ -82,19 +82,19 @@ proc next_reading [lent.mut $c: Cursor] -> temp or fail[done, bad_byte: u64]:
         let $b := $log[pos: $at];
         if $b == $hash:
             while $at <= $n and.then $log[pos: $at] != $newline:
-                change $at += 1;
+                change $at to $at + 1;
             ;while
             continue;
         ;if
         if $b == $newline or $b == $space:
-            change $at += 1; continue;
+            change $at to $at + 1; continue;
         ;if
         change $first to $b;
         break;
     ;loop
     let $negative := $first == $minus;
     if $negative:
-        change $at += 1;
+        change $at to $at + 1;
     ;if
     var $value: i32 = 0;
     while $at <= $n and.then $log[pos: $at] != $newline:
@@ -109,7 +109,7 @@ proc next_reading [lent.mut $c: Cursor] -> temp or fail[done, bad_byte: u64]:
             fail bad_byte[$at];
         ;if
         change $value to $value x 10 + to.i32($b - $zero);
-        change $at += 1;
+        change $at to $at + 1;
     ;while
     change $c.at to $at;
     if $negative:
@@ -337,20 +337,20 @@ proc read_day [] -> Day:
         ;if
         let $now := alarm_for($t);
         if rank($now) >= 1:
-            change $warm += 1;
+            change $warm to $warm + 1;
         ;if
         if rank($now) == 2:
-            change $hot += 1;
+            change $hot to $hot + 1;
         ;if
         if rank($now) != rank($alarm):
             std::print(" -> ");
             show_alarm($now);
             std::print(" at ");
             show_hour($hour);
-            change $changes += 1;
+            change $changes to $changes + 1;
             change $alarm to $now;
         ;if
-        change $sum += $t;
+        change $sum to $sum + $t;
         change $prev to $t;
     ;for
     std::print(newln);

@@ -18,7 +18,7 @@ proc pi_digits [let $n: i32]:
         change $a[pos: 1] to $q mod.floor 10;
         change $q to $q div.floor 10;
         if $q == 9:
-            change $nines += 1;
+            change $nines to $nines + 1;
         else if $q == 10:
             std::print($predigit + 1);
             for $k [from: 1, to: $nines, by: 1]:

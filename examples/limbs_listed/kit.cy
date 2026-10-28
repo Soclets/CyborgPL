@@ -12,8 +12,8 @@ proc hello []:
 
 MAIN:
     var $n: i64 = to.i64("41") ?? 0;
-    check change $n += 1;
-    no_check change $n x= 1;
+    check change $n to $n + 1;
+    no_check change $n to $n x 1;
     std::print(first($n, 7), newln);
     %spawn.task hello();
 ;MAIN

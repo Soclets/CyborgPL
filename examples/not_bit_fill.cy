@@ -23,7 +23,7 @@ proc emit [let $m: u64, let $neg: bool]:
     var $k: u64 = std::ls.len(lend $ds);
     while $k >= 1:
         std::ls.append(lend.mut $buf, value: $ds[pos: $k]);
-        change $k -= 1;
+        change $k to $k - 1;
     ;while
     std::ls.append(lend.mut $buf, value: 10);
     no_check write(1, lend $buf, std::ls.len(lend $buf));
