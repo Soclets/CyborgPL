@@ -2,5 +2,5 @@
 # of u8 lanes is a u8, so `shl 1` is an 8-bit shift.
 MAIN:
     let $s: simd[u8, count: 16] := simd.fill(value: 3);
-    std::println(simd.max($s) shl 1);
+    std::print(simd.max($s) shl 1, newln);
 ;MAIN

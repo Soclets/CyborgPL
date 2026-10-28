@@ -3,6 +3,6 @@
 MAIN:
     let $s: simd[u64, count: 2] := simd.fill(value: 40);
     if 3 < ($s[pos: 2] shr 2):
-        std::println("10 is more than 3");
+        std::print("10 is more than 3", newln);
     ;if
 ;MAIN

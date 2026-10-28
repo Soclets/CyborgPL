@@ -126,7 +126,7 @@ ret;                       # in a nothing-function
 ```
 MAIN:
     let $sum := add(10, 20);
-    std::println("sum: ", $sum);
+    std::print("sum: ", $sum, newln);
 ;MAIN
 ```
 

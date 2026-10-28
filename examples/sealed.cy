@@ -8,5 +8,5 @@ MAIN:
     let $b := 3;                    # no word: it may not change either
     var no_shadow $total = 0;        # changeable, and 'total' always means this one
     change $total to $total + $a + $b;
-    std::println($a, " ", $b, " ", $total);
+    std::print($a, " ", $b, " ", $total, newln);
 ;MAIN

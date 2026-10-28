@@ -176,7 +176,7 @@ proc read_network [lent $rows: std::ls[str.utf8]] -> Network:
         let $link := parse_link(lend $row)-
         otherwise:
             case bad_row $what:
-                std::println("  (skipped a row that does not read as \"A - B minutes km\": \"", $what, "\")");
+                std::print("  (skipped a row that does not read as \"A - B minutes km\": \"", $what, "\")", newln);
                 continue;
             ;case bad_row
         ;otherwise;
@@ -556,19 +556,19 @@ proc book [
 coll.handler booking_failed:
     member booking_failed.explain [let $who: str.utf8]:
         case unknown_station $name:
-            std::println("  ", $who, ": no station called ", $name, " on this network");
+            std::print("  ", $who, ": no station called ", $name, " on this network", newln);
             continue;
         ;case unknown_station
         case same_station:
-            std::println("  ", $who, ": that journey starts where it ends");
+            std::print("  ", $who, ": that journey starts where it ends", newln);
             continue;
         ;case same_station
         case no_route:
-            std::println("  ", $who, ": no night train joins those two stations");
+            std::print("  ", $who, ": no night train joins those two stations", newln);
             continue;
         ;case no_route
         case sold_out $kind:
-            std::println("  ", $who, ": no ", $kind, " left tonight");
+            std::print("  ", $who, ": no ", $kind, " left tonight", newln);
             continue;
         ;case sold_out
     ;member booking_failed.explain
@@ -576,9 +576,9 @@ coll.handler booking_failed:
 
 proc show_booking [lent $b: Booking, let $age: Age]:
     let $changes := std::ls.len(lend $b.journey.stops) - 2;
-    std::println("  #", $b.ticket, " ", $b.traveller, " (", age_name($age), "), ", seat_name(lend $b.seat));
-    std::println("    ", std::str.join(lend $b.journey.stops, between: " → "));
-    std::println.format("    {} km, {} change(s), leaves {}, arrives {}, fare {places: 2}", $b.journey.km, $changes, clock($departure), clock($departure + $b.journey.minutes), $b.fare);
+    std::print("  #", $b.ticket, " ", $b.traveller, " (", age_name($age), "), ", seat_name(lend $b.seat), newln);
+    std::print("    ", std::str.join(lend $b.journey.stops, between: " → "), newln);
+    std::print.format("    {} km, {} change(s), leaves {}, arrives {}, fare {places: 2}{newln}", $b.journey.km, $changes, clock($departure), clock($departure + $b.journey.minutes), $b.fare);
 ;proc show_booking
 
 # ---------------------------------------------------------------------------------------------------
@@ -615,7 +615,7 @@ fn soonest_first [lent $xs: std::ls[Arrival]] -> std::ls[Arrival]:
 
 proc board [lent $net: Network, lent $from: str.utf8]:
     var $out = std::print.writer(size: 4096 bytes);
-    std::println(lend.mut $out, newln, "departures from ", $from, " at ", clock($departure));
+    std::print(lend.mut $out, newln, "departures from ", $from, " at ", clock($departure), newln);
     std::print.format(lend.mut $out, "  {align: left, width: 12 cols} {align: left, width: 8 cols} {align: right, width: 6 cols}{newln}", "to", "arrives", "km");
     let $best := quickest_from(lend $net, lend $from);
     var $arrivals: std::ls[Arrival] = std::ls.empty;
@@ -667,7 +667,7 @@ proc compare_hubs [lent $net: Network]:
     let $p := %channel.take(lend $paris_ch) ?? 0;
     let $k := %channel.take(lend $koln_ch) ?? 0;
     let $w := %channel.take(lend $wien_ch) ?? 0;
-    std::println(newln, "stations reached by ", clock($by_eight), ": Paris ", $p, ", Köln ", $k, ", Wien ", $w);
+    std::print(newln, "stations reached by ", clock($by_eight), ": Paris ", $p, ", Köln ", $k, ", Wien ", $w, newln);
 ;proc compare_hubs
 
 # ---------------------------------------------------------------------------------------------------
@@ -685,14 +685,14 @@ fn stations_where [lent $net: Network, let $keep: fn[str.utf8] -> bool] -> std::
 ;fn stations_where
 
 proc show_letters [lent $net: Network]:
-    std::println(newln, "stations by letter:");
+    std::print(newln, "stations by letter:", newln);
     let $letters := ["ö", "ü", "ó", "x"];
     for $part in lend $letters:
         let $found := stations_where(lend $net, fn [let $s] with [lend $part] = std::str.contains(lend $s, part: lend $part));
         if std::ls.len(lend $found) == 0:
-            std::println("  none with ", $part);
+            std::print("  none with ", $part, newln);
         else:
-            std::println("  with ", $part, ": ", std::str.join(lend $found, between: ", "));
+            std::print("  with ", $part, ": ", std::str.join(lend $found, between: ", "), newln);
         ;if
     ;for
 ;proc show_letters
@@ -703,7 +703,7 @@ proc show_letters [lent $net: Network]:
 
 proc report [lent $bookings: std::ls[Booking][max: 500], lent $left: std::map.ordered[str.utf8, i32]]:
     var $out = std::print.writer(size: 4096 bytes);
-    std::println(lend.mut $out, newln, "=== ", $network_name, ", tonight ===");
+    std::print(lend.mut $out, newln, "=== ", $network_name, ", tonight ===", newln);
     var $fares: std::ls[%d64][max: 500] = std::ls.empty;
     var $kms: std::ls[i32][max: 500] = std::ls.empty;
     var $longest = 0;
@@ -718,14 +718,14 @@ proc report [lent $bookings: std::ls[Booking][max: 500], lent $left: std::map.or
     ;for
     let $count := std::ls.len(lend $bookings);
     let $takings := total_of(lend $fares);
-    std::println(lend.mut $out, "tickets sold: ", $count);
+    std::print(lend.mut $out, "tickets sold: ", $count, newln);
     std::print.format(lend.mut $out, "takings: {places: 2}{newln}", $takings);
     if $count > 0:
         let $average := std::round.near($takings div.near to.%d64(to.i32($count)), places: 2);
         std::print.format(lend.mut $out, "average fare: {places: 2}{newln}", $average);
     ;if
-    std::println(lend.mut $out, "km travelled: ", total_of(lend $kms), ", the longest ", $longest, " km (", $longest_who, ")");
-    std::println(lend.mut $out, "places left:");
+    std::print(lend.mut $out, "km travelled: ", total_of(lend $kms), ", the longest ", $longest, " km (", $longest_who, ")", newln);
+    std::print(lend.mut $out, "places left:", newln);
     for $e in std::map.pairs(lend $left):
         std::print.format(lend.mut $out, "  {align: left, width: 14 cols} {width: 3 cols}{newln}", $e.key, $e.value);
     ;for
@@ -734,21 +734,21 @@ proc report [lent $bookings: std::ls[Booking][max: 500], lent $left: std::map.or
 
 # Every request of the day, each with the next ticket number; the ones that cannot be read or booked are explained.
 proc book_all [lent $net: Network, lent.mut $left: std::map.ordered[str.utf8, i32], lent $lines: std::ls[str.utf8]] -> std::ls[Booking][max: 500]:
-    std::println(newln, "bookings:");
+    std::print(newln, "bookings:", newln);
     var $bookings: std::ls[Booking][max: 500] = std::ls.empty;
     var $ticket = 500;
     for $line in lend $lines:
         if std::ls.len(lend $bookings) >= $most_bookings:
-            std::println("  (tonight's trains are full)");
+            std::print("  (tonight's trains are full)", newln);
             break;
         ;if
         let $req := parse_request(lend $line)-
         otherwise:
             case bad_request $what:
                 if $what == $line:
-                    std::println("  (cannot read \"", $line, "\")");
+                    std::print("  (cannot read \"", $line, "\")", newln);
                 else:
-                    std::println("  (cannot read \"", $what, "\" in \"", $line, "\")");
+                    std::print("  (cannot read \"", $what, "\" in \"", $line, "\")", newln);
                 ;if
                 continue;
             ;case bad_request
@@ -768,7 +768,7 @@ proc show_quarter_hours []:
     for $t in lend.mut $quarters:
         std::print(" ", clock($t));
     ;for
-    std::println();
+    std::print(newln);
 ;proc show_quarter_hours
 
 # Exact decimals: why a fare is a `float.%deci.64`. A fare of 0.10 three times is 0.30 exactly.
@@ -777,9 +777,9 @@ proc show_exact_money []:
     let $three := $dime + $dime + $dime;
     let $float: f64 := 0.1 + 0.1 + 0.1;
     std::print("three fares of 0.10 as float.deci.64: ");
-    std::println.stored($three);
+    std::print.stored($three, newln);
     std::print("the same in float.bin.64: ");
-    std::println.stored($float);
+    std::print.stored($float, newln);
 ;proc show_exact_money
 
 # ---------------------------------------------------------------------------------------------------
@@ -787,10 +787,10 @@ proc show_exact_money []:
 # ---------------------------------------------------------------------------------------------------
 
 MAIN:
-    std::println("the ", $network_name, " night trains", newln, newln, "reading the timetable:");
+    std::print("the ", $network_name, " night trains", newln, newln, "reading the timetable:", newln);
     let $rows := timetable();
     let $net := read_network(lend $rows);
-    std::println("  ", std::ls.len(lend $net.links), " lines between ", std::ls.len(lend $net.stations), " stations");
+    std::print("  ", std::ls.len(lend $net.links), " lines between ", std::ls.len(lend $net.stations), " stations", newln);
     board(lend $net, "Wien");
     var $left = places_left();
     let $requests := todays_requests();
@@ -800,5 +800,5 @@ MAIN:
     show_letters(lend $net);
     show_quarter_hours();
     show_exact_money();
-    std::println("good night from ", $network_name);
+    std::print("good night from ", $network_name, newln);
 ;MAIN

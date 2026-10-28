@@ -8,5 +8,5 @@ MAIN:
     let $zs: std::ls[std::ls[u8]] := [[0 minus.wrap 2,], [1,]];
     let $big: std::ls[u64] := [9692729768110883998 - 3166240359165959856,];
     let $inner := copy $zs[pos: 1];
-    std::println($xs[pos: 1], " ", $xs[pos: 2], " ", $xs[pos: 3], " ", $ys[pos: 1], " ", $ys[pos: 2], " ", $inner[pos: 1], " ", $big[pos: 1]);
+    std::print($xs[pos: 1], " ", $xs[pos: 2], " ", $xs[pos: 3], " ", $ys[pos: 1], " ", $ys[pos: 2], " ", $inner[pos: 1], " ", $big[pos: 1], newln);
 ;MAIN

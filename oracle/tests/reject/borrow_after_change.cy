@@ -3,5 +3,5 @@ MAIN:
     var $s: std::ls[i32] = [1, 2, 3];
     let $r := lend $s;
     change $s[pos: 1] to 99;
-    std::println($r[pos: 1]);
+    std::print($r[pos: 1], newln);
 ;MAIN

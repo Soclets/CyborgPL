@@ -9,5 +9,5 @@ MAIN:
     var $counter = 0;
     change $counter += 1;
     let $limit: i32 := 10;
-    std::println($plain, " ", $counter, " ", $limit, " ", twice($limit));
+    std::print($plain, " ", $counter, " ", $limit, " ", twice($limit), newln);
 ;MAIN

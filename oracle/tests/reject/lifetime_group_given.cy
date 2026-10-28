@@ -7,5 +7,5 @@ MAIN:
     let $t: std::ls[i32] := [6, 7];
     let $r := b1(lend $s, lend $t);
     let $g := give $t;
-    std::println($r[pos: 1]);
+    std::print($r[pos: 1], newln);
 ;MAIN

@@ -29,20 +29,20 @@ MAIN:
     var $c = Counter[now = 0, stop = 5];
     match Counter.next(lend.mut $c):
         case value $x:
-            std::println("by hand: ", $x);
+            std::print("by hand: ", $x, newln);
         ;case value
         case none:
-            std::println("empty");
+            std::print("empty", newln);
         ;case none
     ;match
     for $x in lend.mut $c:
         if $x == 4:
             break;
         ;if
-        std::println("lent: ", $x);
+        std::print("lent: ", $x, newln);
     ;for
     for $x in give $c:
-        std::println("given: ", $x);
+        std::print("given: ", $x, newln);
     ;for
     var $f = Forever[n = 0];
     for perm $y in lend.mut $f:
@@ -50,5 +50,5 @@ MAIN:
             break;
         ;if
     ;for
-    std::println("stopped at ", $y);
+    std::print("stopped at ", $y, newln);
 ;MAIN

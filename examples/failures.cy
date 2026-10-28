@@ -40,23 +40,23 @@ MAIN:
         let $ok := stash(lend.mut $mine, copy $n)-
         otherwise:
             case full:
-                std::println.stored("full, stopping"); break;
+                std::print.stored("full, stopping", newln); break;
             ;case full
             case bad_item $why:
-                std::println.stored("bad item ", $why); continue;
+                std::print.stored("bad item ", $why, newln); continue;
             ;case bad_item
         ;otherwise;
-        std::println.stored("stored ", $n);
+        std::print.stored("stored ", $n, newln);
     ;for
     let $a := double_digit("7") ?? 0;
     let $b := double_digit("x") ?? 0;
-    std::println($a, " ", $b);
+    std::print($a, " ", $b, newln);
     save(lend $mine)-
     otherwise:
         case disk_full:
-            std::println.stored("could not save");
+            std::print.stored("could not save", newln);
         ;case disk_full
     ;otherwise;
     let $c := parse_digit("x") ?? std::exit(code: 3);
-    std::println.stored("unreachable");
+    std::print.stored("unreachable", newln);
 ;MAIN

@@ -17,5 +17,5 @@ MAIN:
     no_check let $back := $n.i;
     var $s = Status[mode = 5, ready = true, level = -8];
     change $s.mode to 7;
-    std::println($raw, " ", $back, " ", $s.mode, " ", $s.level);
+    std::print($raw, " ", $back, " ", $s.mode, " ", $s.level, newln);
 ;MAIN

@@ -15,6 +15,6 @@ MAIN:
         }
     ;inline.%MSL
     for $b in lend $bodies:
-        std::println($b.x);
+        std::print($b.x, newln);
     ;for
 ;MAIN

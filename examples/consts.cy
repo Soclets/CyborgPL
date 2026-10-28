@@ -11,11 +11,11 @@ pub fn area [let $r: f64] -> f64:
     ret $pi x $r x $r;
 ;fn area
 MAIN:
-    std::println($max, " ", $twice_max, " ", $greeting, " ", area(2.0));
+    std::print($max, " ", $twice_max, " ", $greeting, " ", area(2.0), newln);
     let $s := $greeting;
     let $p := P[x = $max];
     for $i [from: 1, to: $max, by: 4]:
         std::print($i, " ");
     ;for
-    std::println.stored();
+    std::print.stored(newln);
 ;MAIN

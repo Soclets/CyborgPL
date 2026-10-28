@@ -5,5 +5,5 @@ MAIN:
     let $y := to.%d32($x) ?? 0;
     let $z := to.i64($y x 1000000) ?? -1;
     let $b: f64 := to.f64("not a number") ?? 0;
-    std::println.stored($y, " ", $z, " ", $b);
+    std::print.stored($y, " ", $z, " ", $b, newln);
 ;MAIN

@@ -6,5 +6,5 @@ MAIN:
     var $s: std::ls[i32] = [1, 2, 3];
     let $r := first(lend $s);
     std::ls.append(lend.mut $s, value: 4);
-    std::println(std::ls.len(lend $r));
+    std::print(std::ls.len(lend $r), newln);
 ;MAIN

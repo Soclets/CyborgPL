@@ -16,7 +16,7 @@ MAIN:
     ;%spawn.task
     let $page_a := %channel.take(lend $from_a) ?? str.empty;
     let $page_b := %channel.take(lend $from_b) ?? str.empty;
-    std::println($page_a, newln, $page_b);
+    std::print($page_a, newln, $page_b, newln);
     let $d := 5 secs;
-    std::println($d, " ", 1500 millis, " ", 1 hour, " ", 5 secs == 5_000 millis);
+    std::print($d, " ", 1500 millis, " ", 1 hour, " ", 5 secs == 5_000 millis, newln);
 ;MAIN

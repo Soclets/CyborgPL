@@ -9,6 +9,6 @@ MAIN:
         let $a: i32 := 10;
         let $b: i32 := 2;
         let $q := $a div.floor $b;
-        std::println(newln, $q);
+        std::print(newln, $q, newln);
     ;NO_FUCKING_CHECKS
 ;MAIN

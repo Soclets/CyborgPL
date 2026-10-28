@@ -44,7 +44,7 @@ MAIN:
     let $u := Vec[x = 1, y = 2];
     let $v := Vec[x = 3, y = 4];
     let $m := max(copy $u, copy $v);             # Vec is Ordered: it has < and equal_to 
-    std::println(describe(lend $m));
-    std::println(max(3, 9), " ", max(2.5, 1.5));   # numbers are Ordered by the language
-    std::println($u == $v, " ", $u < $v);     # the operators work directly too
+    std::print(describe(lend $m), newln);
+    std::print(max(3, 9), " ", max(2.5, 1.5), newln);   # numbers are Ordered by the language
+    std::print($u == $v, " ", $u < $v, newln);     # the operators work directly too
 ;MAIN

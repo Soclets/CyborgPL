@@ -11,10 +11,10 @@ MAIN:
     let $n: i32 := 42;
     let $ok := true;
     let $s := Size.big;
-    std::println.stored(to.stored.str.utf8($x), " | ", to.shortest.str.utf8($x));
-    std::println.stored(to.stored.str.utf8($d), " | ", to.shortest.str.utf8($d));
-    std::println.stored(to.stored.str.utf8($n), " | ", to.shortest.str.utf8($n));
-    std::println.stored(to.stored.str.utf8($ok), " | ", to.shortest.str.utf8($ok));
-    std::println.stored(to.stored.str.utf8($s), " | ", to.shortest.str.utf8($s));
-    std::println($s);
+    std::print.stored(to.stored.str.utf8($x), " | ", to.shortest.str.utf8($x), newln);
+    std::print.stored(to.stored.str.utf8($d), " | ", to.shortest.str.utf8($d), newln);
+    std::print.stored(to.stored.str.utf8($n), " | ", to.shortest.str.utf8($n), newln);
+    std::print.stored(to.stored.str.utf8($ok), " | ", to.shortest.str.utf8($ok), newln);
+    std::print.stored(to.stored.str.utf8($s), " | ", to.shortest.str.utf8($s), newln);
+    std::print($s, newln);
 ;MAIN

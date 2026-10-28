@@ -7,5 +7,5 @@ MAIN:
     let $z: %d64 := 0.0;
     let $n: %d64 := -1.7;
     let $k: %d64 := -3.0;
-    std::println.stored($m, " ", $t, " ", -$t, " ", -$z, " ", $z x $n, " ", $z - $z, " ", $z div.near $k);
+    std::print.stored($m, " ", $t, " ", -$t, " ", -$z, " ", $z x $n, " ", $z - $z, " ", $z div.near $k, newln);
 ;MAIN

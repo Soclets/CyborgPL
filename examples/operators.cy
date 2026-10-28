@@ -26,10 +26,10 @@ MAIN:
     let $u := Vec[x = 1, y = 2];
     let $v := Vec[x = 3, y = 4];
     let $w := $u <+> $v;                      # 'u' and 'v' both still here
-    std::println($w.x, " ", $w.y);
-    std::println($u dot $v);
+    std::print($w.x, " ", $w.y, newln);
+    std::print($u dot $v, newln);
     let $d := ($u <+> $v) dot $v;            # custom operators have no precedence: parenthesise
-    std::println($d);
+    std::print($d, newln);
     let $s := give $u <*> 10;                   # 'u' is gone after this
-    std::println($s.x, " ", $s.y);
+    std::print($s.x, " ", $s.y, newln);
 ;MAIN

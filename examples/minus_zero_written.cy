@@ -12,5 +12,5 @@ MAIN:
     var $un = Un[i = 1];
     change $un.f to -0.0;
     no_check let $u := $un.u;
-    std::println.stored($a, " ", $b, " ", $u);
+    std::print.stored($a, " ", $b, " ", $u, newln);
 ;MAIN

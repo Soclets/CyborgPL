@@ -4,5 +4,5 @@ fn keep <T: any> [let $v: <T>] -> <T>:
 ;fn keep
 
 MAIN:
-    std::println("ok");
+    std::print("ok", newln);
 ;MAIN

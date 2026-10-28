@@ -15,5 +15,5 @@ MAIN:
     let $f := fn [let $n: i32[min: 0, max: 1000]] -> i32:
         ret $n x 2;
     ;fn;   # the range is why 'n' times 2 fits
-    std::println($total, " ", $mid, " ", ratio(4), " ", $f(3));
+    std::print($total, " ", $mid, " ", ratio(4), " ", $f(3), newln);
 ;MAIN

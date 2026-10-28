@@ -1,3 +1,3 @@
 MAIN:
-    std::println(formal());
+    std::print(formal(), newln);
 ;MAIN

@@ -18,7 +18,7 @@ coll.handler half_failed:
             ret 0;
         ;case odd
         case negative $v:
-            std::println("negative: ", $v); ret 0;
+            std::print("negative: ", $v, newln); ret 0;
         ;case negative
     ;member half_failed.as_zero
     member half_failed.skip:
@@ -59,8 +59,8 @@ fn sum_of_halves [lent $xs: std::ls[i32], let $until_bad: bool] -> i32:
 ;fn sum_of_halves
 
 MAIN:
-    std::println(half_or_zero(10), " ", half_or_zero(7));
-    std::println(half_or_zero(-4));
+    std::print(half_or_zero(10), " ", half_or_zero(7), newln);
+    std::print(half_or_zero(-4), newln);
     let $xs: std::ls[i32] := [2, 4, 5, 8, -2, 10];
-    std::println(sum_of_halves(lend $xs, false), " ", sum_of_halves(lend $xs, true));
+    std::print(sum_of_halves(lend $xs, false), " ", sum_of_halves(lend $xs, true), newln);
 ;MAIN

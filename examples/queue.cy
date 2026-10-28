@@ -4,7 +4,7 @@ rec Job:
     var name: str.utf8;
 ;rec Job
 proc run [let $job: Job]:
-    std::println("ran ", $job.name);
+    std::print("ran ", $job.name, newln);
 ;proc run
 MAIN:
     var $queue = [Job[name = "a"], Job[name = "b"], Job[name = "c"]];
@@ -12,5 +12,5 @@ MAIN:
     let $next := std::ls.remove(lend.mut $queue, pos: 1);     # or kept
     run(give $next);
     std::ls.remove(lend.mut $queue, pos: 1);                   # or dropped
-    std::println(std::ls.len(lend $queue));
+    std::print(std::ls.len(lend $queue), newln);
 ;MAIN

@@ -7,11 +7,11 @@
 MAIN:
     let $a := 7;
     let $b := 2;
-    std::println($a + $b, " ", $a - $b, " ", $a x $b, " ", $b ^ 10, " ", 1 + 2 x 3);
-    std::println($a < $b, " ", $a > $b, " ", $a < $b, " ", $a > $b);
-    std::println(-$a, " ", -$a, " ", -5);
-    std::println($a + $b, " ", $a div.floor $b, " ", $a == $b);
+    std::print($a + $b, " ", $a - $b, " ", $a x $b, " ", $b ^ 10, " ", 1 + 2 x 3, newln);
+    std::print($a < $b, " ", $a > $b, " ", $a < $b, " ", $a > $b, newln);
+    std::print(-$a, " ", -$a, " ", -5, newln);
+    std::print($a + $b, " ", $a div.floor $b, " ", $a == $b, newln);
     var $i = 1;
     change $i += 1;
-    std::println($i);
+    std::print($i, newln);
 ;MAIN

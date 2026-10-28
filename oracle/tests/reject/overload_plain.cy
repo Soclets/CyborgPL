@@ -5,5 +5,5 @@ fn f [let $b: f64] -> i64:
     ret 2;
 ;fn f
 MAIN:
-    std::println(f(1));
+    std::print(f(1), newln);
 ;MAIN

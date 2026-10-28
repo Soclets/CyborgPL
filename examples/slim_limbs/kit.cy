@@ -15,5 +15,5 @@ MAIN:
     let $price: %d64 := 19.99;
     let $g: char.%cluster := `ก็`;
     let $age: i32[min: 0, max: 150] := 42;
-    std::println(Halve(1000000000000000000000), " ", $b, " ", $w, " ", $price, " ", $g, " ", $age);
+    std::print(Halve(1000000000000000000000), " ", $b, " ", $w, " ", $price, " ", $g, " ", $age, newln);
 ;MAIN

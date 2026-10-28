@@ -7,6 +7,6 @@ fn apply [let $v: i32, let $f: fn[i32] -> i32] -> i32:
     ret $f($v);
 ;fn apply
 MAIN:
-    std::println(double(4), " ", apply(5, double));
+    std::print(double(4), " ", apply(5, double), newln);
     std::print.arrows.shortest <- "weird: " <- double(2) <- newln;
 ;MAIN

@@ -38,5 +38,5 @@ MAIN:
             is exactly 0.0;
         ;case out_of_range
     ;otherwise;
-    std::println($a, " ", $b, " ", $c);
+    std::print($a, " ", $b, " ", $c, newln);
 ;MAIN

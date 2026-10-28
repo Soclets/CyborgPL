@@ -20,16 +20,16 @@ MAIN:
     let $t := give $s;
     var $u = copy $t;
     shout(lend.mut $u);
-    std::println.stored($t);
-    std::println.stored($u);
+    std::print.stored($t, newln);
+    std::print.stored($u, newln);
     let $g := greet(copy $u);
-    std::println.stored($g);
-    std::println.stored($u);
+    std::print.stored($g, newln);
+    std::print.stored($u, newln);
     let $words := ["a", "b", "c"];
     let $n := count(lend $words);
-    std::println($n, " words");
+    std::print($n, " words", newln);
     let $m := count(["x", "y"]);
-    std::println($m, " fresh");
+    std::print($m, " fresh", newln);
     let $r := lend $words;
-    std::println($r);
+    std::print($r, newln);
 ;MAIN

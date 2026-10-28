@@ -5,5 +5,5 @@ fn add [let $a: i32, let $b: i32] -> i32:
 
 MAIN:
     let $sum := add(10, 20);
-    std::println("sum: ", $sum);
+    std::print("sum: ", $sum, newln);
 ;MAIN

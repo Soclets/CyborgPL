@@ -7,9 +7,9 @@ MAIN:
     let $b: f64 := -2.0;
     let $h: %bf16 := -5.0;
     let $k: %bf16 := 3.0;
-    std::println($angle mod.floor $turn, " ", $a mod.floor $b, " ", $h mod.floor $k);
-    std::println(($angle mod.trunc $turn), " ", ($a mod.trunc $b));
+    std::print($angle mod.floor $turn, " ", $a mod.floor $b, " ", $h mod.floor $k, newln);
+    std::print(($angle mod.trunc $turn), " ", ($a mod.trunc $b), newln);
     # a tiny negative would round up to the divisor itself; it is 0 instead, so the answer stays below 360
     let $tiny: f64 := -0.00000000000000000001;
-    std::println($tiny mod.floor $turn);
+    std::print($tiny mod.floor $turn, newln);
 ;MAIN

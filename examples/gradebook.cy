@@ -41,7 +41,7 @@ MAIN:
         add_score(lend.mut $a, $m)-
         otherwise:
             case out_of_range $bad:
-                std::println("skipping ", $bad);
+                std::print("skipping ", $bad, newln);
             ;case out_of_range
         ;otherwise;
     ;for
@@ -50,11 +50,11 @@ MAIN:
     let $students := [give $a, give $b, Student[name = "Cy", scores = std::ls.empty]];
     var $passed = 0;
     for $s in lend $students:
-        std::println.stored($s.name, ": ", grade(lend $s));
+        std::print.stored($s.name, ": ", grade(lend $s), newln);
         let $avg := average(lend $s) ?? 0;
         if $avg >= $passing:
             change $passed += 1;
         ;if
     ;for
-    std::println($passed, " of ", std::ls.len(lend $students), " passed");
+    std::print($passed, " of ", std::ls.len(lend $students), " passed", newln);
 ;MAIN

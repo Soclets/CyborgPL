@@ -6,5 +6,5 @@ proc half_or [let $n: i32, let $d: i32] -> i32:
 ;proc half_or
 
 MAIN:
-    std::println(half_or(8, 0), " ", half_or(7, 100), " ", half_or(-4, 5 x 2));
+    std::print(half_or(8, 0), " ", half_or(7, 100), " ", half_or(-4, 5 x 2), newln);
 ;MAIN

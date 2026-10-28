@@ -4,14 +4,14 @@ MAIN:
     for $i: u64 [from: 3, to: 1, by: -1]:
         std::print($i, " ");
     ;for
-    std::println.stored();
+    std::print.stored(newln);
     for $j: u64 [from: 3, to: 0, by: -1]:
         std::print($j, " ");
     ;for   # ends at 0: must not underflow
-    std::println.stored();
+    std::print.stored(newln);
     let $xs := [10, 20, 30];
     for $k: u64 [from: std::ls.len(lend $xs), to: 1, by: -1]:
         std::print($xs[pos: $k], " ");
     ;for
-    std::println.stored();
+    std::print.stored(newln);
 ;MAIN

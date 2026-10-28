@@ -5,5 +5,5 @@ MAIN:
     let $keep: u32 := $v and.bit.wrap (0 - 1);     # -1's bits are all ones: 'v' unchanged
     let $none: u32 := $v and.bit.wrap (1 - 7);     # -6's bits and 5's: 0
     let $flip: u32 := $v xor.wrap (1 - 7);         # 4294967295
-    std::println($keep, " ", $none, " ", $flip);
+    std::print($keep, " ", $none, " ", $flip, newln);
 ;MAIN

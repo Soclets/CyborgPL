@@ -12,7 +12,7 @@ are. What it rewrites:
   number types    `int.sign.32`, `float.%deci.64`, …       → `i32`, `%d64`, …
   failures        `…) otherwise fail;`, `… otherwise 0;`   → `…)?;`, `… ?? 0;`
   changes         `change $x to $x + 1;`                    → `change $x += 1;` (only where it means the same)
-  printing        `std::print.shortest(…, newln)`           → `std::println(…)`; without `newln`, `std::print(…)`
+  printing        `std::print.shortest(…)`                  → `std::print(…)` (a line still ends with `newln`)
 A program it cannot finish (a `copy` on a plain union, say) is left for the oracle to name.
 """
 import os
@@ -147,37 +147,9 @@ def convert(src):
             return m.group(0)
         return f'change {target} {op}= {e};'
     code = re.sub(r'change (\$[\w.$\[\]: ]+?) to \1 (\+\+|[-+x^]) ([^;\n]+);', change, code)
-    # printing
-    out, k = [], 0
-    for m in re.finditer(r'std::print\.(shortest\.auto_newline|shortest|stored|written|format)\(', code):
-        if m.start() < k:
-            continue
-        open_at = m.end() - 1
-        close = matching(code, open_at)
-        if close < 0:
-            continue
-        form, args = m.group(1), code[open_at + 1:close]
-        newln = re.search(r',\s*newln\s*$', args)
-        if form == 'shortest.auto_newline':
-            new = f'std::println({args})'
-        elif form == 'format':
-            first = re.match(r'\s*\x00(\d+)\x00', args)
-            text = pieces[int(first.group(1))] if first else ''
-            if text.endswith('{newln}"'):
-                pieces[int(first.group(1))] = text[:-len('{newln}"')] + '"'
-                new = f'std::println.format({args})'
-            else:
-                continue
-        elif newln or args.strip() == 'newln':
-            rest = '' if args.strip() == 'newln' else args[:newln.start()]
-            new = f'std::println({rest})' if form == 'shortest' else f'std::println.{form}({rest})'
-        elif form == 'shortest':
-            new = f'std::print({args})'
-        else:
-            continue
-        out.append(code[k:m.start()]); out.append(new); k = close + 1
-    out.append(code[k:])
-    code = ''.join(out)
+    # printing: a bare `std::print` is `print.shortest`; a line still ends with `newln` (owner, 2026-10-28: `println` dropped)
+    code = re.sub(r'std::print\.shortest\.auto_newline\((.*?)\)', lambda m: f'std::print({m.group(1)}, newln)', code)
+    code = re.sub(r'std::print\.shortest\(', 'std::print(', code)
     # an inline block's closing line
     return unmask(code, pieces)
 

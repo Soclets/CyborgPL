@@ -30,8 +30,8 @@ coll.fn area:
 ;coll.fn area
 
 MAIN:
-    std::println(say(2, value: "hi"));
-    std::println(say(3, value: "yo", count: 4));
-    std::println(box(height: 4, width: 10), " ", box(border: 1, width: 10, height: 4));
-    std::println(area(3), " ", area(3, 4));
+    std::print(say(2, value: "hi"), newln);
+    std::print(say(3, value: "yo", count: 4), newln);
+    std::print(box(height: 4, width: 10), " ", box(border: 1, width: 10, height: 4), newln);
+    std::print(area(3), " ", area(3, 4), newln);
 ;MAIN

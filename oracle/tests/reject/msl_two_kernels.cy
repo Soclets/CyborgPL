@@ -7,5 +7,5 @@ MAIN:
         }
         kernel void again(uint id [[thread_position_in_grid]]) { }
     ;inline.%MSL
-    std::println($xs);
+    std::print($xs, newln);
 ;MAIN

@@ -10,6 +10,6 @@ MAIN:
     change $bodies[pos: 2].vx -= 0.25;
     change $bodies[pos: 1].vx to $bodies[pos: 2].vx x 2.0;
     for $b in lend $bodies:
-        std::println($b.name, " ", $b.vx);
+        std::print($b.name, " ", $b.vx, newln);
     ;for
 ;MAIN

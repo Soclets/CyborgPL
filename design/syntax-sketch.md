@@ -35,7 +35,7 @@ MAIN:
         ;if
     ;for
     let $s := "line 1" ++ newln ++ "line 2";
-    std::println("total: ", $total);
+    std::print("total: ", $total, newln);
 ;MAIN
 ```
 

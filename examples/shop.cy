@@ -64,27 +64,27 @@ MAIN:
         Item[name = "torch",  cents = 450,   stock = Stock.out]
     ];
     for $i in lend $shelf:
-        std::println.stored(describe(lend $i));
+        std::print.stored(describe(lend $i), newln);
     ;for
 
     let $limit := 5_000;
     let $affordable := keep(lend $shelf, fn [lent $i: Item] -> bool with [lend $limit]:
         ret $i.cents <= $limit;
     ;fn);
-    std::println(std::ls.len(lend $affordable), " affordable");
+    std::print(std::ls.len(lend $affordable), " affordable", newln);
 
     let $pick := cheapest(lend $affordable) ?? std::exit(code: 0);
-    std::println.stored("cheapest: ", $pick.name);
+    std::print.stored("cheapest: ", $pick.name, newln);
 
     let $text := std::input.line() ?? str.empty;
     let $budget := to.i32[min: 0, max: 100_000]($text)-
     otherwise:
         case not_a_number:
-            std::println.stored("no budget given"); std::exit(code: 0);
+            std::print.stored("no budget given", newln); std::exit(code: 0);
         ;case not_a_number
         case out_of_range:
-            std::println.stored("budget must be 0..100000 cents"); std::exit(code: 1);
+            std::print.stored("budget must be 0..100000 cents", newln); std::exit(code: 1);
         ;case out_of_range
     ;otherwise;
-    std::println("budget ok: ", $budget);
+    std::print("budget ok: ", $budget, newln);
 ;MAIN

@@ -25,18 +25,18 @@ MAIN:
     let $key := "HOME";                            # the lent text ends where C expects a 0
     no_check let $home := getenv(lend $key);
     if ptr.is_null($home):
-        std::println.stored("no HOME");
+        std::print.stored("no HOME", newln);
     else:
         no_check if strlen($home) > 0:
-            std::println.stored("HOME is set");
+            std::print.stored("HOME is set", newln);
         ;if
     ;if
 
     no_check let $buf := malloc(4);                 # bytes nobody owns
     no_check ptr.write($buf, value: 72);
     no_check ptr.write(ptr.at($buf, by: 1), value: 105);
-    no_check std::println(ptr.read($buf), " ", ptr.read(ptr.at($buf, by: 1)));
+    no_check std::print(ptr.read($buf), " ", ptr.read(ptr.at($buf, by: 1)), newln);
     no_check free($buf);
 
-    std::println(size.of[i32], " ", size.of[Timeval], " ", align.of[i64], " ", size.of[ptr[u8]]);
+    std::print(size.of[i32], " ", size.of[Timeval], " ", align.of[i64], " ", size.of[ptr[u8]], newln);
 ;MAIN

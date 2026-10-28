@@ -11,5 +11,5 @@ MAIN:
     let $all: simd[bool, count: 4] := simd.fill(value: true);
     let $both := $m and $all;
     let $flip := not $m;
-    std::println(simd.any($m), " ", simd.all($m), " ", count_on($both), " ", simd.any($flip));
+    std::print(simd.any($m), " ", simd.all($m), " ", count_on($both), " ", simd.any($flip), newln);
 ;MAIN

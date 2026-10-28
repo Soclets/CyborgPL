@@ -1,3 +1,3 @@
 MAIN:
-    std::println(hello());
+    std::print(hello(), newln);
 ;MAIN

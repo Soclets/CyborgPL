@@ -26,5 +26,5 @@ MAIN:
     # beside `no_check`, `no_check` comes first: the stronger word, and the unchecked part seen first (owner, 2026-10-19)
     var $last: i64 = 0;
     no_check no_skip change $last to $f;
-    std::println($acc, " ", $more, " ", $f, " ", $both, " ", $last);
+    std::print($acc, " ", $more, " ", $f, " ", $both, " ", $last, newln);
 ;MAIN

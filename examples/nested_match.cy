@@ -17,10 +17,10 @@ MAIN:
         case paid:
             match $s:
                 case pickup:
-                    std::println("counter");
+                    std::print("counter", newln);
                 ;case pickup
                 case post:
-                    std::println("mail");
+                    std::print("mail", newln);
                 ;case post
             ;match
         ;case paid
@@ -40,5 +40,5 @@ MAIN:
             ;match;
         ;case paid
     ;match;
-    std::println($price);
+    std::print($price, newln);
 ;MAIN

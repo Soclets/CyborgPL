@@ -22,7 +22,7 @@ module counter:
 ;module counter
 
 proc show [let $c: counter.Count]:
-    std::println("count ", $c.n);
+    std::print("count ", $c.n, newln);
 ;proc show
 
 MAIN:
@@ -30,5 +30,5 @@ MAIN:
     show(copy $c);
     let $d := counter.bump(give $c);
     show(copy $d);
-    std::println(counter.inner.twice($d.n));
+    std::print(counter.inner.twice($d.n), newln);
 ;MAIN

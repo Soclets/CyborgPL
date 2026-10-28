@@ -1,3 +1,3 @@
 MAIN:
-    std::println(1) otherwise std::print.stored;
+    std::print(1, newln) otherwise std::print.stored;
 ;MAIN

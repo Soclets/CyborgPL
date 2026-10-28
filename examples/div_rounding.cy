@@ -3,18 +3,18 @@
 # a equal_to (a div.X b) times b plus (a mod.X b). On numbers with a fraction, `div.near` is ordinary division
 # and `floor`/`ceil`/`trunc` give a whole quotient.
 MAIN:
-    std::println((7 div.floor 2), " ", (7 div.ceil 2), " ", (7 div.trunc 2), " ", (7 div.near 2));
-    std::println((-7 div.floor 2), " ", (-7 div.ceil 2), " ", (-7 div.trunc 2), " ", (-7 div.near 2));
-    std::println((7 mod.floor 2), " ", (7 mod.ceil 2), " ", (7 mod.trunc 2), " ", (7 mod.near 2));
-    std::println((-7 mod.floor 2), " ", (-7 mod.ceil 2), " ", (-7 mod.trunc 2), " ", (-7 mod.near 2));
-    std::println((5 div.near 2), " ", (5 mod.near 2));        # 2.5 is a tie: to the even 2, 1 left
+    std::print((7 div.floor 2), " ", (7 div.ceil 2), " ", (7 div.trunc 2), " ", (7 div.near 2), newln);
+    std::print((-7 div.floor 2), " ", (-7 div.ceil 2), " ", (-7 div.trunc 2), " ", (-7 div.near 2), newln);
+    std::print((7 mod.floor 2), " ", (7 mod.ceil 2), " ", (7 mod.trunc 2), " ", (7 mod.near 2), newln);
+    std::print((-7 mod.floor 2), " ", (-7 mod.ceil 2), " ", (-7 mod.trunc 2), " ", (-7 mod.near 2), newln);
+    std::print((5 div.near 2), " ", (5 mod.near 2), newln);        # 2.5 is a tie: to the even 2, 1 left
     let $items: i32 := 7;
     let $per_page: i32 := 2;
-    std::println("pages: ", ($items div.ceil $per_page));
+    std::print("pages: ", ($items div.ceil $per_page), newln);
     let $board: f64 := 7.5;
     let $plank: f64 := 2.0;
-    std::println(($board div.near $plank), " ", ($board div.floor $plank), " ", ($board mod.floor $plank), " ", ($board div.ceil $plank), " ", ($board mod.ceil $plank));
+    std::print(($board div.near $plank), " ", ($board div.floor $plank), " ", ($board mod.floor $plank), " ", ($board div.ceil $plank), " ", ($board mod.ceil $plank), newln);
     let $p: %d64 := -7.5;
     let $q: %d64 := 2.0;
-    std::println(($p div.near $q), " ", ($p div.floor $q), " ", ($p mod.floor $q), " ", ($p div.trunc $q), " ", ($p mod.trunc $q), " ", ($p div.near $q));
+    std::print(($p div.near $q), " ", ($p div.floor $q), " ", ($p mod.floor $q), " ", ($p div.trunc $q), " ", ($p mod.trunc $q), " ", ($p div.near $q), newln);
 ;MAIN

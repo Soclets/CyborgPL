@@ -3,12 +3,12 @@
 MAIN:
     let $xs := [1, 2.5];
     let $ys: std::ls[f64] := [2.5, 1];
-    std::println($xs);
-    std::println($ys);
+    std::print($xs, newln);
+    std::print($ys, newln);
     # and it stays a bin when used: 1 plus 2.5 times 2.0
-    std::println($xs[pos: 1] + ($xs[pos: 2] x 2.0));
+    std::print($xs[pos: 1] + ($xs[pos: 2] x 2.0), newln);
     # beside a deci, a bare number is a deci
     let $q: %d64 := 0.5;
     let $ds := [1, $q];
-    std::println($ds[pos: 1] + $ds[pos: 2]);
+    std::print($ds[pos: 1] + $ds[pos: 2], newln);
 ;MAIN

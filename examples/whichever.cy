@@ -19,37 +19,37 @@ MAIN:
     for $i [from: 1, to: 4, by: 1]:
         %whichever:
             case $msg from lend $inbox:
-                std::println("got ", $msg);
+                std::print("got ", $msg, newln);
             ;case $msg
             case $why from lend $shutdown:
-                std::println("shutdown");
+                std::print("shutdown", newln);
             ;case $why
             case $now from lend $deadline:
-                std::println("timed out after ", $now);
+                std::print("timed out after ", $now, newln);
             ;case $now
         ;%whichever
         otherwise:
             case closed:
-                std::println("all closed");
+                std::print("all closed", newln);
             ;case closed
         ;otherwise;
     ;for
     block:
         %spawn.task:
-            std::println("task in a block");
+            std::print("task in a block", newln);
         ;%spawn.task
-        std::println("block body");
+        std::print("block body", newln);
     ;block
-    std::println("after the block");
+    std::print("after the block", newln);
     %spawn.task with [lend $inbox]:
         let $p := fetch("down.com")?; %channel.send(lend $inbox, value: give $p);
     ;%spawn.task
         otherwise:
             case no_network:
-                std::println("offline");
+                std::print("offline", newln);
             ;case no_network
         ;otherwise;
     let $tick := std::time.every(1 sec);
     let $t := %channel.take(lend $tick) ?? 0 secs;
-    std::println("tick ", $t);
+    std::print("tick ", $t, newln);
 ;MAIN

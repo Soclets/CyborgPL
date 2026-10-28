@@ -51,10 +51,10 @@ MAIN:
     let $msg := "straight to fd 1 via write(2)";
     no_check let $n := write(1, lend $msg, std::str.bytes(lend $msg));
 
-    std::println(newln,
+    std::print(newln,
         "third raw byte: ", $third, newln,
         "fnv1a:          ", fnv1a(lend $text), newln,
         "popcount(0xF0F0): ", popcount(61680), newln,
         "all ascii:      ", all_ascii(lend $text), newln,
-        "Header: ", size.of[Header], " bytes, aligned to ", align.of[Header]);
+        "Header: ", size.of[Header], " bytes, aligned to ", align.of[Header], newln);
 ;MAIN

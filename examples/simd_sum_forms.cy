@@ -7,5 +7,5 @@ MAIN:
     let $w: i32 := simd.sum.wrap($v);
     let $u: simd[i32, count: 4] := simd.fill(value: -500000000);
     let $l: i32 := simd.sum.lane($u);
-    std::println($s, " ", $w, " ", $l);
+    std::print($s, " ", $w, " ", $l, newln);
 ;MAIN

@@ -3,16 +3,16 @@
 MAIN:
     # a shift's count gives nothing inside it a width, so the inner shift says its own
     let $r: i64 := to.i64(1) shl (5: u8 shr 1);
-    std::println($r);
+    std::print($r, newln);
     let $a := 200: u8;
-    std::println($a + 55);
+    std::print($a + 55, newln);
     let $n := -128: i8;
-    std::println($n);
-    std::println(3: u8 x 2);
+    std::print($n, newln);
+    std::print(3: u8 x 2, newln);
     let $d := exactly 0.1: %d64;
-    std::println($d + exactly 0.2);
+    std::print($d + exactly 0.2, newln);
     let $small := exactly 2.5: %d32;
-    std::println($small);
+    std::print($small, newln);
     let $p := 5: u64[min: 1];
-    std::println($p);
+    std::print($p, newln);
 ;MAIN

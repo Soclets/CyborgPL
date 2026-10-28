@@ -1,3 +1,3 @@
 MAIN:
-    std::println(1 shl 3);
+    std::print(1 shl 3, newln);
 ;MAIN

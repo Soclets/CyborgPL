@@ -9,11 +9,11 @@ fn count <T: any> [lent $items: std::ls[<T>]] -> i32:
 
 MAIN:
     let $grid := [[1, 2], [3, 4]];
-    std::println($grid);
+    std::print($grid, newln);
     for $row in lend $grid:
-        std::println(count(lend $row));
+        std::print(count(lend $row), newln);
     ;for
-    std::println(count(["a", "b", "c"]));
+    std::print(count(["a", "b", "c"]), newln);
     let $one := [7,];
-    std::println($one, " ", count(lend $one));
+    std::print($one, " ", count(lend $one), newln);
 ;MAIN

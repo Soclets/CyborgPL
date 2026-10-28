@@ -10,8 +10,8 @@ coll.fn ov:
 ;coll.fn ov
 MAIN:
     let $p := false;
-    std::println("before");
+    std::print("before", newln);
     if $p:
-        std::println(ov.flip(77));
+        std::print(ov.flip(77), newln);
     ;if
 ;MAIN

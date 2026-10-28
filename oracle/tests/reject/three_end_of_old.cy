@@ -1,5 +1,5 @@
 MAIN:
     if true:
-        std::println(1);
+        std::print(1, newln);
     end of if
 ;MAIN

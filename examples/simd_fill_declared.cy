@@ -4,5 +4,5 @@ MAIN:
     let $b: u8 := 5;
     let $r: simd[i32, count: 4] := simd.fill(value: $b);
     let $q: simd[i32, count: 4] := simd.fill(value: 7: u8);
-    std::println(simd.sum($r), " ", simd.sum($q));
+    std::print(simd.sum($r), " ", simd.sum($q), newln);
 ;MAIN

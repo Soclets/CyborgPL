@@ -9,7 +9,7 @@ MAIN:
     let $twice: i64 := $s + $s;                   # 60000, though no i16 holds it
     let $tiny: i8 := (100 + 100) - 150;             # 50: the 200 in between is fine
     let $v: i8 := 112;
-    std::println($big, " ", $twice, " ", $tiny, " ", $v > ($v + $v));   # 224 compared as 224
+    std::print($big, " ", $twice, " ", $tiny, " ", $v > ($v + $v), newln);   # 224 compared as 224
     let $u: u8 := 5;
     let $below := $u - 10;                          # -5: `:=` takes a type that holds it
     let $x: u32 := 4000000000;
@@ -17,5 +17,5 @@ MAIN:
     let $a: i8 := 100;
     let $b: i16 := 1000;
     let $w := to.i16($a + $b) plus.wrap 1;            # a mix of sizes wraps where you say: 1101
-    std::println($below, " ", $h, " ", $w);
+    std::print($below, " ", $h, " ", $w, newln);
 ;MAIN

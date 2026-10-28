@@ -311,11 +311,11 @@ proc read_day [] -> Day:
         let $t := next_reading(lend.mut $c)-
         otherwise:
             case done:
-                std::println(newln, "the log ends after ", $hour, " readings of a day's ", $hours, "; stopping");
+                std::print(newln, "the log ends after ", $hour, " readings of a day's ", $hours, "; stopping", newln);
                 std::exit(code: 2);
             ;case done
             case bad_byte $at:
-                std::println(newln, "the log has a byte no reading has, at ", $at, "; stopping");
+                std::print(newln, "the log has a byte no reading has, at ", $at, "; stopping", newln);
                 std::exit(code: 2);
             ;case bad_byte
         ;otherwise;
@@ -349,10 +349,10 @@ proc read_day [] -> Day:
         change $sum += $t;
         change $prev to $t;
     ;for
-    std::println();
+    std::print(newln);
     # a day is exactly its readings: one more would be another day's
     if not log_ends(lend.mut $c):
-        std::println("the log holds more than a day's ", $hours, " readings; stopping");
+        std::print("the log holds more than a day's ", $hours, " readings; stopping", newln);
         std::exit(code: 2);
     ;if
     ret Day[sum = $sum, low = $low, low_hour = $low_hour, high = $high, high_hour = $high_hour, rise = $rise, rise_hour = $rise_hour, warm_hours = $warm, hot_hours = $hot, changes = $changes];
@@ -368,7 +368,7 @@ fn status_word [lent $d: Day] -> u32:
 ;fn status_word
 
 proc report [lent $d: Day]:
-    std::println("readings: ", $hours, ", in tenths of a degree");
+    std::print("readings: ", $hours, ", in tenths of a degree", newln);
     std::print("lowest:  ");
     show_tenths($d.low);
     std::print(" C at ");
@@ -391,18 +391,18 @@ proc report [lent $d: Day]:
     show_hour($d.rise_hour - 1);
     std::print(" to ");
     show_hour($d.rise_hour);
-    std::println(newln, "warm for ", $d.warm_hours, " hours, hot for ", $d.hot_hours);
+    std::print(newln, "warm for ", $d.warm_hours, " hours, hot for ", $d.hot_hours, newln);
 ;proc report
 
 MAIN:
-    std::println("station 7, booting on a chip with no operating system");
+    std::print("station 7, booting on a chip with no operating system", newln);
     std::print("log: ", arr.len($log), " bytes, CRC-32 ");
     show_hex(crc32());
-    std::println();
+    std::print(newln);
     let $day := read_day();
     report(lend $day);
     std::print("status word: ");
     show_hex(status_word(lend $day));
-    std::println(newln, "switching off");
+    std::print(newln, "switching off", newln);
     std::exit(code: 0);
 ;MAIN

@@ -3,9 +3,9 @@ MAIN:
     let $x := 1;
     if true:
         let shadow $x := 2;
-        std::println($x);
+        std::print($x, newln);
     ;if
-    std::println($x);
+    std::print($x, newln);
     let shadow $x: i32 := 3;
-    std::println($x);
+    std::print($x, newln);
 ;MAIN

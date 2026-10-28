@@ -3,13 +3,13 @@ proc say [let $n: i32]:
     let $by3 := ($n mod.floor 3) == 0;
     let $by5 := ($n mod.floor 5) == 0;
     if $by3 and $by5:
-        std::println.stored("FizzBuzz");
+        std::print.stored("FizzBuzz", newln);
     else if $by3:
-        std::println.stored("Fizz");
+        std::print.stored("Fizz", newln);
     else if $by5:
-        std::println.stored("Buzz");
+        std::print.stored("Buzz", newln);
     else:
-        std::println.stored($n);
+        std::print.stored($n, newln);
     ;if
 ;proc say
 

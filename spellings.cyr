@@ -103,6 +103,7 @@ spellings::table[
         spellings::old[written = "!no_check", write = ["no_check",], note = "redesign three", since = "2026-10-28", where = "special"],
         spellings::old[written = "int.sign.32", write = ["i32",], note = "redesign three", since = "2026-10-28", where = "special"],
         spellings::old[written = "float.%deci.64", write = ["%d64",], note = "redesign three", since = "2026-10-28", where = "special"],
+        spellings::old[written = "std::println", write = ["std::print(…, newln)",], note = "a line ends with `newln`, in every printing form", since = "2026-10-28", where = "special"],
         spellings::old[written = "case.insensitive", write = ["the name as declared",], note = "the case marks are gone: every name is exact (owner, 2026-10-27)", since = "2026-10-27", where = "special"],
         spellings::old[written = "case.sensitive", write = ["the name as declared",], note = "the case marks are gone: every name is exact (owner, 2026-10-27)", since = "2026-10-27", where = "special"],
         spellings::old[written = "case.any", write = ["the name as declared",], note = "the case marks are gone: every name is exact (owner, 2026-10-27)", since = "2026-10-27", where = "special"],

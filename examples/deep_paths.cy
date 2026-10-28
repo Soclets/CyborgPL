@@ -20,7 +20,7 @@ fn shout [lent $s: str.utf8] -> str.utf8:
 MAIN:
     let $b := Booking[who = "Ana", trip = Trip[stops = [Stop[name = "Lisboa", minutes = 0], Stop[name = "Madrid", minutes = 540]], km = 625]];
     let $all: std::ls[Booking] := [copy $b,];
-    std::println($b.trip.km, " km, ", $b.trip.stops[pos: 2].minutes, " minutes, ", $all[pos: 1].trip.km, " km again");
+    std::print($b.trip.km, " km, ", $b.trip.stops[pos: 2].minutes, " minutes, ", $all[pos: 1].trip.km, " km again", newln);
     let $first := copy $b.trip.stops[pos: 1].name;
-    std::println($first, " to ", shout(lend $all[pos: 1].trip.stops[pos: 2].name), ", ", std::ls.len(lend $b.trip.stops), " stops");
+    std::print($first, " to ", shout(lend $all[pos: 1].trip.stops[pos: 2].name), ", ", std::ls.len(lend $b.trip.stops), " stops", newln);
 ;MAIN

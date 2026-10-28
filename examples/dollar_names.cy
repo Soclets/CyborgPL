@@ -11,5 +11,5 @@ MAIN:
     change $total += 1;
     let $'total due' := twice($total) x 10;
     let $xs: std::ls[i64] := [$total, $'total due'];
-    std::println($total, " ", $'total due', " ", $xs[pos: 2]);
+    std::print($total, " ", $'total due', " ", $xs[pos: 2], newln);
 ;MAIN

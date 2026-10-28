@@ -8,5 +8,5 @@ fn ทักทาย [let $'ชื่อ': str.utf8] -> str.utf8:
 MAIN:
     let $'🍕': i32 := 3;
     let $'नमस्ते' := ทักทาย("โลก");
-    std::println($'नमस्ते', " ", $'🍕');
+    std::print($'नमस्ते', " ", $'🍕', newln);
 ;MAIN

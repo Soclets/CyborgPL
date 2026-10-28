@@ -3,7 +3,7 @@ coll.fn greet:
         ret $who;
     ;member greet
     member greet.loud [lent $who: str.utf8]:
-        std::println($who);
+        std::print($who, newln);
     ;member greet.loud
 ;coll.fn greet
 

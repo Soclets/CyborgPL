@@ -47,7 +47,7 @@ bare".
 other kits, own stays bare."): its functions, types, enums and enum values, std's included.
 
 ```
-std::println(greet::hello());
+std::print(greet::hello(), newln);
 var $xs: std::ls[i64] = [];
 std::ls.append(lend.mut $xs, value: 3);
 let $b: greet::Note := greet::Note[text = "hi"];

@@ -6,5 +6,5 @@ MAIN:
     let $small: i8[min: 1] := 120;
     let $whole: u8[min: 0, max: 255] := 200;          # the whole type: harmless, allowed (owner)
     let $also: i32 := -7;                             # no bound at all: the type itself
-    std::println($pos, " ", $score, " ", $small, " ", $whole, " ", $also);
+    std::print($pos, " ", $score, " ", $small, " ", $whole, " ", $also, newln);
 ;MAIN

@@ -1,3 +1,3 @@
 MAIN:
-    std::println.format("{base: hex}", "text");
+    std::print.format("{base: hex}{newln}", "text");
 ;MAIN

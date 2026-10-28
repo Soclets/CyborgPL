@@ -9,5 +9,5 @@ union.tag S:
 ;union.tag S
 MAIN:
     let $p := P[x = 1, y = 2];
-    std::println($p.x + $p.y);
+    std::print($p.x + $p.y, newln);
 ;MAIN

@@ -57,13 +57,13 @@ MAIN:
     let $n: i64 := 7;
     let $x: f64 := 2.5;
     let $name := "Ann";
-    std::println(describe($n));
-    std::println(describe($x));
-    std::println(describe(lend $name));
-    std::println(area.rect(3), " ", area.rect(3, 4));
+    std::print(describe($n), newln);
+    std::print(describe($x), newln);
+    std::print(describe(lend $name), newln);
+    std::print(area.rect(3), " ", area.rect(3, 4), newln);
     let $small: i16 := 5;
     let $half: f32 := 0.5;
     let $y: f64 := 2.5;
-    std::println(which(0.0 - $y), " ", which(-$half), " ", which(($half x 2.0)));
-    std::println(width($small), ", ", width($n), ", ", width($half), ", ", width($x), ", ", width(2.5: f32));
+    std::print(which(0.0 - $y), " ", which(-$half), " ", which(($half x 2.0)), newln);
+    std::print(width($small), ", ", width($n), ", ", width($half), ", ", width($x), ", ", width(2.5: f32), newln);
 ;MAIN

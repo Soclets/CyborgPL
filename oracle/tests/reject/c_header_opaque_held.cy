@@ -5,5 +5,5 @@ fn f [let $x: FILE] -> i32:
 ;fn f
 
 MAIN:
-    std::println("ran");
+    std::print("ran", newln);
 ;MAIN

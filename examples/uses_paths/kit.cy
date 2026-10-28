@@ -14,12 +14,12 @@ fn describe [let $t: greet::Tone] -> str.utf8:
 ;fn describe
 
 MAIN:
-    std::println(greet::hello(), " ", greet::wave(), " ", formal());
+    std::print(greet::hello(), " ", greet::wave(), " ", formal(), newln);
     let $t := greet::Tally[n = 2] merge greet::Tally[n = 3];
     let $u := greet::Tally[n = 1] greet::merge $t;
     let $v := $t <+> $u;
     let $w := $t greet::<+> $u;
-    std::println($t.n, " ", $u.n, " ", $v.n, " ", $w.n);
+    std::print($t.n, " ", $u.n, " ", $v.n, " ", $w.n, newln);
     let $b: greet::Note := greet::Note[text = "with the path"];
-    std::println($b.text, ", ", describe(greet::Tone.loud));
+    std::print($b.text, ", ", describe(greet::Tone.loud), newln);
 ;MAIN

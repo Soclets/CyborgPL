@@ -15,9 +15,9 @@ MAIN:
     let $limit := 60;
     let $passing := keep(lend $scores, fn [let $s] with [lend $limit] = $s >= $limit);
     let $evens := keep(lend $scores, fn [let $s] = ($s mod.floor 2) == 0);
-    std::println($passing, " ", $evens);
+    std::print($passing, " ", $evens, newln);
     let $big: fn[i32] -> bool := fn [let $s] = $s >= 90;
-    std::println($big(91), " ", twice_if(5, fn [let $n] = $n <= 9));
+    std::print($big(91), " ", twice_if(5, fn [let $n] = $n <= 9), newln);
 ;MAIN
 
 fn twice_if [let $n: i32, let $test: fn[i32] -> bool] -> i32:

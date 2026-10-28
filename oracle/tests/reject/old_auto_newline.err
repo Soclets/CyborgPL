@@ -1,1 +1,1 @@
-`print.shortest.auto_newln` is an old spelling: write `std::println(…)`
+`print.shortest.auto_newln` is an old spelling: write `std::print(…, newln)`

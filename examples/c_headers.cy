@@ -13,5 +13,5 @@ module text:
 MAIN:
     let $msg := "hello through C's write";
     no_check let $n := write(1, lend $msg, text.strlen(lend $msg));
-    std::println(newln, $n, " bytes; BUFSIZ ", $BUFSIZ, ", EOF ", $EOF, ", SEEK_END ", $SEEK_END);
+    std::print(newln, $n, " bytes; BUFSIZ ", $BUFSIZ, ", EOF ", $EOF, ", SEEK_END ", $SEEK_END, newln);
 ;MAIN

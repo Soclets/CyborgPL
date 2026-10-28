@@ -5,8 +5,8 @@ fn g [] -> i8:
 ;fn g
 MAIN:
     if 3 > (g() shl 1):
-        std::println("yes");
+        std::print("yes", newln);
     else:
-        std::println("no");
+        std::print("no", newln);
     ;if
 ;MAIN

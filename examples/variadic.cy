@@ -16,13 +16,13 @@ proc show [lent $label: str.utf8, lent ...$parts]:
     for $p in lend $parts:
         std::print($p, " ");
     ;for
-    std::println.stored();
+    std::print.stored(newln);
 ;proc show
 
 MAIN:
-    std::println(sum(1, 2.5, 3));
-    std::println(sum());
-    std::println(count_ints(4, 5, 6));
+    std::print(sum(1, 2.5, 3), newln);
+    std::print(sum(), newln);
+    std::print(count_ints(4, 5, 6), newln);
     let $name := "Ann";
     show("mixed", lend $name, 7, true, `x`);
     show("none");

@@ -1,3 +1,3 @@
 MAIN:
-    std::println.format("{1} and {}", 1, 2);
+    std::print.format("{1} and {}{newln}", 1, 2);
 ;MAIN

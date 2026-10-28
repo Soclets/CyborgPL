@@ -25,9 +25,9 @@ MAIN:
     var $grid: std::map[Point, str.utf8] = std::map.empty;
     std::map.set(lend.mut $grid, key: Point[x = 1, y = 2], value: "tree");
     let $at := std::map.get(lend $grid, key: Point[x = 1, y = 2]) ?? "nothing";
-    std::println($at);
+    std::print($at, newln);
     var $users: std::map[User, i32] = std::map.empty;
     std::map.set(lend.mut $users, key: User[name = "Ann"], value: 1);
     let $n := std::map.get(lend $users, key: User[name = "ANN"]) ?? 0;     # same key by User's own equal_to 
-    std::println($n);
+    std::print($n, newln);
 ;MAIN

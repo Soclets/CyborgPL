@@ -8,5 +8,5 @@ MAIN:
             xs[id] = xs[id] * k;
         }
     ;inline.%MSL
-    std::println($xs);
+    std::print($xs, newln);
 ;MAIN

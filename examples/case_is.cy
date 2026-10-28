@@ -20,5 +20,5 @@ fn label [let $s: Status] -> str.utf8:
     ret give $text;
 ;fn label
 MAIN:
-    std::println(label(Status.claimed("bo")));
+    std::print(label(Status.claimed("bo")), newln);
 ;MAIN

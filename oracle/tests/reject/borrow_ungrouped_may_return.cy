@@ -12,5 +12,5 @@ MAIN:
     let $t: std::ls[i32] := [4,];
     let $r := longer(lend $s, lend $t);
     let $g := give $t;
-    std::println(std::ls.len(lend $r));
+    std::print(std::ls.len(lend $r), newln);
 ;MAIN

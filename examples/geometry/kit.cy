@@ -9,7 +9,7 @@ fn helper [] -> str.utf8:
 
 module report:
     pub.kit proc line [let $label: str.utf8, let $v: f64]:
-        std::println($label, ": ", $v);
+        std::print($label, ": ", $v, newln);
     ;proc line
 ;module report
 
@@ -17,7 +17,7 @@ MAIN:
     report.line("circle", shapes.circle.area(2.0));
     report.line("square", shapes.square.area(3.0));
     report.line("unit circle", shapes.circle.area($unit));
-    std::println(shapes.describe());
+    std::print(shapes.describe(), newln);
     let $r: shapes.circle.Circle := shapes.circle.Circle[radius = 1.5];
-    std::println($r.radius, " ", shapes.circle.$pi);
+    std::print($r.radius, " ", shapes.circle.$pi, newln);
 ;MAIN

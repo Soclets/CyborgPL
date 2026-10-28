@@ -6,5 +6,5 @@ MAIN:
     let $b := to.u8.bits(-1);        # -1's bits in a u8: 255
     let $c: u8 := 200;
     let $d := to.i8.bits($c);        # 200's bits: -56
-    std::println($a, " ", $b, " ", $d);
+    std::print($a, " ", $b, " ", $d, newln);
 ;MAIN

@@ -3,9 +3,9 @@ MAIN:
     var $xs: std::ls[i32] = [];
     std::ls.append(lend.mut $xs, value: 7);
     std::ls.append(lend.mut $xs, value: 8);
-    std::println($xs, " ", std::ls.len(lend $xs));
+    std::print($xs, " ", std::ls.len(lend $xs), newln);
     var $ys = std::ls.empty;
-    std::println(std::ls.len(lend $ys));
+    std::print(std::ls.len(lend $ys), newln);
     std::ls.append(lend.mut $ys, value: "a");
-    std::println($ys);
+    std::print($ys, newln);
 ;MAIN

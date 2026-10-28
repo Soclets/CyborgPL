@@ -14,21 +14,21 @@ else:
 
 MAIN:
     on.target aarch64-macos:
-        std::println("built for aarch64-macos");
+        std::print("built for aarch64-macos", newln);
     else on.target.chip x86_64:
         let $n: i64 := 5;
         no_check inline.ASM with [$n -> rax, $n <- rax]:   # never compiled here: x86 assembly
             neg rax
         ;inline.ASM
     else:
-        std::println("built for something else");
+        std::print("built for something else", newln);
     ;on.target
     on.target.chip aarch64:
-        std::println("an ARM chip, ", where());
+        std::print("an ARM chip, ", where(), newln);
     ;on.target.chip
     on.machine.chip aarch64:
-        std::println("running on ARM");
+        std::print("running on ARM", newln);
     else:
-        std::println("running elsewhere");
+        std::print("running elsewhere", newln);
     ;on.machine.chip
 ;MAIN

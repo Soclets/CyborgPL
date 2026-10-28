@@ -7,6 +7,6 @@ MAIN:
         change $x x= 10;
         std::ls.append(lend.mut $seen, value: $xs[pos: 1]);
     ;for
-    std::println.stored($xs);
-    std::println.stored($seen);
+    std::print.stored($xs, newln);
+    std::print.stored($seen, newln);
 ;MAIN

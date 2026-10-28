@@ -6,5 +6,5 @@ MAIN:
     let $b: u32 := ($v mod.floor 16) shl 2;
     let $c: u32 := not.bit ($v + 1);
     let $d: u32 := ($v + 1) plus.wrap 5;
-    std::println($a, " ", $b, " ", $c, " ", $d);
+    std::print($a, " ", $b, " ", $c, " ", $d, newln);
 ;MAIN

@@ -6,5 +6,5 @@ fn pick [@x] [lent $a: std::ls[i32], lent @x $b: std::ls[i32]] -> lent @x std::l
 MAIN:
     let $s: std::ls[i32] := [1, 2];
     let $r := pick(lend $s, lend $s);
-    std::println(std::ls.len(lend $r));
+    std::print(std::ls.len(lend $r), newln);
 ;MAIN

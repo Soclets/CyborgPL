@@ -2,7 +2,7 @@
 MAIN:
     var $i = 0;
     while $i < 3:
-        std::println("while ", $i);
+        std::print("while ", $i, newln);
         change $i += 1;
     ;while
     var $n = 0;
@@ -14,11 +14,11 @@ MAIN:
         if $n > 4:
             break;
         ;if
-        std::println("loop ", $n);
+        std::print("loop ", $n, newln);
     ;loop
     let $chars := [`a`, `é`, `🍎`];
     for seq $c in lend $chars:
-        std::println.stored($c);
+        std::print.stored($c, newln);
     ;for
     std::exit(code: 3);
 ;MAIN

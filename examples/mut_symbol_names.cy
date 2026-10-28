@@ -10,5 +10,5 @@ MAIN:
     add(lend.mut $'it\'s');
     var $'a\\b': std::ls[u16] = [];
     add(lend.mut $'a\\b');
-    std::println(std::ls.len(lend $'o"'), " ", std::ls.len(lend $'it\'s'), " ", std::ls.len(lend $'a\\b'));
+    std::print(std::ls.len(lend $'o"'), " ", std::ls.len(lend $'it\'s'), " ", std::ls.len(lend $'a\\b'), newln);
 ;MAIN

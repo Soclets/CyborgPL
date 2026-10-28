@@ -12,5 +12,5 @@ MAIN:
         ret $a + 1;
     ;fn;
     let $inc2 := $inc;                # carries nothing: no word needed
-    std::println($again(), " ", $moved(), " ", $inc2(41));
+    std::print($again(), " ", $moved(), " ", $inc2(41), newln);
 ;MAIN

@@ -7,13 +7,13 @@ fn first <T: any> [let $a: <T>, let $b: <T>] -> <T>:
 ;fn first
 
 proc hello []:
-    std::println("from a task");
+    std::print("from a task", newln);
 ;proc hello
 
 MAIN:
     var $n: i64 = to.i64("41") ?? 0;
     check change $n += 1;
     no_check change $n x= 1;
-    std::println(first($n, 7));
+    std::print(first($n, 7), newln);
     %spawn.task hello();
 ;MAIN

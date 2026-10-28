@@ -1,4 +1,4 @@
 MAIN:
     let $x: f64 := 0.1;
-    std::println.stored(to.%d64($x));
+    std::print.stored(to.%d64($x), newln);
 ;MAIN

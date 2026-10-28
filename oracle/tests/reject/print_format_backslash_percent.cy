@@ -1,3 +1,3 @@
 MAIN:
-    std::println.format("50\% off");
+    std::print.format("50\% off{newln}");
 ;MAIN

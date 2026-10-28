@@ -8,8 +8,8 @@ proc each [let $n: i32, let $act: proc[i32]]:
 
 MAIN:
     let $big: fn[i32] -> bool := fn [let $s] = $s >= 90;
-    let $say: proc[i32] := fn [let $s] = std::println($s);
-    std::println(keep_if(91, $big));
+    let $say: proc[i32] := fn [let $s] = std::print($s, newln);
+    std::print(keep_if(91, $big), newln);
     each(7, $say);
     each(8, fn [let $s] = $s >= 1);
 ;MAIN

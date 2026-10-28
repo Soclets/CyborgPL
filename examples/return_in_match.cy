@@ -18,5 +18,5 @@ fn f [] -> u64:
 ;fn f
 
 MAIN:
-    std::println.stored(f());
+    std::print.stored(f(), newln);
 ;MAIN

@@ -12,5 +12,5 @@ fn b2 [@x, @y] [lent @x $a: std::ls[i8], lent @y $c: std::ls[i8]] -> lent @x std
 MAIN:
     let $u: std::ls[i8] := [1, 2];
     let $v: std::ls[i8] := [3,];
-    std::println(b2(lend $u, lend $v));
+    std::print(b2(lend $u, lend $v), newln);
 ;MAIN

@@ -9,5 +9,5 @@ incl.%C["headers/shapes.h"];
 
 MAIN:
     let $b := buf[size = 42, count = 7];
-    std::println("tm is ", size.of[tm], " bytes, buf ", size.of[buf], "; size ", $b.size, ", count ", $b.count);
+    std::print("tm is ", size.of[tm], " bytes, buf ", size.of[buf], "; size ", $b.size, ", count ", $b.count, newln);
 ;MAIN

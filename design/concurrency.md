@@ -19,7 +19,7 @@ let $a := "a.com";
 ;%spawn.task
 for $i [from: 1, to: 2, by: 1]:
     let $page := %channel.take(lend $results) ?? "";    # waits; whichever finished first
-    std::println(std::str.bytes(lend $page));
+    std::print(std::str.bytes(lend $page), newln);
 ;for
 ```
 
@@ -76,7 +76,7 @@ the goroutine leak).
 ;%spawn.task
     otherwise:
         case no_network:
-            std::println("offline");
+            std::print("offline", newln);
         ;case no_network
     ;otherwise;
 ```
@@ -163,7 +163,7 @@ let $tick := std::time.every(1 sec);           # a channel that sends every seco
         …
     ;case $msg
     case $now from lend $deadline:
-        std::println("timed out");
+        std::print("timed out", newln);
     ;case $now
 ;%whichever
 ```

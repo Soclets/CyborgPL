@@ -3,5 +3,5 @@ fn half_start <T: any> [let $x: <T>] -> <T>:
     ret $h;
 ;fn half_start
 MAIN:
-    std::println(half_start(4: i32));
+    std::print(half_start(4: i32), newln);
 ;MAIN

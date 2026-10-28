@@ -1,4 +1,4 @@
 incl.%C.system["stdio.h"];
 MAIN:
-    std::println(size.of[FILE]);
+    std::print(size.of[FILE], newln);
 ;MAIN

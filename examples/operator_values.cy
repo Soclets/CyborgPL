@@ -36,5 +36,5 @@ MAIN:
     let $u := Vec[x = 1.0, y = 2.0];
     let $v := Vec[x = 3.0, y = 4.0];
     let $d := both(lend $u, lend $v, op dot);
-    std::println($sum, " ", $product, " ", $down, " ", $n, " ", $le, " ", $m, " ", $d);
+    std::print($sum, " ", $product, " ", $down, " ", $n, " ", $le, " ", $m, " ", $d, newln);
 ;MAIN

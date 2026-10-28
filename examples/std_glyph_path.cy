@@ -2,5 +2,5 @@
 # 2026-10-22: "glyphs are optional too"), so `std::xx`, `xx` and `std::pow` are one operator.
 MAIN:
     let $a: i64 := 7;
-    std::println($a std::pow 2, " ", $a ^ 2, " ", $a std::pow 2);
+    std::print($a std::pow 2, " ", $a ^ 2, " ", $a std::pow 2, newln);
 ;MAIN

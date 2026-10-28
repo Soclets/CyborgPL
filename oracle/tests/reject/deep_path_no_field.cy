@@ -7,5 +7,5 @@ rec Out:
 ;rec Out
 MAIN:
     let $o := Out[inn = In[k = 1]];
-    std::println($o.inn.j);
+    std::print($o.inn.j, newln);
 ;MAIN

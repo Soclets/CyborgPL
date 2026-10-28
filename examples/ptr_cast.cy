@@ -13,6 +13,6 @@ MAIN:
     no_check let $p := ptr.cast[Point]($raw);
     no_check ptr.write($p, value: Point[x = 3, y = 4]);
     no_check let $q := ptr.read($p);
-    std::println.stored($q.x, " ", $q.y);
+    std::print.stored($q.x, " ", $q.y, newln);
     no_check free($raw);
 ;MAIN

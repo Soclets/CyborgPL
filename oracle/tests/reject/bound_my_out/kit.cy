@@ -6,5 +6,5 @@ coll.bounded quantity:
 
 MAIN:
     let $n: quantity := 12;
-    std::println(shop.basket($n), " ", shop.sample(10));
+    std::print(shop.basket($n), " ", shop.sample(10), newln);
 ;MAIN

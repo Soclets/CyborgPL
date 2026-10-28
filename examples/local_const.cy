@@ -12,5 +12,5 @@ MAIN:
     const $retries := 3;
     const $greeting: str.utf8 := "hi";
     const $limit := $base x $retries;
-    std::println($greeting, " ", $retries, " ", $limit, " ", tries($retries));
+    std::print($greeting, " ", $retries, " ", $limit, " ", tries($retries), newln);
 ;MAIN

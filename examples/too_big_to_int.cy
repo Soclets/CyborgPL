@@ -8,5 +8,5 @@ MAIN:
     let $y := to.i64($d x 1000) ?? -2;
     let $z := to.i64($small) ?? -3;
     let $w := to.i32($d) ?? 99;
-    std::println.stored($x, " ", $y, " ", $z, " ", $w);
+    std::print.stored($x, " ", $y, " ", $z, " ", $w, newln);
 ;MAIN

@@ -1,6 +1,6 @@
 # `check`: proving a narrowing safe, with a guard the prover can see.
 proc draw [let $y: f16]:
-    std::println("drawing ", $y);
+    std::print("drawing ", $y, newln);
 ;proc draw
 MAIN:
     # A guardrail the compiler can see: past the `if`, the value is inside f16's range,
@@ -9,7 +9,7 @@ MAIN:
     # way to cross from an integer, and it would fail rather than round silently.
     let $x: f32 := 70000.0;
     if $x > 65_504.0:
-        std::println.stored("too big");
+        std::print.stored("too big", newln);
     else:
         check let $y: f16 := $x;
         draw($y);
@@ -20,11 +20,11 @@ MAIN:
             std::print($xs[pos: $i], " ");
         ;for
     ;check
-    std::println.stored();
+    std::print.stored(newln);
     no_check change $xs[pos: 2] to 9;
     # crossing families is spelled, and it fails rather than rounds (`types.md`)
     check if $x > 0.0:
         change $xs[pos: 1] to to.i32($x div.near 2.0) ?? 0;
     ;if
-    std::println($xs);
+    std::print($xs, newln);
 ;MAIN

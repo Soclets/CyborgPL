@@ -10,14 +10,14 @@ MAIN:
     let $n: %C.long := 40;
     let $c: %C.char := -3;
     let $d: %C.long_double := 1.5;
-    std::println(to.i32(color.BLUE), " ", to.i32(level_t.LOW), " ", $SEEK_B);
-    std::println($n + 2, " ", $c, " ", $d, " ", size.of[%C.long], " ", size.of[%C.int]);
+    std::print(to.i32(color.BLUE), " ", to.i32(level_t.LOW), " ", $SEEK_B, newln);
+    std::print($n + 2, " ", $c, " ", $d, " ", size.of[%C.long], " ", size.of[%C.int], newln);
     # a header's last struct comes through whole too (compiler claude found it opaque once): 16 bytes
-    std::println(size.of[last]);
+    std::print(size.of[last], newln);
     # an unnamed struct named by its `typedef` comes through whole as well: `pair_t`, 8 bytes
-    std::println(size.of[pair_t]);
+    std::print(size.of[pair_t], newln);
     # two names for one number (owner, 2026-10-12: "(a)"): the first is the case, a later one a const,
     # `SHADE_LAST = LIGHT` giving `$SHADE_LAST`, 2; a number becomes the enum through `to.`, checked
     let $s := to.shade($SHADE_LAST) ?? shade.DARK;
-    std::println($SHADE_FIRST, " ", $SHADE_LAST, " ", to.i32($s));
+    std::print($SHADE_FIRST, " ", $SHADE_LAST, " ", to.i32($s), newln);
 ;MAIN

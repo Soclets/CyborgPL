@@ -8,5 +8,5 @@ coll.bounded quantity:
 MAIN:
     let $n: quantity := 12;
     let $d: shop.order.discount := 20;
-    std::println(shop.basket($n), ", ", shop.sample(3), ", ", shop.off($d));
+    std::print(shop.basket($n), ", ", shop.sample(3), ", ", shop.off($d), newln);
 ;MAIN

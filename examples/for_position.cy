@@ -3,7 +3,7 @@
 MAIN:
     let $xs := ["ann", "bob", "cy"];
     for $i, $x in lend $xs:
-        std::println($i, ". ", $x);
+        std::print($i, ". ", $x, newln);
     ;for
     let $scores := [70, 95, 88];
     var $best_at: u64 = 0;
@@ -13,8 +13,8 @@ MAIN:
             change $best to $s; change $best_at to $i;
         ;if
     ;for
-    std::println("best is ", $best, " at position ", $best_at);
+    std::print("best is ", $best, " at position ", $best_at, newln);
     for perm $n, $y in lend $xs:
     ;for
-    std::println("after: ", $n, " ", $y);
+    std::print("after: ", $n, " ", $y, newln);
 ;MAIN

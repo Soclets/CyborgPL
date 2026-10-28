@@ -5,5 +5,5 @@ MAIN:
     let $b := to.%bf16($i);
     let $d := to.shortest.%d64($b);
     let $n := to.i64($d) ?? -1;
-    std::println($b, " ", $d, " ", $n);
+    std::print($b, " ", $d, " ", $n, newln);
 ;MAIN

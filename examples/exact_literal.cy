@@ -6,5 +6,5 @@ MAIN:
     let $total := $tenth + exactly 0.2;              # exactly 0.3
     let $half: %d32 := exactly 0.5;                  # a typed deci takes it at its width
     let $speed := 0.1;                         # a bin
-    std::println.stored($price, " ", $total, " ", $half, " ", $speed);
+    std::print.stored($price, " ", $total, " ", $half, " ", $speed, newln);
 ;MAIN

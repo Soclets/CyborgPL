@@ -3,7 +3,7 @@
 # Reading them is C's world, so it is no_check; a friendly list will be written in CyborgPL on top.
 # examples/args.args holds the words the test passes: apples, 3, hello world.
 MAIN [let $argc: i32, let $argv: ptr[ptr[u8]]]:
-    std::println.stored("argc = ", $argc);
+    std::print.stored("argc = ", $argc, newln);
     var $i: i32 = 1;
     while $i < $argc:
         no_check let $word := ptr.read(ptr.at($argv, by: $i));
@@ -18,9 +18,9 @@ MAIN [let $argc: i32, let $argv: ptr[ptr[u8]]]:
             change $k += 1;
         ;loop
         let $text := to.str.utf8($bytes) ?? "(not UTF-8)";      # bytes into text (owner, 2026-09-30)
-        std::println.stored("argument ", $i, ": ", $text);
+        std::print.stored("argument ", $i, ": ", $text, newln);
         change $i += 1;
     ;while
     no_check let $end := ptr.read(ptr.at($argv, by: $argc));
-    std::println.stored("argv[argc] is null: ", ptr.is_null($end));
+    std::print.stored("argv[argc] is null: ", ptr.is_null($end), newln);
 ;MAIN

@@ -1,1 +1,1 @@
-expected `;` after the call: every statement ends with one, the last in a block too (found `;…`) (concise file; decoded line 2: `std::println("Hi")`)
+expected `;` after the call: every statement ends with one, the last in a block too (found `;…`) (concise file; decoded line 2: `std::print("Hi", newln)`)

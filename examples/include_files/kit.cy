@@ -6,7 +6,7 @@
 
 MAIN:
     const $tiny := incl.bytes["assets/tiny.bin"];
-    std::println(arr.len($tiny), " bytes, the last is ", $tiny[pos: 4]);
+    std::print(arr.len($tiny), " bytes, the last is ", $tiny[pos: 4], newln);
     std::print(ui.header.greeting());
     const $windows := incl.str.%utf16.low_first["assets/windows.txt"];
     std::print($windows);

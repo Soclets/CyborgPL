@@ -3,18 +3,18 @@
 # to split, for raw throughput.
 MAIN:
     var $pw = std::print.writer(size: 16 bytes);
-    std::println(lend.mut $pw, "w 1 32");
-    std::println(lend.mut $pw, "w 2 64");
-    std::println(lend.mut $pw, "total: 4527");
-    std::println("between");
+    std::print(lend.mut $pw, "w 1 32", newln);
+    std::print(lend.mut $pw, "w 2 64", newln);
+    std::print(lend.mut $pw, "total: 4527", newln);
+    std::print("between", newln);
     std::print.flush(lend.mut $pw);
     var $sp = std::print.writer.split(size: 16 bytes);
-    std::println(lend.mut $sp, "w 1 32");
-    std::println(lend.mut $sp, "w 2 64");
-    std::println(lend.mut $sp, "total: 4527");
-    std::println("between");
+    std::print(lend.mut $sp, "w 1 32", newln);
+    std::print(lend.mut $sp, "w 2 64", newln);
+    std::print(lend.mut $sp, "total: 4527", newln);
+    std::print("between", newln);
     std::print.flush(lend.mut $sp);
     var $wh = std::print.writer.whole(size: 8 bytes);
-    std::println(lend.mut $wh, "longer than eight");
+    std::print(lend.mut $wh, "longer than eight", newln);
     std::print.flush(lend.mut $wh);
 ;MAIN

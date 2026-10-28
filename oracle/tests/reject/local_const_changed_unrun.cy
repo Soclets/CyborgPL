@@ -3,5 +3,5 @@ MAIN:
         const $r: i32 := 3;
         change $r to 4;
     ;if
-    std::println("ran");
+    std::print("ran", newln);
 ;MAIN

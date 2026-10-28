@@ -28,5 +28,5 @@ MAIN:
     no_check ptr.write(ptr.at($mem, by: 1), value: 7);
     no_check let $a := mode_at($mem);
     no_check let $b := mode_at(ptr.at($mem, by: 1));
-    std::println(to.i32($current), " ", $a, " ", $b);
+    std::print(to.i32($current), " ", $a, " ", $b, newln);
 ;MAIN

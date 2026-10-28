@@ -3,5 +3,5 @@ fn f [let $a: i64] -> %d64:
     ret to.%d64($b);
 ;fn f
 MAIN:
-    std::println(f(5));
+    std::print(f(5), newln);
 ;MAIN

@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-28 — Redesign three: `std::println` dropped; a line ends with `newln`, in every printing form (owner: "drop")
+
+Shown the redesign run, the owner: "`prinln` feels so awkward". Design claude offered (a) `std::print.line` (the `.` rule),
+(b) `std::say` (Raku's), (c) back to `newln`, recommending (b); the owner: "Wtf does `say` even say" (nothing accurate: a
+metaphor), so design claude recommended (a), `.line` added last to a form (`print.stored.line`); the owner: "Tbh? `newln`
+is five letters" (`, newln` costs what `.line` does, and needs no name or twins); "Is it consistent?" (yes: one way to end
+a line instead of two, the same in every form and in a format's `{newln}`, nothing glued but a value's own name); "drop".
+So **`std::print("Hello, World!", newln);`**, `std::print.stored(0.1, newln)`, `std::print.format("…{newln}", …)`;
+`std::println` and its twins are refused naming `std::print(…, newln)`. A bare `std::print` still means `print.shortest`.
+This reverses the evening's `println` entries. Built; the code swept back to `newln`.
+
 ### 2026-10-28 — Redesign three: negation as a value keeps its name, `op neg` (owner)
 
 Design claude's pick from the build: with `neg` refused for `-5`, negation as a function value kept `op neg`. The owner:

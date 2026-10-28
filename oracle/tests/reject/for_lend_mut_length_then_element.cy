@@ -3,6 +3,6 @@ MAIN:
     for $x in lend.mut $xs:
         change $x += 1;
         let $n := std::ls.len(lend $xs);
-        std::println.stored($x);
+        std::print.stored($x, newln);
     ;for
 ;MAIN

@@ -5,8 +5,8 @@
 
 MAIN:
     no_check let $v := $lib_version;
-    std::println("version ", $v);
+    std::print("version ", $v, newln);
     no_check change $lib_verbose to 1;
     no_check let $on := $lib_verbose;
-    std::println("verbose ", $on);
+    std::print("verbose ", $on, newln);
 ;MAIN

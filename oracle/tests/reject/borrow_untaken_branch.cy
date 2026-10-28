@@ -5,6 +5,6 @@ MAIN:
     if $n > 5:
         let $q := lend $t;
         std::ls.append(lend.mut $t, value: 1);
-        std::println(std::ls.len(lend $q));
+        std::print(std::ls.len(lend $q), newln);
     ;if
 ;MAIN

@@ -106,10 +106,10 @@ MAIN:
     let $a := greet(lend $name, "hello", 2) ?? "?";
     let $b := greet.hi(lend $name) ?? "?";
     let $c := greet.cheer(lend $name) ?? "?";
-    std::println($a, newln, $b, newln, $c, newln, greet.loud(lend $name));
+    std::print($a, newln, $b, newln, $c, newln, greet.loud(lend $name), newln);
     let $long := "a name much longer than twenty bytes";
     let $d := greet.hi(lend $long) ?? "too long";
-    std::println($d);
-    std::println(scale(7, 3), " ", scale.times_2(7), " ", scale.times_10(7), " ", scale.times_100(7), " ", zero.of_i64(), " ", twice.small(300), " ", twice.big(5_000_000_000));
-    std::println(area(3, 4), " ", area.square(5));
+    std::print($d, newln);
+    std::print(scale(7, 3), " ", scale.times_2(7), " ", scale.times_10(7), " ", scale.times_100(7), " ", zero.of_i64(), " ", twice.small(300), " ", twice.big(5_000_000_000), newln);
+    std::print(area(3, 4), " ", area.square(5), newln);
 ;MAIN

@@ -7,10 +7,10 @@ MAIN:
     let $c := to.i64("99999999999999999999999999999999999999999999") ?? -1;  # too big for anything
     let $d := to.u8("-1") ?? 0;                                         # below what u8 holds
     let $e := to.i32("12x") ?? -2;                                      # not a number at all
-    std::println($a, " ", $b, " ", $c, " ", $d, " ", $e);
+    std::print($a, " ", $b, " ", $c, " ", $d, " ", $e, newln);
     # text → bin: digits, an optional fraction, an optional exponent (owner, 2026-09-24: b)
     let $f := to.f64("2.5e3") ?? -1.0;
     let $g := to.f64("nan") ?? -1.0;      # not a number: a data file's "missing" lands here
     let $h := to.f64("1e400") ?? -2.0;    # a number too big for f64
-    std::println($f, " ", $g, " ", $h);
+    std::print($f, " ", $g, " ", $h, newln);
 ;MAIN

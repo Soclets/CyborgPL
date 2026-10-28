@@ -31,12 +31,12 @@ MAIN:
         Locker[number = 3, status = Status.locked]
     ];
     for $l in lend $lockers:
-        std::println("#", $l.number, ": ", describe(lend $l));
+        std::print("#", $l.number, ": ", describe(lend $l), newln);
     ;for
     let $s := Status.locked;
     if $s == Status.locked:
-        std::println.stored("== works on a case");
+        std::print.stored("== works on a case", newln);
     ;if
     let $t := Status.claimed("Bo");
-    std::println.stored($t);
+    std::print.stored($t, newln);
 ;MAIN

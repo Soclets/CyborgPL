@@ -7,7 +7,7 @@ rec Pr:
 MAIN:
     let $v: f32 := -3080.765625;
     let $p := Pr[a = $v, b = 1.5];
-    std::println($v, " ", $p.a);
+    std::print($v, " ", $p.a, newln);
     let $t: f32 := 5305.65625;
-    std::println($t);
+    std::print($t, newln);
 ;MAIN

@@ -6,5 +6,5 @@ MAIN:
     let $low: u32 := hex ff;
     let $mode: u16 := oct 755;
     let $n := -hex 10;
-    std::println($flags, " ", $mask, " ", $low, " ", $mode, " ", $n, " ", $flags and.bit bin 1111);
+    std::print($flags, " ", $mask, " ", $low, " ", $mode, " ", $n, " ", $flags and.bit bin 1111, newln);
 ;MAIN

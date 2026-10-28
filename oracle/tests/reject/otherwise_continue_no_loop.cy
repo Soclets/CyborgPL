@@ -7,5 +7,5 @@ fn small [let $n: i32] -> i32 or fail[bad]:
 
 MAIN:
     let $x := small(1) otherwise continue;
-    std::println($x);
+    std::print($x, newln);
 ;MAIN

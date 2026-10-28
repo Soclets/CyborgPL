@@ -5,5 +5,5 @@
 incl.%C["vendor/mylib.h"];
 
 MAIN:
-    std::println($MYLIB_NAME, " ", $MYLIB_VERSION, " ", $MYLIB_FLAGS);
+    std::print($MYLIB_NAME, " ", $MYLIB_VERSION, " ", $MYLIB_FLAGS, newln);
 ;MAIN

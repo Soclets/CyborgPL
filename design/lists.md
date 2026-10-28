@@ -242,7 +242,7 @@ is an error.
 
 ```
 for $i, $x in lend $xs:
-    std::println($i, ". ", $x);      # 1. ann  2. bob  3. cy
+    std::print($i, ". ", $x, newln);      # 1. ann  2. bob  3. cy
 ;for
 ```
 

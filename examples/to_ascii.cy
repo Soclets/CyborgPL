@@ -5,9 +5,9 @@ MAIN:
     let $accented: str.utf8 := "héllo";
     let $a := to.str.ascii($plain) ?? "?";
     let $b := to.str.ascii($accented) ?? "not ascii";
-    std::println.stored($a, newln, $b);
+    std::print.stored($a, newln, $b, newln);
     let $s: str.ascii := "abc";
     let $c := to.str.ascii($s);
     let $w := to.str.%utf16($accented);
-    std::println.stored($c, " ", $w);
+    std::print.stored($c, " ", $w, newln);
 ;MAIN

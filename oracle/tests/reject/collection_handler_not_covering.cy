@@ -16,5 +16,5 @@ fn f [] -> i32:
     ret $v;
 ;fn f
 MAIN:
-    std::println(f());
+    std::print(f(), newln);
 ;MAIN

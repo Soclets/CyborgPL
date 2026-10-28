@@ -1,0 +1,1 @@
+`std::println.stored` is an old spelling: write `std::print.stored(…, newln)`

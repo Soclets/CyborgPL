@@ -11,5 +11,5 @@ MAIN:
     let $a: std::ls[%d64] := [0.1, 0.2];
     let $b: std::ls[f64] := [0.5, 0.25];
     let $c: std::ls[i32] := [1, 2];
-    std::println(total(lend $a), " ", total(lend $b), " ", total(lend $c));
+    std::print(total(lend $a), " ", total(lend $b), " ", total(lend $c), newln);
 ;MAIN

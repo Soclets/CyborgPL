@@ -1,8 +1,8 @@
 MAIN:
     if true:
-        std::println("a");
+        std::print("a", newln);
     ;if
     else:
-        std::println("b");
+        std::print("b", newln);
     ;else
 ;MAIN

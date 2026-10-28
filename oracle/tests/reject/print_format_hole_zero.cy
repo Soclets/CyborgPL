@@ -1,3 +1,3 @@
 MAIN:
-    std::println.format("{0}", 1);
+    std::print.format("{0}{newln}", 1);
 ;MAIN

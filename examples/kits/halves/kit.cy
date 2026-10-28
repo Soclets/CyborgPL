@@ -14,10 +14,10 @@ pub fn half [let $n: i32] -> i32 or fail[odd, negative: i32]:
 pub coll.handler half_failed:
     member half_failed.or_default [let $default: i32, let $label: str.utf8]:
         case odd:
-            std::println($label, ": odd, using ", $default); ret $default;
+            std::print($label, ": odd, using ", $default, newln); ret $default;
         ;case odd
         case negative $v:
-            std::println($label, ": ", $v, " is negative, using ", $default); ret $default;
+            std::print($label, ": ", $v, " is negative, using ", $default, newln); ret $default;
         ;case negative
     ;member half_failed.or_default
 ;coll.handler half_failed

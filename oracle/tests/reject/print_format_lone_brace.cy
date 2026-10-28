@@ -1,3 +1,3 @@
 MAIN:
-    std::println.format("oops }");
+    std::print.format("oops }{newln}");
 ;MAIN

@@ -4,6 +4,6 @@ MAIN:
     std::map.set(lend.mut $small, key: "cd", value: 7);
     let $n := std::map.count(lend $small);
     let $tiny: i8 := $n;                          # proven by the bound: at most 2
-    std::println($tiny);
+    std::print($tiny, newln);
     std::map.set(lend.mut $small, key: "ef", value: 1);              # a third: does not fit [0, 2]
 ;MAIN

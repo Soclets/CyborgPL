@@ -5,5 +5,5 @@ fn x [let $n: i32] -> i32:
 ;fn x
 
 MAIN:
-    std::println(my.x(4) x 2);
+    std::print(my.x(4) x 2, newln);
 ;MAIN

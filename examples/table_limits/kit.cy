@@ -13,5 +13,5 @@ table_bytes 0 fn fib [let $n: i64[min: 0, max: 92]] -> i64:
 ;fn fib
 
 MAIN:
-    std::println(square(200), " ", fib(30));
+    std::print(square(200), " ", fib(30), newln);
 ;MAIN

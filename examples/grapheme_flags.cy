@@ -2,9 +2,9 @@
 # graphemes, Thailand and Japan, and a lone indicator after them is its own.
 MAIN:
     let $f := "🇹🇭🇯🇵🇫";
-    std::println(std::str.clusters(lend $f), " graphemes");
+    std::print(std::str.clusters(lend $f), " graphemes", newln);
     for $g in std::str.each.cluster(lend $f):
         std::print($g, "|");
     ;for
-    std::println();
+    std::print(newln);
 ;MAIN

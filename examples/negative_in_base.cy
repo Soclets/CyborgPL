@@ -4,6 +4,6 @@
 MAIN:
     let $a: i64 := -56710;
     let $b: i8 := -5;
-    std::println.format("{base: hex.upper} {base: hex.upper, zeros, width: 5 cols} {base: hex} {base: oct} {base: bin} {base: bin} {base: bin, sign} {base: bin, zeros, width: 8 cols}", $a, $a, $a, $a, $a, $b, 5, $b);
-    std::println.format("{base: bin}", to.u8.bits($b));
+    std::print.format("{base: hex.upper} {base: hex.upper, zeros, width: 5 cols} {base: hex} {base: oct} {base: bin} {base: bin} {base: bin, sign} {base: bin, zeros, width: 8 cols}{newln}", $a, $a, $a, $a, $a, $b, 5, $b);
+    std::print.format("{base: bin}{newln}", to.u8.bits($b));
 ;MAIN

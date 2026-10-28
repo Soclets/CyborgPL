@@ -35,21 +35,21 @@ fn keep [lent $xs: std::ls[i32], let $test: fn[i32] -> bool] -> std::ls[i32]:
 
 MAIN:
     let $lockers := [Locker[number = 7, owner = "Cy"], Locker[number = 2, owner = "Ann"], Locker[number = 5, owner = "Bo"]];
-    std::println.stored(first_by(lend $lockers, by_number));          # a named function, as a value: its bare name
-    std::println.stored(first_by(lend $lockers, by_owner));
+    std::print.stored(first_by(lend $lockers, by_number), newln);          # a named function, as a value: its bare name
+    std::print.stored(first_by(lend $lockers, by_owner), newln);
 
     let $f := by_number;                                                 # held in a variable
-    std::println($f(lend $lockers[pos: 1], lend $lockers[pos: 2]));   # called: 'f'[…]
+    std::print($f(lend $lockers[pos: 1], lend $lockers[pos: 2]), newln);   # called: 'f'[…]
 
     let $limit := 60;
     let $scores := [72, 40, 95, 55];
     let $passing := keep(lend $scores, fn [let $s: i32] -> bool with [lend $limit]:
         ret $s >= $limit;
     ;fn);
-    std::println($passing);
+    std::print($passing, newln);
 
     let $evens := keep(lend $scores, fn [let $s: i32] -> bool:
         ret ($s mod.floor 2) == 0;
     ;fn);   # captures nothing
-    std::println($evens);
+    std::print($evens, newln);
 ;MAIN

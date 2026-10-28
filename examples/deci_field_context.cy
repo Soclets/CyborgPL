@@ -10,5 +10,5 @@ union.tag Pay:
 MAIN:
     let $p := Price[amount = 0.45];
     let $v := Pay.voucher(5.00);
-    std::println($p.amount, " ", $v);
+    std::print($p.amount, " ", $v, newln);
 ;MAIN

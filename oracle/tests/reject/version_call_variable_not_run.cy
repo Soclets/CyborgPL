@@ -11,9 +11,9 @@ coll.fn mx:
 MAIN:
     let $v: i32 := 4;
     let $p: bool := to.i64(1) == to.i64(2);
-    std::println("before");
+    std::print("before", newln);
     if $p:
-        std::println(mx($v, 5));
+        std::print(mx($v, 5), newln);
     ;if
-    std::println("after");
+    std::print("after", newln);
 ;MAIN

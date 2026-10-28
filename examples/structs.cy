@@ -19,20 +19,20 @@ proc claim [lent.mut $l: Locker]:
 
 MAIN:
     var $mine = Locker[name = "field kit", number = 7, capacity = 12, occupied = false];
-    std::println($mine.name, " is #", $mine.number);
-    std::println("free: ", free_space(lend $mine));
+    std::print($mine.name, " is #", $mine.number, newln);
+    std::print("free: ", free_space(lend $mine), newln);
     claim(lend.mut $mine);
-    std::println("free: ", free_space(lend $mine));
+    std::print("free: ", free_space(lend $mine), newln);
     change $mine.capacity to 20;
-    std::println($mine);
+    std::print($mine, newln);
     let $label := copy $mine.name;
-    std::println($label);
+    std::print($label, newln);
     let $taken := give $mine.name;
-    std::println($taken);
+    std::print($taken, newln);
     let $spare: Locker := Locker[name = "spare", number = 8, capacity = 4, occupied = false];
     let $lockers := [copy $spare, Locker[name = "third", number = 9, capacity = 4, occupied = true]];
     for $l in lend $lockers:
         std::print($l.number, " ");
     ;for
-    std::println.stored();
+    std::print.stored(newln);
 ;MAIN

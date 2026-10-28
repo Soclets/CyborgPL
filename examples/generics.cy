@@ -35,19 +35,19 @@ fn describe [lent $p: Pair[i32, str.utf8]] -> str.utf8:
 ;fn describe
 
 MAIN:
-    std::println(max(3, 9), " ", max(2.5, 1.5));       # i32 and f64 versions, one source
+    std::print(max(3, 9), " ", max(2.5, 1.5), newln);       # i32 and f64 versions, one source
     let $nums := [4, 5, 6];
     let $f := first(lend $nums) ?? 0;
-    std::println($f);
+    std::print($f, newln);
     let $p: Pair[i32, str.utf8] := Pair[left = 7, right = "seven"];
-    std::println(describe(lend $p));
+    std::print(describe(lend $p), newln);
     let $m := Maybe.some(42);
     match $m:
         case none:
-            std::println.stored("nothing");
+            std::print.stored("nothing", newln);
         ;case none
         case some $v:
-            std::println("got ", $v);
+            std::print("got ", $v, newln);
         ;case some
     ;match
 ;MAIN

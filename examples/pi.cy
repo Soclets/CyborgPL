@@ -40,7 +40,7 @@ proc pi_digits [let $n: i32]:
             change $nines to 0;
         ;if
     ;for
-    std::println($predigit);
+    std::print($predigit, newln);
 ;proc pi_digits
 
 MAIN:

@@ -28,7 +28,7 @@ for now", over also allowing `4 KiB`).
 
 ```
 var $out = std::print.writer(size: 4096 bytes);   # std::print.writer.stderr(…) for stderr
-std::println(lend.mut $out, "line ", $i);  # a first argument `lend.mut` of a writer: into it
+std::print(lend.mut $out, "line ", $i, newln);  # a first argument `lend.mut` of a writer: into it
 std::print.flush(lend.mut $out);                       # left out, kayo refuses: $out goes away holding text
 std::print.flush();                                    # what kayo's own buffer holds, now
 ```
@@ -58,7 +58,7 @@ Decided when building: no source text is carried at run time.
 ## `std::print.useful.auto_newline` — the line ended for you (owner, 2026-09-30)
 
 ```
-std::println("Hello, World!");
+std::print("Hello, World!", newln);
 ```
 
 `print.useful` with a newline after the values, the same as writing `\n`
@@ -95,9 +95,9 @@ print_weird_brackets, print_weird_order.
 ## `std::print.format` — the formatting print, with `{}` holes (2026-09-22; holes since 2026-10-01)
 
 ```
-std::println.format("{}: {} at ${places: 2}, 50% off", $name, $count, $price);
-std::println.format("0x{base: hex} 0b{base: bin, zeros, width: 8 cols} [{width: 6 cols}] [{sign}]", 255, 10, 42, 5);
-std::println.format("{2} vs {1}, and {2} wins", "a", "b");
+std::print.format("{}: {} at ${places: 2}, 50% off{newln}", $name, $count, $price);
+std::print.format("0x{base: hex} 0b{base: bin, zeros, width: 8 cols} [{width: 6 cols}] [{sign}]{newln}", 255, 10, 42, 5);
+std::print.format("{2} vs {1}, and {2} wins{newln}", "a", "b");
 std::print.format.stderr("error: {}{newln}", $msg);
 ```
 

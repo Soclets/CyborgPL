@@ -13,7 +13,7 @@ proc descending [let $a: ptr[i32], let $b: ptr[i32]] -> i32:
 MAIN:
     var $nums = [5, 1, 4, 2, 3];
     no_check qsort(lend.mut $nums, 5, size.of[i32], ascending);
-    std::println($nums);
+    std::print($nums, newln);
     no_check qsort(lend.mut $nums, 5, size.of[i32], descending);
-    std::println($nums);
+    std::print($nums, newln);
 ;MAIN

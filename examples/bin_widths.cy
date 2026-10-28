@@ -5,27 +5,27 @@ MAIN:
     let $f: f32 := 0.1;
     let $h: f16 := 0.1;
     let $d: f64 := 0.1;
-    std::println.stored($f);     # 0.100000001490116119384765625
-    std::println.stored($h);     # 0.0999755859375
-    std::println.stored($d);
-    std::println($f, " ", $h, " ", $d);     # all three: 0.1
+    std::print.stored($f, newln);     # 0.100000001490116119384765625
+    std::print.stored($h, newln);     # 0.0999755859375
+    std::print.stored($d, newln);
+    std::print($f, " ", $h, " ", $d, newln);     # all three: 0.1
     let $big: f16 := 65519.0;                          # rounds down to f16's largest, 65504
     let $g := to.f32("0.1") ?? 0.0;            # a conversion lands at f32 too
-    std::println.stored($big, " ", $g);
+    std::print.stored($big, " ", $g, newln);
     # f32 math rounds after every step, as the hardware does (owner, 2026-09-24: a):
     # 16777216 plus 1 rounds back to 16777216 at f32, while f64 holds 16777218
     let $x: f32 := 16777216.0;
     let $y: f32 := $x + 1.0 + 1.0;
     let $x64: f64 := 16777216.0;
     let $y64: f64 := $x64 + 1.0 + 1.0;
-    std::println($y, " ", $y64);
+    std::print($y, " ", $y64, newln);
     # a literal is rounded once, from its digits, straight to its width (never to 64 bits first)
     let $top: f32 := 340282356779733661637539395458142568447.0;   # just under the limit: f32's largest
     let $near: f32 := 1.00000005960464477539062500001;            # just past a halfway point: rounds up
-    std::println.stored($top, " ", $near);
+    std::print.stored($top, " ", $near, newln);
     # text is rounded once from its digits too
     let $t16 := to.f16("65519.99999999999999999") ?? -1.0;    # just under the limit: 65504
     let $t32 := to.f32("1.00000005960464477539062500001") ?? -1.0;
     let $tiny := to.f16("2.98023223876953126e-8") ?? -1.0;   # just past half the smallest step
-    std::println.stored($t16, " ", $t32, " ", $tiny);
+    std::print.stored($t16, " ", $t32, " ", $tiny, newln);
 ;MAIN

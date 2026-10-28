@@ -10,5 +10,5 @@ pub coll.fn area:
 ;coll.fn area
 
 MAIN:
-    std::println(area(3, 4), " ", area.square(5), " ", area.triangle(6, 4), " ", area.unit());
+    std::print(area(3, 4), " ", area.square(5), " ", area.triangle(6, 4), " ", area.unit(), newln);
 ;MAIN

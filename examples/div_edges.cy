@@ -6,12 +6,12 @@ MAIN:
     let $n: f64 := -0.00000000000000000001;
     let $two: f64 := 2.0;
     let $turn: f64 := 360.0;
-    std::println(($x div.ceil $two), " ", ($x mod.ceil $two), " ", ($n div.floor $turn), " ", ($n mod.floor $turn));
+    std::print(($x div.ceil $two), " ", ($x mod.ceil $two), " ", ($n div.floor $turn), " ", ($n mod.floor $turn), newln);
     let $a: f32 := -0.000001;
     let $b: f32 := 360.0;
-    std::println(($a mod.floor $b));
+    std::print(($a mod.floor $b), newln);
     let $h: %bf16 := -1.0;
     let $k: %bf16 := 360.0;
     let $one: %bf16 := 1.0;
-    std::println(($h mod.floor $k), " ", ($one mod.ceil $k));
+    std::print(($h mod.floor $k), " ", ($one mod.ceil $k), newln);
 ;MAIN

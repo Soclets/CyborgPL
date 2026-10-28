@@ -9,5 +9,5 @@ MAIN:
     std::ls.append(lend.mut $m, value: 4);
     var $s: std::ls[i32] = arr.slice(lend $a, from: pos 2, to: pos 3);   # a slice is a list, an array's too
     std::ls.append(lend.mut $s, value: 9);
-    std::println($a, " ", $m, " ", $s);
+    std::print($a, " ", $m, " ", $s, newln);
 ;MAIN

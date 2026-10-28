@@ -6,5 +6,5 @@ MAIN:
     for $x in lend.mut $prices:
         change $x x= 2;
     ;for
-    std::println.stored($prices);
+    std::print.stored($prices, newln);
 ;MAIN

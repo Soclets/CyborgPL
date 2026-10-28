@@ -279,7 +279,9 @@ fn prints(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
             let mut form: Vec<Token> = Vec::new();
             while toks.get(j).is_some_and(|x| x.tok == Tok::Dot) && matches!(toks.get(j + 1).map(|x| &x.tok), Some(Tok::Word(_))) { form.push(toks[j].clone()); form.push(toks[j + 1].clone()); j += 2; }
             let form_words: Vec<String> = form.iter().filter_map(|x| if let Tok::Word(w) = &x.tok { Some(w.clone()) } else { None }).collect();
-            if form_words.iter().any(|w| w == "auto_newline" || w == "auto_newln") { return Err(old(t, &format!("print.{}", form_words.join(".")), "std::println(…)")); }
+            if form_words.iter().any(|w| w == "auto_newline" || w == "auto_newln") { return Err(old(t, &format!("print.{}", form_words.join(".")), "std::print(…, newln)")); }
+            // `println` was dropped (owner, 2026-10-28: "drop"): a line ends with `newln`, in every form
+            if ln { return Err(old(t, &format!("std::println{}", form_words.iter().map(|w| format!(".{w}")).collect::<String>()), &format!("std::print{}(…, newln)", form_words.iter().map(|w| format!(".{w}")).collect::<String>()))); }
             let call = toks.get(j).is_some_and(|x| x.tok == Tok::LParen);
             if !call || (!ln && !form.is_empty()) {
                 // a named form of `print` (`print.stored(…)`, `print.flush`, `print.writer…`) is as it was

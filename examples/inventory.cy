@@ -39,19 +39,19 @@ MAIN:
 
     let $count := std::ls.len(lend $shelf);
     let $left: i8 := 4 - $count;
-    std::println($count, " items, room for ", $left, " more");
+    std::print($count, " items, room for ", $left, " more", newln);
 
     let $top := heaviest(...copy $shelf)-
     otherwise:
         case none:
-            std::println("empty shelf"); std::exit(code: 0);
+            std::print("empty shelf", newln); std::exit(code: 0);
         ;case none
     ;otherwise;
-    std::println("heaviest: ", initial(lend $top.name), " ", $top.name);
+    std::print("heaviest: ", initial(lend $top.name), " ", $top.name, newln);
 
     let $kg := kilos($top.grams) ?? -1;
-    std::println($top.name, " is ", $kg, " kg");
+    std::print($top.name, " is ", $kg, " kg", newln);
 
     let $gone := std::ls.remove(lend.mut $shelf, pos: 2);
-    std::println("removed ", $gone.name, ", ", std::ls.len(lend $shelf), " left");
+    std::print("removed ", $gone.name, ", ", std::ls.len(lend $shelf), " left", newln);
 ;MAIN

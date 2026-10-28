@@ -7,5 +7,5 @@ pub fn seven [] -> i32:
 ;fn seven
 
 MAIN:
-    std::println.stored("runnable on its own");
+    std::print.stored("runnable on its own", newln);
 ;MAIN

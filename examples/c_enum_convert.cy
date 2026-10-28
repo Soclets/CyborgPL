@@ -27,5 +27,5 @@ fn on_key [let $code: i32] -> i32:
     ;match
 ;fn on_key
 MAIN:
-    std::println(on_key(66), " ", on_key(302), " ", on_key(256));
+    std::print(on_key(66), " ", on_key(302), " ", on_key(256), newln);
 ;MAIN

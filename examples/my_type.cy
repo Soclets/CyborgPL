@@ -26,5 +26,5 @@ module paint:
 
 MAIN:
     let $q := paint.twice(P[x = 4]);
-    std::println(paint.name(Color.blue), " ", $q.x);
+    std::print(paint.name(Color.blue), " ", $q.x, newln);
 ;MAIN

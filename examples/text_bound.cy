@@ -1,6 +1,6 @@
 # A length bound on text names its unit (decided 2026-09-22): text has three lengths.
 proc greet [lent $name: str.utf8[min: 1, max: 10 %clusters]]:
-    std::println("hi ", $name);
+    std::print("hi ", $name, newln);
 ;proc greet
 
 MAIN:
@@ -10,7 +10,7 @@ MAIN:
     greet(lend $ascii);
     var $line: str.utf8[min: 0, max: 20 bytes] = str.empty;
     change $line ++= "twelve chars";                      # 12 bytes: fits
-    std::println(std::str.bytes(lend $line));
+    std::print(std::str.bytes(lend $line), newln);
     let $short := to.stored.str.utf8[min: 0, max: 3 bytes](12345) ?? "?";     # into a bounded text: fails out_of_range
-    std::println($short);
+    std::print($short, newln);
 ;MAIN

@@ -8,5 +8,5 @@ MAIN:
     let $far: i64 := $x shl.masked 70;      # 70 masked to 6: 64
     let $down: u8 := $b shr.masked 9;      # 9 masked to 1: 127
     let $neg: u32 := (0 - 1) shr.masked 1;   # -1's bits, then shifted: 2147483647
-    std::println($up, " ", $far, " ", $down, " ", $neg);
+    std::print($up, " ", $far, " ", $down, " ", $neg, newln);
 ;MAIN

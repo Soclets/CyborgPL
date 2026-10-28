@@ -2,5 +2,5 @@
 MAIN:
     let $tx := exactly 0 percent;
     let $z: %d64 := exactly 0.0: %d64;
-    std::println(-$tx, " ", -0 percent, " ", -23 percent, " ", -$z);
+    std::print(-$tx, " ", -0 percent, " ", -23 percent, " ", -$z, newln);
 ;MAIN

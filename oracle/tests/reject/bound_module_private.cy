@@ -9,6 +9,6 @@ module till:
 ;module till
 MAIN:
     let $c: till.coin := 50;
-    std::println(till.show($c));
+    std::print(till.show($c), newln);
     let $bad: till.coin := 500;
 ;MAIN

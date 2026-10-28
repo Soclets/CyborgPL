@@ -9,7 +9,7 @@ MAIN:
     let $e := E1.c1(5);
     match $e:
         case c1 $d:
-            std::println(not.bit $d, " ", $d times.wrap 1000000000);
+            std::print(not.bit $d, " ", $d times.wrap 1000000000, newln);
         ;case c1
         case c2 $b:
         ;case c2
@@ -28,5 +28,5 @@ MAIN:
             is 1;
         ;case c3
     ;match;
-    std::println($w);
+    std::print($w, newln);
 ;MAIN

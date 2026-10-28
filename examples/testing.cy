@@ -29,5 +29,5 @@ test proc guards []:
     must.stop $xs[pos: 99];
 ;test proc guards
 MAIN:
-    std::println(add(1, 1));
+    std::print(add(1, 1), newln);
 ;MAIN

@@ -5,5 +5,5 @@ MAIN:
     let $huge: %not_std.i300 := 2 ^ 200;
     let $a := to.%d128($small) ?? 0.0;
     let $b := to.%d128($huge) ?? 0.0;
-    std::println($a, " ", $b);
+    std::print($a, " ", $b, newln);
 ;MAIN

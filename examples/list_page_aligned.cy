@@ -17,10 +17,10 @@ proc grow [lent.mut $xs: std::ls[i32]]:
 MAIN:
     var $xs: std::ls.page_aligned[i32] = [1, 2, 3];
     grow(lend.mut $xs);
-    std::println(total(lend $xs), " ", $xs);
+    std::print(total(lend $xs), " ", $xs, newln);
     let $plain: std::ls[i32] := [5, 6];
     let $pa := to.ls.page_aligned(give $plain);
     let $np: std::ls.not_page_aligned[i32] := to.ls.not_page_aligned(give $pa);
     let $back: std::ls[i32] := give $np;
-    std::println($back);
+    std::print($back, newln);
 ;MAIN

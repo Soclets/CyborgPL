@@ -40,9 +40,9 @@ rec Box <T: Number>:
 ;rec Box
 
 MAIN:
-    std::println(bigger(3, 9), " ", bigger(2.5, 1.5), " ", smaller(3, 9));
+    std::print(bigger(3, 9), " ", bigger(2.5, 1.5), " ", smaller(3, 9), newln);
     let $xs := ["a", "b"];
-    std::println(whole(lend $xs));
+    std::print(whole(lend $xs), newln);
     let $b: Box[i32] := Box[item = 4];
-    std::println($b.item);
+    std::print($b.item, newln);
 ;MAIN

@@ -85,7 +85,7 @@ for perm $i [from: 0, to: 100, by: 1]:
         break;
     ;if
 ;for
-std::println("stopped at ", $i);
+std::print("stopped at ", $i, newln);
 ```
 
 `perm` on a list loop keeps the last element visited (an empty list is an

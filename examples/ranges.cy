@@ -9,18 +9,18 @@ fn scale [let $p: Percent, let $total: i32[min: 0, max: 1000]] -> i32[min: 0, ma
 
 MAIN:
     let $half := Percent[value = 50];
-    std::println(scale(give $half, 800));
+    std::print(scale(give $half, 800), newln);
     let $raw := 250;
     if $raw >= 0 and $raw <= 100:
         let $ok: i32[min: 0, max: 100] := $raw;                   # the if is the guardrail; a check site
-        std::println($ok);
+        std::print($ok, newln);
     else:
-        std::println.stored("250 is not a percentage");
+        std::print.stored("250 is not a percentage", newln);
     ;if
     let $r := to.u8[min: 0, max: 100]("42") ?? 0;          # into a range type: fails, does not check
     let $bad := to.u8[min: 0, max: 100]("142") ?? 0;
     let $huge := to.u8[min: 0, max: 100]("99999999999") ?? 0;   # not even a u8: still out of range, not a crash
-    std::println($r, " ", $bad, " ", $huge);
+    std::print($r, " ", $bad, " ", $huge, newln);
     let $unit: f64[min: 0.0, max: 1.0] := 0.25;
-    std::println($unit);
+    std::print($unit, newln);
 ;MAIN

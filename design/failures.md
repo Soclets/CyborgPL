@@ -67,13 +67,13 @@ otherwise:               # one arm per reason
         break;
     ;case full
     case bad_item $why:
-        std::println.stored("bad: ", $why); continue;
+        std::print.stored("bad: ", $why, newln); continue;
     ;case bad_item
 ;otherwise;
 save(lend $mine)-
 otherwise:
     case disk_full:
-        std::println.stored("not saved");
+        std::print.stored("not saved", newln);
     ;case disk_full
 ;otherwise;
 ```

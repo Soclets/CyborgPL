@@ -9,5 +9,5 @@ MAIN:
     for seq $x in lend $xs:
         std::print.stored($x, " ");
     ;for
-    std::println.stored($total);
+    std::print.stored($total, newln);
 ;MAIN

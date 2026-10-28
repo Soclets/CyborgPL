@@ -3,5 +3,5 @@ MAIN:
     let $s: std::ls[i32] := [1, 2, 3];
     let $r := lend $s;
     let $t := give $s;
-    std::println($r[pos: 1]);
+    std::print($r[pos: 1], newln);
 ;MAIN

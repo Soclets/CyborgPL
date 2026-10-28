@@ -8,6 +8,6 @@ op ! [lent $a: i32, lent $b: i32] -> i32:
 ;op not
 
 MAIN:
-    std::println((17 ! 5));
-    std::println(not true);
+    std::print((17 ! 5), newln);
+    std::print(not true, newln);
 ;MAIN

@@ -1,3 +1,3 @@
 MAIN:
-    let $v := 2 | 3; std::println($v);
+    let $v := 2 | 3; std::print($v, newln);
 ;MAIN

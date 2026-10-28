@@ -1,8 +1,8 @@
 # `pow`, and how it groups (to the right).
 MAIN:
-    std::println((2 ^ (3 ^ 2)));
-    std::println(((2 ^ 3) ^ 2));
+    std::print((2 ^ (3 ^ 2)), newln);
+    std::print(((2 ^ 3) ^ 2), newln);
     let $kilo := 2 ^ 10;
-    std::println($kilo);
-    std::println((10 - 3 - 2));
+    std::print($kilo, newln);
+    std::print((10 - 3 - 2), newln);
 ;MAIN

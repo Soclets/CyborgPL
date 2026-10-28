@@ -9,5 +9,5 @@ fn true [] -> i32:
 MAIN:
     let $x := my.to();
     let $y := my.true();
-    std::println($x, " ", $y);
+    std::print($x, " ", $y, newln);
 ;MAIN

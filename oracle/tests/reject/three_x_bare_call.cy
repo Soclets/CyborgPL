@@ -2,5 +2,5 @@ fn x [] -> i32:
     ret 1;
 ;fn x
 MAIN:
-    std::println(x());
+    std::print(x(), newln);
 ;MAIN

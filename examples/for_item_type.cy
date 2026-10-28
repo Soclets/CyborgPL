@@ -5,10 +5,10 @@ MAIN:
     for $x in lend $xs:
         let $v: i64 := to.i64($x plus.wrap 10);
         let $w: i64 := to.i64(not.bit $x);
-        std::println($v, " ", $w);
+        std::print($v, " ", $w, newln);
     ;for
     let $ys: std::ls[u8] := [250, 3];
     for $i, $y in lend $ys:
-        std::println($i, " ", $y plus.wrap 10);
+        std::print($i, " ", $y plus.wrap 10, newln);
     ;for
 ;MAIN

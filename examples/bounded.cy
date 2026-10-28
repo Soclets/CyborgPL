@@ -16,15 +16,15 @@ MAIN:
     var $squares: std::ls[i32][min: 0, max: 5] = fill(3) ?? std::ls.empty;
     let $n := std::ls.len(lend $squares);    # a u64[min: 0, max: 5]
     let $small: i8 := $n;                   # proven: the bound says at most 5
-    std::println($squares, " has ", $small);
+    std::print($squares, " has ", $small, newln);
     std::ls.append(lend.mut $squares, value: 16);
     std::ls.append(lend.mut $squares, value: 25);       # five: still inside
-    std::println(std::ls.len(lend $squares));
+    std::print(std::ls.len(lend $squares), newln);
     let $big := fill(9)-
     otherwise:
         case too_many:
-            std::println("9 is too many"); std::exit(code: 0);
+            std::print("9 is too many", newln); std::exit(code: 0);
         ;case too_many
     ;otherwise;
-    std::println(std::ls.len(lend $big));
+    std::print(std::ls.len(lend $big), newln);
 ;MAIN

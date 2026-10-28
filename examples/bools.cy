@@ -3,9 +3,9 @@ MAIN:
     let $'correct?': bool := true;
     let $'wrong?' := not $'correct?';
     if $'correct?' and (not $'wrong?'):
-        std::println.stored("fine");
+        std::print.stored("fine", newln);
     ;if
     if $'wrong?' == false:
-        std::println.stored($'correct?', " ", $'wrong?');
+        std::print.stored($'correct?', " ", $'wrong?', newln);
     ;if
 ;MAIN

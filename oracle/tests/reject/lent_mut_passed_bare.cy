@@ -5,5 +5,5 @@ proc walk [lent.mut $out: std::ls[i32]]:
     add1($out); std::ls.append(lend.mut $out, value: 2);
 ;proc walk
 MAIN:
-    var $xs: std::ls[i32] = []; walk(lend.mut $xs); std::println(std::ls.len(lend $xs));
+    var $xs: std::ls[i32] = []; walk(lend.mut $xs); std::print(std::ls.len(lend $xs), newln);
 ;MAIN

@@ -30,10 +30,10 @@ MAIN:
             is -1;
         ;case out_of_range
     ;otherwise;
-    std::println(label(Status.empty), " / ", label(Status.claimed("ann")), " / ", label(Status.locked), " / ", $n);
+    std::print(label(Status.empty), " / ", label(Status.claimed("ann")), " / ", label(Status.locked), " / ", $n, newln);
     match Status.empty:
         case empty:
-            std::println("statement match still works");
+            std::print("statement match still works", newln);
         ;case empty
         case claimed $w:
         ;case claimed

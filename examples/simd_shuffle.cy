@@ -7,5 +7,5 @@ MAIN:
     let $r := simd.shuffle($v, [4, 3, 2, 1]);         # reversed
     let $pairs := simd.shuffle($v, [2, 1, 4, 3]);     # neighbours swapped
     let $first := simd.shuffle($v, [1, 1, 1, 1]);     # lane 1 everywhere
-    std::println($r, newln, $pairs, newln, $first);
+    std::print($r, newln, $pairs, newln, $first, newln);
 ;MAIN

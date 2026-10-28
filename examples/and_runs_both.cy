@@ -3,18 +3,18 @@
 # therefore written as two `if`s; tests/reject/and_does_not_guard.cy is the one-line
 # form, which stops when the right side is out of range.
 proc loud [let $name: str.utf8, let $answer: bool] -> bool:
-    std::println("checked ", $name);
+    std::print("checked ", $name, newln);
     ret $answer;
 ;proc loud
 MAIN:
     let $ok := loud("first", false) and loud("second", true);    # both print
-    std::println($ok);
+    std::print($ok, newln);
     let $xs := [3, 5, 8];
     let $i: u64 := 7;
     if $i <= std::ls.len(lend $xs):
         if $xs[pos: $i] == 5:
-            std::println("found");
+            std::print("found", newln);
         ;if
     ;if
-    std::println("done");
+    std::print("done", newln);
 ;MAIN

@@ -11,9 +11,9 @@ MAIN:
     no_check let $home := getenv(lend $key);
     let $args := [$home, ptr.null];                 # a list of pointers ending in NULL, as execv wants
     if ptr.is_null($args[pos: 2]):
-        std::println("the list ends in NULL");
+        std::print("the list ends in NULL", newln);
     ;if
     if not ptr.is_null($args[pos: 1]):
-        std::println("HOME is set");
+        std::print("HOME is set", newln);
     ;if
 ;MAIN

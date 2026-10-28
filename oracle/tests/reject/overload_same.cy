@@ -9,5 +9,5 @@ coll.fn f:
     ;versions f
 ;coll.fn f
 MAIN:
-    std::println(f(1));
+    std::print(f(1), newln);
 ;MAIN

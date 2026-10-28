@@ -20,7 +20,7 @@ MAIN:
     no_check printf_count(lend $one, 7);
     no_check let $n := strlen(lend $cs);
     let $back := %C.str.read(lend $cs) ?? "?";
-    std::println($n, " ", $back);
+    std::print($n, " ", $back, newln);
     # a C string's type is `C.str`; a bounded one says whether its 0 counts (owner, 2026-10-19)
     let $fits: %C.str[max: 6 bytes, exclude zero] := %C.str.make(lend $name)-
     otherwise:
@@ -37,7 +37,7 @@ MAIN:
             std::exit(code: 1);
         ;case has_zero_byte
         case out_of_range:
-            std::println("Tankun and its 0 need 7 bytes"); std::exit(code: 0);
+            std::print("Tankun and its 0 need 7 bytes", newln); std::exit(code: 0);
         ;case out_of_range
     ;otherwise;
 ;MAIN

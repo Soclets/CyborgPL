@@ -21,5 +21,5 @@ MAIN:
     let $twice: simd[i32, count: 4] := simd.fill(value: 2);
     let $last: simd[i32, count: 4] := simd.load(lend $xs, pos: 7);
     simd.store.some(lend.mut $xs, pos: 9, count: 2, value: $last x $twice);
-    std::println(simd.sum($acc), " ", $xs);
+    std::print(simd.sum($acc), " ", $xs, newln);
 ;MAIN

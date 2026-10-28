@@ -22,5 +22,5 @@ MAIN:
     let $l := longer(lend $s, lend $t);
     let $p := pick(lend $t, lend $s);
     let $f := first(lend $s);
-    std::println($l, " ", $p, " ", $f);
+    std::print($l, " ", $p, " ", $f, newln);
 ;MAIN

@@ -5,5 +5,5 @@ MAIN:
     let $a: i32 := 2 std::plus 3 std::times 4;
     let $b: i32 := 7 std::divide.floor 2;
     let $c: u32 := 1 std::shift_left 3;
-    std::println($a, " ", $b, " ", $c);
+    std::print($a, " ", $b, " ", $c, newln);
 ;MAIN

@@ -5,5 +5,5 @@ fn MAIN [] -> str.utf8:
 ;fn MAIN
 
 MAIN:
-    std::println(my.MAIN());
+    std::print(my.MAIN(), newln);
 ;MAIN

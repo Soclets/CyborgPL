@@ -25,5 +25,5 @@ fn name [let $k: Key] -> str.utf8:
 
 MAIN:
     let $k := Key.escape;
-    std::println(name($k), " ", name(Key.a));
+    std::print(name($k), " ", name(Key.a), newln);
 ;MAIN

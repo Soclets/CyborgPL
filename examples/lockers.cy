@@ -33,16 +33,16 @@ MAIN:
             change $stored += 1;
         ;if
     ;for
-    std::println(label(lend $mine), ": ", $stored, " stored, ", free_slots(lend $mine), " free");
+    std::print(label(lend $mine), ": ", $stored, " stored, ", free_slots(lend $mine), " free", newln);
 
     for $i [from: 1, to: std::ls.len(lend $mine.items), by: 1]:
-        check std::println($i, ". ", $mine.items[pos: $i]);
+        check std::print($i, ". ", $mine.items[pos: $i], newln);
     ;for
 
     let $x: f64 := 0.1;
-    std::println.stored($x);
-    std::println($x);
+    std::print.stored($x, newln);
+    std::print($x, newln);
 
     let $tag := give $mine.owner;
-    std::println.stored($tag);
+    std::print.stored($tag, newln);
 ;MAIN

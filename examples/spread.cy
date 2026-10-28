@@ -14,7 +14,7 @@ proc show [lent $label: str.utf8, lent ...$parts]:
     for $p in lend $parts:
         std::print(" ", $p);
     ;for
-    std::println.stored();
+    std::print.stored(newln);
 ;proc show
 
 proc shout [lent ...$parts]:
@@ -27,15 +27,15 @@ fn keep [let ...$names: str.utf8] -> u64:
 
 MAIN:
     let $xs := [1, 2, 3];
-    std::println(sum(...$xs));                   # same as sum[1, 2, 3]
-    std::println(sum(10, ...$xs, 20));           # mixed with hand-typed values
+    std::print(sum(...$xs), newln);                   # same as sum[1, 2, 3]
+    std::print(sum(10, ...$xs, 20), newln);           # mixed with hand-typed values
     var $ys: std::ls[i32][min: 0, max: 4] = std::ls.empty;
     std::ls.append(lend.mut $ys, value: 7);
     std::ls.append(lend.mut $ys, value: 8);
-    std::println(sum(...$ys));                   # bounded: at most four
+    std::print(sum(...$ys), newln);                   # bounded: at most four
     let $words := ["a", "b"];
     show("letters", ...$words);                            # no verb: the elements are lent
     shout(1, true);
-    std::println(keep(...copy $words), " kept, ", $words, " still here");
-    std::println(keep(...give $words), " kept, ", $words, " left");
+    std::print(keep(...copy $words), " kept, ", $words, " still here", newln);
+    std::print(keep(...give $words), " kept, ", $words, " left", newln);
 ;MAIN

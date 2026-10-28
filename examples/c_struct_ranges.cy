@@ -8,5 +8,5 @@
 %extern.C proc DrawRect [let $r: Rect];
 MAIN:
     let $r := Rect[w = 640, h = 480];
-    std::println($r.w, "x", $r.h, " ", size.of[Rect]);
+    std::print($r.w, "x", $r.h, " ", size.of[Rect], newln);
 ;MAIN

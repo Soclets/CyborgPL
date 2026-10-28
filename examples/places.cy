@@ -8,5 +8,5 @@ MAIN:
     let $sum: %d64[max_places: 2] := $price + $total;
     let $shown: %d64[min_places: 2] := exactly 5;
     let $rate: percent[%d32][min: 0 percent, max: 100 percent, max_places: 1] := exactly 7.5 percent;
-    std::println($price, " ", $total, " ", $sum, " ", $shown, " ", $rate);
+    std::print($price, " ", $total, " ", $sum, " ", $shown, " ", $rate, newln);
 ;MAIN

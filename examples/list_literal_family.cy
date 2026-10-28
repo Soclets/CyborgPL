@@ -4,7 +4,7 @@ MAIN:
     let $bs: std::ls[f64] := [1, 2];
     let $more: std::ls[f64] := std::ls.fill(value: 1, count: 3);
     let $ds: std::ls[%d64] := std::ls.fill(value: 0.25, count: 3);
-    std::println.stored($bs);
-    std::println.stored($more);
-    std::println.stored($ds);
+    std::print.stored($bs, newln);
+    std::print.stored($more, newln);
+    std::print.stored($ds, newln);
 ;MAIN

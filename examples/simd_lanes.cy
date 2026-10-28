@@ -6,8 +6,8 @@ MAIN:
     let $x: i32 := $a[pos: 1];
     let $u: simd[u8, count: 16] := simd.fill(value: 200);
     let $w := $u plus.wrap $u;
-    std::println.stored($x, " ", $w[pos: 1], " ", $w[pos: 16]);
+    std::print.stored($x, " ", $w[pos: 1], " ", $w[pos: 16], newln);
     var $v: simd[i32, count: 4] = simd.fill(value: 0);
     change $v[pos: 3] to 30;
-    std::println.stored($v[pos: 3], " ", simd.sum($v));
+    std::print.stored($v[pos: 3], " ", simd.sum($v), newln);
 ;MAIN

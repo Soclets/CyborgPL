@@ -4,8 +4,8 @@
 MAIN:
     let $a: i32 := 7;
     let $b: i32 := 3;
-    std::println(($a + $b), " ", ($a - $b), " ", ($a x $b), " ", ($a ^ $b), " ", ($a std::pow 2), " ", -$a);
+    std::print(($a + $b), " ", ($a - $b), " ", ($a x $b), " ", ($a ^ $b), " ", ($a std::pow 2), " ", -$a, newln);
     let $h: u8 := 200;
-    std::println(($h plus.wrap 100), " ", ($h times.wrap 2), " ", ($h pow.wrap 2));
-    std::println((2 ^ 3) + 1, " ", 1 + 2 x 3);
+    std::print(($h plus.wrap 100), " ", ($h times.wrap 2), " ", ($h pow.wrap 2), newln);
+    std::print((2 ^ 3) + 1, " ", 1 + 2 x 3, newln);
 ;MAIN

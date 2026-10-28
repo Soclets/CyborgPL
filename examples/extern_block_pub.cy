@@ -16,7 +16,7 @@ module text:
 MAIN:
     let $word := "hello";
     no_check let $n := text.strlen(lend $word);
-    std::println("strlen: ", $n);
+    std::print("strlen: ", $n, newln);
     let $line := "written by the wrapper" ++ newln;
     text.say(lend $line);
 ;MAIN

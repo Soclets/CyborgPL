@@ -9,5 +9,5 @@ MAIN:
     let $back := to.str.utf8($b) ?? "not utf-8";
     let $cut := to.str.utf8($half) ?? "not utf-8";
     let $past := std::str.slice.point(lend $s, from: pos 4, to: pos 9) ?? "past the end";
-    std::println($g, " ", $p, " ", $b, " ", $back, " ", $cut, " ", $past);
+    std::print($g, " ", $p, " ", $b, " ", $back, " ", $cut, " ", $past, newln);
 ;MAIN

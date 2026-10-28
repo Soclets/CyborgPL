@@ -14,5 +14,5 @@ MAIN:
     var $history: std::ls[simd[f32, count: 4]] = [];
     std::ls.append(lend.mut $history, value: $q.place);
     std::ls.append(lend.mut $history, value: $q.place + $q.vel);
-    std::println(simd.sum($q.place), " ", std::ls.len(lend $history), " ", simd.sum($history[pos: 2]));
+    std::print(simd.sum($q.place), " ", std::ls.len(lend $history), " ", simd.sum($history[pos: 2]), newln);
 ;MAIN

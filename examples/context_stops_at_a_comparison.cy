@@ -6,5 +6,5 @@ MAIN:
     let $c: bool := 1 < (0 minus.wrap $w);          # wraps to 4294967293
     let $n: u64 := 5;
     let $d: bool := $n > (0 minus.wrap 1);          # but the other side sizes it: 0 minus.wrap 1 wraps in u64
-    std::println($b, " ", $c, " ", 0 minus.wrap $w, " ", $d);
+    std::print($b, " ", $c, " ", 0 minus.wrap $w, " ", $d, newln);
 ;MAIN

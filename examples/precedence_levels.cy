@@ -31,6 +31,6 @@ MAIN:
     let $d := $u dot $v + 1.0;          # ('u' dot 'v') plus 1.0
     let $w := $u scale 2.0 dot $v;         # ('u' scale 2.0) dot 'v'
     let $ok := $d ~= 12.0;
-    std::println($d, " ", $w, " ", $ok);
-    std::println(2 ^ 3 + 1, " ", 2 ^ 3 ^ 2, " ", -2 ^ 2, " ", 2 x 3 ^ 2);
+    std::print($d, " ", $w, " ", $ok, newln);
+    std::print(2 ^ 3 + 1, " ", 2 ^ 3 ^ 2, " ", -2 ^ 2, " ", 2 x 3 ^ 2, newln);
 ;MAIN

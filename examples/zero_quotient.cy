@@ -4,5 +4,5 @@ MAIN:
     let $q: f64 := 0.5 div.ceil (-1.75);
     let $r: f64 := 0.5 div.ceil.ieee (-1.75);
     let $b: %bf16 := 0.5 div.trunc (-1.75);
-    std::println($q, " ", $r, " ", $b, " ", $q == $r);
+    std::print($q, " ", $r, " ", $b, " ", $q == $r, newln);
 ;MAIN

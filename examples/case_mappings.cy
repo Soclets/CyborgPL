@@ -3,14 +3,14 @@
 # A bare `str.upper` is refused naming the three.
 MAIN:
     let $s := "straße in istanbul, café";
-    std::println(std::str.upper.ascii(lend $s));
-    std::println(std::str.upper.simple(lend $s));
-    std::println(std::str.upper.full(lend $s));
-    std::println(std::str.upper.full(lend $s, lang: std::casing.tr));
+    std::print(std::str.upper.ascii(lend $s), newln);
+    std::print(std::str.upper.simple(lend $s), newln);
+    std::print(std::str.upper.full(lend $s), newln);
+    std::print(std::str.upper.full(lend $s, lang: std::casing.tr), newln);
     let $tag := "tr-TR";
     let $l := to.casing($tag);
     let $city := "ISTANBUL";
-    std::println(std::str.lower.full(lend $city, lang: $l), " ", std::str.lower.full(lend $city, lang: std::casing.root));
+    std::print(std::str.lower.full(lend $city, lang: $l), " ", std::str.lower.full(lend $city, lang: std::casing.root), newln);
     let $shop := "CAFÉ";
-    std::println(std::str.lower.ascii(lend $shop), " ", std::str.lower.full(lend $shop));
+    std::print(std::str.lower.ascii(lend $shop), " ", std::str.lower.full(lend $shop), newln);
 ;MAIN

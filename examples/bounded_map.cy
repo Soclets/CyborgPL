@@ -5,12 +5,12 @@ MAIN:
     std::map.set(lend.mut $small, key: "cd", value: 7);
     let $n := std::map.count(lend $small);         # u64[min: 0, max: 2]
     let $tiny: i8 := $n;                      # proven by the bound
-    std::println($tiny, " entries");
+    std::print($tiny, " entries", newln);
     std::map.remove(lend.mut $small, key: "ab")-
     otherwise:
         case missing:
         ;case missing
     ;otherwise;
     std::map.set(lend.mut $small, key: "ef", value: 10);         # back to two: fits
-    std::println(std::map.count(lend $small));
+    std::print(std::map.count(lend $small), newln);
 ;MAIN

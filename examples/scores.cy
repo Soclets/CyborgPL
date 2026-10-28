@@ -35,16 +35,16 @@ MAIN:
     let $average := $total div.floor $count;
     let $curved := clamp($average + 10, 0, 100);
 
-    std::println("scored ", $count, " tests");
-    std::println("total ", $total, ", best ", $best);
-    std::println("even scores: ", $evens);
-    std::println("average ", $average, ", curved ", $curved);
+    std::print("scored ", $count, " tests", newln);
+    std::print("total ", $total, ", best ", $best, newln);
+    std::print("even scores: ", $evens, newln);
+    std::print("average ", $average, ", curved ", $curved, newln);
 
     if $average >= 90:
-        std::println("grade A");
+        std::print("grade A", newln);
     else if $average >= 75:
-        std::println("grade B");
+        std::print("grade B", newln);
     else:
-        std::println("keep going");
+        std::print("keep going", newln);
     ;if
 ;MAIN

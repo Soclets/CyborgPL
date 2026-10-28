@@ -25,8 +25,8 @@ op <+> [lent $a: B, lent $b: B] -> i32:
 ;op <+>
 MAIN:
     let $m: i32 := 100;
-    std::println(95 ~= $m, " ", 50 ~= $m);
+    std::print(95 ~= $m, " ", 50 ~= $m, newln);
     let $p := A[x = 3];
     let $q := B[y = 3];
-    std::println($p <+> $p, " ", $q <+> $q);
+    std::print($p <+> $p, " ", $q <+> $q, newln);
 ;MAIN

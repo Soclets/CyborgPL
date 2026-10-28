@@ -1,6 +1,6 @@
 MAIN:
     let $b: bool := false;
     if $b:
-        std::println(5 shr to.u8(1));
+        std::print(5 shr to.u8(1), newln);
     ;if
 ;MAIN
