@@ -1,4 +1,4 @@
-!MAIN:
-    let $x: int.sign.32 = 1;
-    let $x: int.sign.32 $= 2;
-!end of MAIN
+MAIN:
+    let $x: i32 = 1;
+    let $x: i32 $= 2;
+;MAIN

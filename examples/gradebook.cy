@@ -3,36 +3,36 @@ pub const $passing := 60;
 
 rec Student:
     var name: str.utf8;
-    var scores: std::ls[int.sign.32];
-end of rec Student
+    var scores: std::ls[i32];
+;rec Student
 
-fn average [lent $s: Student] -> int.sign.32 or fail[no_scores]:
-    if std::ls.len(lend $s.scores) eq 0:
+fn average [lent $s: Student] -> i32 or fail[no_scores]:
+    if std::ls.len(lend $s.scores) == 0:
         fail no_scores;
-    end of if
+    ;if
     var $total = 0;
     for $x in lend $s.scores:
-        change $total to $total plus $x;
-    end of for
+        change $total += $x;
+    ;for
     check ret $total div.floor std::ls.len(lend $s.scores);     # the if above proves the divisor is not 0
-end of fn average
+;fn average
 
-proc add_score [lent.mut $s: Student, let $score: int.sign.32] -> fail[out_of_range: int.sign.32]:
-    if $score lt 0 or $score gt 100:
+proc add_score [lent.mut $s: Student, let $score: i32] -> fail[out_of_range: i32]:
+    if $score < 0 | $score > 100:
         fail out_of_range[$score];
-    end of if
+    ;if
     std::ls.append(lend.mut $s.scores, value: $score);
-end of proc add_score
+;proc add_score
 
 fn grade [lent $s: Student] -> str.utf8:
-    let $avg := average(lend $s) otherwise ret to.stored.str.utf8($passing) concat "? no scores";
-    if $avg at_least $passing:
-        ret "pass (" concat to.stored.str.utf8($avg) concat ")";
-    end of if
-    ret "fail (" concat to.stored.str.utf8($avg) concat ")";
-end of fn grade
+    let $avg := average(lend $s) otherwise ret to.stored.str.utf8($passing) ++ "? no scores";
+    if $avg >= $passing:
+        ret "pass (" ++ to.stored.str.utf8($avg) ++ ")";
+    ;if
+    ret "fail (" ++ to.stored.str.utf8($avg) ++ ")";
+;fn grade
 
-!MAIN:
+MAIN:
     var $a = Student[name = "Ann", scores = std::ls.empty];
     var $b = Student[name = "Bo", scores = [40, 55]];
     let $marks := [72, 130, 88];
@@ -41,20 +41,20 @@ end of fn grade
         add_score(lend.mut $a, $m)-
         otherwise:
             case out_of_range $bad:
-                std::print.shortest("skipping ", $bad, newln);
-            end of case out_of_range
-        end of otherwise;
-    end of for
-    add_score(lend.mut $b, 65) otherwise std::exit(code: 1);
+                std::println("skipping ", $bad);
+            ;case out_of_range
+        ;otherwise;
+    ;for
+    add_score(lend.mut $b, 65) ?? std::exit(code: 1);
 
     let $students := [give $a, give $b, Student[name = "Cy", scores = std::ls.empty]];
     var $passed = 0;
     for $s in lend $students:
-        std::print.stored($s.name, ": ", grade(lend $s), newln);
-        let $avg := average(lend $s) otherwise 0;
-        if $avg at_least $passing:
-            change $passed to $passed plus 1;
-        end of if
-    end of for
-    std::print.shortest($passed, " of ", std::ls.len(lend $students), " passed", newln);
-!end of MAIN
+        std::println.stored($s.name, ": ", grade(lend $s));
+        let $avg := average(lend $s) ?? 0;
+        if $avg >= $passing:
+            change $passed += 1;
+        ;if
+    ;for
+    std::println($passed, " of ", std::ls.len(lend $students), " passed");
+;MAIN

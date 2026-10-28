@@ -1,4 +1,4 @@
-fn f [int.sign.32 $a]:
-end of fn f
-!MAIN:
-!end of MAIN
+fn f [i32 $a]:
+;fn f
+MAIN:
+;MAIN

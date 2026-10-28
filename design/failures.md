@@ -21,19 +21,19 @@ function's own signature** (owner: option 1, over a named reusable type):
 
 ```
 proc stash [lent.mut $l: Locker, let $item: str.utf8] -> bool or fail[full, bad_item: str.utf8]:
-    if free_slots(lend $l) eq 0:
+    if free_slots(lend $l) == 0:
         fail full;
-    end of if
-    if $item eq "":
+    ;if
+    if $item == "":
         fail bad_item[copy $item];
-    end of if
+    ;if
     std::ls.append(lend.mut $l.items, value: give $item);
     ret true;
-end of proc stash
+;proc stash
 
 fn save [lent $l: Locker] -> fail[disk_full, no_permission]:
     …
-end of fn save   # nothing on success, or a failure
+;fn save   # nothing on success, or a failure
 ```
 
 - `-> T or fail[…]`: "returns a T, or fails one of these ways."
@@ -58,24 +58,24 @@ call buried in a larger expression is an error — declare it on its own
 line first (`let 'v' := f[…] otherwise 0;`).
 
 ```
-let $ok := stash(lend.mut $mine, copy $n) otherwise false;          # a fallback value
+let $ok := stash(lend.mut $mine, copy $n) ?? false;          # a fallback value
 let $ok := stash(lend.mut $mine, copy $n) otherwise ret false;   # leave, whatever the reason
-let $ok := stash(lend.mut $mine, copy $n) otherwise fail;           # pass it up unchanged
+let $ok := stash(lend.mut $mine, copy $n)?;           # pass it up unchanged
 let $ok := stash(lend.mut $mine, copy $n)-
 otherwise:               # one arm per reason
-    !case full:
+    case full:
         break;
-    !end of case full
-    !case bad_item $why:
-        std::print.stored("bad: ", $why, newln); continue;
-    !end of case bad_item
-end of otherwise;
+    ;case full
+    case bad_item $why:
+        std::println.stored("bad: ", $why); continue;
+    ;case bad_item
+;otherwise;
 save(lend $mine)-
 otherwise:
     case disk_full:
-        std::print.stored("not saved", newln);
-    end of case disk_full
-end of otherwise;
+        std::println.stored("not saved");
+    ;case disk_full
+;otherwise;
 ```
 
 An arm is always a block, `case X:` … `end of case X`; there is no one-line arm (owner, 2026-10-27: "(a)", over

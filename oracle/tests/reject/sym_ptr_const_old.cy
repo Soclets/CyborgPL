@@ -1,3 +1,3 @@
-%extern.C proc strlen [let $s: *const int.unsign.8] -> int.unsign.64;
-!MAIN:
-!end of MAIN
+%extern.C proc strlen [let $s: *const u8] -> u64;
+MAIN:
+;MAIN

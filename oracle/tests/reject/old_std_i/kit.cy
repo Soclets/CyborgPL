@@ -1,5 +1,5 @@
 fn f [let $x: %not_std.int24]:
-end of fn f
+;fn f
 
-!MAIN:
-!end of MAIN
+MAIN:
+;MAIN

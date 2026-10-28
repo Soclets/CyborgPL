@@ -140,11 +140,11 @@ Metal sets from the host with `dispatchThreads` — comes **after the name**
 (owner, 2026-10-01: b), as any number:
 
 ```
-!no_check inline.%MSL threads std::ls.len(lend $xs) with [lend.mut $xs -> buffer(0)]:
+no_check inline.%MSL threads std::ls.len(lend $xs) with [lend.mut $xs -> buffer(0)]:
     kernel void twice(device int *xs [[buffer(0)]], uint id [[thread_position_in_grid]]) {
         xs[id] = xs[id] * 2;
     }
-end of inline.%MSL
+;inline.%MSL
 ```
 
 How the block runs comes first; `with` holds what it touches. The code
@@ -166,18 +166,18 @@ matching the kernel's `[[buffer(0)]]`, as `inline.ASM` writes ARM's `x0`
 
 ```
 %layout.C rec Body:
-    var x: float.bin.32;
-    var y: float.bin.32;
-    var vx: float.bin.32;
-    var vy: float.bin.32;
-end of %layout.C rec Body
+    var x: f32;
+    var y: f32;
+    var vx: f32;
+    var vy: f32;
+;%layout.C rec Body
 
-!no_check inline.%MSL threads $n with [lend.mut $bodies -> buffer(0), copy $dt -> buffer(1)]:
+no_check inline.%MSL threads $n with [lend.mut $bodies -> buffer(0), copy $dt -> buffer(1)]:
     #include "shaders/common.metal"
     kernel void step(device Body *bodies [[buffer(0)]], constant float &dt [[buffer(1)]], uint id [[thread_position_in_grid]]) {
         bodies[id].x += bodies[id].vx * dt;
     }
-end of inline.%MSL
+;inline.%MSL
 ```
 
 - The limb is **Metal** (2026-10-06), listed as `metal { … }` under `my limbs:`.

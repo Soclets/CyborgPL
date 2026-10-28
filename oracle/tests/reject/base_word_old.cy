@@ -1,3 +1,3 @@
-!MAIN:
-    let $x: int.unsign.8 = binary 1010;
-!end of MAIN
+MAIN:
+    let $x: u8 = binary 1010;
+;MAIN

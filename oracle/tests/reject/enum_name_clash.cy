@@ -1,8 +1,8 @@
 rec S:
-    var x: int.sign.32;
-end of rec S
+    var x: i32;
+;rec S
 union.tag S:
     a;
-end of union.tag S
-!MAIN:
-!end of MAIN
+;union.tag S
+MAIN:
+;MAIN

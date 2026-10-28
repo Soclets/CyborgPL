@@ -1,5 +1,5 @@
 interface Number:
-    int.sign.32;
-end of interface Number
-!MAIN:
-!end of MAIN
+    i32;
+;interface Number
+MAIN:
+;MAIN

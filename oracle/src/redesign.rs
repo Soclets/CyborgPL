@@ -1311,7 +1311,7 @@ pub fn check_purity(prog: &ast::Program) -> Result<(), String> {
     Ok(())
 }
 
-type Fault = (usize, usize, String);
+pub type Fault = (usize, usize, String);
 
 fn word_tok(w: &str, like: &Token) -> Token {
     Token { tok: Tok::Word(w.to_string()), line: like.line, col: like.col, mtm: None, paren: false, at: like.at, end: like.end }
@@ -1477,9 +1477,13 @@ pub fn front(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
     PARAMS.with(|p| p.borrow_mut().clear());
     SET_LINES.with(|s| s.borrow_mut().clear());
     // redesign two's words read as redesign one's (owner, 2026-10-27: "It's done, build it"), then as the parser's
-    let toks = lengthen(toks)?;
-    let toks = words_back(toks).map_err(|(l, c, m)| (l, c, if m.contains("is an old spelling") { m } else { twos(&m) }))?;
-    blocks_back(toks).map_err(|(l, c, m)| (l, c, twos(&m)))
+    // redesign three (owner, 2026-10-28: "done, build it"): its one spelling read as redesign two's tokens, every message
+    // shown in its words
+    let toks = crate::three::from_three(toks)?;
+    let three = |(l, c, m): Fault| (l, c, crate::three::threes(&m));
+    let toks = lengthen(toks).map_err(three)?;
+    let toks = words_back(toks).map_err(|(l, c, m)| (l, c, if m.contains("is an old spelling") { m } else { twos(&m) })).map_err(three)?;
+    blocks_back(toks).map_err(|(l, c, m)| (l, c, twos(&m))).map_err(three)
 }
 
 /// Step one: the words. Each old spelling is refused, each new one read as the parser's.
@@ -2004,8 +2008,8 @@ fn check_blocks(toks: &[Token], closes: &[(String, bool, usize, usize)], arm_ban
                 if open.arm {
                     let (written, line, col) = arm_bangs.get(&stmt_start).cloned().unwrap_or((false, t.line, t.col));
                     if !arm_bangs.contains_key(&stmt_start) { return Err((toks[stmt_start].line, toks[stmt_start].col, format!("an arm opens with `case`: `case {}:` (owner, 2026-10-26)", open.close.trim_start_matches("case ")))); }
-                    if written && !open.bang { return Err((line, col, format!("`!{}` jumps nowhere: `!` marks an arm holding a `return`, `break` or `continue` (owner, 2026-10-26)", open.close))); }
-                    if !written && open.bang { return Err((line, col, format!("this arm jumps, so it wears `!`: `!{}:` … `!end of {}` (owner, 2026-10-26)", open.close, open.close))); }
+                    // an arm wears no `!` since redesign three (owner, 2026-10-27: "I'm feeling like removing that `!` meaning")
+                    let _ = (written, line, col);
                 }
                 let head = if open.close.starts_with("else") { last_closed.clone() } else { None };
                 heads.push(head);
@@ -2026,7 +2030,7 @@ fn check_blocks(toks: &[Token], closes: &[(String, bool, usize, usize)], arm_ban
                 let opened_on = toks[opened_at].line;
                 if want.starts_with("sig ") && SET_LINES.with(|s| s.borrow().contains(&opened_on)) { want = want.replacen("sig ", "set ", 1); }
                 if written != want { return Err((line, col, format!("`end of {written}` closes `{want}`: write `{}end of {want}` (owner, 2026-10-26)", if open.bang { "!" } else { "" }))); }
-                if bang != open.bang {
+                if bang != open.bang && !open.arm {
                     return Err((line, col, if open.bang { format!("this block's last line wears `!`, as its first does: `!end of {want}` (owner, 2026-10-26)") } else { format!("`!end of {want}`: `!` goes only where something needs attention (owner, 2026-10-26)") }));
                 }
                 stmt_start = k + 1;

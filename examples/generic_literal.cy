@@ -3,13 +3,13 @@
 fn total <T: any> [lent $xs: std::ls[<T>]] -> <T>:
     var $sum: <T> = 0;
     for $x in lend $xs:
-        change $sum to $sum plus $x;
-    end of for
+        change $sum += $x;
+    ;for
     ret $sum;
-end of fn total
-!MAIN:
-    let $a: std::ls[float.%deci.64] := [0.1, 0.2];
-    let $b: std::ls[float.bin.64] := [0.5, 0.25];
-    let $c: std::ls[int.sign.32] := [1, 2];
-    std::print.shortest(total(lend $a), " ", total(lend $b), " ", total(lend $c), newln);
-!end of MAIN
+;fn total
+MAIN:
+    let $a: std::ls[%d64] := [0.1, 0.2];
+    let $b: std::ls[f64] := [0.5, 0.25];
+    let $c: std::ls[i32] := [1, 2];
+    std::println(total(lend $a), " ", total(lend $b), " ", total(lend $c));
+;MAIN

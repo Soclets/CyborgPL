@@ -1,1 +1,1 @@
-`++` is an old spelling: write `concat` / `change $x to $x plus 1;`; between two texts, `concat`; after a variable, adding one
+`++` joins two texts; adding one is `change $i += 1;`

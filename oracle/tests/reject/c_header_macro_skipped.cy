@@ -1,4 +1,4 @@
 incl.%C["incl_assets/mylib.h"];
-!MAIN:
+MAIN:
     let $m := MYLIB_MAX(1, 2);
-!end of MAIN
+;MAIN

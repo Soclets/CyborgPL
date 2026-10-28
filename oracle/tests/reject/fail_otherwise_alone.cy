@@ -1,3 +1,3 @@
-!MAIN:
-    otherwise 1;
-!end of MAIN
+MAIN:
+    ?? 1;
+;MAIN

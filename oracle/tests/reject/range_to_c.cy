@@ -1,3 +1,3 @@
-%extern.C proc f [let $a: int.sign.32[min: 0, max: 10]];
-!MAIN:
-!end of MAIN
+%extern.C proc f [let $a: i32[min: 0, max: 10]];
+MAIN:
+;MAIN

@@ -1,5 +1,5 @@
-fn apply [let $f: fn[$a: int.sign.32] -> int.sign.32] -> int.sign.32:
+fn apply [let $f: fn[$a: i32] -> i32] -> i32:
     ret $f[1];
-end of fn apply
-!MAIN:
-!end of MAIN
+;fn apply
+MAIN:
+;MAIN

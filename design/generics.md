@@ -20,24 +20,24 @@ comptime and Rust's monomorphisation do the same.
 ```
 fn max <T: Number> [let $a: <T>, let $b: <T>] -> <T>:
     …
-end of fn max           # announced after the name, with what it accepts
+;fn max           # announced after the name, with what it accepts
 fn first <T: any> [lent $xs: std::ls[<T>]] -> <T> or fail[empty]:
     …
-end of fn first
+;fn first
 fn pick <T: any> [@x] [lent @x $xs: std::ls[<T>]] -> lent @x <T>:
     …
-end of fn pick   # then the lifetime groups, after a `|`
+;fn pick   # then the lifetime groups, after a `|`
 
 rec Pair <A: any, B: any>:
     var left: <A>;
     var right: <B>;
-end of rec Pair         # blanks in the order announced
+;rec Pair         # blanks in the order announced
 union.tag Maybe <T: any>:
     none;
     some: <T>;
-end of union.tag Maybe
+;union.tag Maybe
 
-let $p: Pair[int.sign.32, str.utf8] := Pair[left = 7, right = "seven"];   # filled at the use
+let $p: Pair[i32, str.utf8] := Pair[left = 7, right = "seven"];   # filled at the use
 let $m := Maybe.some[42];                                          # filled from the value
 ```
 
@@ -94,7 +94,7 @@ a plain `T` they do nothing (`interfaces.md`).
 ```
 operator ~= <T>: Number [$a: <T>, $b: <T>] -> boolean:
     …
-end of operator ~=   # once, for any type keeping Number's promises
+;operator ~=   # once, for any type keeping Number's promises
 ```
 
 An operator may be generic, with the rules of a generic `fn`: announced

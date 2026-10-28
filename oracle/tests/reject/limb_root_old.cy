@@ -1,7 +1,7 @@
-fn helper [] -> int.sign.32:
+fn helper [] -> i32:
     ret 1;
-end of fn helper
+;fn helper
 
-!MAIN:
+MAIN:
     let $x := limb.helper[];
-!end of MAIN
+;MAIN

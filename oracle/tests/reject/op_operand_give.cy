@@ -1,8 +1,8 @@
 rec V:
-    var x: int.sign.32;
-end of rec V
-op <*> [give $a: V, lent $b: int.sign.32] -> V:
+    var x: i32;
+;rec V
+op <*> [give $a: V, lent $b: i32] -> V:
     ret give $a;
-end of op <*>
-!MAIN:
-!end of MAIN
+;op <*>
+MAIN:
+;MAIN

@@ -1,3 +1,3 @@
-!MAIN:
-    let $l := to.casing("tr") otherwise std::casing.root;
-!end of MAIN
+MAIN:
+    let $l := to.casing("tr") ?? std::casing.root;
+;MAIN

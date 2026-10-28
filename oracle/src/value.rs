@@ -74,6 +74,11 @@ impl PartialEq for Ptr {
     }
 }
 
+thread_local! {
+    /// the `union.tag`s whose every case holds no data (owner, 2026-10-28): plain values, copied by themselves
+    pub static PLAIN_ENUMS: std::cell::RefCell<std::collections::HashSet<String>> = std::cell::RefCell::new(std::collections::HashSet::new());
+}
+
 impl Value {
     /// Owned values live on the heap and need give/copy/lend to move around
     /// (design/ownership-syntax.md). Plain values copy silently.
@@ -83,8 +88,9 @@ impl Value {
             // Decided 2026-09-18: a struct is always an owned value, even when every
             // field is plain — a struct owns its fields, so the verbs always apply.
             Value::Struct(..) => true,
-            // Decided 2026-09-20: an enum is always owned, like a struct — one rule.
-            Value::Enum(..) => true,
+            // Decided 2026-09-20: an enum is always owned, like a struct — one rule; since redesign three (owner,
+            // 2026-10-28: "sure") a `union.tag` whose cases hold no data is plain, as a number is
+            Value::Enum(t, _, _) => !PLAIN_ENUMS.with(|p| p.borrow().contains(t)),
             // Decided 2026-09-24 (owner: a): a function value that carries a `copy`/`give` capture
             // owns it, and takes the verbs like a list; one carrying nothing, or only lends, is plain.
             Value::Func(f) => f.owned.iter().any(|o| *o),

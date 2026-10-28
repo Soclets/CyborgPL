@@ -1,6 +1,6 @@
-fn big [let $a: int.sign.32] -> int.sign.32:
-    ret $a times $a;
-end of fn big
-!MAIN:
+fn big [let $a: i32] -> i32:
+    ret $a x $a;
+;fn big
+MAIN:
     let $r := big(100000);
-!end of MAIN
+;MAIN

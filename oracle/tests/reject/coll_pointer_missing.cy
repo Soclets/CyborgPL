@@ -1,9 +1,9 @@
 coll.fn area:
-    member area [] -> int.sign.32:
+    member area [] -> i32:
         ret 1;
-    end of member area
+    ;member area
     member area.square = nowhere;
-end of coll.fn area
+;coll.fn area
 
-!MAIN:
-!end of MAIN
+MAIN:
+;MAIN

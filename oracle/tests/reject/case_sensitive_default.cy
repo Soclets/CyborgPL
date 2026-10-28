@@ -1,6 +1,6 @@
-fn Area [] -> int.sign.32:
+fn Area [] -> i32:
     ret 1;
-end of fn Area
-!MAIN:
+;fn Area
+MAIN:
     let $a := area();
-!end of MAIN
+;MAIN

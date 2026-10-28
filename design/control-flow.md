@@ -10,13 +10,13 @@ conditions without `[ ]`, one `for`.
 ```
 if $x greater_than 10:
     …
-end of if
+;if
 else if $x greater_than 5:
     …
-end of else if
+;else if
 else:
     …
-end of else
+;else
 ```
 
 - The condition is a bare expression followed by `{`. It must be a `bool`.
@@ -38,8 +38,8 @@ deliberately hidden with `shadow 'x' := …;` (owner, 2026-10-08; `$:=` / `$=` u
 let $x := 1;
 if true:
     let shadow $x := 2;        # shadows the outer 'x' until the block ends
-    let shadow $y: int.sign.32 := 3;  # error: there is no 'y' to shadow
-end of if
+    let shadow $y: i32 := 3;  # error: there is no 'y' to shadow
+;if
 ```
 
 A name marked `!$` cannot be shadowed, and neither can a loop's
@@ -54,19 +54,19 @@ Three bare keywords (revised 2026-09-19; until then `loop`, `loop.while`,
 ```
 loop:                                         # forever, until break
     …
-end of loop
+;loop
 
-while $count lt 100:                          # while a condition holds
+while $count < 100:                          # while a condition holds
     …
-end of while
+;while
 
 for $item in lend $items:                   # each element; 'item' gone after
     …
-end of for
+;for
 
 for $i [from: 0, to: 1000, by: 1]:                    # 'i' from 0 to 1000 inclusive
     …
-end of for
+;for
 ```
 
 ### `temp` (default) / `perm` — before the name
@@ -83,9 +83,9 @@ body never ran. One rule for every way a loop can end.
 for perm $i [from: 0, to: 100, by: 1]:
     if found($i):
         break;
-    end of if
-end of for
-std::print.shortest("stopped at ", $i, newln);
+    ;if
+;for
+std::println("stopped at ", $i);
 ```
 
 `perm` on a list loop keeps the last element visited (an empty list is an
@@ -131,9 +131,9 @@ file each bound is labelled and the step always written,
 
 ```
 for $i [from: 0, to: 9, by: 1]:
-end of for                 # like  'i' := 0;
-for $i: int.sign.8 [from: 0, to: 9, by: 1]:
-end of for           # like  'i': i8 = 0;
+;for                 # like  'i' := 0;
+for $i: i8 [from: 0, to: 9, by: 1]:
+;for           # like  'i': i8 = 0;
 ```
 
 **`range[…]` stays part of the `for`** (owner, 2026-09-23): it is not a

@@ -1,5 +1,5 @@
 rec P:
-    immut x: int.sign.32;
-end of rec P
-!MAIN:
-!end of MAIN
+    immut x: i32;
+;rec P
+MAIN:
+;MAIN

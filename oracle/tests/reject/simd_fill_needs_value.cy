@@ -1,3 +1,3 @@
-!MAIN:
-    let $v: simd[int.sign.32, count: 4] := simd.fill(0);
-!end of MAIN
+MAIN:
+    let $v: simd[i32, count: 4] := simd.fill(0);
+;MAIN

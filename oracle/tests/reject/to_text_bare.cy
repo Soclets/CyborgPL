@@ -1,4 +1,4 @@
-!MAIN:
+MAIN:
     let $n := 5;
-    std::print.stored(to.str.utf8($n), newln);
-!end of MAIN
+    std::println.stored(to.str.utf8($n));
+;MAIN

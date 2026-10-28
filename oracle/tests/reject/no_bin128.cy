@@ -1,3 +1,3 @@
-!MAIN:
-    let $x: float.bin.%128 := 1.5;
-!end of MAIN
+MAIN:
+    let $x: %f128 := 1.5;
+;MAIN

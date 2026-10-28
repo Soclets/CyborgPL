@@ -1,5 +1,5 @@
 # a whole-line comment
-!MAIN:
+MAIN:
     let $a := 1;          # trailing: from here to the end of the line
     let $b := 2; #wl this whole line is a comment, including the code before the #
     #3l these three lines
@@ -8,5 +8,5 @@
     let $e := 5; #2ld this line and two more down
     let $f := 6;
     let $g := 7;
-    std::print.shortest($a, " ", $e, newln);
-!end of MAIN
+    std::println($a, " ", $e);
+;MAIN

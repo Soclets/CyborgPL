@@ -1,5 +1,5 @@
-!MAIN:
-    !no_check asm:
+MAIN:
+    no_check asm:
         nop
-    end of asm;
-!end of MAIN
+    ;asm;
+;MAIN

@@ -7,7 +7,7 @@
 incl.%C.system["time.h", "stdio.h"];
 incl.%C["headers/shapes.h"];
 
-!MAIN:
+MAIN:
     let $b := buf[size = 42, count = 7];
-    std::print.shortest("tm is ", size.of[tm], " bytes, buf ", size.of[buf], "; size ", $b.size, ", count ", $b.count, newln);
-!end of MAIN
+    std::println("tm is ", size.of[tm], " bytes, buf ", size.of[buf], "; size ", $b.size, ", count ", $b.count);
+;MAIN

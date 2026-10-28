@@ -1,21 +1,21 @@
 # Constants, worked out while building, `pub` and not, used in MAIN.
 
 pub const $max := 8;
-const $pi: float.bin.64 := 3.141_592_653_589_793;
-const $twice_max := $max times 2;
-const $greeting := "hello " concat "world";
+const $pi: f64 := 3.141_592_653_589_793;
+const $twice_max := $max x 2;
+const $greeting := "hello " ++ "world";
 pub rec P:
-    var x: int.sign.32;
-end of rec P
-pub fn area [let $r: float.bin.64] -> float.bin.64:
-    ret $pi times $r times $r;
-end of fn area
-!MAIN:
-    std::print.shortest($max, " ", $twice_max, " ", $greeting, " ", area(2.0), newln);
+    var x: i32;
+;rec P
+pub fn area [let $r: f64] -> f64:
+    ret $pi x $r x $r;
+;fn area
+MAIN:
+    std::println($max, " ", $twice_max, " ", $greeting, " ", area(2.0));
     let $s := $greeting;
     let $p := P[x = $max];
     for $i [from: 1, to: $max, by: 4]:
-        std::print.shortest($i, " ");
-    end of for
-    std::print.stored(newln);
-!end of MAIN
+        std::print($i, " ");
+    ;for
+    std::println.stored();
+;MAIN

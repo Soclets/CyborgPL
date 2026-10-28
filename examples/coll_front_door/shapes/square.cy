@@ -1,3 +1,3 @@
-pub.kit fn area [let $side: int.sign.64] -> int.sign.64:
-    ret $side times $side;
-end of fn area
+pub.kit fn area [let $side: i64] -> i64:
+    ret $side x $side;
+;fn area

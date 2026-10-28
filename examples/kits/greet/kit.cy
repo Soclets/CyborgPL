@@ -3,33 +3,33 @@
 
 pub fn hello [] -> str.utf8:
     ret "hello";
-end of fn hello
+;fn hello
 
 pub fn wave [] -> str.utf8:
     ret "wave";
-end of fn wave
+;fn wave
 
 pub fn formal [] -> str.utf8:
     ret "good day";
-end of fn formal
+;fn formal
 
 pub rec Tally:
-    var n: int.sign.32;
-end of rec Tally
+    var n: i32;
+;rec Tally
 
 pub op merge [lent $a: Tally, lent $b: Tally] -> Tally:
-    ret Tally[n = $a.n plus $b.n];
-end of op merge
+    ret Tally[n = $a.n + $b.n];
+;op merge
 
 pub rec Note:
     var text: str.utf8;
-end of rec Note
+;rec Note
 
 pub union.tag Tone:
     soft;
     loud;
-end of union.tag Tone
+;union.tag Tone
 
 pub op <+> [lent $a: Tally, lent $b: Tally] -> Tally:
-    ret Tally[n = $a.n plus $b.n plus 1];
-end of op <+>
+    ret Tally[n = $a.n + $b.n + 1];
+;op <+>

@@ -2,4 +2,4 @@
 
 pub fn hello [] -> str.utf8:
     ret "hi";
-end of fn hello
+;fn hello

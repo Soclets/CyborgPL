@@ -1,4 +1,4 @@
-!MAIN:
-    let $f: int.unsign.%not_std.4 := 15;
-    let $g: int.unsign.%not_std.4 := $f plus 1;
-!end of MAIN
+MAIN:
+    let $f: %not_std.u4 := 15;
+    let $g: %not_std.u4 := $f + 1;
+;MAIN

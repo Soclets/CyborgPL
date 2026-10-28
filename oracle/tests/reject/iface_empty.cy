@@ -1,4 +1,4 @@
 set Nothing:
-end of set Nothing
-!MAIN:
-!end of MAIN
+;set Nothing
+MAIN:
+;MAIN

@@ -1,3 +1,3 @@
-!MAIN:
-    let $n: int.sign.%not_std.24 := 5;
-!end of MAIN
+MAIN:
+    let $n: %not_std.i24 := 5;
+;MAIN

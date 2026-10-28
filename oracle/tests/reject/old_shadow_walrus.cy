@@ -1,4 +1,4 @@
-!MAIN:
+MAIN:
     let $x := 1;
     let $x $:= 2;
-!end of MAIN
+;MAIN

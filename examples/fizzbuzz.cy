@@ -1,23 +1,23 @@
 # FizzBuzz.
-proc say [let $n: int.sign.32]:
-    let $by3 := ($n mod.floor 3) eq 0;
-    let $by5 := ($n mod.floor 5) eq 0;
-    if $by3 and $by5:
-        std::print.stored("FizzBuzz", newln);
+proc say [let $n: i32]:
+    let $by3 := ($n mod.floor 3) == 0;
+    let $by5 := ($n mod.floor 5) == 0;
+    if $by3 & $by5:
+        std::println.stored("FizzBuzz");
     else if $by3:
-        std::print.stored("Fizz", newln);
+        std::println.stored("Fizz");
     else if $by5:
-        std::print.stored("Buzz", newln);
+        std::println.stored("Buzz");
     else:
-        std::print.stored($n, newln);
-    end of if
-end of proc say
+        std::println.stored($n);
+    ;if
+;proc say
 
-!MAIN:
-    let $limit: int.sign.32 := 15;
+MAIN:
+    let $limit: i32 := 15;
     var $i = 1;
-    while $i at_most $limit:
+    while $i <= $limit:
         say($i);
-        change $i to $i plus 1;
-    end of while
-!end of MAIN
+        change $i += 1;
+    ;while
+;MAIN

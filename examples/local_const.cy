@@ -3,14 +3,14 @@
 # never shadowed, and it is seen only in its block. `let immut` holds a value worked out while running.
 const $base := 100;
 
-fn tries [let $n: int.sign.32] -> int.sign.32:
+fn tries [let $n: i32] -> i32:
     const $extra := 2;
-    ret $n plus $extra;
-end of fn tries
+    ret $n + $extra;
+;fn tries
 
-!MAIN:
+MAIN:
     const $retries := 3;
     const $greeting: str.utf8 := "hi";
-    const $limit := $base times $retries;
-    std::print.shortest($greeting, " ", $retries, " ", $limit, " ", tries($retries), newln);
-!end of MAIN
+    const $limit := $base x $retries;
+    std::println($greeting, " ", $retries, " ", $limit, " ", tries($retries));
+;MAIN

@@ -1,4 +1,4 @@
-!MAIN:
+MAIN:
     const $r := 3;
     let shadow $r := 4;
-!end of MAIN
+;MAIN

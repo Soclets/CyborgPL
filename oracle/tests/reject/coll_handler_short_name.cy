@@ -1,17 +1,17 @@
-fn half [let $n: int.sign.32] -> int.sign.32 or fail[odd]:
-    if $n times 1 eq 3:
+fn half [let $n: i32] -> i32 or fail[odd]:
+    if $n x 1 == 3:
         fail odd;
-    end of if
+    ;if
     ret $n;
-end of fn half
+;fn half
 
 coll.handler h:
     as_zero:
-        !case odd:
+        case odd:
             ret 0;
-        !end of case odd
-    end of as_zero
-end of coll.handler h
+        ;case odd
+    ;as_zero
+;coll.handler h
 
-!MAIN:
-!end of MAIN
+MAIN:
+;MAIN

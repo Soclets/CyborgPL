@@ -1,3 +1,3 @@
-!MAIN:
-    let $f: fn[int.sign.32, int.sign.32] -> int.sign.32 := op divide;
-!end of MAIN
+MAIN:
+    let $f: fn[i32, i32] -> i32 := op divide;
+;MAIN

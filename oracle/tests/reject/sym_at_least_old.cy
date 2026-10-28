@@ -1,3 +1,3 @@
-!MAIN:
-    let $b := 1 >= 2;
-!end of MAIN
+MAIN:
+    let $b := 1 at_least 2;
+;MAIN

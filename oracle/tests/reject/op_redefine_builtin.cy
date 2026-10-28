@@ -1,5 +1,5 @@
-op plus [lent $a: int.sign.32, lent $b: int.sign.32] -> int.sign.32:
+op + [lent $a: i32, lent $b: i32] -> i32:
     ret $a;
-end of op plus
-!MAIN:
-!end of MAIN
+;op +
+MAIN:
+;MAIN

@@ -1,4 +1,4 @@
 fn $main []:
-end of fn
-!MAIN:
-!end of MAIN
+;fn
+MAIN:
+;MAIN

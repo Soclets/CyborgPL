@@ -10,25 +10,25 @@
 proc read_n [let $text: ptr[uint8]] -> int64[min 0, max 92] or fail[missing, out_of_range]:
     if ptr.is_null[$text]:
         fail missing;
-    end of if
-    !no_check let $n := atoll[$text] otherwise fail;
+    ;if
+    no_check let $n := atoll[$text]?;
     ret $n;
-end of proc read_n
+;proc read_n
 
 fn fib [let $n: int64[min 0, max 92]] -> int64:
-    if $n lt 2:
+    if $n < 2:
         ret $n;
-    end of if
-    ret fib[$n minus 1] plus fib[$n minus 2];
-end of fn fib
+    ;if
+    ret fib[$n - 1] + fib[$n - 2];
+;fn fib
 
 fn run [] -> int32 or fail[missing, out_of_range]:
     let $key := "N";
-    !no_check let $n := read_n[getenv[lend $key]] otherwise fail;
+    no_check let $n := read_n[getenv[lend $key]]?;
     ret to.int32[fib[$n] mod.floor 256];
-end of fn run
+;fn run
 
-!MAIN:
-    let $code := run[] otherwise 2;
-    !no_check my.exit[$code];
-!end of MAIN
+MAIN:
+    let $code := run[] ?? 2;
+    no_check my.exit[$code];
+;MAIN

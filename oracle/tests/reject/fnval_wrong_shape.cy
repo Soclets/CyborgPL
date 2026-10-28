@@ -1,9 +1,9 @@
-fn one [let $a: int.sign.32] -> int.sign.32:
+fn one [let $a: i32] -> i32:
     ret $a;
-end of fn one
-fn apply [let $f: fn[int.sign.32, int.sign.32] -> int.sign.32] -> int.sign.32:
+;fn one
+fn apply [let $f: fn[i32, i32] -> i32] -> i32:
     ret $f(1, 2);
-end of fn apply
-!MAIN:
+;fn apply
+MAIN:
     let $x := apply(one);
-!end of MAIN
+;MAIN

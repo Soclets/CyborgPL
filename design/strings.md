@@ -28,7 +28,7 @@ for now", over also allowing `4 KiB`).
 
 ```
 var $out = std::print.writer(size: 4096 bytes);   # std::print.writer.stderr(…) for stderr
-std::print.shortest(lend.mut $out, "line ", $i, newln);  # a first argument `lend.mut` of a writer: into it
+std::println(lend.mut $out, "line ", $i);  # a first argument `lend.mut` of a writer: into it
 std::print.flush(lend.mut $out);                       # left out, kayo refuses: $out goes away holding text
 std::print.flush();                                    # what kayo's own buffer holds, now
 ```
@@ -58,7 +58,7 @@ Decided when building: no source text is carried at run time.
 ## `std::print.useful.auto_newline` — the line ended for you (owner, 2026-09-30)
 
 ```
-std::print.shortest.auto_newline("Hello, World!");
+std::println("Hello, World!");
 ```
 
 `print.useful` with a newline after the values, the same as writing `\n`
@@ -95,9 +95,9 @@ print_weird_brackets, print_weird_order.
 ## `std::print.format` — the formatting print, with `{}` holes (2026-09-22; holes since 2026-10-01)
 
 ```
-std::print.format("{}: {} at ${places: 2}, 50% off{newln}", $name, $count, $price);
-std::print.format("0x{base: hex} 0b{base: bin, zeros, width: 8 cols} [{width: 6 cols}] [{sign}]{newln}", 255, 10, 42, 5);
-std::print.format("{2} vs {1}, and {2} wins{newln}", "a", "b");
+std::println.format("{}: {} at ${places: 2}, 50% off", $name, $count, $price);
+std::println.format("0x{base: hex} 0b{base: bin, zeros, width: 8 cols} [{width: 6 cols}] [{sign}]", 255, 10, 42, 5);
+std::println.format("{2} vs {1}, and {2} wins", "a", "b");
 std::print.format.stderr("error: {}{newln}", $msg);
 ```
 
@@ -163,10 +163,10 @@ reject tests `print_format_*`.
 ## A length bound names its unit (decided 2026-09-22)
 
 ```
-let $name: str.utf8[min: 1, max: 40 %clusters] := std::input.line() otherwise "";
+let $name: str.utf8[min: 1, max: 40 %clusters] := std::input.line() ?? "";
 fn greet [lent $who: str.utf8[min: 1, max: 10 %clusters]]:
     …
-end of fn greet
+;fn greet
 let $field: str.utf8[min: 0, max: 255 bytes] := …;
 let $code: str.utf8[min: 4, max: 4 %points] := …;
 ```
@@ -201,13 +201,13 @@ std::str.clusters(lend $s)    # what a person counts as one character; O(n)
 ```
 for $g in std::string.each.grapheme_cluster(lend $s):
     …
-end of for     # 'g': char.grapheme
+;for     # 'g': char.grapheme
 for $p in std::string.each.code_point(lend $s):
     …
-end of for        # 'p': char.point
+;for        # 'p': char.point
 for $b in std::string.each.byte(lend $s):
     …
-end of for         # 'b': u8
+;for         # 'b': u8
 ```
 
 A bare `for 'c' in lend 's'` is an error: a text is not a list of anything
@@ -234,13 +234,13 @@ std::str.split(lend $s, at: " ")          -> std::ls[str.utf8]
 std::str.join(lend $parts, between: "_")
 std::str.contains / starts_with / ends_with(lend $s, "x")   -> bool
 std::str.trim(lend $s)
-std::str.upper.ascii / .simple / .full(lend $s)          (and std::str.lower.…; `.full(…, lang: std::casing.tr)`)
+std::str.upper.ascii / .simple / .full(lend $s)          (& std::str.lower.…; `.full(…, lang: std::casing.tr)`)
 std::str.replace(lend $s, from: "a", to: "b")
-std::str.find.cluster(lend $s, part: "x")  -> int.sign.32 or fail[missing]   (1-based grapheme position)
+std::str.find.cluster(lend $s, part: "x")  -> i32 or fail[missing]   (1-based grapheme position)
 std::str.at.<unit>(lend $s, pos: 3)        -> that unit, or fail[out_of_range]
 std::str.slice.cluster(lend $s, from: pos 1, to: pos 5) -> str, or fail[out_of_range]
 std::str.slice.point(lend $s, from: pos 1, before: pos 5)  -> str, or fail[out_of_range]
-std::str.slice.byte(lend $s, from: pos 1, to: pos 5)     -> std::ls[int.unsign.8], or fail[out_of_range]
+std::str.slice.byte(lend $s, from: pos 1, to: pos 5)     -> std::ls[u8], or fail[out_of_range]
 ```
 
 **A case change says its mapping** (owner, 2026-10-20): `str.upper.ascii` changes a to z only (`café` → `CAFé`),

@@ -1,6 +1,6 @@
-fn 🍕 [] -> int.sign.32:
+fn 🍕 [] -> i32:
     ret 1;
-end of fn 🍕
-!MAIN:
+;fn 🍕
+MAIN:
     let $x := 🍕[];
-!end of MAIN
+;MAIN

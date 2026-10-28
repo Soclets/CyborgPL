@@ -4,6 +4,6 @@
 # would be, though the oracle cannot run it (kayo links the library).
 incl.%C["vendor/mylib.h"];
 
-!MAIN:
-    std::print.shortest($MYLIB_NAME, " ", $MYLIB_VERSION, " ", $MYLIB_FLAGS, newln);
-!end of MAIN
+MAIN:
+    std::println($MYLIB_NAME, " ", $MYLIB_VERSION, " ", $MYLIB_FLAGS);
+;MAIN

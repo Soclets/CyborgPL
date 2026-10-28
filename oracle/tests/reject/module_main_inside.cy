@@ -1,4 +1,4 @@
 module a:
-    !MAIN:
-    !end of MAIN
-end of module a
+    MAIN:
+    ;MAIN
+;module a

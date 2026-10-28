@@ -1,3 +1,3 @@
-!MAIN:
-    let $x: int.sign.32;
-!end of MAIN
+MAIN:
+    let $x: i32;
+;MAIN

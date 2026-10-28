@@ -140,10 +140,10 @@ search, and a search is a loop the reader should see —
 
 ```
 for perm $i [from: 1, to: std::ls.len(lend $xs), by: 1]:
-    if $xs[pos: $i] eq 2:
+    if $xs[pos: $i] == 2:
         break;
-    end of if
-end of for
+    ;if
+;for
 change $xs[pos: $i] to 5;
 ```
 
@@ -155,8 +155,8 @@ the loop's element is the list's own: changing it changes the list. Over
 
 ```
 for $x in lend.mut $prices:
-    change $x to $x times 2;
-end of for
+    change $x x= 2;
+;for
 ```
 
 Inside such a loop, the list itself may be read (`'xs'[1]`,
@@ -195,9 +195,9 @@ is fastest.
 ## A length bound — `list[T][lo, hi]`
 
 ```
-var $ys: std::ls[int.sign.32][min: 0, max: 1000] = read_numbers() otherwise std::ls.empty;
+var $ys: std::ls[i32][min: 0, max: 1000] = read_numbers() ?? std::ls.empty;
 let $n := std::ls.len(lend $ys);      # a u64[min: 0, max: 1000]
-let $m: int.sign.32 := $n;                   # proven by the bound; no check
+let $m: i32 := $n;                   # proven by the bound; no check
 ```
 
 Decided 2026-09-21: the thing, then its bounds — the same shape as
@@ -228,7 +228,7 @@ fresh value, a `copy`, or a `give` — never a lend.
 ## The empty list (decided 2026-09-17)
 
 ```
-let $xs: std::ls[int.sign.32] := [];             # typed: the type says list, [] is empty
+let $xs: std::ls[i32] := [];             # typed: the type says list, [] is empty
 let $ys := std::ls.empty;                # best-type: the value says list; Precog picks the
                                        # element type from what is appended later
 ```
@@ -242,8 +242,8 @@ is an error.
 
 ```
 for $i, $x in lend $xs:
-    std::print.shortest($i, ". ", $x, newln);      # 1. ann  2. bob  3. cy
-end of for
+    std::println($i, ". ", $x);      # 1. ann  2. bob  3. cy
+;for
 ```
 
 The position first, then the item, the order of `'xs'['i']`. The position

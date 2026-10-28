@@ -1,5 +1,5 @@
-fn f [let $a: <$T>] -> int.sign.32:
+fn f [let $a: <$T>] -> i32:
     ret 1;
-end of fn f
-!MAIN:
-!end of MAIN
+;fn f
+MAIN:
+;MAIN

@@ -1,53 +1,53 @@
 # Generics (design/generics.md): a blank, <T>, filled per use by the compiler. Every blank is
 # announced after the name with what it accepts (owner, 2026-10-02): `<T>: Number`, `<T>: any`.
 set Number:
-    int.sign.32;
-    int.sign.64;
-    float.bin.64;
-end of set Number
+    i32;
+    i64;
+    f64;
+;set Number
 
 fn max <T: Number> [let $a: <T>, let $b: <T>] -> <T>:
-    if $a gt $b:
+    if $a > $b:
         ret give $a;
-    end of if     # a <T> may be owned: generic code writes the verbs
+    ;if     # a <T> may be owned: generic code writes the verbs
     ret give $b;
-end of fn max
+;fn max
 
 fn first <T: any> [lent $xs: std::ls[<T>]] -> <T> or fail[empty]:
-    if std::ls.len(lend $xs) eq 0:
+    if std::ls.len(lend $xs) == 0:
         fail empty;
-    end of if
+    ;if
     ret $xs[pos: 1];
-end of fn first
+;fn first
 
 rec Pair <A: any, B: any>:
     var left: <A>;
     var right: <B>;
-end of rec Pair     # blanks in the order announced: A, B
+;rec Pair     # blanks in the order announced: A, B
 
 union.tag Maybe <T: any>:
     none;
     some: <T>;
-end of union.tag Maybe
+;union.tag Maybe
 
-fn describe [lent $p: Pair[int.sign.32, str.utf8]] -> str.utf8:
-    ret to.stored.str.utf8($p.left) concat " " concat $p.right;
-end of fn describe
+fn describe [lent $p: Pair[i32, str.utf8]] -> str.utf8:
+    ret to.stored.str.utf8($p.left) ++ " " ++ $p.right;
+;fn describe
 
-!MAIN:
-    std::print.shortest(max(3, 9), " ", max(2.5, 1.5), newln);       # i32 and f64 versions, one source
+MAIN:
+    std::println(max(3, 9), " ", max(2.5, 1.5));       # i32 and f64 versions, one source
     let $nums := [4, 5, 6];
-    let $f := first(lend $nums) otherwise 0;
-    std::print.shortest($f, newln);
-    let $p: Pair[int.sign.32, str.utf8] := Pair[left = 7, right = "seven"];
-    std::print.shortest(describe(lend $p), newln);
+    let $f := first(lend $nums) ?? 0;
+    std::println($f);
+    let $p: Pair[i32, str.utf8] := Pair[left = 7, right = "seven"];
+    std::println(describe(lend $p));
     let $m := Maybe.some(42);
     match $m:
         case none:
-            std::print.stored("nothing", newln);
-        end of case none
+            std::println.stored("nothing");
+        ;case none
         case some $v:
-            std::print.shortest("got ", $v, newln);
-        end of case some
-    end of match
-!end of MAIN
+            std::println("got ", $v);
+        ;case some
+    ;match
+;MAIN

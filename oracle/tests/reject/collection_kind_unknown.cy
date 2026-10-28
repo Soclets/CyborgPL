@@ -1,8 +1,8 @@
 coll.fun c:
-    c [] -> int.sign.32:
+    c [] -> i32:
         ret 1;
-    end of c
-end of coll.fun c
+    ;c
+;coll.fun c
 
-!MAIN:
-!end of MAIN
+MAIN:
+;MAIN

@@ -1,7 +1,7 @@
 # a callback's parameter is a plain number, converted inside (owner, 2026-09-27)
 %layout.C enum Key:
     a = 65;
-end of %layout.C enum Key
+;%layout.C enum Key
 %extern.C proc set_handler [let $h: fn[Key]];
-!MAIN:
-!end of MAIN
+MAIN:
+;MAIN

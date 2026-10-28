@@ -3,11 +3,11 @@
 # naming `not`. (`&` was free too until 2026-10-14, when it became the language's own `and`.)
 
 # a over b: how many times b fits in a
-op ! [lent $a: int.sign.32, lent $b: int.sign.32] -> int.sign.32:
+op ! [lent $a: i32, lent $b: i32] -> i32:
     ret $a div.floor $b;
-end of op not
+;op not
 
-!MAIN:
-    std::print.shortest((17 ! 5), newln);
-    std::print.shortest(not true, newln);
-!end of MAIN
+MAIN:
+    std::println((17 ! 5));
+    std::println(not true);
+;MAIN

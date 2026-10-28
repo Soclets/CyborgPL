@@ -1,13 +1,13 @@
 coll.fn f:
     versions f:
-        [let $a: int.sign.64] -> int.sign.64:
+        [let $a: i64] -> i64:
             ret 1;
-        end of version
-        [let $b: int.sign.64] -> int.sign.64:
+        ;version
+        [let $b: i64] -> i64:
             ret 2;
-        end of version
-    end of versions f
-end of coll.fn f
-!MAIN:
-    std::print.shortest(f(1), newln);
-!end of MAIN
+        ;version
+    ;versions f
+;coll.fn f
+MAIN:
+    std::println(f(1));
+;MAIN

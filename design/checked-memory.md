@@ -25,10 +25,10 @@ The layers, then:
 
 ```
 rec Node:
-    $value: int.sign.32;
+    $value: i32;
     $left: manual[Node];
     $right: manual[Node];
-end of rec Node
+;rec Node
 ```
 
 - `T` is any type: `manual[Node]`, `manual[i32]`, `manual[array[u8, 64]]`.

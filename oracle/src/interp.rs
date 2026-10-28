@@ -225,6 +225,7 @@ impl<'p> Interp<'p> {
     }
 
     pub fn run(&mut self) -> Result<u8, RuntimeError> {
+        crate::value::PLAIN_ENUMS.with(|p| { let mut p = p.borrow_mut(); p.clear(); for e in &self.prog.enums { if e.cases.iter().all(|c| c.ty.is_none()) && e.params.is_empty() { p.insert(e.name.clone()); } } });
         self.prepare()?;
         let main = match &self.prog.main {
             Some(m) => m,
@@ -3959,7 +3960,11 @@ impl<'p> Interp<'p> {
             ("<" | ">" | "at_most" | "at_least", Str(_), Str(_)) => return rt(line, format!("`{op}` on text has no meaning yet: byte order is never what anyone means; a collation rule is std's (decided 2026-09-20)")),
             ("and", Bool(x), Bool(y)) => Bool(x && y),
             ("or", Bool(x), Bool(y)) => Bool(x || y),
-            (op, x, y) => return rt(line, format!("`{op}` cannot combine {} and {}", x.kind(), y.kind())),
+            (op, x, y) => {
+                // logic on whole numbers is a bit operator's job (`and.bit`, `or.bit`)
+                let hint = match (op, x.kind(), y.kind()) { ("and", "integer", "integer") => "; a bitwise and is `and.bit`", ("or", "integer", "integer") => "; a bitwise or is `or.bit`", _ => "" };
+                return rt(line, format!("`{op}` cannot combine {} and {}{hint}", x.kind(), y.kind()));
+            }
         })
     }
 

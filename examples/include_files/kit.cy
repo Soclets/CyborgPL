@@ -4,10 +4,10 @@
 # const's value only, so they are read where they sit and copied only where something takes them.
 # UTF-16 and UTF-32 say their byte order: `.low_first` (as Windows writes) or `.high_first`.
 
-!MAIN:
+MAIN:
     const $tiny := incl.bytes["assets/tiny.bin"];
-    std::print.shortest(arr.len($tiny), " bytes, the last is ", $tiny[pos: 4], newln);
-    std::print.shortest(ui.header.greeting());
+    std::println(arr.len($tiny), " bytes, the last is ", $tiny[pos: 4]);
+    std::print(ui.header.greeting());
     const $windows := incl.str.%utf16.low_first["assets/windows.txt"];
-    std::print.shortest($windows);
-!end of MAIN
+    std::print($windows);
+;MAIN

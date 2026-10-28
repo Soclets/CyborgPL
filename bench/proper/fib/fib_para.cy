@@ -12,50 +12,50 @@
 proc read_n [let $text: ptr[uint8]] -> int64[min 0, max 92] or fail[missing, out_of_range]:
     if ptr.is_null[$text]:
         fail missing;
-    end of if
-    !no_check let $n := atoll[$text] otherwise fail;
+    ;if
+    no_check let $n := atoll[$text]?;
     ret $n;
-end of proc read_n
+;proc read_n
 
 fn fib [let $n: int64[min 0, max 92]] -> int64:
-    if $n lt 2:
+    if $n < 2:
         ret $n;
-    end of if
-    ret fib[$n minus 1] plus fib[$n minus 2];
-end of fn fib
+    ;if
+    ret fib[$n - 1] + fib[$n - 2];
+;fn fib
 
 proc run [] -> int32 or fail[missing, out_of_range]:
     let $key := "N";
-    !no_check let $n := read_n[getenv[lend $key]] otherwise fail;
-    if $n lt 4:
+    no_check let $n := read_n[getenv[lend $key]]?;
+    if $n < 4:
         ret to.int32[fib[$n] mod.floor 256];
-    end of if
+    ;if
     # fib(n) = fib(n-2) + 2 fib(n-3) + fib(n-4): four tasks, each on its own channel
     let $c1 := %channel[int64];
     let $c2 := %channel[int64];
     let $c3 := %channel[int64];
     let $c4 := %channel[int64];
     %spawn.task with [lend $c1, lend $n]:
-        %channel.send[lend $c1, value fib[$n minus 2]];
-    end of %spawn.task
+        %channel.send[lend $c1, value fib[$n - 2]];
+    ;%spawn.task
     %spawn.task with [lend $c2, lend $n]:
-        %channel.send[lend $c2, value fib[$n minus 3]];
-    end of %spawn.task
+        %channel.send[lend $c2, value fib[$n - 3]];
+    ;%spawn.task
     %spawn.task with [lend $c3, lend $n]:
-        %channel.send[lend $c3, value fib[$n minus 3]];
-    end of %spawn.task
+        %channel.send[lend $c3, value fib[$n - 3]];
+    ;%spawn.task
     %spawn.task with [lend $c4, lend $n]:
-        %channel.send[lend $c4, value fib[$n minus 4]];
-    end of %spawn.task
-    let $a := %channel.take[lend $c1] otherwise 0;
-    let $b := %channel.take[lend $c2] otherwise 0;
-    let $c := %channel.take[lend $c3] otherwise 0;
-    let $d := %channel.take[lend $c4] otherwise 0;
+        %channel.send[lend $c4, value fib[$n - 4]];
+    ;%spawn.task
+    let $a := %channel.take[lend $c1] ?? 0;
+    let $b := %channel.take[lend $c2] ?? 0;
+    let $c := %channel.take[lend $c3] ?? 0;
+    let $d := %channel.take[lend $c4] ?? 0;
     # each part's low byte first: what comes off a channel could be any int64
-    ret to.int32[(($a mod.floor 256) plus ($b mod.floor 256) plus ($c mod.floor 256) plus ($d mod.floor 256)) mod.floor 256];
-end of proc run
+    ret to.int32[(($a mod.floor 256) + ($b mod.floor 256) + ($c mod.floor 256) + ($d mod.floor 256)) mod.floor 256];
+;proc run
 
-!MAIN:
-    let $code := run[] otherwise 2;
-    !no_check my.exit[$code];
-!end of MAIN
+MAIN:
+    let $code := run[] ?? 2;
+    no_check my.exit[$code];
+;MAIN

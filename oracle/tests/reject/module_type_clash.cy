@@ -1,8 +1,8 @@
 module shapes:
     pub const $pi := 3;
-end of module shapes
+;module shapes
 rec shapes:
-    var side: int.sign.32;
-end of rec shapes
-!MAIN:
-!end of MAIN
+    var side: i32;
+;rec shapes
+MAIN:
+;MAIN

@@ -1,6 +1,6 @@
-pub.limb fn helper [] -> int.sign.32:
+pub.limb fn helper [] -> i32:
     ret 1;
-end of fn helper
-!MAIN:
+;fn helper
+MAIN:
     std::print.shortest[helper[], newln];
-!end of MAIN
+;MAIN

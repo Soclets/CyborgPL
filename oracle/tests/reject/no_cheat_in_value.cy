@@ -1,3 +1,3 @@
-!MAIN:
-    let $a := 1 plus (no_skip 2);
-!end of MAIN
+MAIN:
+    let $a := 1 + (no_skip 2);
+;MAIN

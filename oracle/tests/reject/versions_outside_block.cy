@@ -1,10 +1,10 @@
 coll.fn f:
-    member f [let $a: int.sign.64] -> int.sign.64:
+    member f [let $a: i64] -> i64:
         ret 1;
-    end of member f
-    member f [let $a: int.sign.64, let $b: int.sign.64] -> int.sign.64:
+    ;member f
+    member f [let $a: i64, let $b: i64] -> i64:
         ret 2;
-    end of member f
-end of coll.fn f
-!MAIN:
-!end of MAIN
+    ;member f
+;coll.fn f
+MAIN:
+;MAIN

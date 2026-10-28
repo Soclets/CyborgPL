@@ -1,19 +1,19 @@
 coll.fn mx:
     versions mx:
-        [let $a: int.sign.32, let $b: int.sign.32] -> int.sign.32:
-            ret $a plus $b;
-        end of version
-        [let $a: int.sign.32, let $b: int.sign.64] -> int.sign.32:
-            ret $a minus to.int.sign.32($b);
-        end of version
-    end of versions mx
-end of coll.fn mx
-!MAIN:
-    let $v: int.sign.32 := 4;
-    let $p: bool := to.int.sign.64(1) eq to.int.sign.64(2);
-    std::print.shortest("before", newln);
+        [let $a: i32, let $b: i32] -> i32:
+            ret $a + $b;
+        ;version
+        [let $a: i32, let $b: i64] -> i32:
+            ret $a - to.i32($b);
+        ;version
+    ;versions mx
+;coll.fn mx
+MAIN:
+    let $v: i32 := 4;
+    let $p: bool := to.i64(1) == to.i64(2);
+    std::println("before");
     if $p:
-        std::print.shortest(mx($v, 5), newln);
-    end of if
-    std::print.shortest("after", newln);
-!end of MAIN
+        std::println(mx($v, 5));
+    ;if
+    std::println("after");
+;MAIN

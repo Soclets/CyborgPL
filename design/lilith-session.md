@@ -108,9 +108,9 @@ recommended the first (it keeps "shall mean" straight after the name, as
 in the form without parameters); the owner has not answered:
 
 ```
-"greet" shall mean, given 'name' and 'age', { … }
-"greet", given 'name' and 'age', shall mean { … }
-"greet" taking 'name' and 'age' shall mean { … }
+"greet" shall mean, given 'name' & 'age', { … }
+"greet", given 'name' & 'age', shall mean { … }
+"greet" taking 'name' & 'age' shall mean { … }
 ```
 
 with the type words on parameters (`given wrt long 'age'`) and a call

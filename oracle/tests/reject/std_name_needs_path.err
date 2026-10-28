@@ -1,1 +1,1 @@
-`print.useful` is std's: write `std::print.useful`
+`print.shortest` is std's: write `std::print.shortest`, or name it for this file with `use std::print as print;`

@@ -1,3 +1,3 @@
-!MAIN:
-    let $b := "a" lt "b";
-!end of MAIN
+MAIN:
+    let $b := "a" < "b";
+;MAIN

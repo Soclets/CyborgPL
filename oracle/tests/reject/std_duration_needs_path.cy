@@ -1,5 +1,5 @@
 fn twice [let $d: duration] -> std::duration:
-    ret $d plus $d;
-end of fn twice
-!MAIN:
-!end of MAIN
+    ret $d + $d;
+;fn twice
+MAIN:
+;MAIN

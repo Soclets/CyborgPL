@@ -51,8 +51,8 @@ A loop that is parallel-safe but must run in order for an external reason
 
 ```
 for seq $line in lend $lines:
-    std::print.stored($line, newln);
-end of for
+    std::println.stored($line);
+;for
 ```
 
 A loop that prints, reads input or calls C stays in order by itself
@@ -73,15 +73,15 @@ until `para` joined it.
 ## No cheating: `no_cheat` (owner, 2026-10-01; any statement since 2026-10-18)
 
 ```
-no_skip for $i: int.sign.64 [from: 1, to: $n, by: 1]:
-    change $acc to $acc plus $i;
-end of for
+no_skip for $i: i64 [from: 1, to: $n, by: 1]:
+    change $acc += $i;
+;for
 no_skip for seq $i in lend $xs:
     …
-end of for
+;for
 no_skip for %para $i [from: 1, to: $n, by: 1]:
     …
-end of for
+;for
 ```
 
 **`no_cheat`, "no cheat"** (`!c` until 2026-10-06, `!cheat` until 2026-10-07): every round's work really happens at run time. The

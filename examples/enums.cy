@@ -3,40 +3,40 @@ union.tag Status:
     empty;
     claimed: str.utf8;
     locked;
-end of union.tag Status
+;union.tag Status
 
 rec Locker:
-    var number: int.sign.32;
+    var number: i32;
     var status: Status;
-end of rec Locker
+;rec Locker
 
 fn describe [lent $l: Locker] -> str.utf8:
     match $l.status:
         case empty:
             ret "free";
-        end of case empty
+        ;case empty
         case claimed $who:
-            ret "taken by " concat $who;
-        end of case claimed
+            ret "taken by " ++ $who;
+        ;case claimed
         case locked:
             ret "locked";
-        end of case locked
-    end of match
-end of fn describe
+        ;case locked
+    ;match
+;fn describe
 
-!MAIN:
+MAIN:
     let $lockers := [
         Locker[number = 1, status = Status.empty],
         Locker[number = 2, status = Status.claimed("Tankun")],
         Locker[number = 3, status = Status.locked]
     ];
     for $l in lend $lockers:
-        std::print.shortest("#", $l.number, ": ", describe(lend $l), newln);
-    end of for
+        std::println("#", $l.number, ": ", describe(lend $l));
+    ;for
     let $s := Status.locked;
-    if $s eq Status.locked:
-        std::print.stored("== works on a case", newln);
-    end of if
+    if $s == Status.locked:
+        std::println.stored("== works on a case");
+    ;if
     let $t := Status.claimed("Bo");
-    std::print.stored($t, newln);
-!end of MAIN
+    std::println.stored($t);
+;MAIN

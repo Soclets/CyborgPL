@@ -2,8 +2,8 @@
 # is always the program's block.
 fn MAIN [] -> str.utf8:
     ret "from the function MAIN";
-end of fn MAIN
+;fn MAIN
 
-!MAIN:
-    std::print.shortest(my.MAIN(), newln);
-!end of MAIN
+MAIN:
+    std::println(my.MAIN());
+;MAIN

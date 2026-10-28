@@ -1,3 +1,3 @@
-!MAIN:
-    std::print.shortest(1, newln) otherwise std::print.stored;
-!end of MAIN
+MAIN:
+    std::println(1) otherwise std::print.stored;
+;MAIN

@@ -1,6 +1,6 @@
 rec P:
-    var v: int.unsign.8[min: 0, max: 100];
-end of rec P
-!MAIN:
+    var v: u8[min: 0, max: 100];
+;rec P
+MAIN:
     let $p := P[v = 120];
-!end of MAIN
+;MAIN

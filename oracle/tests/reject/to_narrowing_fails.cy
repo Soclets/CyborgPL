@@ -1,4 +1,4 @@
-!MAIN:
+MAIN:
     let $big := 300;
-    let $s := to.int.sign.8($big);
-!end of MAIN
+    let $s := to.i8($big);
+;MAIN

@@ -1,4 +1,4 @@
 # a kit is used only when CyJet.cyr lists it
-!MAIN:
+MAIN:
     let $x := geometry::area(1);
-!end of MAIN
+;MAIN

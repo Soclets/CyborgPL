@@ -1,3 +1,3 @@
-!MAIN:
-    let $c := %channel[int.sign.32];
-!end of MAIN
+MAIN:
+    let $c := %channel[i32];
+;MAIN

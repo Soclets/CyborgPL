@@ -2,35 +2,35 @@
 # as the loosest (good practice), each level says how a chain reads, and a language operator in a
 # level pins it where that operator is. std's `pow` binds above a negative, right pair first.
 rec Vec:
-    var x: float.bin.64;
-    var y: float.bin.64;
-end of rec Vec
+    var x: f64;
+    var y: f64;
+;rec Vec
 
 precedence.low_first:
-    level 1 [eq, ~=] refused;
-    level 2 [plus] left_first;
-    level 3 [times, dot] left_first;
+    level 1 [==, ~=] refused;
+    level 2 [+] left_first;
+    level 3 [x, dot] left_first;
     level 4 [scale] left_first;
-end of precedence.low_first
+;precedence.low_first
 
-op dot [lent $a: Vec, lent $b: Vec] -> float.bin.64:
-    ret ($a.x times $b.x) plus ($a.y times $b.y);
-end of op dot
+op dot [lent $a: Vec, lent $b: Vec] -> f64:
+    ret ($a.x x $b.x) + ($a.y x $b.y);
+;op dot
 
-op scale [lent $a: Vec, lent $k: float.bin.64] -> Vec:
-    ret Vec[x = $a.x times $k, y = $a.y times $k];
-end of op scale
+op scale [lent $a: Vec, lent $k: f64] -> Vec:
+    ret Vec[x = $a.x x $k, y = $a.y x $k];
+;op scale
 
-op ~= [lent $a: float.bin.64, lent $b: float.bin.64] -> bool:
-    ret ($a minus $b) lt 0.000001 and ($b minus $a) lt 0.000001;
-end of op ~=
+op ~= [lent $a: f64, lent $b: f64] -> bool:
+    ret ($a - $b) < 0.000001 & ($b - $a) < 0.000001;
+;op ~=
 
-!MAIN:
+MAIN:
     let $u := Vec[x = 1.0, y = 2.0];
     let $v := Vec[x = 3.0, y = 4.0];
-    let $d := $u dot $v plus 1.0;          # ('u' dot 'v') plus 1.0
+    let $d := $u dot $v + 1.0;          # ('u' dot 'v') plus 1.0
     let $w := $u scale 2.0 dot $v;         # ('u' scale 2.0) dot 'v'
     let $ok := $d ~= 12.0;
-    std::print.shortest($d, " ", $w, " ", $ok, newln);
-    std::print.shortest(2 pow 3 plus 1, " ", 2 pow 3 pow 2, " ", neg 2 pow 2, " ", 2 times 3 pow 2, newln);
-!end of MAIN
+    std::println($d, " ", $w, " ", $ok);
+    std::println(2 ^ 3 + 1, " ", 2 ^ 3 ^ 2, " ", -2 ^ 2, " ", 2 x 3 ^ 2);
+;MAIN

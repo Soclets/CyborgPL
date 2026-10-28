@@ -1,3 +1,3 @@
-!MAIN:
-    let $t := std::input.line(1) otherwise str.empty;
-!end of MAIN
+MAIN:
+    let $t := std::input.line(1) ?? str.empty;
+;MAIN

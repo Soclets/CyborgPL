@@ -2,14 +2,14 @@
 # Even though, it requires a shift, it's easier to write"). Good practice: `$`, and quotes only for a name that needs
 # them. A call takes `( )`, a definition keeps `[ ]` (owner, 2026-10-22: "`( )` runs something; `[ ]` describes or
 # holds something").
-fn twice [let $n: int.sign.64] -> int.sign.64:
-    ret $n times 2;
-end of fn twice
+fn twice [let $n: i64] -> i64:
+    ret $n x 2;
+;fn twice
 
-!MAIN:
+MAIN:
     var $total = 1;
-    change $total to $total plus 1;
-    let $'total due' := twice($total) times 10;
-    let $xs: std::ls[int.sign.64] := [$total, $'total due'];
-    std::print.shortest($total, " ", $'total due', " ", $xs[pos: 2], newln);
-!end of MAIN
+    change $total += 1;
+    let $'total due' := twice($total) x 10;
+    let $xs: std::ls[i64] := [$total, $'total due'];
+    std::println($total, " ", $'total due', " ", $xs[pos: 2]);
+;MAIN

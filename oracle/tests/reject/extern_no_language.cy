@@ -1,3 +1,3 @@
-extern proc exit [let $code: int.sign.32];
-!MAIN:
-!end of MAIN
+extern proc exit [let $code: i32];
+MAIN:
+;MAIN

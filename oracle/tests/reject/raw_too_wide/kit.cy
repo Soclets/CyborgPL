@@ -1,3 +1,3 @@
-!MAIN:
-    let $x: int.sign.8 := 256;
-!end of MAIN
+MAIN:
+    let $x: i8 := 256;
+;MAIN

@@ -1,3 +1,3 @@
-!MAIN:
-    let $p: ptr[int.unsign.8] := 1;
-!end of MAIN
+MAIN:
+    let $p: ptr[u8] := 1;
+;MAIN

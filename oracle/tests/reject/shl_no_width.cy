@@ -1,3 +1,3 @@
-!MAIN:
-    std::print.shortest(1 shl 3, newln);
-!end of MAIN
+MAIN:
+    std::println(1 shl 3);
+;MAIN

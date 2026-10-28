@@ -17,13 +17,13 @@ that can be compared," and a type needs a way to *be* comparable.
 ```
 operator less_than [$a: Vec, $b: Vec] -> boolean:
     …
-end of operator less_than
+;operator less_than
 operator equal_to [$a: Vec, $b: Vec] -> boolean:
     …
-end of operator equal_to
-operator plus [$a: Vec, $b: Vec] -> Vec:
+;operator equal_to
+operator + [$a: Vec, $b: Vec] -> Vec:
     …
-end of operator plus
+;operator +
 ```
 
 Revises 2026-09-19's "the language's operators cannot be redefined": they
@@ -37,17 +37,17 @@ language's.
 
 ```
 sig Ordered <T>:
-    op lt [lent $a: <T>, lent $b: <T>] -> bool;
-    op eq [lent $a: <T>, lent $b: <T>] -> bool;
-end of sig Ordered
+    op < [lent $a: <T>, lent $b: <T>] -> bool;
+    op == [lent $a: <T>, lent $b: <T>] -> bool;
+;sig Ordered
 sig Printable <T>:
     fn show [lent $x: <T>] -> str.utf8;
-end of sig Printable
+;sig Printable
 set Number:
-    int.sign.32;
-    int.sign.64;
-    float.bin.64;
-end of set Number
+    i32;
+    i64;
+    f64;
+;set Number
 ```
 
 Top level beside `struct`; `pub` works; entries are `fn` and `op`
@@ -80,11 +80,11 @@ noun-named interfaces; `satisfies` reads right for any name).
 
 ```
 fn max <T: Ordered> [let $a: <T>, let $b: <T>] -> <T>:
-    if $b lt $a:
+    if $b < $a:
         ret give $a;
-    end of if
+    ;if
     ret give $b;
-end of fn max
+;fn max
 ```
 
 The bound is written once, where the blank is announced after the name

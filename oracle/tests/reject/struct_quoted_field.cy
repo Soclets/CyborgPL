@@ -1,5 +1,5 @@
 rec P:
-    $x: int.sign.32;
-end of rec P
-!MAIN:
-!end of MAIN
+    $x: i32;
+;rec P
+MAIN:
+;MAIN

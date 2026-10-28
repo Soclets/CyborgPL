@@ -1,3 +1,3 @@
-!MAIN:
-    int.sign.32 $x = 1;
-!end of MAIN
+MAIN:
+    i32 $x = 1;
+;MAIN

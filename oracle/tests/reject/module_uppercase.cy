@@ -1,4 +1,4 @@
 module Shapes:
-end of module Shapes
-!MAIN:
-!end of MAIN
+;module Shapes
+MAIN:
+;MAIN

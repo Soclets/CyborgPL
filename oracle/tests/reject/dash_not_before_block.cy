@@ -1,5 +1,5 @@
-!MAIN:
-    let $x := 1 plus-
-        2;
-    std::print.shortest($x, newln);
-!end of MAIN
+MAIN:
+    let $x := 1 + 2-
+        3;
+    std::println($x);
+;MAIN

@@ -1,4 +1,4 @@
-fn f [variable $a: int.sign.32]:
-end of fn f
-!MAIN:
-!end of MAIN
+fn f [variable $a: i32]:
+;fn f
+MAIN:
+;MAIN

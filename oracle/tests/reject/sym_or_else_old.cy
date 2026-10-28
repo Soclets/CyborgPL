@@ -1,3 +1,3 @@
-!MAIN:
-    let $b := true || false;
-!end of MAIN
+MAIN:
+    let $b := true or.else false;
+;MAIN

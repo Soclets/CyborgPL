@@ -1,5 +1,5 @@
-!MAIN:
+MAIN:
     let $xs := [1, 2];
-    for $x: int.sign.32 in lend $xs:
-    end of for
-!end of MAIN
+    for $x: i32 in lend $xs:
+    ;for
+;MAIN

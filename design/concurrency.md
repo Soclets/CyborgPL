@@ -13,14 +13,14 @@ let $results: %channel[str.utf8] := %channel.empty;
 let $a := "a.com";
 %spawn.task with [lend $results, give $a]:
     %channel.send(lend $results, value: fetch(lend $a));
-end of %spawn.task   # a call's result is fresh: no verb
+;%spawn.task   # a call's result is fresh: no verb
 %spawn.task with [lend $results]:
     %channel.send(lend $results, value: fetch("b.com"));
-end of %spawn.task
+;%spawn.task
 for $i [from: 1, to: 2, by: 1]:
-    let $page := %channel.take(lend $results) otherwise "";    # waits; whichever finished first
-    std::print.shortest(std::str.bytes(lend $page), newln);
-end of for
+    let $page := %channel.take(lend $results) ?? "";    # waits; whichever finished first
+    std::println(std::str.bytes(lend $page));
+;for
 ```
 
 ## The model — tasks and channels (owner: b)
@@ -38,7 +38,7 @@ caller).
 ```
 %spawn.task:
     …
-end of %spawn.task                       # a block, run alongside
+;%spawn.task                       # a block, run alongside
 %spawn.task fetch(lend $url);          # a call, run alongside
 ```
 
@@ -72,13 +72,13 @@ the goroutine leak).
 
 ```
 %spawn.task with [give $url]:
-    let $p := fetch($url) otherwise fail; …
-end of %spawn.task
+    let $p := fetch($url)?; …
+;%spawn.task
     otherwise:
         case no_network:
-            std::print.shortest("offline", newln);
-        end of case no_network
-    end of otherwise;
+            std::println("offline");
+        ;case no_network
+    ;otherwise;
 ```
 
 A task that can fail says so where it is written, like every failing
@@ -92,14 +92,14 @@ task, the moment it fails** (owner, 2026-09-23):
 ```
 proc setup [give $doc: Document]:
     %spawn.task.detached with [give $doc]:
-        save(lend $doc) otherwise fail;
-    end of %spawn.task.detached
+        save(lend $doc)?;
+    ;%spawn.task.detached
         otherwise:
             case disk_full:
                 …
-            end of case disk_full
-        end of otherwise;        # runs here, in the task, at once
-end of proc setup
+            ;case disk_full
+        ;otherwise;        # runs here, in the task, at once
+;proc setup
 ```
 
 It can print, log, or retry; it cannot `return` or fail outward, since
@@ -117,7 +117,7 @@ while the program carries on.
 let $c: %channel[str.utf8] := %channel.empty;                    # hand-off: send waits for a taker
 let $q: %channel[str.utf8][max: 100] := %channel.empty;            # a buffer: send waits only when full
 %channel.send(lend $c, value: give $line);             # a value is given, never lent
-let $v := %channel.take(lend $c) otherwise …;   # waits; fails `closed` when no sender is left
+let $v := %channel.take(lend $c) ?? …;   # waits; fails `closed` when no sender is left
 ```
 
 **Capacity by the bound rule** (owner: b): no bound is a hand-off (Go's
@@ -134,11 +134,11 @@ check site too — a deadlock the prover can see.
 %whichever:
     case $msg from lend $inbox:
         handle(give $msg);
-    end of case $msg
+    ;case $msg
     case $why from lend $shutdown:
         ret;
-    end of case $why
-end of %whichever
+    ;case $why
+;%whichever
 ```
 
 Waits until any listed channel has a value, takes from that one, runs
@@ -161,11 +161,11 @@ let $tick := std::time.every(1 sec);           # a channel that sends every seco
 %whichever:
     case $msg from lend $inbox:
         …
-    end of case $msg
+    ;case $msg
     case $now from lend $deadline:
-        std::print.shortest("timed out", newln);
-    end of case $now
-end of %whichever
+        std::println("timed out");
+    ;case $now
+;%whichever
 ```
 
 A number followed by a unit word is a **duration literal** — a

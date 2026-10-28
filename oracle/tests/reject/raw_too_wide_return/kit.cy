@@ -1,7 +1,7 @@
-fn f [] -> int.unsign.16:
+fn f [] -> u16:
     ret 65536;
-end of fn f
+;fn f
 
-!MAIN:
+MAIN:
     let $x := f();
-!end of MAIN
+;MAIN

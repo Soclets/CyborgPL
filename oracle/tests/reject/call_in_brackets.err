@@ -1,1 +1,1 @@
-a call takes `( )`: `std::print.useful(…)`
+a call takes `( )`: `std::print.shortest(…)`; `[ ]` describes or holds, a type, a range, a list, a position

@@ -1,4 +1,4 @@
-%extern.C proc length = strlen [let $s: ptr[int.unsign.8]] -> int.unsign.64;
+%extern.C proc length = strlen [let $s: ptr[u8]] -> u64;
 
-!MAIN:
-!end of MAIN
+MAIN:
+;MAIN

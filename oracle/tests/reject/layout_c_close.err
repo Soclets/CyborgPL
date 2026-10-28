@@ -1,1 +1,1 @@
-write `end of %layout.C rec Rect`
+`;rec Rect` closes `%layout.C rec Rect`: write `;%layout.C rec Rect`

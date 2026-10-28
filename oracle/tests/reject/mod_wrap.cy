@@ -1,3 +1,3 @@
-!MAIN:
+MAIN:
     let $x := 7 mod.floor.wrap 2;
-!end of MAIN
+;MAIN

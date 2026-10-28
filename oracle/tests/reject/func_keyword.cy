@@ -1,5 +1,5 @@
-func add [$a: int.sign.32] -> int.sign.32:
+func add [$a: i32] -> i32:
     ret $a;
-end of func
-!MAIN:
-!end of MAIN
+;func
+MAIN:
+;MAIN

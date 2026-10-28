@@ -27,12 +27,12 @@ calls it. Since `pos` went (2026-09-27), a list read looks the same
 ```
 function by_number [lent $a: Locker, lent $b: Locker] -> boolean:
     …
-end of function by_number     # the definition
+;function by_number     # the definition
                 function[lent Locker,      lent Locker]  -> boolean           # its type
 
 procedure sort <T: any> [lent.mutable $xs: std::list[<T>], $less: function[lent <T>, lent <T>] -> boolean]:
     …
-end of procedure sort
+;procedure sort
 ```
 
 Parameter kinds (`lent`, `lent.mut`, none) are part of the type — the
@@ -45,12 +45,12 @@ difference.
 
 ```
 let $limit := 60;
-let $passing := keep(lend $scores, fn [let $s: int.sign.32] -> bool with [lend $limit]:
-    ret $s at_least $limit;
-end of fn);
-let $evens   := keep(lend $scores, fn [let $s: int.sign.32] -> bool:
-    ret ($s mod.floor 2) eq 0;
-end of fn);   # captures nothing
+let $passing := keep(lend $scores, fn [let $s: i32] -> bool with [lend $limit]:
+    ret $s >= $limit;
+;fn);
+let $evens   := keep(lend $scores, fn [let $s: i32] -> bool:
+    ret ($s mod.floor 2) == 0;
+;fn);   # captures nothing
 ```
 
 An anonymous function is `fn` with its parameters, return, and body,
@@ -65,8 +65,8 @@ silently, which is where "why is this borrowed" bugs come from.
 ### The short form (owner, 2026-10-24: "(c)"; not built)
 
 ```
-let $passing := keep(lend $scores, fn [let $s] with [lend $limit] = $s at_least $limit);
-let $evens   := keep(lend $scores, fn [let $s] = ($s mod.floor 2) eq 0);
+let $passing := keep(lend $scores, fn [let $s] with [lend $limit] = $s >= $limit);
+let $evens   := keep(lend $scores, fn [let $s] = ($s mod.floor 2) == 0);
 ```
 
 One value after `=`, no `{ return …; }`; the parameters' types and the return type come from the `fn[…]` type of
@@ -77,10 +77,10 @@ stays. A named function has no short form (owner: "no"), its body always in `{ }
 ## 4. An operator is a value as `op plus` (owner, 2026-09-29)
 
 ```
-let $sum     := fold(lend $xs, 0, op plus);
-let $product := fold(lend $xs, 1, op times);
+let $sum     := fold(lend $xs, 0, op +);
+let $product := fold(lend $xs, 1, op x);
 let $flipped := map(lend $xs, op neg);
-let $f: fn[int.sign.32, int.sign.32] -> int.sign.32 := op mod.floor;
+let $f: fn[i32, i32] -> i32 := op mod.floor;
 ```
 
 `op` — the word that defines an operator — before any operator makes it

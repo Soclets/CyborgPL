@@ -40,9 +40,9 @@ the base    the language itself, the lowest level: reads the files, loads
             the cores, enforces the grants, hands its LLVM IR to LLVM
 IEG         the official core: raw operations, inline.LL, the no_check labels
 ASP         numbers mean their true values; to. conversions; run-time checks
-Genny       generics and interfaces
-MCPS        parallel loops and concur (needs threads)
-AutoGPU     automatic offload on every GPU; Metal, Nvidia and Vulkan
+Genny       generics & interfaces
+MCPS        parallel loops & concur (needs threads)
+AutoGPU     automatic offload on every GPU; Metal, Nvidia & Vulkan
             cores for hand-written GPU code
 std         a kit with powers: every op, logic, text, printing
 your kits  everything else
@@ -105,7 +105,7 @@ Money    d7b62f4448a5b23d792a25bcdba89220e02691fb5e27cf18640ee491d049df0f  (firs
 UniTect  137a9a35afc69ec6ee796bc39eeefc75680db17ce8a04443126a492812a0ae96  (first version 2026-10-07T20:22:24+07:00)  (part of unicode, 2026-10-12)
 CAPS     90d0813dc72a0c7d54a4ded7a2c9577e77f0036958b245ab01808f9a8568bd01  (first version 2026-10-07T20:22:24+07:00)  (part of unicode, 2026-10-12)
 CNC      04b99a7cbb141b84b9f2f38c085c124e2badc37d663f71c6deebdd6ac24e79b1  (first version 2026-10-10T16:42:00+07:00)  ("CNC Not C": everything about C)
-unicode    55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece  (first version 2026-10-12T10:19:44+07:00)  (names and text in every human language: WSTN, UniTect and CAPS, retired, 2026-10-12)
+unicode    55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece  (first version 2026-10-12T10:19:44+07:00)  (names & text in every human language: WSTN, UniTect and CAPS, retired, 2026-10-12)
 std      fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936  (a kit, 2026-10-06T12:57:14+07:00)
 ```
 
@@ -140,17 +140,17 @@ not limbs. And then, lang could be the absence of such"). The mark goes on the f
 claude's reading of the owner's examples):
 
 ```
-%extern.C proc puts [let $s: ptr[int.unsign.8]] -> %C.int;             # CNC
+%extern.C proc puts [let $s: ptr[u8]] -> %C.int;             # CNC
 incl.%C["sdl.h"];                                      # `incl` is the base's
-let $price: float.%deci.64 := 19.50;                              # Money
-let $odd: int.sign.%not_std.24 := 5;                            # WSMW: `not_std` is only its
+let $price: %d64 := 19.50;                              # Money
+let $odd: %not_std.i24 := 5;                            # WSMW: `not_std` is only its
 let $name: str.utf8[max: 40 %clusters] := "café";      # unicode
 %spawn.task with [lend $ch]:
     %channel.send(lend $ch, value: 1);
-end of %spawn.task   # MCPS
-!no_check inline.%MSL threads 64 with [lend.mut $xs -> buffer(0)]:   # Metal
+;%spawn.task   # MCPS
+no_check inline.%MSL threads 64 with [lend.mut $xs -> buffer(0)]:   # Metal
     …
-end of inline.%MSL
+;inline.%MSL
 ```
 
 So `%` no longer means percent: `80 percent`, `percent[d32]`. A program's limbs show where they are used, and `%C`
@@ -313,22 +313,22 @@ Chosen **when compiling**, with `else` for the rest:
 
 ```
 on.target.chip aarch64:
-    !no_check inline.ASM with [ … ]:
+    no_check inline.ASM with [ … ]:
         neg x0, x0
-    end of inline.ASM
+    ;inline.ASM
 else on.target.chip x86_64:
-    !no_check inline.ASM with [ … ]:
+    no_check inline.ASM with [ … ]:
         neg rax
-    end of inline.ASM
+    ;inline.ASM
 else:
-    let $y := neg $x;
-end of on.target.chip
+    let $y := -$x;
+;on.target.chip
 on.target.os macos 15:
     …
-end of on.target.os          # a minimum: refuses to start on older
+;on.target.os          # a minimum: refuses to start on older
 on.target aarch64-macos:
     …
-end of on.target        # one exact target
+;on.target        # one exact target
 ```
 
 and **when running**, checking the actual machine once at startup:

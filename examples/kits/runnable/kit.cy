@@ -2,10 +2,10 @@
 # run itself, and is ignored when another kit uses it (examples/uses_a_kit).
 
 
-pub fn seven [] -> int.sign.32:
+pub fn seven [] -> i32:
     ret 7;
-end of fn seven
+;fn seven
 
-!MAIN:
-    std::print.stored("runnable on its own", newln);
-!end of MAIN
+MAIN:
+    std::println.stored("runnable on its own");
+;MAIN

@@ -1,3 +1,3 @@
-!MAIN:
-!end of MAIN
+MAIN:
+;MAIN
 use std::ls as ls;

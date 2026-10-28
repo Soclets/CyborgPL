@@ -5,18 +5,18 @@
 
 module text:
     %extern.C:
-        pub proc strlen [let $s: ptr[int.unsign.8]] -> int.unsign.64;
-        proc write [let $fd: int.sign.32, let $buf: ptr[int.unsign.8], let $len: int.unsign.64] -> int.sign.64;
-    end of %extern.C
+        pub proc strlen [let $s: ptr[u8]] -> u64;
+        proc write [let $fd: i32, let $buf: ptr[u8], let $len: u64] -> i64;
+    ;%extern.C
     pub proc say [lent $msg: str.utf8]:
-        !no_check let $n := write(1, lend $msg, std::str.bytes(lend $msg));
-    end of proc say
-end of module text
+        no_check let $n := write(1, lend $msg, std::str.bytes(lend $msg));
+    ;proc say
+;module text
 
-!MAIN:
+MAIN:
     let $word := "hello";
-    !no_check let $n := text.strlen(lend $word);
-    std::print.shortest("strlen: ", $n, newln);
-    let $line := "written by the wrapper" concat newln;
+    no_check let $n := text.strlen(lend $word);
+    std::println("strlen: ", $n);
+    let $line := "written by the wrapper" ++ newln;
     text.say(lend $line);
-!end of MAIN
+;MAIN

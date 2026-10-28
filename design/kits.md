@@ -47,8 +47,8 @@ bare".
 other kits, own stays bare."): its functions, types, enums and enum values, std's included.
 
 ```
-std::print.shortest(greet::hello(), newln);
-var $xs: std::ls[int.sign.64] = [];
+std::println(greet::hello());
+var $xs: std::ls[i64] = [];
 std::ls.append(lend.mut $xs, value: 3);
 let $b: greet::Note := greet::Note[text = "hi"];
 let $up := std::str.upper.full(lend $s, lang: std::casing.tr);
@@ -101,14 +101,14 @@ modules keep the strict rule — their names appear bare in type positions.
 ## `pub` and `const` (decided 2026-09-19)
 
 ```
-pub fn add [let $a: int.sign.32, let $b: int.sign.32] -> int.sign.32:
+pub fn add [let $a: i32, let $b: i32] -> i32:
     …
-end of fn add
+;fn add
 pub rec Locker:
     …;
-end of rec Locker
+;rec Locker
 pub const $max_players := 8;
-const $pi: float.bin.64 := 3.141_592_653_589_793;      # private to the Kit
+const $pi: f64 := 3.141_592_653_589_793;      # private to the Kit
 ```
 
 - **`pub`** is a bare word before `fn`, `struct`, or `const` at the top
@@ -206,16 +206,16 @@ shapes.circle.$pi             # a const through modules
 ```
 function helper []:
     …
-end of function helper                 # this module and its descendants
+;function helper                 # this module and its descendants
 public.kit function shared []:
     …
-end of function shared        # the whole Kit, not outside
+;function shared        # the whole Kit, not outside
 public function api []:
     …
-end of function api                # other Kits too
+;function api                # other Kits too
 public.kit module tests:
     …
-end of module tests        # modules carry it as well
+;module tests        # modules carry it as well
 ```
 
 - Nothing: private to the module it is declared in, visible to that module
@@ -244,12 +244,12 @@ refusal: nothing to disambiguate, for the reader or for the prover.
 
 ```
 # geometry/shapes/circle.cy
-pub.kit fn area [let $r: float.bin.64] -> float.bin.64:
+pub.kit fn area [let $r: f64] -> f64:
     …
-end of fn area
+;fn area
 pub.kit rec Circle:
-    var r: float.bin.64;
-end of rec Circle
+    var r: f64;
+;rec Circle
 
 # geometry/kit.cy
 pub fn area = shapes.circle.area;          # users write geometry::area[…]

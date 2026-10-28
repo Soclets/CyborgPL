@@ -1,4 +1,4 @@
-!MAIN:
+MAIN:
     let $n := 1;
-    let $s := "n=" concat $n;
-!end of MAIN
+    let $s := "n=" ++ $n;
+;MAIN

@@ -6,13 +6,13 @@ Decided 2026-09-22, one question at a time. The third collection, beside
 `list` and `array` (`lists.md`): look a value up by a key.
 
 ```
-var $phones: std::map[str.utf8, int.sign.32] = std::map.empty;
+var $phones: std::map[str.utf8, i32] = std::map.empty;
 std::map.set(lend.mut $phones, key: "ann", value: 5551);                 # add, or replace an existing key's value
-let $n := std::map.get(lend $phones, key: "ann") otherwise 0;    # a missing key is a failure
+let $n := std::map.get(lend $phones, key: "ann") ?? 0;    # a missing key is a failure
 if std::map.has(lend $phones, key: "bob"):
     …
-end of if
-let $v := std::map.remove(lend.mut $phones, key: "bob") otherwise 0;   # hands the value back, like list.remove
+;if
+let $v := std::map.remove(lend.mut $phones, key: "bob") ?? 0;   # hands the value back, like list.remove
 let $count := std::map.count(lend $phones);                # u64
 ```
 
@@ -22,7 +22,7 @@ let $count := std::map.count(lend $phones);                # u64
 only look at the key, so it may be lent:
 
 ```
-let $n := std::map.get(lend $phones, key: lend $name) otherwise 0;   # no copy of the text, nothing kept
+let $n := std::map.get(lend $phones, key: lend $name) ?? 0;   # no copy of the text, nothing kept
 std::map.set(lend.mut $phones, key: copy $name, value: 5551);        # the map keeps this one
 ```
 
@@ -91,7 +91,7 @@ a compile error. Proposed alternatives: a list of two-element lists
 ## A count bound, and bounds inside (owner: yes)
 
 ```
-var $small: std::map[str.utf8[min: 1, max: 3 bytes], int.sign.32[min: 0, max: 10]][min: 0, max: 2] = std::map.empty;
+var $small: std::map[str.utf8[min: 1, max: 3 bytes], i32[min: 0, max: 10]][min: 0, max: 2] = std::map.empty;
 ```
 
 `map[K, V][lo, hi]` bounds the number of entries, as `list[T][lo, hi]`
@@ -106,13 +106,13 @@ fitting together (owner asked "what about the things inside?").
 ```
 for $k in std::map.keys(lend $phones):
     …
-end of for
+;for
 for $v in std::map.values(lend $phones):
     …
-end of for
+;for
 for $e in std::map.pairs(lend $phones):
     … $e.key … $e.value …
-end of for
+;for
 ```
 
 A map has no single walk, so the walk says which — like `str.each.point`

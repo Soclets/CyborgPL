@@ -1,5 +1,5 @@
-pub bare fn pow [let $a: int.sign.32] -> int.sign.32:
+pub bare fn ^ [let $a: i32] -> i32:
     ret $a;
-end of fn pow
-!MAIN:
-!end of MAIN
+;fn ^
+MAIN:
+;MAIN

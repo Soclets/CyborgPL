@@ -1,6 +1,6 @@
 sig Number:
-    int.sign.32;
-    float.bin.64;
-end of sig Number
-!MAIN:
-!end of MAIN
+    i32;
+    f64;
+;sig Number
+MAIN:
+;MAIN

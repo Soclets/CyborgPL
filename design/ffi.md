@@ -16,16 +16,16 @@ enforced; the oracle cannot link C, so it emulates `write`, `exit`,
 ## `extern.C` — a function whose body is somewhere else
 
 ```
-%extern.C proc write [let $fd: int.sign.32, let $buf: ptr[int.unsign.8], let $len: int.unsign.64] -> int.sign.64;
-%extern.C proc exit [let $code: int.sign.32];
-%extern.C proc printf [let $fmt: ptr[int.unsign.8], let ...$args] -> int.sign.32;      # C's own varargs
+%extern.C proc write [let $fd: i32, let $buf: ptr[u8], let $len: u64] -> i64;
+%extern.C proc exit [let $code: i32];
+%extern.C proc printf [let $fmt: ptr[u8], let ...$args] -> i32;      # C's own varargs
 
 %extern.C:                                  # a library's worth at once
-    proc malloc [let $bytes: int.unsign.64] -> ptr.mut[int.unsign.8];
-    proc free [let $p: ptr.mut[int.unsign.8]];
-    $lib_version: int.sign.32;
-    var $lib_verbose: int.sign.32;
-end of %extern.C
+    proc malloc [let $bytes: u64] -> ptr.mut[u8];
+    proc free [let $p: ptr.mut[u8]];
+    $lib_version: i32;
+    var $lib_verbose: i32;
+;%extern.C
 ```
 
 **`extern` names its language, `extern.C`, and may be a block** (owner,
@@ -102,13 +102,13 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
 ## Callbacks — a Cyborg function C calls (decided 2026-09-21)
 
 ```
-%extern.C proc qsort [let $base: ptr.mut[int.sign.32], let $n: int.unsign.64, let $size: int.unsign.64,
-                 let $cmp: fn[ptr[int.sign.32], ptr[int.sign.32]] -> int.sign.32];
+%extern.C proc qsort [let $base: ptr.mut[i32], let $n: u64, let $size: u64,
+                 let $cmp: fn[ptr[i32], ptr[i32]] -> i32];
 
-proc ascending [let $a: ptr[int.sign.32], let $b: ptr[int.sign.32]] -> int.sign.32:
-    !no_check ret ptr.read($a) minus ptr.read($b);
-end of proc ascending
-!no_check qsort(lend.mut $nums, 5, size.of[int.sign.32], ascending);
+proc ascending [let $a: ptr[i32], let $b: ptr[i32]] -> i32:
+    no_check ret ptr.read($a) - ptr.read($b);
+;proc ascending
+no_check qsort(lend.mut $nums, 5, size.of[i32], ascending);
 ```
 
 - **Only capture-free functions cross** (owner: a, over smuggling captures
@@ -129,8 +129,8 @@ end of proc ascending
 ## A ranged return — C's contract, checked at the door (decided 2026-09-22)
 
 ```
-%extern.C proc strlen [let $s: ptr[int.unsign.8]] -> int.unsign.64[min: 0, max: 1_000_000];
-!no_check let $n := strlen(lend $s) otherwise fail too_long;    # can fail out_of_range
+%extern.C proc strlen [let $s: ptr[u8]] -> u64[min: 0, max: 1_000_000];
+no_check let $n := strlen(lend $s) otherwise fail too_long;    # can fail out_of_range
 ```
 
 An extern's return may be a range type. It is a promise about C that
@@ -172,10 +172,10 @@ type is the request to check. To skip the check, write the plain type
 ```
 let $k := to.Key($code)-
 otherwise:
-    !case out_of_range:
+    case out_of_range:
         ret;
-    !end of case out_of_range
-end of otherwise;
+    ;case out_of_range
+;otherwise;
 ```
 
 `no_check` does not remove these. It turns off *check sites*, the bugs
@@ -198,9 +198,9 @@ tier trusting C's answers too. The owner asked whether `no_check` was then
 
 ```
 %layout.C rec Rect:
-    var w: int.sign.32[min: 0, max: 4096];
-    var h: int.sign.32[min: 0, max: 4096];
-end of %layout.C rec Rect
+    var w: i32[min: 0, max: 4096];
+    var h: i32[min: 0, max: 4096];
+;%layout.C rec Rect
 ```
 
 C sees the plain number, so the layout is unchanged (`Rect` is 8 bytes).
@@ -218,7 +218,7 @@ refusing it, with plain fields checked by hand. A range on an `extern.C fn`
     a = 65;
     b = 66;
     escape = 256;
-end of enumeration Key
+;enumeration Key
 %external.C procedure IsKeyDown [$key: Key] -> boolean;
 ```
 
@@ -239,11 +239,11 @@ design claude's recommendation with a, not asked separately.
 ## `extern.C 'x': T` — a C global (decided 2026-09-21; `let` dropped 2026-09-25)
 
 ```
-%extern.C let $lib_version: int.sign.32;    # C: extern const int lib_version;   never changes
-%extern.C var $lib_verbose: int.sign.32;    # C: extern int lib_verbose;   may be written
+%extern.C let $lib_version: i32;    # C: extern const int lib_version;   never changes
+%extern.C var $lib_verbose: i32;    # C: extern int lib_verbose;   may be written
 
-!no_check let $v := $lib_version;       # reading C's variable is a no_check site
-!no_check change $lib_verbose to 1;              # so is writing one
+no_check let $v := $lib_version;       # reading C's variable is a no_check site
+no_check change $lib_verbose to 1;              # so is writing one
 ```
 
 A C library's variables, named the way `extern.C fn` names its functions.
@@ -281,9 +281,9 @@ kayo compiling the block with Clang; it is CNC's (owner: "Yup"). Not designed ye
 
 ```
 %layout.C rec Timeval:
-    var sec: int.sign.64;
-    var usec: int.sign.64;
-end of %layout.C rec Timeval
+    var sec: i64;
+    var usec: i64;
+;%layout.C rec Timeval
 ```
 
 Only a `layout.C` struct may cross to C (in a signature or a `ptr[…]`); a
@@ -310,10 +310,10 @@ block, the same rules. Capitals, as every language's name: `inline.s` is
 refused.
 
 ```
-!no_check inline.ASM with [$fd -> x0, $buf -> x1, $len -> x2, $n <- x0, clobber x16]:
+no_check inline.ASM with [$fd -> x0, $buf -> x1, $len -> x2, $n <- x0, clobber x16]:
     mov x16, #4
     svc 0
-end of inline.ASM
+;inline.ASM
 ```
 
 - **`inline.<LANGUAGE>`** — owner's shape, over bare `asm`: a family, with
@@ -356,19 +356,19 @@ A C string is bytes ending in a 0 byte; a `str.utf8` knows its own length. Two w
 `C.int` (owner: "Isn't it `str`?"):
 
 ```
-%extern.C proc puts [let $s: ptr[int.unsign.8]] -> int.sign.32;
+%extern.C proc puts [let $s: ptr[u8]] -> i32;
 let $name := %C.str.read($p)-
 otherwise:
     case not_utf8:
         …
-    end of case not_utf8
-end of otherwise;              # a char* to its 0 byte → str.utf8
+    ;case not_utf8
+;otherwise;              # a char* to its 0 byte → str.utf8
 let $cs := %C.str.make(lend $name)-
 otherwise:
     case has_zero_byte:
         …
-    end of case has_zero_byte
-end of otherwise;   # str.utf8 → a C string
+    ;case has_zero_byte
+;otherwise;   # str.utf8 → a C string
 puts(lend $cs);
 ```
 
@@ -404,10 +404,10 @@ Both forms (owner: "What about both?"):
 
 ```
 incl.%C.system["stdio.h"];                                        # printf comes with C's `...`
-!no_check printf(lend $fmt, 5, lend $name);                     # the open form: any extras, on your word
+no_check printf(lend $fmt, 5, lend $name);                     # the open form: any extras, on your word
 
-%extern.C proc printf_count = %C.printf [let $format: ptr[int.unsign.8], let ...$n: int.sign.32] -> int.sign.32;
-!no_check printf_count(lend $fmt, 5);                            # a fixed shape: its extras' types checked
+%extern.C proc printf_count = %C.printf [let $format: ptr[u8], let ...$n: i32] -> i32;
+no_check printf_count(lend $fmt, 5);                            # a fixed shape: its extras' types checked
 ```
 
 - The open form is `...'args'` (owner, 2026-10-19: "(a)", as decided before), any extras, each call a `no_check` site.
@@ -422,17 +422,17 @@ incl.%C.system["stdio.h"];                                        # printf comes
 
 ```
 %layout.C union Number:
-    i: int.sign.32;
-    f: float.bin.32;
-end of union Number        # one of them at a time; C knows which
-!no_check let $x := $n.i;                          # reading a field: on your word, listed in the build report
+    i: i32;
+    f: f32;
+;union Number        # one of them at a time; C knows which
+no_check let $x := $n.i;                          # reading a field: on your word, listed in the build report
 change $n.f to 1.5;                                 # writing: always safe
 
 %layout.C rec Status:
-    var mode: int.unsign.8[bits: 3];
+    var mode: u8[bits: 3];
     var ready: bool[bits: 1];
-    var level: int.unsign.8[bits: 4];
-end of %layout.C rec Status
+    var level: u8[bits: 4];
+;%layout.C rec Status
 change $s.mode to 5;                                # checked to fit: 3 bits hold 0 to 7
 ```
 

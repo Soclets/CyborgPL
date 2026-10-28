@@ -1,5 +1,5 @@
-!MAIN:
-    if 1 eq 1:
-    else.if 1 eq 2:
-    end of if
-!end of MAIN
+MAIN:
+    if 1 == 1:
+    else.if 1 == 2:
+    ;if
+;MAIN

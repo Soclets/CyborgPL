@@ -1,20 +1,20 @@
-fn half [let $n: int.sign.32] -> int.sign.32 or fail[odd, negative: int.sign.32]:
-    if $n lt 0:
+fn half [let $n: i32] -> i32 or fail[odd, negative: i32]:
+    if $n < 0:
         fail negative[$n];
-    end of if
+    ;if
     ret $n;
-end of fn half
+;fn half
 coll.handler h:
     member h.zero:
-        !case odd:
+        case odd:
             ret 0;
-        !end of case odd
-    end of member h.zero
-end of coll.handler h
-fn f [] -> int.sign.32:
-    let $v := half(3) otherwise h.!zero;
+        ;case odd
+    ;member h.zero
+;coll.handler h
+fn f [] -> i32:
+    let $v := half(3) otherwise h.*zero;
     ret $v;
-end of fn f
-!MAIN:
-    std::print.shortest(f(), newln);
-!end of MAIN
+;fn f
+MAIN:
+    std::println(f());
+;MAIN

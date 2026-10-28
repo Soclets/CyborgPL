@@ -1,3 +1,3 @@
-!MAIN:
-    let $l := to.ls(int.sign.32)[1];
-!end of MAIN
+MAIN:
+    let $l := to.ls(i32)[1];
+;MAIN

@@ -1,19 +1,19 @@
 coll.handler failed:
     member failed.skip:
-        !case bad:
+        case bad:
             continue;
-        !end of case bad
-    end of member failed.skip
-end of coll.handler failed
+        ;case bad
+    ;member failed.skip
+;coll.handler failed
 
-fn small [let $n: int.sign.32] -> int.sign.32 or fail[bad]:
-    if $n gt 2:
+fn small [let $n: i32] -> i32 or fail[bad]:
+    if $n > 2:
         fail bad;
-    end of if
+    ;if
     ret $n;
-end of fn small
+;fn small
 
-!MAIN:
-    let $x := small(1) otherwise failed.!skip;
-    std::print.shortest($x, newln);
-!end of MAIN
+MAIN:
+    let $x := small(1) otherwise failed.*skip;
+    std::println($x);
+;MAIN

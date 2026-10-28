@@ -1,4 +1,4 @@
-!MAIN:
-    var $i: int.sign.32 = 1;
+MAIN:
+    var $i: i32 = 1;
     $i++;
-!end of MAIN
+;MAIN

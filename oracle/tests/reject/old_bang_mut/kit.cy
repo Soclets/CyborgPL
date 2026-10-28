@@ -1,3 +1,3 @@
-!MAIN:
-    let !mut $x: int.sign.32 := 1;
-!end of MAIN
+MAIN:
+    let !mut $x: i32 := 1;
+;MAIN

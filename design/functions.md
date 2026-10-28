@@ -6,9 +6,9 @@ Decided 2026-09-14; spelling revised 2026-09-19 (`fn`, name-then-type
 parameters, `--> T`).
 
 ```
-fn add [let $a: int.sign.32, let $b: int.sign.32] -> int.sign.32:
-    ret $a plus $b;
-end of fn add
+fn add [let $a: i32, let $b: i32] -> i32:
+    ret $a + $b;
+;fn add
 let $sum := add(10, 20);              # this Kit: bare
 let $big := mathstuff::pow(2, 64);    # another Kit: Kit::path
 ```
@@ -18,16 +18,16 @@ let $big := mathstuff::pow(2, 64);    # another Kit: Kit::path
 ```
 function count [lent $text: string.utf8] -> integer.signed.32_bit:
     …
-end of function count     # looks at it
+;function count     # looks at it
 procedure edit  [lent.mutable $text: string.utf8]:
     …
-end of procedure edit          # may modify it
+;procedure edit          # may modify it
 function keep  [$text: string.utf8]:
     …
-end of function keep                   # owns it
+;function keep                   # owns it
 function twice [$n: integer.signed.32_bit] -> integer.signed.32_bit:
     …
-end of function twice          # stated mutability
+;function twice          # stated mutability
 ```
 
 - **`fn`**, bare name, parameters in one `[ ]`, optional `--> type`, body in
@@ -116,18 +116,18 @@ the parameters. A call is a value and stands bare wherever a value goes:
 ## Return
 
 ```
-ret $a plus $b;
-ret "hello " concat $name;    # text joins with ++ (2026-09-19)
+ret $a + $b;
+ret "hello " ++ $name;    # text joins with ++ (2026-09-19)
 ret;                       # in a nothing-function
 ```
 
 ## Entry point: `MAIN { }` (decided 2026-09-14, kept 2026-09-19)
 
 ```
-!MAIN:
+MAIN:
     let $sum := add(10, 20);
-    std::print.shortest("sum: ", $sum, newln);
-!end of MAIN
+    std::println("sum: ", $sum);
+;MAIN
 ```
 
 `MAIN` is the program's block — not a function. No `fn`, no return type,
@@ -154,10 +154,10 @@ depends on may have one too, run only when that kit is run itself
 "low-level shit, decided" — "we're at Rust, C, C++ level"):
 
 ```
-!MAIN [let $argc: int.sign.32, let $argv: ptr[ptr[int.unsign.8]]]:
-    !no_check let $first := ptr.read(ptr.at($argv, by: 1));     # the first word after the program's name
+MAIN [let $argc: i32, let $argv: ptr[ptr[u8]]]:
+    no_check let $first := ptr.read(ptr.at($argv, by: 1));     # the first word after the program's name
     …
-!end of MAIN
+;MAIN
 ```
 
 Exactly these two types (the names are free); the program's name comes

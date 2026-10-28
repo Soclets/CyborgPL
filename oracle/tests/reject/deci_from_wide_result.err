@@ -1,1 +1,1 @@
-`to.d64` can fail (too_many_digits)
+`to.%d64` can fail (too_many_digits); say what happens: `to.%d64(…) otherwise …`

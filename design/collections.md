@@ -17,14 +17,14 @@ A collection writes a function and its dot narrowings (`cum`, `cum.quick`,
 
 ```
 pub coll.fn cum:
-    member cum [let $x: int.sign.32, let $step: int.sign.32] -> int.sign.32:
-        ret $x plus $step;
-    end of member cum
+    member cum [let $x: i32, let $step: i32] -> i32:
+        ret $x + $step;
+    ;member cum
     member cum.quick [$step = 2];
-    member cum.double [let $x: int.sign.32] -> int.sign.32:
-        ret $x times 2;
-    end of member cum.double
-end of coll.fn cum
+    member cum.double [let $x: i32] -> i32:
+        ret $x x 2;
+    ;member cum.double
+;coll.fn cum
 ```
 
 - `coll.fn`, then the name, bare as a function's is (`cum`, never
@@ -57,13 +57,13 @@ A member may point at a function written elsewhere in the kit, so a kit's `kit.c
 
 ```
 pub coll.fn area:
-    member area [let $w: int.sign.64, let $h: int.sign.64] -> int.sign.64:
-        ret $w times $h;
-    end of member area
+    member area [let $w: i64, let $h: i64] -> i64:
+        ret $w x $h;
+    ;member area
     member area.square = shapes.square.area;           # body in shapes/square.cy
     member area.triangle = shapes.triangle.area;
     member area.unit [$w = 1, $h = 1];               # a preset of the own function
-end of coll.fn area
+;coll.fn area
 # users write geometry::area.square[5]
 ```
 
@@ -81,14 +81,14 @@ picked by how many arguments it has and their types. This is the only place over
 public collection.function round:
     round.nearest [$x: float.binary.64_bit] -> float.binary.64_bit:
         …
-    end of round.nearest
+    ;round.nearest
     round.nearest [$x: float.%decimal.64_bit] -> float.%decimal.64_bit:
         …
-    end of round.nearest
+    ;round.nearest
     round.nearest [$x: float.binary.64_bit, $decimals: integer.signed.32_bit] -> float.binary.64_bit:
         …
-    end of round.nearest
-end of collection.function round
+    ;round.nearest
+;collection.function round
 ```
 
 - **Who**: any kit's functions, std's and yours (owner: "(a)"). Two versions with the same types are refused.
@@ -114,10 +114,10 @@ A collection also says how its own function is called:
 pub coll.fn say:
     labels.in_order [$text as value, $times as count];
     defaults [$times = 1];
-    member say [let $n: int.sign.32, let $text: str.utf8, let $times: int.sign.32] -> str.utf8:
+    member say [let $n: i32, let $text: str.utf8, let $times: i32] -> str.utf8:
         …
-    end of member say
-end of coll.fn say
+    ;member say
+;coll.fn say
 # say[2, value: "Hi"]               'times' is 1
 # say[2, value: "Hi", count: 3]
 ```
@@ -147,13 +147,13 @@ exist, a bare `std::print[…]` does not.
 
 ```
 coll.fn zero:
-    member zero.of_int16 [] -> int.sign.16:
+    member zero.of_int16 [] -> i16:
         ret 0;
-    end of member zero.of_int16
-    member zero.of_int64 [] -> int.sign.64:
+    ;member zero.of_int16
+    member zero.of_int64 [] -> i64:
         ret 0;
-    end of member zero.of_int64
-end of coll.fn zero
+    ;member zero.of_int64
+;coll.fn zero
 ```
 
 `zero.of_int16[]` exists, `zero[…]` does not. Such a collection has no
@@ -167,20 +167,20 @@ member's signature, or no own function takes it.
 
 ```
 coll.fn zero:
-    for $T in [int.sign.16, int.sign.64]:
-        named "of_" concat std::str.replace(lend $T, from: ".", to: "_");
+    for $T in [i16, i64]:
+        named "of_" ++ std::str.replace(lend $T, from: ".", to: "_");
         member [] -> $T:
             ret 0;
-        end of member
-    end of for
+        ;member
+    ;for
     #generated_6_lines_below
-    member zero.of_int_sign_16 [] -> int.sign.16:
+    member zero.of_int_sign_16 [] -> i16:
         ret 0;
-    end of member zero.of_int_sign_16
-    member zero.of_int_sign_64 [] -> int.sign.64:
+    ;member zero.of_int_sign_16
+    member zero.of_int_sign_64 [] -> i64:
         ret 0;
-    end of member zero.of_int_sign_64
-end of coll.fn zero
+    ;member zero.of_int_sign_64
+;coll.fn zero
 ```
 
 - **The loop is the usual `for`** (owner: "(a)"): over a list, `for 'n' in
@@ -228,16 +228,16 @@ owner rules:
 ```
 coll.handler cum_failed:
     member cum_failed.flow_back_to_bladder:
-        !case odd:
+        case odd:
             ret 0;
-        !end of case odd
-        !case negative $v:
+        ;case odd
+        case negative $v:
             report($v); ret 0;
-        !end of case negative
-    end of member cum_failed.flow_back_to_bladder
-end of coll.handler cum_failed
+        ;case negative
+    ;member cum_failed.flow_back_to_bladder
+;coll.handler cum_failed
 
-let $b := half(neg 4) otherwise cum_failed.!flow_back_to_bladder;
+let $b := half(-4) otherwise cum_failed.*flow_back_to_bladder;
 ```
 
 - A member is a **named `otherwise` block**: the arms written inline today,

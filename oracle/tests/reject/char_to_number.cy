@@ -1,3 +1,3 @@
-!MAIN:
-    let $n := to.int.sign.32(`7`);
-!end of MAIN
+MAIN:
+    let $n := to.i32(`7`);
+;MAIN

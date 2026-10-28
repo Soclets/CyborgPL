@@ -6,20 +6,20 @@ fn describe [let $t: greet::Tone] -> str.utf8:
     ret match $t:
         case soft:
             is "soft";
-        end of case soft
+        ;case soft
         case loud:
             is "loud";
-        end of case loud
-    end of match;
-end of fn describe
+        ;case loud
+    ;match;
+;fn describe
 
-!MAIN:
-    std::print.shortest(greet::hello(), " ", greet::wave(), " ", formal(), newln);
+MAIN:
+    std::println(greet::hello(), " ", greet::wave(), " ", formal());
     let $t := greet::Tally[n = 2] merge greet::Tally[n = 3];
     let $u := greet::Tally[n = 1] greet::merge $t;
     let $v := $t <+> $u;
     let $w := $t greet::<+> $u;
-    std::print.shortest($t.n, " ", $u.n, " ", $v.n, " ", $w.n, newln);
+    std::println($t.n, " ", $u.n, " ", $v.n, " ", $w.n);
     let $b: greet::Note := greet::Note[text = "with the path"];
-    std::print.shortest($b.text, ", ", describe(greet::Tone.loud), newln);
-!end of MAIN
+    std::println($b.text, ", ", describe(greet::Tone.loud));
+;MAIN

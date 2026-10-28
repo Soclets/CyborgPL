@@ -150,6 +150,10 @@ thread_local! {
 
 fn raw_words() -> bool { RAW_WORDS.with(|r| r.get()) }
 
+/// The operator symbols of redesign three (owner, 2026-10-27), and its other marks: `?` / `??` for `otherwise`, `*` before a
+/// jumping handler, the `change` forms `+=` …
+pub const THREE_SYMBOLS: &[&str] = &["+", "-", "^", "==", "!=", "<", ">", "<=", ">=", "&", "&&", "|", "||", "++", "?", "??", "*", "+=", "-=", "^=", "++="];
+
 thread_local! {
     /// `oracle --mark-limbs`: the edits that would mark a file's limb words and spell its percentages out, gathered
     /// instead of refused
@@ -412,7 +416,11 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             let after_inline = toks.len() >= 2 + m && toks[toks.len() - 1 - m].tok == Tok::Dot && matches!(&toks[toks.len() - 2 - m].tok, Tok::Word(w) if w == "inline");
             let is_asm = (s == "ASM" || s == "S" || s == "Assembly") && after_inline;
             // `end of inline.ASM` names the block it closes; it opens none
-            let closing = toks.len() >= 3 + m && matches!(&toks[toks.len() - 3 - m].tok, Tok::Word(o) if o == "of");
+            let closing = toks.len() >= 3 + m && (matches!(&toks[toks.len() - 3 - m].tok, Tok::Word(o) if o == "of") || {
+                // `;inline.ASM`: a `;` starting this line, not the last statement's end
+                let k = toks.len() - 3 - m;
+                toks[k].tok == Tok::Semi && toks[k].line == tl && (k == 0 || toks[k - 1].line < tl)
+            });
             // `inline.MSL threads $n { … }` (owner, 2026-10-01): the count comes first, so the first `{` outside any
             // bracket after it opens the Metal code, taken verbatim
             if (s == "MSL" || s == "Metal_Shading_Language") && after_inline {
@@ -428,17 +436,17 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 "no_shadow" => Some(Tok::NoShadow),
                 // `eq` / `not_eq` since redesign two (owner, 2026-10-27); `equal_to` / `not_equal` before it
                 "equal_to" if old_syntax() || crate::spellings::loading() => Some(Tok::Op("equal_to".into())),
-                "eq" if !old_syntax() => Some(Tok::Op("equal_to".into())),
+                "eq" if false => Some(Tok::Op("equal_to".into())),
                 // the words of `<` and `>` (owner, 2026-10-16: "the long"), read as the symbols inside
                 // `lt` / `gt` since redesign two (owner, 2026-10-27: "yes"); the long ones before it
                 "less_than" if old_syntax() || crate::spellings::loading() => Some(Tok::Op("<".into())),
                 "greater_than" if old_syntax() || crate::spellings::loading() => Some(Tok::Op(">".into())),
-                "lt" if !old_syntax() => Some(Tok::Op("<".into())),
-                "gt" if !old_syntax() => Some(Tok::Op(">".into())),
+                "lt" if false => Some(Tok::Op("<".into())),
+                "gt" if false => Some(Tok::Op(">".into())),
                 "not_equal" if old_syntax() => Some(Tok::Op("not_equal".into())),
-                "not_eq" if !old_syntax() => Some(Tok::Op("not_equal".into())),
-                "at_most" => Some(Tok::Op("at_most".into())),
-                "at_least" => Some(Tok::Op("at_least".into())),
+                "not_eq" if false => Some(Tok::Op("not_equal".into())),
+                "at_most" if old_syntax() => Some(Tok::Op("at_most".into())),
+                "at_least" if old_syntax() => Some(Tok::Op("at_least".into())),
                 "newln" => Some(Tok::Newline),
                 _ => None,
             } };
@@ -524,7 +532,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             let line_ends = rest_of_line.trim().is_empty() || rest_of_line.trim_start().starts_with('#');
             if let (Some(kind), true) = (raw_pending.clone(), line_ends) {
                 raw_pending = None;
-                let close = format!("end of {kind}");
+                let close = if raw_words() { format!("end of {kind}") } else { format!(";{kind}") };
                 let mut k = i;
                 while k < chars.len() && chars[k] != '\n' { k += 1; }
                 let body_start = (k + 1).min(chars.len());
@@ -581,6 +589,17 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             // the arrows are short, `->`, `<-`, `<->` (owner, 2026-10-07: "Short, the neck & eye movement
             // is less"); the comparisons are words (`equal_to`, `not_equal`, `at_most`, `at_least`); every
             // other spelling is refused by name, MTM being gone
+            // redesign three's symbols (owner, 2026-10-27): read as written; the front turns them into the words inside
+            // `*` only before a jumping handler (after `.` or `otherwise`), `&` only between two values: elsewhere each is the
+            // old spelling it was, named as before (`*const`, `&mut`, `&$x`)
+            let three_place = match run.as_str() {
+                "*" => matches!(toks.last().map(|t| &t.tok), Some(Tok::Dot)) || matches!(toks.last().map(|t| &t.tok), Some(Tok::Word(o)) if o == "otherwise"),
+                "&" => matches!(toks.last().map(|t| &t.tok), Some(Tok::Var(_) | Tok::Int(_) | Tok::BigInt(_) | Tok::Bin(..) | Tok::Text(..) | Tok::Char(_) | Tok::RParen | Tok::RBracket | Tok::Word(_))) && !chars[j..].iter().skip_while(|c| **c == ' ').collect::<String>().starts_with("mut"),
+                _ => true,
+            };
+            if !old_syntax() && !crate::spellings::loading() && three_place && THREE_SYMBOLS.contains(&run.as_str()) {
+                push(Tok::Op(run), &mut toks); i = j; col += n; continue;
+            }
             let mut main: Option<&'static crate::spellings::Old> = crate::spellings::old_at(&run, false, false);
             // a symbol spells only an operator that reads correctly (owner, 2026-10-16): `*` and `&` are old in
             // every place, each place naming its own word

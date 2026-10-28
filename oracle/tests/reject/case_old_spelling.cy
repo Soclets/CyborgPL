@@ -1,5 +1,5 @@
 case.insensitive [fn];
 
-!MAIN:
+MAIN:
     std::print.shortest["x", newln];
-!end of MAIN
+;MAIN

@@ -1,4 +1,4 @@
-!MAIN:
-    let $m: map[str.utf8, int.sign.32] := map.empty;
-    let $n := map.get(lend $m, value: "a") otherwise 0;
-!end of MAIN
+MAIN:
+    let $m: map[str.utf8, i32] := map.empty;
+    let $n := map.get(lend $m, value: "a") ?? 0;
+;MAIN

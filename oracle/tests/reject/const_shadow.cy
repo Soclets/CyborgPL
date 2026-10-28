@@ -1,4 +1,4 @@
 const $max := 8;
-!MAIN:
+MAIN:
     let shadow $max := 9;
-!end of MAIN
+;MAIN

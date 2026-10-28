@@ -1,4 +1,4 @@
-!MAIN:
+MAIN:
     let $n := 5;
-    const $twice := $n times 2;
-!end of MAIN
+    const $twice := $n x 2;
+;MAIN

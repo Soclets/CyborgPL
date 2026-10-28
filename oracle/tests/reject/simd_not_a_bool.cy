@@ -1,4 +1,4 @@
-!MAIN:
-    let $a: simd[int.sign.32, count: 4] := simd.fill(value: 1); let $b: simd[int.sign.32, count: 4] := simd.fill(value: 2); if $a lt $b:
-    end of if
-!end of MAIN
+MAIN:
+    let $a: simd[i32, count: 4] := simd.fill(value: 1); let $b: simd[i32, count: 4] := simd.fill(value: 2); if $a < $b:
+    ;if
+;MAIN

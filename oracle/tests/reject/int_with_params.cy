@@ -1,3 +1,3 @@
-!MAIN:
-    let $x: int.sign.32[int.sign.32] := 1;
-!end of MAIN
+MAIN:
+    let $x: i32[i32] := 1;
+;MAIN

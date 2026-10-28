@@ -3,20 +3,20 @@
 union.tag Pick:
     quick;
     slow;
-end of union.tag Pick
+;union.tag Pick
 
-fn f [] -> int.unsign.64:
-    let $v: int.unsign.16 := match Pick.quick:
+fn f [] -> u64:
+    let $v: u16 := match Pick.quick:
         case quick:
             ret 8997704354644785536 shr 42;
-        end of case quick
+        ;case quick
         case slow:
             is 1;
-        end of case slow
-    end of match;
-    ret to.int.unsign.64($v);
-end of fn f
+        ;case slow
+    ;match;
+    ret to.u64($v);
+;fn f
 
-!MAIN:
-    std::print.stored(f(), newln);
-!end of MAIN
+MAIN:
+    std::println.stored(f());
+;MAIN

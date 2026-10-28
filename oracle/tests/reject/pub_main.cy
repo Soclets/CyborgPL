@@ -1,2 +1,2 @@
-pub !MAIN:
-!end of MAIN
+pub MAIN:
+;MAIN

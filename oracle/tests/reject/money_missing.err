@@ -1,1 +1,1 @@
-`d64` is Money's
+`%d64` is Money's, and this kit's CyJet.toml does not list the limb Money: add `money {` / `id = d7b62f4448a5b23d792a25bcdba89220e02691fb5e27cf18640ee491d049df0f` / `ver = 2026-10-07T20:22:24+07:00` / `}` under its `my limbs:`

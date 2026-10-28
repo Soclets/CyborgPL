@@ -14,37 +14,37 @@ The 2026-09-14 form is under **History** at the bottom.
 ```
 rec Locker:
     var name: str.utf8;
-    let number: int.sign.32;
+    let number: i32;
     var occupied: bool;
-end of rec Locker
+;rec Locker
 
-fn count [lent $text: str.utf8] -> int.sign.32:
+fn count [lent $text: str.utf8] -> i32:
     …
-end of fn count
+;fn count
 
-!MAIN:
+MAIN:
     let $mine := Locker[name = "A", number = 7, occupied = false];
-    var $total: int.sign.32 = 0;
+    var $total: i32 = 0;
     for $i [from: 1, to: 10, by: 1]:
-        if ($i mod.floor 2) eq 0:
-            change $total to $total plus $i;
-        else if $i eq 7:
+        if ($i mod.floor 2) == 0:
+            change $total += $i;
+        else if $i == 7:
             break;
         else:
             continue;
-        end of if
-    end of for
-    let $s := "line 1" concat newln concat "line 2";
-    std::print.shortest("total: ", $total, newln);
-!end of MAIN
+        ;if
+    ;for
+    let $s := "line 1" ++ newln ++ "line 2";
+    std::println("total: ", $total);
+;MAIN
 ```
 
 ## Declarations (revised 2026-09-19)
 
 ```
 let $x := 1000;                 # Precog picks the best type
-let $x: float.bin.16 := 1000;           # explicit type; must be fully explicit
-var $n: int.sign.32 = 0;          # mutability, when stated, before the name
+let $x: f16 := 1000;           # explicit type; must be fully explicit
+var $n: i32 = 0;          # mutability, when stated, before the name
 let $limit := 10;
 let $r: std::uenr := 1000;        # a Kit-provided type: `::` crosses, `.` narrows
 pub const $max := 8;            # a Kit-level value: top level only, see kits.md
@@ -211,7 +211,7 @@ Closed 2026-09-14: the typed form is always fully explicit (no bare
 ```
 var.f16 'x' = [1000];
 var 's' := ["line 1" newln "line 2"];
-func.i32 add [var.i32 'a', var.i32 'b'] { return ['a' plus 'b']; }
+func.i32 add [var.i32 'a', var.i32 'b'] { return ['a' + 'b']; }
 loop.temp.range.i32 'i' [= 0, = 9] { if ['i' equal_to 7] { break; } }
 ```
 

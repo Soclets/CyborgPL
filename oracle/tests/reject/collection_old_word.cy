@@ -1,8 +1,8 @@
 collection.function c:
-    c [] -> int.sign.32:
+    c [] -> i32:
         ret 1;
-    end of c
-end of coll.fn c
+    ;c
+;coll.fn c
 
-!MAIN:
-!end of MAIN
+MAIN:
+;MAIN

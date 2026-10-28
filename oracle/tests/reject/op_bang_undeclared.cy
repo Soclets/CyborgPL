@@ -1,3 +1,3 @@
-!MAIN:
-    let $v := 2 ! 3; std::print.shortest($v, newln);
-!end of MAIN
+MAIN:
+    let $v := 2 ! 3; std::println($v);
+;MAIN

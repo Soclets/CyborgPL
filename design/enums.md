@@ -14,7 +14,7 @@ union.tag Status:
     empty;
     claimed: str.utf8;       # this case carries who claimed it
     locked;
-end of union.tag Status
+;union.tag Status
 ```
 
 Top level beside `struct`; `pub` works the same. The name is bare (a type);
@@ -29,9 +29,9 @@ namespace. The keyword is `enum` (Rust/C/Swift/TypeScript) over `variant`.
 let $a := Status.empty;                 # a case with no data: bare
 let $b := Status.claimed["Tankun"];     # a case with data: the bracket builds it
 rec Locker:
-    var number: int.sign.32;
+    var number: i32;
     var status: Status;
-end of rec Locker
+;rec Locker
 ```
 
 - **An enum value is always owned**, like a struct (one rule; adding a
@@ -47,15 +47,15 @@ fn describe [lent $l: Locker] -> str.utf8:
     match $l.status:
         case empty:
             ret "free";
-        end of case empty
+        ;case empty
         case claimed $who:
-            ret "taken by " concat $who;
-        end of case claimed
+            ret "taken by " ++ $who;
+        ;case claimed
         case locked:
             ret "locked";
-        end of case locked
-    end of match
-end of fn describe
+        ;case locked
+    ;match
+;fn describe
 ```
 
 - The arms are the same shape as `otherwise { … }` (`failures.md`): the
@@ -83,14 +83,14 @@ in one scope (open: state that rule).
 let $label := match $s:
     case empty:
         "free"
-    end of case empty
+    ;case empty
     case claimed $who:
-        "taken by " concat $who
-    end of case claimed
+        "taken by " ++ $who
+    ;case claimed
     case locked:
         ret "(locked)";
-    end of case locked      # a case may still leave instead
-end of match;
+    ;case locked      # a case may still leave instead
+;match;
 ```
 
 A case whose block holds only a value is that value (a). A block is
@@ -120,33 +120,33 @@ always a statement, since a value says `giveS` (owner: "yes"):
 ```
 match $o:
     case cancelled:
-    end of case cancelled
+    ;case cancelled
     case paid:
         match $s:
             case pickup:
                 …
-            end of case pickup
+            ;case pickup
             case post:
                 …
-            end of case post
-        end of match
-    end of case paid                 # runs
-end of match
+            ;case post
+        ;match
+    ;case paid                 # runs
+;match
 let $price := match $o:
     case cancelled:
         0
-    end of case cancelled
+    ;case cancelled
     case paid:
         match $s:
             case pickup:
                 5
-            end of case pickup
+            ;case pickup
             case post:
                 9
-            end of case post
-        end of match
-    end of case paid
-end of match;
+            ;case post
+        ;match
+    ;case paid
+;match;
 #strict: paid { giveS match 's' { pickup { giveS 5; } post { giveS 9; } }; }
 ```
 

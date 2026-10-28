@@ -1,8 +1,8 @@
-%extern.C proc malloc [let $bytes: int.unsign.64] -> ptr.mut[int.unsign.8];
+%extern.C proc malloc [let $bytes: u64] -> ptr.mut[u8];
 rec Plain:
-    var x: int.sign.32;
-end of rec Plain
-!MAIN:
-    !no_check let $raw := malloc(4);
-    !no_check let $p := ptr.cast[Plain]($raw);
-!end of MAIN
+    var x: i32;
+;rec Plain
+MAIN:
+    no_check let $raw := malloc(4);
+    no_check let $p := ptr.cast[Plain]($raw);
+;MAIN

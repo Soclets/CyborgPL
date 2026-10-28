@@ -1,3 +1,3 @@
-pub.kit fn area [let $b: int.sign.64, let $h: int.sign.64] -> int.sign.64:
-    ret ($b times $h) div.floor 2;
-end of fn area
+pub.kit fn area [let $b: i64, let $h: i64] -> i64:
+    ret ($b x $h) div.floor 2;
+;fn area

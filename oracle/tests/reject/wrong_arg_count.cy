@@ -1,6 +1,6 @@
-fn one [let $a: int.sign.32] -> int.sign.32:
+fn one [let $a: i32] -> i32:
     ret $a;
-end of fn one
-!MAIN:
+;fn one
+MAIN:
     let $x := one(1, 2);
-!end of MAIN
+;MAIN

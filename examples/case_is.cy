@@ -4,21 +4,21 @@ union.tag Status:
     empty;
     claimed: str.utf8;
     locked;
-end of union.tag Status
+;union.tag Status
 fn label [let $s: Status] -> str.utf8:
     let $text := match $s:
         case empty:
             is "free";
-        end of case empty
+        ;case empty
         case claimed $who:
-            let $prefix := "taken by "; is $prefix concat $who;
-        end of case claimed
+            let $prefix := "taken by "; is $prefix ++ $who;
+        ;case claimed
         case locked:
             is "locked";
-        end of case locked
-    end of match;
+        ;case locked
+    ;match;
     ret give $text;
-end of fn label
-!MAIN:
-    std::print.shortest(label(Status.claimed("bo")), newln);
-!end of MAIN
+;fn label
+MAIN:
+    std::println(label(Status.claimed("bo")));
+;MAIN

@@ -1,3 +1,3 @@
-!MAIN:
+MAIN:
     variable $x := 1;
-!end of MAIN
+;MAIN

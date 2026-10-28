@@ -1,4 +1,4 @@
 # `pub.kit` stays in its own kit (kits.md)
-!MAIN:
+MAIN:
     let $x := areas::internal();
-!end of MAIN
+;MAIN

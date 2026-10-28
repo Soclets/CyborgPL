@@ -1,8 +1,8 @@
 coll.fn c:
-    member c [let $x: int.sign.32] -> int.sign.32:
+    member c [let $x: i32] -> i32:
         ret $x;
-    end of member c
+    ;member c
     member c.q [$nope = 1];
-end of coll.fn c
-!MAIN:
-!end of MAIN
+;coll.fn c
+MAIN:
+;MAIN

@@ -4,16 +4,16 @@
 
 fn first <T: any> [let $a: <T>, let $b: <T>] -> <T>:
     ret $a;
-end of fn first
+;fn first
 
 proc hello []:
-    std::print.shortest("from a task", newln);
-end of proc hello
+    std::println("from a task");
+;proc hello
 
-!MAIN:
-    var $n: int.sign.64 = to.int.sign.64("41") otherwise 0;
-    check change $n to $n plus 1;
-    !no_check change $n to $n times 1;
-    std::print.shortest(first($n, 7), newln);
+MAIN:
+    var $n: i64 = to.i64("41") ?? 0;
+    check change $n += 1;
+    no_check change $n x= 1;
+    std::println(first($n, 7));
     %spawn.task hello();
-!end of MAIN
+;MAIN

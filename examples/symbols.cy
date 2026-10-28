@@ -4,14 +4,14 @@
 #   -5, -'x'   a negative, negate 'x'
 # Everything else is a word: equal_to, not_equal, at_most, at_least, div.…, mod.…, and, and.then, or.else,
 # concat, lend / lent, ptr[T], exactly; and a change is always written out, `change $i = $i + 1;`.
-!MAIN:
+MAIN:
     let $a := 7;
     let $b := 2;
-    std::print.shortest($a plus $b, " ", $a minus $b, " ", $a times $b, " ", $b pow 10, " ", 1 plus 2 times 3, newln);
-    std::print.shortest($a lt $b, " ", $a gt $b, " ", $a lt $b, " ", $a gt $b, newln);
-    std::print.shortest(neg $a, " ", neg $a, " ", neg 5, newln);
-    std::print.shortest($a plus $b, " ", $a div.floor $b, " ", $a eq $b, newln);
+    std::println($a + $b, " ", $a - $b, " ", $a x $b, " ", $b ^ 10, " ", 1 + 2 x 3);
+    std::println($a < $b, " ", $a > $b, " ", $a < $b, " ", $a > $b);
+    std::println(-$a, " ", -$a, " ", -5);
+    std::println($a + $b, " ", $a div.floor $b, " ", $a == $b);
     var $i = 1;
-    change $i to $i plus 1;
-    std::print.shortest($i, newln);
-!end of MAIN
+    change $i += 1;
+    std::println($i);
+;MAIN

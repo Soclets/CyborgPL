@@ -308,10 +308,10 @@ from the same independence proof.
 Per check site, in source order:
 
 ```
-line 7   $total plus square($i)   overflow           proven    (layer 2: max 333833500)
+line 7   $total + square($i)   overflow           proven    (layer 2: max 333833500)
 line 12  $xs[$k]           out of bounds      checked   (layer 3: sat, k=100 when len=100)
 line 15  $a div.floor $b       division by zero   trusted   (no_check)
-line 9   square: $x times $x       overflow           proven    (layer 2, at: 1 call site)
+line 9   square: $x x $x       overflow           proven    (layer 2, at: 1 call site)
 ```
 
 Three lists in the build output: `no_check` sites, `check` sites passed,

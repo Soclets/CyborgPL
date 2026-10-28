@@ -1,1 +1,1 @@
-`std::print.useful` never fails with `closed` (it fails with write_failed)
+`std::print.shortest` never fails with `closed` (it fails with write_failed)

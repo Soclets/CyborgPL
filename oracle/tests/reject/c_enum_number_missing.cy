@@ -2,6 +2,6 @@
 %layout.C enum K:
     a;
     b;
-end of %layout.C enum K
-!MAIN:
-!end of MAIN
+;%layout.C enum K
+MAIN:
+;MAIN

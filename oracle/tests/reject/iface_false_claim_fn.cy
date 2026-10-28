@@ -1,9 +1,9 @@
 sig Printable <T>:
     fn show [lent $x: <T>] -> str.utf8;
-end of sig Printable
+;sig Printable
 rec V:
-    var x: int.sign.32;
-end of rec V
+    var x: i32;
+;rec V
 V satisfies Printable;
-!MAIN:
-!end of MAIN
+MAIN:
+;MAIN

@@ -1,11 +1,11 @@
-fn f [] -> int.sign.32 or fail[a, b]:
+fn f [] -> i32 or fail[a, b]:
     fail a;
-end of fn f
-!MAIN:
+;fn f
+MAIN:
     let $x := f()-
     otherwise:
-        !case a:
+        case a:
             ret;
-        !end of case a
-    end of otherwise;
-!end of MAIN
+        ;case a
+    ;otherwise;
+;MAIN

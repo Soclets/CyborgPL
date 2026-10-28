@@ -2,31 +2,31 @@
 # code is the sum's low byte. N comes from the environment and must be 0 to
 # 1_000_000_000: `atoll`'s answer is checked at the door, and anything else
 # ends the program with exit code 2, as does no N at all.
-%extern.C proc exit [let $code: int.sign.32];
-%extern.C proc getenv [let $name: ptr[int.unsign.8]] -> ptr[int.unsign.8];
-%extern.C proc atoll [let $s: ptr[int.unsign.8]] -> int.sign.64[min: 0, max: 1_000_000_000];
+%extern.C proc exit [let $code: i32];
+%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
+%extern.C proc atoll [let $s: ptr[u8]] -> i64[min: 0, max: 1_000_000_000];
 
 # N, from the text in the environment: missing when there is none, and out
 # of range when it is not a number this program takes.
-proc read_n [let $text: ptr[int.unsign.8]] -> int.sign.64[min: 0, max: 1_000_000_000] or fail[missing, out_of_range]:
+proc read_n [let $text: ptr[u8]] -> i64[min: 0, max: 1_000_000_000] or fail[missing, out_of_range]:
     if ptr.is_null($text):
         fail missing;
-    end of if
-    !no_check let $n := atoll($text) otherwise fail;
+    ;if
+    no_check let $n := atoll($text)?;
     ret $n;
-end of proc read_n
+;proc read_n
 
-proc run [] -> int.sign.32 or fail[missing, out_of_range]:
+proc run [] -> i32 or fail[missing, out_of_range]:
     let $key := "N";
-    !no_check let $n := read_n(getenv(lend $key)) otherwise fail;
-    var $acc: int.sign.64 = 0;
-    for $i: int.sign.64 [from: 1, to: $n, by: 1]:
-        change $acc to $acc plus (($i times $i) mod.floor 7);
-    end of for
-    ret to.int.sign.32(($acc mod.floor 1_000_000_007) mod.floor 256);
-end of proc run
+    no_check let $n := read_n(getenv(lend $key))?;
+    var $acc: i64 = 0;
+    for $i: i64 [from: 1, to: $n, by: 1]:
+        change $acc += (($i x $i) mod.floor 7);
+    ;for
+    ret to.i32(($acc mod.floor 1_000_000_007) mod.floor 256);
+;proc run
 
-!MAIN:
-    let $code := run() otherwise 2;
-    !no_check my.exit($code);
-!end of MAIN
+MAIN:
+    let $code := run() ?? 2;
+    no_check my.exit($code);
+;MAIN

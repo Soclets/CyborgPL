@@ -1,1 +1,1 @@
-lane 1 of `plus` is 400, which does not fit u8
+lane 1 of `+` is 400, which does not fit u8: a vector's lanes are checked at every operation

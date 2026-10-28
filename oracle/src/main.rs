@@ -23,6 +23,7 @@ mod parser;
 mod spellings;
 mod value;
 mod redesign;
+mod three;
 mod unicode_props;
 mod unicode_width;
 
@@ -1363,7 +1364,7 @@ fn main() {
         .expect("the oracle's thread");
     match run.join() {
         Ok(Ok(code)) => exit(code as i32),
-        Ok(Err(msg)) => { eprintln!("{}", dollar_names(&msg)); exit(1); }
+        Ok(Err(msg)) => { eprintln!("{}", three::threes(&dollar_names(&msg))); exit(1); }
         Err(_) => exit(101),
     };
 }

@@ -1,38 +1,38 @@
 # Structs: building one, reading and changing its fields, an `immut` field.
 rec Locker:
     var name: str.utf8;
-    let number: int.sign.32;
-    var capacity: int.sign.32;
+    let number: i32;
+    var capacity: i32;
     var occupied: bool;
-end of rec Locker
+;rec Locker
 
-fn free_space [lent $l: Locker] -> int.sign.32:
+fn free_space [lent $l: Locker] -> i32:
     if $l.occupied:
         ret 0;
-    end of if
+    ;if
     ret $l.capacity;
-end of fn free_space
+;fn free_space
 
 proc claim [lent.mut $l: Locker]:
     change $l.occupied to true;
-end of proc claim
+;proc claim
 
-!MAIN:
+MAIN:
     var $mine = Locker[name = "field kit", number = 7, capacity = 12, occupied = false];
-    std::print.shortest($mine.name, " is #", $mine.number, newln);
-    std::print.shortest("free: ", free_space(lend $mine), newln);
+    std::println($mine.name, " is #", $mine.number);
+    std::println("free: ", free_space(lend $mine));
     claim(lend.mut $mine);
-    std::print.shortest("free: ", free_space(lend $mine), newln);
+    std::println("free: ", free_space(lend $mine));
     change $mine.capacity to 20;
-    std::print.shortest($mine, newln);
+    std::println($mine);
     let $label := copy $mine.name;
-    std::print.shortest($label, newln);
+    std::println($label);
     let $taken := give $mine.name;
-    std::print.shortest($taken, newln);
+    std::println($taken);
     let $spare: Locker := Locker[name = "spare", number = 8, capacity = 4, occupied = false];
     let $lockers := [copy $spare, Locker[name = "third", number = 9, capacity = 4, occupied = true]];
     for $l in lend $lockers:
-        std::print.shortest($l.number, " ");
-    end of for
-    std::print.stored(newln);
-!end of MAIN
+        std::print($l.number, " ");
+    ;for
+    std::println.stored();
+;MAIN

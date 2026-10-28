@@ -1,8 +1,8 @@
 %layout.C rec S:
-    var mode: int.unsign.8[bits: 3];
-end of %layout.C rec S
+    var mode: u8[bits: 3];
+;%layout.C rec S
 
-!MAIN:
+MAIN:
     var $s = S[mode = 1];
     change $s.mode to 8;
-!end of MAIN
+;MAIN

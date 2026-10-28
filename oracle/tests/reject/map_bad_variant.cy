@@ -1,3 +1,3 @@
-!MAIN:
-    let $m: std::map.sorted[str.utf8, int.sign.32] := std::map.empty;
-!end of MAIN
+MAIN:
+    let $m: std::map.sorted[str.utf8, i32] := std::map.empty;
+;MAIN

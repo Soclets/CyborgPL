@@ -2,31 +2,31 @@
 # promises, like a generic fn. An operator may also be written for several types by name; two
 # meanings for the same type are an error, a generic one covering a specific one's type included.
 sig Number <T>:
-    op minus [lent $a: <T>, lent $b: <T>] -> <T>;
-    op lt [lent $a: <T>, lent $b: <T>] -> bool;
-end of sig Number
+    op - [lent $a: <T>, lent $b: <T>] -> <T>;
+    op < [lent $a: <T>, lent $b: <T>] -> bool;
+;sig Number
 op ~= <T: Number> [lent $a: <T>, lent $b: <T>] -> bool:
-    if $a lt $b:
-        ret $b minus $a lt 10;
-    end of if
-    ret $a minus $b lt 10;
-end of op ~=
+    if $a < $b:
+        ret $b - $a < 10;
+    ;if
+    ret $a - $b < 10;
+;op ~=
 rec A:
-    var x: int.sign.32;
-end of rec A
+    var x: i32;
+;rec A
 rec B:
-    var y: int.sign.32;
-end of rec B
-op <+> [lent $a: A, lent $b: A] -> int.sign.32:
-    ret $a.x plus $b.x;
-end of op <+>
-op <+> [lent $a: B, lent $b: B] -> int.sign.32:
-    ret $a.y times $b.y;
-end of op <+>
-!MAIN:
-    let $m: int.sign.32 := 100;
-    std::print.shortest(95 ~= $m, " ", 50 ~= $m, newln);
+    var y: i32;
+;rec B
+op <+> [lent $a: A, lent $b: A] -> i32:
+    ret $a.x + $b.x;
+;op <+>
+op <+> [lent $a: B, lent $b: B] -> i32:
+    ret $a.y x $b.y;
+;op <+>
+MAIN:
+    let $m: i32 := 100;
+    std::println(95 ~= $m, " ", 50 ~= $m);
     let $p := A[x = 3];
     let $q := B[y = 3];
-    std::print.shortest($p <+> $p, " ", $q <+> $q, newln);
-!end of MAIN
+    std::println($p <+> $p, " ", $q <+> $q);
+;MAIN

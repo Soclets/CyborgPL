@@ -1,9 +1,9 @@
-fn look [lent $a: str.utf8] -> int.sign.32:
+fn look [lent $a: str.utf8] -> i32:
     ret 1;
-end of fn look
-fn apply [let $f: fn[str.utf8] -> int.sign.32] -> int.sign.32:
+;fn look
+fn apply [let $f: fn[str.utf8] -> i32] -> i32:
     ret $f("x");
-end of fn apply
-!MAIN:
+;fn apply
+MAIN:
     let $x := apply(look);
-!end of MAIN
+;MAIN

@@ -1,8 +1,8 @@
 rec V:
-    var n: int.sign.32;
-end of rec V
+    var n: i32;
+;rec V
 op >> [$a: V, $b: V] -> V:
     ret $a;
-end of op
-!MAIN:
-!end of MAIN
+;op
+MAIN:
+;MAIN

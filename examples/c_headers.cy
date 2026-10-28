@@ -8,10 +8,10 @@ incl.%C.system["unistd.h", "stdio.h"];
 
 module text:
     pub.kit incl.%C.system["string.h"];
-end of module text
+;module text
 
-!MAIN:
+MAIN:
     let $msg := "hello through C's write";
-    !no_check let $n := write(1, lend $msg, text.strlen(lend $msg));
-    std::print.shortest(newln, $n, " bytes; BUFSIZ ", $BUFSIZ, ", EOF ", $EOF, ", SEEK_END ", $SEEK_END, newln);
-!end of MAIN
+    no_check let $n := write(1, lend $msg, text.strlen(lend $msg));
+    std::println(newln, $n, " bytes; BUFSIZ ", $BUFSIZ, ", EOF ", $EOF, ", SEEK_END ", $SEEK_END);
+;MAIN

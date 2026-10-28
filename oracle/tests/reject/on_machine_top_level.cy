@@ -1,7 +1,7 @@
 on.machine.chip sve:
     fn f []:
-    end of fn f
-end of on.machine.chip
+    ;fn f
+;on.machine.chip
 
-!MAIN:
-!end of MAIN
+MAIN:
+;MAIN

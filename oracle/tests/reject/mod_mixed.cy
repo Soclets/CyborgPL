@@ -1,3 +1,3 @@
-!MAIN:
-    let $x := 10 mod.floor 3 plus 1;
-!end of MAIN
+MAIN:
+    let $x := 10 mod.floor 3 + 1;
+;MAIN

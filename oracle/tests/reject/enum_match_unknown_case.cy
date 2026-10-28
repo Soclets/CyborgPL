@@ -1,15 +1,15 @@
 union.tag S:
     a;
     b;
-end of union.tag S
-!MAIN:
+;union.tag S
+MAIN:
     let $s := S.a;
     match $s:
         case a:
-        end of case a
+        ;case a
         case b:
-        end of case b
+        ;case b
         case z:
-        end of case z
-    end of match
-!end of MAIN
+        ;case z
+    ;match
+;MAIN

@@ -1,6 +1,6 @@
 table_bytes 1_024 rec P:
-    var x: int.sign.32;
-end of rec P
+    var x: i32;
+;rec P
 
-!MAIN:
-!end of MAIN
+MAIN:
+;MAIN

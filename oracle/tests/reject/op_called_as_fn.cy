@@ -1,6 +1,6 @@
-op dot [lent $a: int.sign.32, lent $b: int.sign.32] -> int.sign.32:
-    ret $a times $b;
-end of op dot
-!MAIN:
+op dot [lent $a: i32, lent $b: i32] -> i32:
+    ret $a x $b;
+;op dot
+MAIN:
     let $x := dot(1, 2);
-!end of MAIN
+;MAIN

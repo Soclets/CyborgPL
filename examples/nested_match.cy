@@ -3,42 +3,42 @@
 union.tag Order:
     cancelled;
     paid;
-end of union.tag Order
+;union.tag Order
 union.tag Ship:
     pickup;
     post;
-end of union.tag Ship
-!MAIN:
+;union.tag Ship
+MAIN:
     let $o := Order.paid;
     let $s := Ship.post;
     match $o:
         case cancelled:
-        end of case cancelled
+        ;case cancelled
         case paid:
             match $s:
                 case pickup:
-                    std::print.shortest("counter", newln);
-                end of case pickup
+                    std::println("counter");
+                ;case pickup
                 case post:
-                    std::print.shortest("mail", newln);
-                end of case post
-            end of match
-        end of case paid
-    end of match
+                    std::println("mail");
+                ;case post
+            ;match
+        ;case paid
+    ;match
     let $price := match $o:
         case cancelled:
             is 0;
-        end of case cancelled
+        ;case cancelled
         case paid:
             is match $s:
                 case pickup:
                     is 5;
-                end of case pickup
+                ;case pickup
                 case post:
                     is 9;
-                end of case post
-            end of match;
-        end of case paid
-    end of match;
-    std::print.shortest($price, newln);
-!end of MAIN
+                ;case post
+            ;match;
+        ;case paid
+    ;match;
+    std::println($price);
+;MAIN

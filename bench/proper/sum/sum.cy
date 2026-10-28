@@ -11,22 +11,22 @@
 proc read_n [let $text: ptr[uint8]] -> int64[min 0, max 1_000_000_000] or fail[missing, out_of_range]:
     if ptr.is_null[$text]:
         fail missing;
-    end of if
-    !no_check let $n := atoll[$text] otherwise fail;
+    ;if
+    no_check let $n := atoll[$text]?;
     ret $n;
-end of proc read_n
+;proc read_n
 
 fn run [] -> int32 or fail[missing, out_of_range]:
     let $key := "N";
-    !no_check let $n := read_n[getenv[lend $key]] otherwise fail;
+    no_check let $n := read_n[getenv[lend $key]]?;
     var $acc: int64 = 0;
     for $i: int64 from 1 to $n by 1:
-        change $acc to $acc plus (($i times $i) mod.floor 7);
-    end of for
+        change $acc += (($i x $i) mod.floor 7);
+    ;for
     ret to.int32[($acc mod.floor 1_000_000_007) mod.floor 256];
-end of fn run
+;fn run
 
-!MAIN:
-    let $code := run[] otherwise 2;
-    !no_check my.exit[$code];
-!end of MAIN
+MAIN:
+    let $code := run[] ?? 2;
+    no_check my.exit[$code];
+;MAIN

@@ -1,3 +1,3 @@
-!MAIN:
-    std::print.shortest(formal(), newln);
-!end of MAIN
+MAIN:
+    std::println(formal());
+;MAIN

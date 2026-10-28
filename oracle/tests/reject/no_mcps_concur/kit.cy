@@ -1,6 +1,6 @@
 fn work []:
-end of fn work
+;fn work
 
-!MAIN:
+MAIN:
     %spawn.task work[];
-!end of MAIN
+;MAIN

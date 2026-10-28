@@ -1,4 +1,4 @@
 incl.%C.system["string.h"];
-!MAIN:
+MAIN:
     let $n := strlen("abc");
-!end of MAIN
+;MAIN

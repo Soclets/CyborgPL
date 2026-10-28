@@ -1,9 +1,9 @@
 coll.fn say:
     labels [$t as value];
-    member say [let $n: int.sign.32, let $t: int.sign.32] -> int.sign.32:
+    member say [let $n: i32, let $t: i32] -> i32:
         ret $t;
-    end of member say
-end of coll.fn say
-!MAIN:
+    ;member say
+;coll.fn say
+MAIN:
     let $x := say(value: 2, 1);
-!end of MAIN
+;MAIN

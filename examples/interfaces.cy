@@ -1,50 +1,50 @@
 # Interfaces (design/interfaces.md): a named list of promises about some <T>, announced after the name.
 sig Ordered <T>:
-    op lt [lent $a: <T>, lent $b: <T>] -> bool;
-    op eq [lent $a: <T>, lent $b: <T>] -> bool;
-end of sig Ordered
+    op < [lent $a: <T>, lent $b: <T>] -> bool;
+    op == [lent $a: <T>, lent $b: <T>] -> bool;
+;sig Ordered
 
 sig Printable <T>:
     fn show [lent $x: <T>] -> str.utf8;
-end of sig Printable
+;sig Printable
 
 rec Vec:
-    var x: float.bin.64;
-    var y: float.bin.64;
-end of rec Vec
+    var x: f64;
+    var y: f64;
+;rec Vec
 
 # a struct keeps a promise by having the operations — the language's own operators
 # may be defined for a user type (never for the language's types)
-op lt [lent $a: Vec, lent $b: Vec] -> bool:
-    ret ($a.x times $a.x plus $a.y times $a.y) lt ($b.x times $b.x plus $b.y times $b.y);
-end of op lt
-op eq [lent $a: Vec, lent $b: Vec] -> bool:
-    ret $a.x eq $b.x and $a.y eq $b.y;
-end of op eq
+op < [lent $a: Vec, lent $b: Vec] -> bool:
+    ret ($a.x x $a.x + $a.y x $a.y) < ($b.x x $b.x + $b.y x $b.y);
+;op <
+op == [lent $a: Vec, lent $b: Vec] -> bool:
+    ret $a.x == $b.x & $a.y == $b.y;
+;op ==
 fn show [lent $v: Vec] -> str.utf8:
-    ret "(" concat to.stored.str.utf8($v.x) concat ", " concat to.stored.str.utf8($v.y) concat ")";
-end of fn show
+    ret "(" ++ to.stored.str.utf8($v.x) ++ ", " ++ to.stored.str.utf8($v.y) ++ ")";
+;fn show
 
 Vec satisfies Ordered;        # optional: a claim the compiler checks
 Vec satisfies Printable;
 
 # a generic says what its blank accepts where it announces it (owner, 2026-10-02)
 fn max <T: Ordered> [let $a: <T>, let $b: <T>] -> <T>:
-    if $b lt $a:
+    if $b < $a:
         ret give $a;
-    end of if     # a <T> may be owned, so generic code writes the verbs;
+    ;if     # a <T> may be owned, so generic code writes the verbs;
     ret give $b;                       # for a plain T (i32) the verb does nothing
-end of fn max
+;fn max
 
 fn describe <T: Printable> [lent $x: <T>] -> str.utf8:
-    ret "value " concat show(lend $x);
-end of fn describe
+    ret "value " ++ show(lend $x);
+;fn describe
 
-!MAIN:
+MAIN:
     let $u := Vec[x = 1, y = 2];
     let $v := Vec[x = 3, y = 4];
     let $m := max(copy $u, copy $v);             # Vec is Ordered: it has < and equal_to 
-    std::print.shortest(describe(lend $m), newln);
-    std::print.shortest(max(3, 9), " ", max(2.5, 1.5), newln);   # numbers are Ordered by the language
-    std::print.shortest($u eq $v, " ", $u lt $v, newln);     # the operators work directly too
-!end of MAIN
+    std::println(describe(lend $m));
+    std::println(max(3, 9), " ", max(2.5, 1.5));   # numbers are Ordered by the language
+    std::println($u == $v, " ", $u < $v);     # the operators work directly too
+;MAIN

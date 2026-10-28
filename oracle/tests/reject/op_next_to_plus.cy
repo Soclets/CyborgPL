@@ -1,6 +1,6 @@
-op <+> [lent $a: int.sign.32, lent $b: int.sign.32] -> int.sign.32:
-    ret $a plus $b;
-end of op <+>
-!MAIN:
-    let $w := 1 plus 2 <+> 3;
-!end of MAIN
+op <+> [lent $a: i32, lent $b: i32] -> i32:
+    ret $a + $b;
+;op <+>
+MAIN:
+    let $w := 1 + 2 <+> 3;
+;MAIN

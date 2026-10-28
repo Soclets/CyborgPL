@@ -1,6 +1,6 @@
-fn countdown [let $n: int.sign.32] -> int.sign.32:
-    change $n to $n minus 1;
+fn countdown [let $n: i32] -> i32:
+    change $n -= 1;
     ret $n;
-end of fn countdown
-!MAIN:
-!end of MAIN
+;fn countdown
+MAIN:
+;MAIN

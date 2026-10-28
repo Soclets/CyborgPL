@@ -1,10 +1,10 @@
 rec V:
-    var x: int.sign.32;
-end of rec V
-op plus [lent $a: V, lent $b: V] -> V:
-    ret V[x = $a.x plus $b.x];
-end of op plus
-!MAIN:
+    var x: i32;
+;rec V
+op + [lent $a: V, lent $b: V] -> V:
+    ret V[x = $a.x + $b.x];
+;op +
+MAIN:
     let $u := V[x = 1];
-    let $w := $u plus 1;
-!end of MAIN
+    let $w := $u + 1;
+;MAIN

@@ -1,1 +1,1 @@
-an `else` continues its `if`: no `end of if` before it
+an `else` continues its `if`: no `;if` before it; `;if` comes once, after the last branch

@@ -1,4 +1,4 @@
 # Hello, World!
-!MAIN:
-    std::print.stored("Hello, World!", newln);
-!end of MAIN
+MAIN:
+    std::println.stored("Hello, World!");
+;MAIN

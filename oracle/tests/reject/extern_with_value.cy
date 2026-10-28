@@ -1,3 +1,3 @@
-%extern.C var $a: int.sign.32 = 1;
-!MAIN:
-!end of MAIN
+%extern.C var $a: i32 = 1;
+MAIN:
+;MAIN

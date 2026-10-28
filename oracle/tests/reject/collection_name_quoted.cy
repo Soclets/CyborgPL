@@ -1,4 +1,4 @@
 coll.fn "cum":
-end of coll.fn "cum"
-!MAIN:
-!end of MAIN
+;coll.fn "cum"
+MAIN:
+;MAIN

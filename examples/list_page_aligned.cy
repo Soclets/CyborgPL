@@ -2,25 +2,25 @@
 # without a copy; `std::list.not_page_aligned[T]` never does; a plain `std::list[T]` is Precog's to place. A narrowed
 # list goes anywhere a plain one does, lent or given, and keeps its kind as it grows there; a plain list becomes one
 # only by `to.list.page_aligned(…)` / `to.list.not_page_aligned(…)`, which may copy it.
-fn total [lent $xs: std::ls[int.sign.32]] -> int.sign.32:
-    var $s: int.sign.32 = 0;
+fn total [lent $xs: std::ls[i32]] -> i32:
+    var $s: i32 = 0;
     for $x in lend $xs:
-        change $s to $s plus $x;
-    end of for
+        change $s += $x;
+    ;for
     ret $s;
-end of fn total
+;fn total
 
-proc grow [lent.mut $xs: std::ls[int.sign.32]]:
+proc grow [lent.mut $xs: std::ls[i32]]:
     std::ls.append(lend.mut $xs, value: 4);
-end of proc grow
+;proc grow
 
-!MAIN:
-    var $xs: std::ls.page_aligned[int.sign.32] = [1, 2, 3];
+MAIN:
+    var $xs: std::ls.page_aligned[i32] = [1, 2, 3];
     grow(lend.mut $xs);
-    std::print.shortest(total(lend $xs), " ", $xs, newln);
-    let $plain: std::ls[int.sign.32] := [5, 6];
+    std::println(total(lend $xs), " ", $xs);
+    let $plain: std::ls[i32] := [5, 6];
     let $pa := to.ls.page_aligned(give $plain);
-    let $np: std::ls.not_page_aligned[int.sign.32] := to.ls.not_page_aligned(give $pa);
-    let $back: std::ls[int.sign.32] := give $np;
-    std::print.shortest($back, newln);
-!end of MAIN
+    let $np: std::ls.not_page_aligned[i32] := to.ls.not_page_aligned(give $pa);
+    let $back: std::ls[i32] := give $np;
+    std::println($back);
+;MAIN

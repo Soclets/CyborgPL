@@ -1,3 +1,3 @@
-!MAIN:
-    var $xs: ls[int.sign.64] = [];
-!end of MAIN
+MAIN:
+    var $xs: ls[i64] = [];
+;MAIN

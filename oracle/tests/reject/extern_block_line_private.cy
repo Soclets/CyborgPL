@@ -1,11 +1,11 @@
 
 module text:
     %extern.C:
-        pub proc strlen [let $s: ptr[int.unsign.8]] -> int.unsign.64;
-        proc write [let $fd: int.sign.32, let $buf: ptr[int.unsign.8], let $len: int.unsign.64] -> int.sign.64;
-    end of %extern.C
-end of module text
-!MAIN:
+        pub proc strlen [let $s: ptr[u8]] -> u64;
+        proc write [let $fd: i32, let $buf: ptr[u8], let $len: u64] -> i64;
+    ;%extern.C
+;module text
+MAIN:
     let $msg := "hi";
-    !no_check let $n := text.write(1, lend $msg, 2);
-!end of MAIN
+    no_check let $n := text.write(1, lend $msg, 2);
+;MAIN

@@ -1,6 +1,6 @@
 rec P:
-    var x: int.sign.64;
-end of rec P
-!MAIN:
+    var x: i64;
+;rec P
+MAIN:
     let $p := P(x = 1);
-!end of MAIN
+;MAIN

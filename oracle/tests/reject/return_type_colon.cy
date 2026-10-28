@@ -1,5 +1,5 @@
-fn add [let $a: int.sign.32]: int.sign.32:
+fn add [let $a: i32]: i32:
     ret $a;
-end of fn add
-!MAIN:
-!end of MAIN
+;fn add
+MAIN:
+;MAIN

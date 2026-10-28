@@ -1,4 +1,4 @@
-!MAIN:
+MAIN:
     var $n = 5;
-    std::print.shortest(lend.mut $n, "x", newln);
-!end of MAIN
+    std::println(lend.mut $n, "x");
+;MAIN

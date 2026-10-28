@@ -1,22 +1,22 @@
-fn half [let $n: int.sign.32] -> int.sign.32 or fail[odd, negative: int.sign.32]:
-    if $n lt 0:
+fn half [let $n: i32] -> i32 or fail[odd, negative: i32]:
+    if $n < 0:
         fail negative[$n];
-    end of if
+    ;if
     ret $n;
-end of fn half
+;fn half
 coll.handler h:
     member h.zero:
-        !case odd:
+        case odd:
             ret 0;
-        !end of case odd
-        !case negative $v:
+        ;case odd
+        case negative $v:
             ret 0;
-        !end of case negative
-    end of member h.zero
-end of coll.handler h
-fn f [] -> int.sign.32:
+        ;case negative
+    ;member h.zero
+;coll.handler h
+fn f [] -> i32:
     let $v := half(3) otherwise h.nope;
     ret $v;
-end of fn f
-!MAIN:
-!end of MAIN
+;fn f
+MAIN:
+;MAIN

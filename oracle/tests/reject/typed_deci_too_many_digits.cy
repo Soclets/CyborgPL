@@ -1,3 +1,3 @@
-!MAIN:
-    let $a := exactly 12345678: float.%deci.32;
-!end of MAIN
+MAIN:
+    let $a := exactly 12345678: %d32;
+;MAIN

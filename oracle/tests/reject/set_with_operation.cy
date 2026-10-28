@@ -1,5 +1,5 @@
 set Ordered <T>:
-    op lt [lent $a: <T>, lent $b: <T>] -> bool;
-end of set Ordered
-!MAIN:
-!end of MAIN
+    op < [lent $a: <T>, lent $b: <T>] -> bool;
+;set Ordered
+MAIN:
+;MAIN

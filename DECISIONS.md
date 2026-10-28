@@ -34,6 +34,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-28 — Built: redesign three, the one spelling (owner: "done, build it (not the other Claude yet)")
+
+Asked "Redesign done?", design claude named three small points never raised and its reading of each (no short form for
+`change $x to 5`; `x` reserved now that it multiplies, a field still able to be `x`; `no_check:` with no mark) and that
+the kayo prompt for redesign two should not be sent, kayo going straight to three. The owner: "done, build it (not the
+other Claude yet)". Built in the oracle: `src/three.rs` reads redesign three and hands the rest of the front redesign
+two's tokens, refusing every redesign-two spelling by name, and shows every message in redesign three's words; the lexer
+reads the symbols and closes an inline block at `;inline.X`; a data-free `union.tag` is plain; the template generator
+writes `;` closers. Swept: every example (the `use` example now renames onto `std::exact`, `std::print` being taken; the
+concise example re-encoded; `collections` regenerated, its members `zero.of_i16` / `zero.of_i64`), the reject tests (the
+ones about the symbols' old spellings turned round to refuse the words; `print_bare` and `op_amp_undeclared` removed,
+their rules gone), bench, and 31 design notes' code blocks, prose untouched. Converters: `oracle/tools/redesign_three.py`
+(two → three, code only) and `oracle/tools/plain_verbs.py`; the old-examples round trip, old → two → three, passes 224 of
+236 (the 12 others known: five case-mark programs, five hand edits, the binary `concise`, `use`). Table:
+`design/revision-2026-10-28.md`. Design claude's picks (oracle/README.md), to be ruled: `and` joining bounds and `or`
+before `fail` keep their words (and `&` is read in a bound too); `op neg` names negation as a value; where `x` is a name.
+Found, older than today: the oracle cannot `change` an element's field (`change $b[pos: 1].vx to …`, bench's nbody), and
+bench/proper's programs still say `int32`, retired 2026-10-20. Not sent to the other sessions (CyborgPL paused for them).
+
 ### 2026-10-28 — Redesign three (EXPLORING, NOT BUILT): a `union.tag` whose cases hold no data is plain, passed bare and copied (owner)
 
 Shown the redesign so far, the owner: "It's pretty concise now, right?" Design claude measured night_trains rewritten

@@ -6,26 +6,26 @@
     a = 65;
     b = 66;
     escape = 256;
-end of %layout.C enum Key
-fn on_key [let $code: int.sign.32] -> int.sign.32:
+;%layout.C enum Key
+fn on_key [let $code: i32] -> i32:
     let $k := to.Key($code)-
     otherwise:
-        !case out_of_range:
+        case out_of_range:
             ret 0;
-        !end of case out_of_range
-    end of otherwise;
+        ;case out_of_range
+    ;otherwise;
     match $k:
         case a:
             ret 1;
-        end of case a
+        ;case a
         case b:
             ret 2;
-        end of case b
+        ;case b
         case escape:
             ret 3;
-        end of case escape
-    end of match
-end of fn on_key
-!MAIN:
-    std::print.shortest(on_key(66), " ", on_key(302), " ", on_key(256), newln);
-!end of MAIN
+        ;case escape
+    ;match
+;fn on_key
+MAIN:
+    std::println(on_key(66), " ", on_key(302), " ", on_key(256));
+;MAIN

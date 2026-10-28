@@ -2,39 +2,39 @@
 # comes from where it goes. `op -` subtracts; negation is `op negate`. A custom operator's operands
 # are lent, so `op dot` is a fn[lent Vec, lent Vec] -> f64.
 rec Vec:
-    var x: float.bin.64;
-    var y: float.bin.64;
-end of rec Vec
-op dot [lent $a: Vec, lent $b: Vec] -> float.bin.64:
-    ret $a.x times $b.x plus $a.y times $b.y;
-end of op dot
-fn fold [lent $xs: std::ls[int.sign.32], let $start: int.sign.32, let $f: fn[int.sign.32, int.sign.32] -> int.sign.32] -> int.sign.32:
+    var x: f64;
+    var y: f64;
+;rec Vec
+op dot [lent $a: Vec, lent $b: Vec] -> f64:
+    ret $a.x x $b.x + $a.y x $b.y;
+;op dot
+fn fold [lent $xs: std::ls[i32], let $start: i32, let $f: fn[i32, i32] -> i32] -> i32:
     var $acc = $start;
     for $x in lend $xs:
         change $acc to $f($acc, $x);
-    end of for
+    ;for
     ret $acc;
-end of fn fold
-fn apply1 [let $v: int.sign.32, let $f: fn[int.sign.32] -> int.sign.32] -> int.sign.32:
+;fn fold
+fn apply1 [let $v: i32, let $f: fn[i32] -> i32] -> i32:
     ret $f($v);
-end of fn apply1
-fn test2 [let $a: int.sign.32, let $b: int.sign.32, let $f: fn[int.sign.32, int.sign.32] -> bool] -> bool:
+;fn apply1
+fn test2 [let $a: i32, let $b: i32, let $f: fn[i32, i32] -> bool] -> bool:
     ret $f($a, $b);
-end of fn test2
-fn both [lent $a: Vec, lent $b: Vec, let $f: fn[lent Vec, lent Vec] -> float.bin.64] -> float.bin.64:
+;fn test2
+fn both [lent $a: Vec, lent $b: Vec, let $f: fn[lent Vec, lent Vec] -> f64] -> f64:
     ret $f(lend $a, lend $b);
-end of fn both
-!MAIN:
-    let $xs: std::ls[int.sign.32] := [1, 2, 3, 4];
-    let $sum := fold(lend $xs, 0, op plus);
-    let $product := fold(lend $xs, 1, op times);
-    let $down := fold(lend $xs, 0, op minus);
+;fn both
+MAIN:
+    let $xs: std::ls[i32] := [1, 2, 3, 4];
+    let $sum := fold(lend $xs, 0, op +);
+    let $product := fold(lend $xs, 1, op x);
+    let $down := fold(lend $xs, 0, op -);
     let $n := apply1(5, op neg);
-    let $le := test2(3, 3, op at_most );
-    let $f: fn[int.sign.32, int.sign.32] -> int.sign.32 := op mod.floor;
-    let $m := $f(neg 7, 3);
+    let $le := test2(3, 3, op <= );
+    let $f: fn[i32, i32] -> i32 := op mod.floor;
+    let $m := $f(-7, 3);
     let $u := Vec[x = 1.0, y = 2.0];
     let $v := Vec[x = 3.0, y = 4.0];
     let $d := both(lend $u, lend $v, op dot);
-    std::print.shortest($sum, " ", $product, " ", $down, " ", $n, " ", $le, " ", $m, " ", $d, newln);
-!end of MAIN
+    std::println($sum, " ", $product, " ", $down, " ", $n, " ", $le, " ", $m, " ", $d);
+;MAIN

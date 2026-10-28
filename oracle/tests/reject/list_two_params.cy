@@ -1,3 +1,3 @@
-!MAIN:
-    let $xs: std::ls[int.sign.32, int.sign.32] := [1, 2];
-!end of MAIN
+MAIN:
+    let $xs: std::ls[i32, i32] := [1, 2];
+;MAIN

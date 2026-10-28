@@ -1,6 +1,6 @@
 coll.fn c:
-    fn x []:
-    end of fn x
-end of coll.fn c
-!MAIN:
-!end of MAIN
+    fn helper []:
+    ;fn helper
+;coll.fn c
+MAIN:
+;MAIN

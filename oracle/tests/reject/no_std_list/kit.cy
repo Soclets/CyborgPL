@@ -1,5 +1,5 @@
-fn f [lent $xs: ls[int.sign.32]]:
-end of fn f
+fn f [lent $xs: ls[i32]]:
+;fn f
 
-!MAIN:
-!end of MAIN
+MAIN:
+;MAIN

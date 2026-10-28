@@ -1,3 +1,3 @@
-!MAIN:
-    let $x: int.unsign.8[bits: 3] := 1;
-!end of MAIN
+MAIN:
+    let $x: u8[bits: 3] := 1;
+;MAIN

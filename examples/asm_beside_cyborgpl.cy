@@ -5,36 +5,36 @@
 # oracle reads it but cannot run assembly, so it stops at the first block (`.oracle`).
 
 # a times b plus c, in one instruction
-proc mul_add_asm [let $a: int.sign.64, let $b: int.sign.64, let $c: int.sign.64] -> int.sign.64:
-    !no_check inline.ASM with [$a -> x0, $b -> x1, $c -> x2, $r <- x0]:
+proc mul_add_asm [let $a: i64, let $b: i64, let $c: i64] -> i64:
+    no_check inline.ASM with [$a -> x0, $b -> x1, $c -> x2, $r <- x0]:
         madd x0, x0, x1, x2
-    end of inline.ASM
+    ;inline.ASM
     ret $r;
-end of proc mul_add_asm
+;proc mul_add_asm
 
 # how many zero bits before the first 1, counting from the top
-proc leading_zeros_asm [let $n: int.unsign.64] -> int.unsign.64:
-    var $z: int.unsign.64 = $n;
-    !no_check inline.ASM with [$z <-> x0]:
+proc leading_zeros_asm [let $n: u64] -> u64:
+    var $z: u64 = $n;
+    no_check inline.ASM with [$z <-> x0]:
         clz x0, x0
-    end of inline.ASM
+    ;inline.ASM
     ret $z;
-end of proc leading_zeros_asm
+;proc leading_zeros_asm
 
-fn leading_zeros_zag [let $n: int.unsign.64] -> int.unsign.64:
-    var $z: int.unsign.64 = 0;
-    var $mask: int.unsign.64 = 9223372036854775808;   # the top bit
-    while $mask not_eq 0 and ($n and.bit $mask) eq 0:
+fn leading_zeros_zag [let $n: u64] -> u64:
+    var $z: u64 = 0;
+    var $mask: u64 = 9223372036854775808;   # the top bit
+    while $mask != 0 & ($n and.bit $mask) == 0:
         change $mask to $mask shr 1;
-        change $z to $z plus 1;
-    end of while
+        change $z += 1;
+    ;while
     ret $z;
-end of fn leading_zeros_zag
+;fn leading_zeros_zag
 
-!MAIN:
-    std::print.shortest("6 times 7 plus 3: assembly ", mul_add_asm(6, 7, 3), ", CyborgPL ", 6 times 7 plus 3, newln);
-    let $xs: std::ls[int.unsign.64] := [1, 255, 65536, 9223372036854775808, 0];
+MAIN:
+    std::println("6 times 7 plus 3: assembly ", mul_add_asm(6, 7, 3), ", CyborgPL ", 6 x 7 + 3);
+    let $xs: std::ls[u64] := [1, 255, 65536, 9223372036854775808, 0];
     for $n in lend $xs:
-        std::print.shortest($n, " has ", leading_zeros_asm($n), " leading zeros (CyborgPL: ", leading_zeros_zag($n), ")", newln);
-    end of for
-!end of MAIN
+        std::println($n, " has ", leading_zeros_asm($n), " leading zeros (CyborgPL: ", leading_zeros_zag($n), ")");
+    ;for
+;MAIN

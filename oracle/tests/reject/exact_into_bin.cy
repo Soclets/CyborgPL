@@ -1,3 +1,3 @@
-!MAIN:
-    let $x: float.bin.64 := exactly 0.1;
-!end of MAIN
+MAIN:
+    let $x: f64 := exactly 0.1;
+;MAIN

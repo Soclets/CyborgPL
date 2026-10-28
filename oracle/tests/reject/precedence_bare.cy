@@ -1,5 +1,5 @@
 precedence:
-    level 1 [plus] left_first;
-end of precedence
-!MAIN:
-!end of MAIN
+    level 1 [+] left_first;
+;precedence
+MAIN:
+;MAIN

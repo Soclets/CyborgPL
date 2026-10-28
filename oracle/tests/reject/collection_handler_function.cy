@@ -1,7 +1,7 @@
 coll.handler h:
-    zero [$x: int.sign.32] -> int.sign.32:
+    zero [$x: i32] -> i32:
         ret 0;
-    end of zero
-end of coll.handler h
-!MAIN:
-!end of MAIN
+    ;zero
+;coll.handler h
+MAIN:
+;MAIN

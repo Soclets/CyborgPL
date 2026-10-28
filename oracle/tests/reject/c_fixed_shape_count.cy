@@ -1,6 +1,6 @@
-%extern.C proc p_one = %C.printf [let $format: ptr[int.unsign.8], let ...$n: int.sign.32] -> int.sign.32;
+%extern.C proc p_one = %C.printf [let $format: ptr[u8], let ...$n: i32] -> i32;
 
-!MAIN:
+MAIN:
     let $f := %C.str.make("%d %d");
-    !no_check p_one(lend $f, 1, 2);
-!end of MAIN
+    no_check p_one(lend $f, 1, 2);
+;MAIN

@@ -1,3 +1,3 @@
-!MAIN:
-    check !no_check let $x := 1;
-!end of MAIN
+MAIN:
+    check no_check let $x := 1;
+;MAIN

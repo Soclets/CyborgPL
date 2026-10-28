@@ -79,10 +79,10 @@ question: a parameter receives whatever the caller wrote.
 ## A lend's sizes must match (owner, 2026-09-24: a)
 
 ```
-fn total [lent $xs: std::ls[int.sign.32]] -> int.sign.64:
+fn total [lent $xs: std::ls[i32]] -> i64:
     …
-end of fn total
-let $big: std::ls[int.sign.64] := [1, 2, 3];
+;fn total
+let $big: std::ls[i64] := [1, 2, 3];
 total(lend $big);          # error: a list[i64] lent where a list[i32] is looked at
 ```
 
@@ -102,11 +102,11 @@ whether `'x'` is ever reassigned, so nothing needs saying. The programmer
 a chain segment, `var.!mut.i32`), and the compiler then holds them to it:
 
 ```
-let $limit: int.sign.32 := 10;      # assigning to 'limit' later is an error
+let $limit: i32 := 10;      # assigning to 'limit' later is an error
 var $counter = 0;             # a promise that it changes: refused if nothing does (2026-10-10)
-fn twice [let $n: int.sign.32] -> int.sign.32:
+fn twice [let $n: i32] -> i32:
     …
-end of fn twice
+;fn twice
 ```
 
 `!mut` is a verified contract, like `check` and the optional lifetime
@@ -134,13 +134,13 @@ contract:
 ```
 function count [lent $text: string.utf8] -> integer.signed.32_bit:
     …
-end of function count    # looks at it
+;function count    # looks at it
 procedure edit  [lent.mutable $text: string.utf8]:
     …
-end of procedure edit         # may modify it
+;procedure edit         # may modify it
 function keep  [$text: string.utf8]:
     …
-end of function keep                  # owns it
+;function keep                  # owns it
 ```
 
 - **`lent`** — receives a shared borrow. The caller writes `lend`.
@@ -176,14 +176,14 @@ outliving `'s'`.
 
 ```
 fn longer [@x] [lent @x $a: str.utf8, lent @x $b: str.utf8] -> lent @x str.utf8:
-    if std::str.bytes(lend $a) at_least std::str.bytes(lend $b):
+    if std::str.bytes(lend $a) >= std::str.bytes(lend $b):
         ret lend $a;
-    end of if
+    ;if
     ret lend $b;
-end of fn longer
+;fn longer
 fn pick [@x, @y] [lent @x $a: str.utf8, lent @y $b: str.utf8] -> lent @x str.utf8:
     ret lend $a;
-end of fn pick
+;fn pick
 ```
 
 A function may hand back a borrow of what it was lent (2026-09-21: a lend

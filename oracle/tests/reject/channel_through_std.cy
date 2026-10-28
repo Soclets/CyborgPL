@@ -1,4 +1,4 @@
-!MAIN:
-    let $c: %channel[int.sign.32] := %channel.empty;
+MAIN:
+    let $c: %channel[i32] := %channel.empty;
     std::channel.send(lend $c, value: 1);
-!end of MAIN
+;MAIN

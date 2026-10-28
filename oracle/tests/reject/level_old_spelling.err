@@ -1,1 +1,1 @@
-level 2 { plus, minus } left_first
+`level.when_chained` is an old spelling: write `level 2 [+, -] left_first;`

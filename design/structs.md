@@ -12,10 +12,10 @@ of every field.
 ```
 rec Locker:
     var name: str.utf8;
-    var number: int.sign.32;
-    var capacity: int.sign.32;
+    var number: i32;
+    var capacity: i32;
     var occupied: bool;
-end of rec Locker
+;rec Locker
 ```
 
 - Top level, beside `fn`; `pub struct` exports it (`kits.md`). The name is

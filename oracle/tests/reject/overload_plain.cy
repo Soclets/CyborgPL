@@ -1,9 +1,9 @@
-fn f [let $a: int.sign.64] -> int.sign.64:
+fn f [let $a: i64] -> i64:
     ret 1;
-end of fn f
-fn f [let $b: float.bin.64] -> int.sign.64:
+;fn f
+fn f [let $b: f64] -> i64:
     ret 2;
-end of fn f
-!MAIN:
-    std::print.shortest(f(1), newln);
-!end of MAIN
+;fn f
+MAIN:
+    std::println(f(1));
+;MAIN

@@ -1,4 +1,4 @@
-# the mark goes on the limb's first word, after a base word
-!MAIN:
-    let $x := to.float.deci.64(2);
-!end of MAIN
+# the mark goes in front of a limb's type, after a base word too
+MAIN:
+    let $x := to.d64(2);
+;MAIN

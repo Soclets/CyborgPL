@@ -1,4 +1,4 @@
-%extern.C var $a: int.sign.32;
-!MAIN:
+%extern.C var $a: i32;
+MAIN:
     let $x := $a;
-!end of MAIN
+;MAIN

@@ -1,4 +1,4 @@
 const $max := 8;
-!MAIN:
+MAIN:
     change $max to 9;
-!end of MAIN
+;MAIN

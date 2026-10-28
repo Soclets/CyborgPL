@@ -1,4 +1,4 @@
-!MAIN:
+MAIN:
     on aarch64:
-    end of on
-!end of MAIN
+    ;on
+;MAIN

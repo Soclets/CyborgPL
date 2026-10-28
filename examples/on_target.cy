@@ -5,30 +5,30 @@
 on.target.os windows:
     fn where [] -> str.utf8:
         ret "windows";
-    end of fn where
+    ;fn where
 else:
     fn where [] -> str.utf8:
         ret "not windows";
-    end of fn where
-end of on.target.os
+    ;fn where
+;on.target.os
 
-!MAIN:
+MAIN:
     on.target aarch64-macos:
-        std::print.shortest("built for aarch64-macos", newln);
+        std::println("built for aarch64-macos");
     else on.target.chip x86_64:
-        let $n: int.sign.64 := 5;
-        !no_check inline.ASM with [$n -> rax, $n <- rax]:   # never compiled here: x86 assembly
+        let $n: i64 := 5;
+        no_check inline.ASM with [$n -> rax, $n <- rax]:   # never compiled here: x86 assembly
             neg rax
-        end of inline.ASM
+        ;inline.ASM
     else:
-        std::print.shortest("built for something else", newln);
-    end of on.target
+        std::println("built for something else");
+    ;on.target
     on.target.chip aarch64:
-        std::print.shortest("an ARM chip, ", where(), newln);
-    end of on.target.chip
+        std::println("an ARM chip, ", where());
+    ;on.target.chip
     on.machine.chip aarch64:
-        std::print.shortest("running on ARM", newln);
+        std::println("running on ARM");
     else:
-        std::print.shortest("running elsewhere", newln);
-    end of on.machine.chip
-!end of MAIN
+        std::println("running elsewhere");
+    ;on.machine.chip
+;MAIN

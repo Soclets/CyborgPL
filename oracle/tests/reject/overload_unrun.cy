@@ -1,17 +1,17 @@
 coll.fn ov:
     versions ov.flip:
-        [let $x: int.sign.32] -> int.sign.32:
+        [let $x: i32] -> i32:
             ret 1;
-        end of version
-        [let $x: int.sign.64] -> int.sign.32:
+        ;version
+        [let $x: i64] -> i32:
             ret 2;
-        end of version
-    end of versions ov
-end of coll.fn ov
-!MAIN:
+        ;version
+    ;versions ov
+;coll.fn ov
+MAIN:
     let $p := false;
-    std::print.shortest("before", newln);
+    std::println("before");
     if $p:
-        std::print.shortest(ov.flip(77), newln);
-    end of if
-!end of MAIN
+        std::println(ov.flip(77));
+    ;if
+;MAIN

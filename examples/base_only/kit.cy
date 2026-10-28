@@ -2,50 +2,50 @@
 # structs, `match`, and.then / or.else (the base's, since they skip their right side) still work.
 
 rec Point:
-    var x: int.sign.32;
-    var y: int.sign.32;
-end of rec Point
+    var x: i32;
+    var y: i32;
+;rec Point
 
 union.tag Light:
     lit;
     dark;
-end of union.tag Light
+;union.tag Light
 
 fn ready [] -> bool:
     ret true;
-end of fn ready
+;fn ready
 
 fn origin [] -> Point:
     ret Point[x = 0, y = 0];
-end of fn origin
+;fn origin
 
-!MAIN:
+MAIN:
     let $p := origin();
     let $l := Light.lit;
-    if ready() and.then false:
-        let $unused: int.sign.32 := 1;
-    end of if
+    if ready() && false:
+        let $unused: i32 := 1;
+    ;if
     match $l:
         case lit:
-        end of case lit
+        ;case lit
         case dark:
-        end of case dark
-    end of match
-!end of MAIN
+        ;case dark
+    ;match
+;MAIN
 
 # a fixed array and a text literal are the base's too (owner, 2026-10-06)
 fn greeting [] -> str.utf8:
     ret "hi";
-end of fn greeting
+;fn greeting
 
-fn three [] -> arr[int.sign.32]:
+fn three [] -> arr[i32]:
     ret [1, 2, 3,];
-end of fn three
+;fn three
 
 # std's `exit` is out of reach without std, so this kit's own `exit` is the only one (2026-10-06)
 fn exit []:
-end of fn exit
+;fn exit
 
 proc stop []:
     exit();
-end of proc stop
+;proc stop

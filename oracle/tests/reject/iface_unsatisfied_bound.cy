@@ -1,12 +1,12 @@
 sig Ordered <T>:
-    op lt [lent $a: <T>, lent $b: <T>] -> bool;
-end of sig Ordered
+    op < [lent $a: <T>, lent $b: <T>] -> bool;
+;sig Ordered
 fn max <T: Ordered> [let $a: <T>, let $b: <T>] -> <T>:
-    if $b lt $a:
+    if $b < $a:
         ret $a;
-    end of if
+    ;if
     ret $b;
-end of fn max
-!MAIN:
+;fn max
+MAIN:
     let $x := max("a", "b");
-!end of MAIN
+;MAIN

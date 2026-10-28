@@ -1,17 +1,17 @@
 rec Counter:
-    var now: int.sign.32;
-    var stop: int.sign.32;
-end of rec Counter
-proc Counter.next [lent.mut $c: Counter] -> optional[int.sign.32]:
-    if $c.now eq $c.stop:
+    var now: i32;
+    var stop: i32;
+;rec Counter
+proc Counter.next [lent.mut $c: Counter] -> optional[i32]:
+    if $c.now == $c.stop:
         ret optional.none;
-    end of if
-    change $c.now to $c.now plus 1;
+    ;if
+    change $c.now += 1;
     ret optional.value($c.now);
-end of proc Counter.next
-!MAIN:
+;proc Counter.next
+MAIN:
     var $c = Counter[now = 0, stop = 2];
     for $x in give $c:
-    end of for
+    ;for
     let $again := Counter.next(lend.mut $c);
-!end of MAIN
+;MAIN

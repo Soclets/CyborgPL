@@ -1,7 +1,7 @@
-!MAIN:
+MAIN:
     let $limit := 60;
-    let $f := fn [let $s: int.sign.32] -> bool:
-        ret $s at_least $limit;
-    end of fn;
+    let $f := fn [let $s: i32] -> bool:
+        ret $s >= $limit;
+    ;fn;
     let $b := $f(70);
-!end of MAIN
+;MAIN

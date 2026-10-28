@@ -1,7 +1,7 @@
-fn f [let $a: int.sign.64] -> float.%deci.64:
-    let $b := $a times 1000;
-    ret to.float.%deci.64($b);
-end of fn f
-!MAIN:
-    std::print.shortest(f(5), newln);
-!end of MAIN
+fn f [let $a: i64] -> %d64:
+    let $b := $a x 1000;
+    ret to.%d64($b);
+;fn f
+MAIN:
+    std::println(f(5));
+;MAIN

@@ -5,19 +5,19 @@ const $unit := 1.0;
 
 fn helper [] -> str.utf8:
     ret "from the root";
-end of fn helper
+;fn helper
 
 module report:
-    pub.kit proc line [let $label: str.utf8, let $v: float.bin.64]:
-        std::print.shortest($label, ": ", $v, newln);
-    end of proc line
-end of module report
+    pub.kit proc line [let $label: str.utf8, let $v: f64]:
+        std::println($label, ": ", $v);
+    ;proc line
+;module report
 
-!MAIN:
+MAIN:
     report.line("circle", shapes.circle.area(2.0));
     report.line("square", shapes.square.area(3.0));
     report.line("unit circle", shapes.circle.area($unit));
-    std::print.shortest(shapes.describe(), newln);
+    std::println(shapes.describe());
     let $r: shapes.circle.Circle := shapes.circle.Circle[radius = 1.5];
-    std::print.shortest($r.radius, " ", shapes.circle.$pi, newln);
-!end of MAIN
+    std::println($r.radius, " ", shapes.circle.$pi);
+;MAIN

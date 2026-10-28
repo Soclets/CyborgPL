@@ -1,3 +1,3 @@
-!MAIN:
-    std::println("x");
-!end of MAIN
+MAIN:
+    std::shout("x");
+;MAIN

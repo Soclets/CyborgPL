@@ -1,6 +1,6 @@
-fn f [] --> int.sign.32:
+fn f [] --> i32:
     ret 1;
-end of fn f
+;fn f
 
-!MAIN:
-!end of MAIN
+MAIN:
+;MAIN

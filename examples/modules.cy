@@ -6,29 +6,29 @@ const $scale := 10;
 module counter:
     pub const $start := 1;
     pub rec Count:
-        var n: int.sign.32;
-    end of rec Count
+        var n: i32;
+    ;rec Count
     pub fn bump [let $c: Count] -> Count:
-        ret Count[n = $c.n plus step()];
-    end of fn bump
-    fn step [] -> int.sign.32:
+        ret Count[n = $c.n + step()];
+    ;fn bump
+    fn step [] -> i32:
         ret my.$scale;
-    end of fn step      # private; reaches the root's const
+    ;fn step      # private; reaches the root's const
     pub.kit module inner:
-        pub.kit fn twice [let $n: int.sign.32] -> int.sign.32:
-            ret $n times 2;
-        end of fn twice
-    end of module inner
-end of module counter
+        pub.kit fn twice [let $n: i32] -> i32:
+            ret $n x 2;
+        ;fn twice
+    ;module inner
+;module counter
 
 proc show [let $c: counter.Count]:
-    std::print.shortest("count ", $c.n, newln);
-end of proc show
+    std::println("count ", $c.n);
+;proc show
 
-!MAIN:
+MAIN:
     let $c := counter.Count[n = counter.$start];
     show(copy $c);
     let $d := counter.bump(give $c);
     show(copy $d);
-    std::print.shortest(counter.inner.twice($d.n), newln);
-!end of MAIN
+    std::println(counter.inner.twice($d.n));
+;MAIN

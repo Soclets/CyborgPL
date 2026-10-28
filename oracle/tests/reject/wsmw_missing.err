@@ -1,1 +1,1 @@
-`i128` is WSMW's
+`%i128` is WSMW's, and this kit's CyJet.toml does not list the limb WSMW: add `wsmw {` / `id = 0fb49902b57b8bc0b72caf424d80e17d035038e2cac58292d92f18b792d205a0` / `ver = 2026-10-07T20:22:24+07:00` / `}` under its `my limbs:`

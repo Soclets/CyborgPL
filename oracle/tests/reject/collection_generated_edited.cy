@@ -1,17 +1,17 @@
 coll.fn c:
     for $n in [1, 2]:
-        named "t" concat to.stored.str.utf8($n);
-        member [] -> int.sign.32:
+        named "t" ++ to.stored.str.utf8($n);
+        member [] -> i32:
             ret $n;
-        end of member
-    end of for
+        ;member
+    ;for
     #generated_2_lines_below
-    member c.t1 [] -> int.sign.32:
+    member c.t1 [] -> i32:
         ret 1;
-    end of member c.t1
-    member c.t2 [] -> int.sign.32:
+    ;member c.t1
+    member c.t2 [] -> i32:
         ret 20;
-    end of member c.t2
-end of coll.fn c
-!MAIN:
-!end of MAIN
+    ;member c.t2
+;coll.fn c
+MAIN:
+;MAIN

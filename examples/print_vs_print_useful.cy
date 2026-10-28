@@ -1,14 +1,14 @@
 # `print.stored` shows a value as stored; `print.useful` shows it for people.
-!MAIN:
-    let $x: float.bin.64 := 0.1;
-    std::print.stored($x, newln);
-    std::print.shortest($x, newln);
-    let $y: float.bin.16 := 1000;
-    std::print.shortest($y, newln);
-    let $big := 1_000_000 times 1_000_000;
-    std::print.stored($big, newln);
-    let $s := "x is " concat to.stored.str.utf8($x);
-    std::print.stored($s, newln);
-    std::print.shortest($s, newln);
-    std::print.shortest("x is ", $x, newln);
-!end of MAIN
+MAIN:
+    let $x: f64 := 0.1;
+    std::println.stored($x);
+    std::println($x);
+    let $y: f16 := 1000;
+    std::println($y);
+    let $big := 1_000_000 x 1_000_000;
+    std::println.stored($big);
+    let $s := "x is " ++ to.stored.str.utf8($x);
+    std::println.stored($s);
+    std::println($s);
+    std::println("x is ", $x);
+;MAIN

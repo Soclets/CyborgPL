@@ -2,7 +2,7 @@
 union.tag K:
     a;
     b;
-end of union.tag K
+;union.tag K
 %extern.C proc f [let $k: K];
-!MAIN:
-!end of MAIN
+MAIN:
+;MAIN

@@ -1,6 +1,6 @@
-fn twice ($n: int.sign.64) -> int.sign.64:
-    ret $n times 2;
-end of fn twice
-!MAIN:
-    std::print.shortest(twice(2), newln);
-!end of MAIN
+fn twice ($n: i64) -> i64:
+    ret $n x 2;
+;fn twice
+MAIN:
+    std::println(twice(2));
+;MAIN

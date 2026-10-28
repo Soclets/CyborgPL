@@ -1,4 +1,4 @@
-!MAIN:
+MAIN:
     let $s := "abc";
-    let $c := std::str.at.point(lend $s, 1) otherwise `?`;
-!end of MAIN
+    let $c := std::str.at.point(lend $s, 1) ?? `?`;
+;MAIN

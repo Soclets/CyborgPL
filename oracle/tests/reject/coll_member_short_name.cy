@@ -1,11 +1,11 @@
 coll.fn greet:
-    member greet [] -> int.sign.32:
+    member greet [] -> i32:
         ret 1;
-    end of member greet
-    hi [] -> int.sign.32:
+    ;member greet
+    hi [] -> i32:
         ret 2;
-    end of hi
-end of coll.fn greet
+    ;hi
+;coll.fn greet
 
-!MAIN:
-!end of MAIN
+MAIN:
+;MAIN

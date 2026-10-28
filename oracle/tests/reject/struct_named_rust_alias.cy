@@ -1,5 +1,5 @@
-rec int.sign.32:
-    var x: int.sign.32;
-end of rec i32
-!MAIN:
-!end of MAIN
+rec i32:
+    var x: i32;
+;rec i32
+MAIN:
+;MAIN

@@ -1,9 +1,9 @@
 incl.%C.system["stdio.h"];
 
-fn f [let $x: FILE] -> int.sign.32:
+fn f [let $x: FILE] -> i32:
     ret 1;
-end of fn f
+;fn f
 
-!MAIN:
-    std::print.shortest("ran", newln);
-!end of MAIN
+MAIN:
+    std::println("ran");
+;MAIN

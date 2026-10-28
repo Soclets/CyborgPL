@@ -1,4 +1,4 @@
 incl.%C["incl_assets/shapes.h"];
-!MAIN:
+MAIN:
     let $h := handle_t[x = 1];
-!end of MAIN
+;MAIN

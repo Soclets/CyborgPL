@@ -1,3 +1,3 @@
-!MAIN:
-    let $x := 1 plus check 2;
-!end of MAIN
+MAIN:
+    let $x := 1 + check 2;
+;MAIN

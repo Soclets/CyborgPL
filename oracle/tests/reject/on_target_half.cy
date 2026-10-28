@@ -1,4 +1,4 @@
-!MAIN:
+MAIN:
     on.target aarch64:
-    end of on.target
-!end of MAIN
+    ;on.target
+;MAIN

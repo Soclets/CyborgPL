@@ -1,4 +1,4 @@
-fn g [&mut $xs: ls[int.sign.32]]:
-end of fn g
-!MAIN:
-!end of MAIN
+fn g [&mut $xs: ls[i32]]:
+;fn g
+MAIN:
+;MAIN

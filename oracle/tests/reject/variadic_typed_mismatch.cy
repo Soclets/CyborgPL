@@ -1,5 +1,5 @@
-fn f [let ...$nums: int.sign.32]:
-end of fn f
-!MAIN:
+fn f [let ...$nums: i32]:
+;fn f
+MAIN:
     f(1, "two");
-!end of MAIN
+;MAIN

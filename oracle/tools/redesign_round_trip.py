@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """The redesign's round trip (2026-10-27): copy examples/ (or another folder) to a scratch folder, rewrite the copy with
-`oracle --redesign`, run every program there with the oracle, and compare with its `.out` / `.exit`. Run from the repo:
+`oracle --redesign` and then `redesign_three.py`, run every program there with the oracle, and compare with its `.out` / `.exit`. Run from the repo:
 `python3 oracle/tools/redesign_round_trip.py [folder] [scratch]`."""
 import os, shutil, subprocess, sys, tempfile
 
@@ -13,6 +13,13 @@ shutil.copytree(src, work)
 conv = subprocess.run([oracle, "--redesign", work], capture_output=True, text=True)
 for line in conv.stderr.splitlines():
     print("CONVERT", line)
+# then redesign two to three (2026-10-28), and a plain union's verbs taken off where the oracle names them
+tools = os.path.join(repo, "oracle", "tools")
+subprocess.run([sys.executable, os.path.join(tools, "redesign_three.py"), work], capture_output=True, text=True)
+for name in sorted(os.listdir(work)):
+    p = os.path.join(work, name)
+    if name.endswith(".cy") or (os.path.isdir(p) and os.path.isfile(os.path.join(p, "kit.cy"))):
+        subprocess.run([sys.executable, os.path.join(tools, "plain_verbs.py"), p], capture_output=True, text=True)
 passed, failed = 0, 0
 names = sorted(os.listdir(work))
 for name in names:

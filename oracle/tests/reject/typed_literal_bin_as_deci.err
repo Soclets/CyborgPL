@@ -1,1 +1,1 @@
-write `exactly 0.1: d64`
+`0.1: %d64` takes a deci from a bin literal, which is not decided: write `exactly 0.1: %d64`

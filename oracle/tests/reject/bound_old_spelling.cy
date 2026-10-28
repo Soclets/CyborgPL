@@ -1,3 +1,3 @@
-!MAIN:
-    let $v: int.sign.32[0, 100] := 5;
-!end of MAIN
+MAIN:
+    let $v: i32[0, 100] := 5;
+;MAIN

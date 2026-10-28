@@ -4,51 +4,51 @@
 # ("`c`"). `optional` is the base's: `optional.value(…)` / `optional.none`, matched bare.
 
 rec Counter:
-    var now: int.sign.32;
-    var stop: int.sign.32;
-end of rec Counter
+    var now: i32;
+    var stop: i32;
+;rec Counter
 
-proc Counter.next [lent.mut $c: Counter] -> optional[int.sign.32]:
-    if $c.now eq $c.stop:
+proc Counter.next [lent.mut $c: Counter] -> optional[i32]:
+    if $c.now == $c.stop:
         ret optional.none;
-    end of if
-    change $c.now to $c.now plus 1;
+    ;if
+    change $c.now += 1;
     ret optional.value($c.now);
-end of proc Counter.next
+;proc Counter.next
 
 rec Forever:
-    var n: int.sign.32;
-end of rec Forever
+    var n: i32;
+;rec Forever
 
-proc Forever.next [lent.mut $f: Forever] -> optional[int.sign.32]:
-    change $f.n to $f.n plus 1;
+proc Forever.next [lent.mut $f: Forever] -> optional[i32]:
+    change $f.n += 1;
     ret optional.value($f.n);
-end of proc Forever.next
+;proc Forever.next
 
-!MAIN:
+MAIN:
     var $c = Counter[now = 0, stop = 5];
     match Counter.next(lend.mut $c):
         case value $x:
-            std::print.shortest("by hand: ", $x, newln);
-        end of case value
+            std::println("by hand: ", $x);
+        ;case value
         case none:
-            std::print.shortest("empty", newln);
-        end of case none
-    end of match
+            std::println("empty");
+        ;case none
+    ;match
     for $x in lend.mut $c:
-        if $x eq 4:
+        if $x == 4:
             break;
-        end of if
-        std::print.shortest("lent: ", $x, newln);
-    end of for
+        ;if
+        std::println("lent: ", $x);
+    ;for
     for $x in give $c:
-        std::print.shortest("given: ", $x, newln);
-    end of for
+        std::println("given: ", $x);
+    ;for
     var $f = Forever[n = 0];
     for perm $y in lend.mut $f:
-        if $y eq 3:
+        if $y == 3:
             break;
-        end of if
-    end of for
-    std::print.shortest("stopped at ", $y, newln);
-!end of MAIN
+        ;if
+    ;for
+    std::println("stopped at ", $y);
+;MAIN

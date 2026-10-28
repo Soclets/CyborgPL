@@ -1,3 +1,3 @@
-%extern.C proc free [let $p: *mut int.unsign.8];
-!MAIN:
-!end of MAIN
+%extern.C proc free [let $p: *mut u8];
+MAIN:
+;MAIN

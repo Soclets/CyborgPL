@@ -1,19 +1,19 @@
 # Callbacks (design/ffi.md, 2026-09-21): a capture-free, C-shaped CyborgPL function handed to C.
-%extern.C proc qsort [let $base: ptr.mut[int.sign.32], let $n: int.unsign.64, let $size: int.unsign.64,
-                 let $cmp: proc[ptr[int.sign.32], ptr[int.sign.32]] -> int.sign.32];
+%extern.C proc qsort [let $base: ptr.mut[i32], let $n: u64, let $size: u64,
+                 let $cmp: proc[ptr[i32], ptr[i32]] -> i32];
 
-proc ascending [let $a: ptr[int.sign.32], let $b: ptr[int.sign.32]] -> int.sign.32:
-    !no_check ret ptr.read($a) minus ptr.read($b);        # C hands pointers to two elements
-end of proc ascending
+proc ascending [let $a: ptr[i32], let $b: ptr[i32]] -> i32:
+    no_check ret ptr.read($a) - ptr.read($b);        # C hands pointers to two elements
+;proc ascending
 
-proc descending [let $a: ptr[int.sign.32], let $b: ptr[int.sign.32]] -> int.sign.32:
-    !no_check ret ptr.read($b) minus ptr.read($a);
-end of proc descending
+proc descending [let $a: ptr[i32], let $b: ptr[i32]] -> i32:
+    no_check ret ptr.read($b) - ptr.read($a);
+;proc descending
 
-!MAIN:
+MAIN:
     var $nums = [5, 1, 4, 2, 3];
-    !no_check qsort(lend.mut $nums, 5, size.of[int.sign.32], ascending);
-    std::print.shortest($nums, newln);
-    !no_check qsort(lend.mut $nums, 5, size.of[int.sign.32], descending);
-    std::print.shortest($nums, newln);
-!end of MAIN
+    no_check qsort(lend.mut $nums, 5, size.of[i32], ascending);
+    std::println($nums);
+    no_check qsort(lend.mut $nums, 5, size.of[i32], descending);
+    std::println($nums);
+;MAIN

@@ -1,9 +1,9 @@
-fn g [let $p: int.unsign.8] -> int.unsign.8:
+fn g [let $p: u8] -> u8:
     if false:
         ret true;
-    end of if
+    ;if
     ret 1;
-end of fn g
-!MAIN:
+;fn g
+MAIN:
     let $x := g(1);
-!end of MAIN
+;MAIN

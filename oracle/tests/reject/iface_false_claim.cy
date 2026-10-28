@@ -1,9 +1,9 @@
 sig Ordered <T>:
-    op lt [lent $a: <T>, lent $b: <T>] -> bool;
-end of sig Ordered
+    op < [lent $a: <T>, lent $b: <T>] -> bool;
+;sig Ordered
 rec V:
-    var x: int.sign.32;
-end of rec V
+    var x: i32;
+;rec V
 V satisfies Ordered;
-!MAIN:
-!end of MAIN
+MAIN:
+;MAIN

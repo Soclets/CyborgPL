@@ -1,4 +1,4 @@
-!MAIN:
-    let $a: int.unsign.%not_std.256 := 2 pow 255;
-    let $e: int.unsign.%not_std.256 := $a plus $a;
-!end of MAIN
+MAIN:
+    let $a: %not_std.u256 := 2 ^ 255;
+    let $e: %not_std.u256 := $a + $a;
+;MAIN

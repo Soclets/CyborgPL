@@ -1,3 +1,3 @@
-!MAIN:
-    let $p: ptr[int.sign.32] := 1;
-!end of MAIN
+MAIN:
+    let $p: ptr[i32] := 1;
+;MAIN
