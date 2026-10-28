@@ -34,6 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-28 — Redesign three: something may be named `x`, reached by its path, `my.x(…)` (owner)
+
+Design claude's pick from the build: `x` named nothing but a field, a lifetime label and the operator in a list. The owner,
+after "`$x` is illegal?" (no: a variable's `$` keeps it apart), "Why not just `my.x()`?" Design claude: no reason not to,
+and `true` already works so (a bare `true` is the boolean, a function named `true` is `my.true(…)`). The owner: "yes". So
+**a function, type or other bare name may be `x`; a bare `x` in an expression is multiplication, and your own `x` is
+reached as `my.x(…)`**; a bare call `x(…)` is refused naming `my.x(…)`. Built; `examples/my_x.cy`.
+
 ### 2026-10-28 — Redesign three: `and` and `or` keep their words; `&`, `&&`, `|`, `||` are dropped (owner)
 
 Told of design claude's pick that `and` joining bounds and `or` before `fail` keep their words, the owner: "Wait, we

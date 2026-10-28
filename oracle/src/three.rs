@@ -157,7 +157,10 @@ pub fn from_three(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     // used between two values, or named as an operator: `op x`, `level 3 [x, dot]`
                     let named = matches!(prev.map(|p| &p.tok), Some(Tok::Word(o)) if o == "op") || matches!(prev.map(|p| &p.tok), Some(Tok::LBracket | Tok::Comma)) && matches!(tok(i + 1), Tok::Comma | Tok::RBracket);
                     if ends_value(&out) || named { out.push(word("times", t)); i += 1; continue; }
-                    return Err((t.line, t.col, "`x` is multiplication, so it names nothing: pick another name".into()));
+                    // something may be named `x` and reached by its path, `my.x(…)`, as `my.true(…)` is (owner, 2026-10-28: "yes")
+                    let declares = matches!(prev.map(|p| &p.tok), Some(Tok::Word(d)) if matches!(d.as_str(), "fn" | "proc" | "rec" | "tag" | "union" | "enum" | "sig" | "set" | "module" | "bounded" | "handler"));
+                    if declares { out.push(t.clone()); i += 1; continue; }
+                    return Err((t.line, t.col, "a bare `x` is multiplication: a function or type named `x` is reached by its path, `my.x(…)` (owner, 2026-10-28)".into()));
                 }
                 // redesign two's operator words, refused naming their symbol; a narrowing keeps its word (`times.wrap`)
                 if !after_dot && !after_kit {
