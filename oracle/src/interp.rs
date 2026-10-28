@@ -5089,7 +5089,7 @@ impl<'p> Interp<'p> {
             None => {
                 let hint = crate::spellings::free_op_hint(op).map(|h| format!("; {h}")).unwrap_or_default();
                 if let Some(l) = &kit { return rt(line, format!("the kit `{}` has no operator `{name}` for these values", &l[2..])); }
-                return rt(line, format!("`{op}` is not an operator here{hint} — declare it with `op {op} [$a: T, $b: T] -> R {{ … }}`"));
+                return rt(line, format!("`{op}` is not an operator here{hint} — declare it with `op {op} [lent $a: T, lent $b: T] -> R:` … `;op {op}`"));
             }
         };
         // written bare, the same word operator for these types in two kits is a clash where it is

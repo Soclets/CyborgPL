@@ -85,7 +85,9 @@ pub fn from_three(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
         // redesign two's marks and closers, refused by name
         if t.tok == Tok::Attention {
             let w = match tok(i + 1) { Tok::Word(w) => w.clone(), _ => String::new() };
-            let fix = if w == "end" { "a block closes `;kind name`, `;MAIN`".to_string() } else { format!("`{w}`, with no `!`") };
+            let marked = matches!(w.as_str(), "MAIN" | "no_check" | "NO_FUCKING_CHECKS" | "case" | "start" | "no_skip");
+            // `!` before a value is C's and Rust's negation, never a mark: name `not`
+            let fix = if w == "end" { "a block closes `;kind name`, `;MAIN`".to_string() } else if marked { format!("`{w}`, with no `!`") } else { format!("`not {}` for a negation", match tok(i + 1) { Tok::Word(w) => w.clone(), Tok::Var(v) => format!("${v}"), _ => "…".to_string() }) };
             return Err((t.line, t.col, format!("`!` is gone (owner, 2026-10-27: \"I'm feeling like removing that `!` meaning\"): write {fix}")));
         }
         if starts_line && is_word(i, "end") && is_word(i + 1, "of") {

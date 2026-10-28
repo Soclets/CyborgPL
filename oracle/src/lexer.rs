@@ -483,6 +483,9 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
         // multi-char punctuation, longest first
         let rest: String = chars[i..chars.len().min(i + 3)].iter().collect();
         let two: String = rest.chars().take(2).collect();
+        // `!$` marked a declaration's name (`let !$x`); anywhere else it is C's and Rust's negation, `not $x`
+        let declaring = matches!(toks.last().map(|t| &t.tok), Some(Tok::Word(w)) if matches!(w.as_str(), "let" | "var" | "variable" | "const" | "shadow"));
+        if two == "!$" && !declaring && !old_syntax() && !crate::spellings::loading() { push(Tok::Attention, &mut toks); i += 1; col += 1; continue; }
         if two == "!$" { push(Tok::NoShadow, &mut toks); toks.last_mut().unwrap().mtm = mark("!$"); i += 2; col += 2; continue; }
         // `!c`, "no cheat", a loop's first modifier (owner, 2026-10-01): kept as its own word, so no
         // name can spell it
