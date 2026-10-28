@@ -214,7 +214,12 @@ pub fn from_three(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     "<=" => out.push(like(Tok::Op("at_most".into()), t)),
                     ">=" => out.push(like(Tok::Op("at_least".into()), t)),
                     // `?` / `??` (owner, 2026-10-27): `otherwise fail` / `otherwise <value>`
-                    "?" => { out.push(word("otherwise", t)); out.push(word("fail", t)); }
+                    "?" => {
+                        // C's `c ? a : b` is not CyborgPL: a `:` after the `?` on the same statement
+                        let ternary = toks[i + 1..].iter().take_while(|x| x.line == t.line && !matches!(x.tok, Tok::Semi | Tok::Eof)).any(|x| x.tok == Tok::Colon);
+                        if ternary { return Err((t.line, t.col, "`? :` is not CyborgPL: `?` means \"otherwise fail\", after a call that can fail; a choice between values is written with `if` (owner, 2026-10-27)".into())); }
+                        out.push(word("otherwise", t)); out.push(word("fail", t));
+                    }
                     "??" => out.push(word("otherwise", t)),
                     // `*` before a handler that can jump, where it is used (owner, 2026-10-27: "(b)")
                     "*" if after_dot || matches!(prev.map(|p| &p.tok), Some(Tok::Word(w)) if w == "otherwise") => out.push(like(Tok::Attention, t)),

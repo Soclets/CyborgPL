@@ -509,6 +509,10 @@ impl Parser {
             }
             return Ok(());
         }
+        // `$xs[2]` is C's index, not a call: a position says `pos`
+        if shown.starts_with('$') {
+            return self.err(format!("a position is labelled, `{shown}[pos: …]` (counting from 1); a call takes `( )`, `{shown}(…)` (owner, 2026-10-22)"));
+        }
         self.err(format!("a call takes `( )`: `{shown}(…)`; `[ ]` describes or holds, a type, a range, a list, a position (owner, 2026-10-22)"))
     }
 

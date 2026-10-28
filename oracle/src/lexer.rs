@@ -263,7 +263,9 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 let name: String = chars[i + 1..k.min(chars.len())].iter().collect();
                 let plain = name.chars().next().map_or(false, |c| c.is_alphabetic() || c == '_') && name.chars().all(|c| c.is_alphanumeric() || c == '_');
                 let shown = if plain { format!("${name}") } else { format!("$'{name}'") };
-                return err(tl, tc, format!("a variable's name starts with `$` since 2026-10-27, quoted or not: write `{shown}` (owner)"));
+                // `'a'` is a character in C and Rust, `'hi'` text in Python and JS: say how those are written
+                let other = if name.chars().count() == 1 { format!("; a character is `` `{name}` ``") } else { format!("; text is `\"{name}\"`") };
+                return err(tl, tc, format!("a variable's name starts with `$` since 2026-10-27, quoted or not: write `{shown}` (owner){other}"));
             }
             i += 1; col += 1;
             let s = quoted_name(&chars, &mut i, &mut col, tl, tc)?;
