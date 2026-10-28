@@ -34,6 +34,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-28 — Redesign three (EXPLORING, NOT BUILT): a `union.tag` whose cases hold no data is plain, passed bare and copied (owner)
+
+Shown the redesign so far, the owner: "It's pretty concise now, right?" Design claude measured night_trains rewritten
+roughly: about 8% fewer characters (26,056 → 24,023), the same 654 code lines, 151 of them closers; the rest of the length
+is information chosen on purpose (closers, ownership words, `std::`, which is required since the `bare.*` marks went on
+2026-10-22, as the owner corrected: "Bare optional doesn't even exist anymore", and "Giving `bare.optional` back is
+basically giving the casing ability back, except this one could hide every kit usage"). Asked "Do you think it's concise
+enough yet?", design claude: yes, but for one candidate: `copy` on a tagged union with no data (`Age`: `adult`, `child`).
+The owner: "So, is that gonna become an auto copy?" (yes: plain, as numbers, `bool` and `char`; a verb on it refused as on
+any plain value, 2026-09-20; adding data to a case later makes it owned, the compiler naming every use that then needs
+one), "Does making you say it give anything?" (design claude: almost nothing; its only gain, calls already worded if data
+comes later), "sure". So, exploring: **a `union.tag` whose every case holds no data is plain: `fare(lend $t,
+$r.age)`, and `copy $r.age` is refused.**
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): a limb's number type may end its width with a unit, its writer's choice (owner: (a))
 
 The owner: "backfixs? `.32_bits`" (a unit suffix on a limb's own number type). Design claude: the built-in list needs
