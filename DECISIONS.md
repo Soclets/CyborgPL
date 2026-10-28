@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-28 — A big redesign goes through a checklist before the owner rules (owner: "yes, record it")
+
+After redesign three was built, several of its picks were found wrong only afterwards (`^` as power, `++`, `+=`,
+`println`, `std::plus`). The owner: "Please make a big redesign be considered more throughly". Design claude proposed
+seven steps; the owner: "yes, record it (but the fresh Claude stuff is mulf's work, I don't know how to do those)". So
+**a big redesign (a symbol, a keyword or a block's form changed, or more than about 10 examples touched) goes through
+`design/redesign-checklist.md` before the owner rules**: a confusion check against nine languages, a frequency count
+in real code, the naming and symbol rules, twins decided together, whole programs read, an outside read when multifinity
+offers one (their work, not a step here), and a build only on the owner's go with the tests, the stale-spelling checker
+and the round trip clean.
+
 ### 2026-10-28 — Power is std's word, `std::pow`; `^` is not an operator (owner: "yes")
 
 Asked which symbols programmers would confuse, design claude found one that runs with another meaning: `^`, power here
