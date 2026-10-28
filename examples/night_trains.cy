@@ -1,14 +1,14 @@
 # Night trains across Europe: a longer CyborgPL program, written to be read.
 #
 # It reads a timetable written as text, finds the quickest way between two stations (Dijkstra's
-# algorithm, by hand), books travellers onto it, prices each ticket in exact decimals (`float.%deci.64`, so
+# algorithm, by hand), books travellers onto it, prices each ticket in exact decimals (`%d64`, so
 # money never picks up a binary float's error), turns minutes into arrival times, prints a
 # departure board and ends with a report. The network is made up; the arithmetic is not, and every
 # figure it prints can be checked by hand from the timetable below. Along the way it shows:
 #
 #   records, tagged unions with data, `match`, `is`  ownership said aloud: `give`, `copy`, `lend`
 #   failures a caller must handle, `otherwise`      a handler, told whom it is apologising to
-#   bounded types, `int.sign.32[min: 1, max: 4]`    generics with an interface, `Number`
+#   bounded types, `i32[min: 1, max: 4]`            generics bounded by a `set` and a `sig`
 #   maps, looked up with a lent key                 a type's own iterator, `Clock.next`
 #   counting loops, `loop`, `break`, `continue`     a short lambda, `fn [let $s] with [lend $part] = …`
 #   tasks and channels, `%spawn.task`               a writer, `std::print.writer`
@@ -46,7 +46,7 @@ rec Network:
 ;rec Network
 
 # The longest trip the network sells: ten days and 100,000 km. A way past either is no way, and that limit is what
-# keeps every sum of minutes and km below provably inside an `int.sign.32`.
+# keeps every sum of minutes and km below provably inside an `i32`.
 coll.bounded trip:
     member trip.minutes = i32[min: 0, max: 14400];
     member trip.km = i32[min: 0, max: 100000];
@@ -775,14 +775,14 @@ proc show_quarter_hours []:
     std::print(newln);
 ;proc show_quarter_hours
 
-# Exact decimals: why a fare is a `float.%deci.64`. A fare of 0.10 three times is 0.30 exactly.
+# Exact decimals: why a fare is a `%d64`. A fare of 0.10 three times is 0.30 exactly.
 proc show_exact_money []:
     let $dime: %d64 := 0.10;
     let $three := $dime + $dime + $dime;
     let $float: f64 := 0.1 + 0.1 + 0.1;
-    std::print("three fares of 0.10 as float.deci.64: ");
+    std::print("three fares of 0.10 as %d64: ");
     std::print.stored($three, newln);
-    std::print("the same in float.bin.64: ");
+    std::print("the same in f64: ");
     std::print.stored($float, newln);
 ;proc show_exact_money
 

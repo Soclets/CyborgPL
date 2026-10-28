@@ -69,6 +69,6 @@ stations by letter:
   with x: Bruxelles
 
 the last quarter hours before midnight: 21:30 21:45 22:00 22:15 22:30 22:45 23:00 23:15 23:30 23:45
-three fares of 0.10 as float.deci.64: 0.30
-the same in float.bin.64: 0.3000000000000000444089209850062616169452667236328125
+three fares of 0.10 as %d64: 0.30
+the same in f64: 0.3000000000000000444089209850062616169452667236328125
 good night from Nightjar
