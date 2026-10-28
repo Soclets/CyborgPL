@@ -2,5 +2,5 @@
 MAIN:
     let $r: %d64 := 1.05;
     let $k: %d64 := 3.00;
-    let $q := $r ^ $k;
+    let $q := $r std::pow $k;
 ;MAIN

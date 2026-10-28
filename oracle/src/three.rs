@@ -180,13 +180,18 @@ pub fn from_three(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     let narrowed = tok(i + 1) == &Tok::Dot;
                     let sym = match w {
                         "plus" if !narrowed => Some("+"), "minus" if !narrowed => Some("-"), "times" if !narrowed => Some("x"),
-                        "pow" if !narrowed => Some("^"), "eq" => Some("=="), "not_eq" => Some("!="), "lt" => Some("<"), "gt" => Some(">"),
+                        "eq" => Some("=="), "not_eq" => Some("!="), "lt" => Some("<"), "gt" => Some(">"),
                         "at_most" => Some("<="), "at_least" => Some(">="),
                         // negation as a value keeps its name, `op neg` (owner, 2026-10-28: "keep it")
                         "neg" if !narrowed && !matches!(prev.map(|p| &p.tok), Some(Tok::Word(o)) if o == "op") => Some("-"),
                         _ => None,
                     };
                     if let Some(s) = sym { return Err(old(t, w, if w == "neg" { "-5`, `-$x" } else { s })); }
+                    // power is std's, so it takes `std::` (owner, 2026-10-28: "yes"); std itself declares it
+                    if w == "pow" && !matches!(prev.map(|p| &p.tok), Some(Tok::Word(o)) if o == "op") && !crate::parser::in_std_file() {
+                        let n = if narrowed { match tok(i + 2) { Tok::Word(n) => format!(".{n}"), _ => String::new() } } else { String::new() };
+                        return Err((t.line, t.col, format!("power is std's: write `std::pow{n}` (owner, 2026-10-28)")));
+                    }
                 }
                 out.push(t.clone());
             }
@@ -203,7 +208,9 @@ pub fn from_three(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     // a hyphen inside a name, `aarch64-macos`
                     "-" if glued_after && glued_before && matches!(prev.map(|p| &p.tok), Some(Tok::Word(_))) && matches!(tok(i + 1), Tok::Word(_)) => out.push(t.clone()),
                     "-" => out.push(word(if ends_value(&out) || declared || matches!(tok(i + 1), Tok::Comma | Tok::RBracket) { "minus" } else { "neg" }, t)),
-                    "^" => out.push(word("pow", t)),
+                    // `^` is XOR in C, Rust, Java and Go, and power in maths: neither here (owner, 2026-10-28: "yes")
+                    "^" if declared => out.push(t.clone()),
+                    "^" => return Err((t.line, t.col, "`^` is not an operator: power is `std::pow`, XOR is `xor` (owner, 2026-10-28)".into())),
                     "==" => out.push(wide(Tok::Op("equal_to".into()), t, 2)),
                     "!=" => out.push(wide(Tok::Op("not_equal".into()), t, 6)),
                     // `<T>`, a type's blank, is glued; a comparison is spaced
@@ -341,7 +348,7 @@ fn three_code(c: &str) -> String {
     for (a, b) in [("to.useful.", "to.shortest."), ("print.useful", "print.shortest"), ("otherwise fail;", "?"), ("otherwise fail", "?"), ("!end of ", ";"), ("end of ", ";"), ("!MAIN", "MAIN"), ("!no_check", "no_check"), ("!case ", "case "), (".!", ".*")] { s = s.replace(a, b); }
     for m in ["MAIN", "no_check", "NO_FUCKING_CHECKS", "case "] { if let Some(r) = s.strip_prefix('!') { if r.starts_with(m) { s = r.to_string(); } } }
     let words: Vec<String> = s.split(' ').map(|w| match w {
-        "plus" => "+".into(), "minus" => "-".into(), "times" => "x".into(), "pow" => "^".into(), "eq" => "==".into(), "not_eq" => "!=".into(),
+        "plus" => "+".into(), "minus" => "-".into(), "times" => "x".into(), "pow" => "std::pow".into(), "eq" => "==".into(), "not_eq" => "!=".into(),
         "lt" => "<".into(), "gt" => ">".into(), "at_most" => "<=".into(), "at_least" => ">=".into(),
         other => other.to_string(),
     }).collect();

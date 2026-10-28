@@ -34,6 +34,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-28 — Power is std's word, `std::pow`; `^` is not an operator (owner: "yes")
+
+Asked which symbols programmers would confuse, design claude found one that runs with another meaning: `^`, power here
+and XOR in C, C++, Java, JavaScript, Rust, Go and C# (`6 ^ 3` gives 216, not 5). Asked "Should `^` stay power?",
+design claude recommended keeping it (maths's symbol, and a XOR meant on real values overflows as a power); offered
+`xx` ("Wouldn't it be `xx`?": the `**` of a language whose times is `x`, but outside the symbol rule), then the word
+("Or just make it the word?"). The owner: "Is power really that common?" Counted with grep: in 1,270,622 lines of Rust
+crates, 40 lines use a power and 133 a XOR (1,804 times); in Python's standard library, 590 power and 2,170 times; in
+the bench, none. So design claude recommended the word, first as a base word, then ("Should `pow` really be a base
+word?") as std's: the base's word operators are each one instruction (`div`, `mod`, `xor`, `shl`), a power is a loop
+or a library routine, most systems languages keep it a library function, and `pow` has been std's since 2026-10-02.
+The owner: "yes". So **power is `$a std::pow $b`** (`std::pow.wrap`, `std::pow.ieee`); **`^` is refused, naming
+`std::pow` and `xor`**, free to declare as a kit's own operator as before 2026-10-28; a bare `pow` is refused naming
+`std::pow`. This reverses the morning's `pow` → `^`. Built: 12 examples and 8 reject tests converted
+(`oracle/tools/power_std.py`, code only), `spellings.cyr`'s `pow`, `xx`, `**`, `^=` rows name `std::pow`, the
+two→three converter and the kayo prompt with it.
+
 ### 2026-10-28 — The base's operators take no `std::`; `std::plus` is refused (owner)
 
 multifinity's review led design claude to `examples/std_op_path.cy`, which still ran `2 std::plus 3 std::times 4`,

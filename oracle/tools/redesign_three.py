@@ -7,7 +7,7 @@ Only code changes: text in quotes, characters in backticks, comments and the cod
 are. What it rewrites:
   closers         `end of fn add` / `!end of MAIN`        → `;fn add` / `;MAIN`
   `!` marks       `!MAIN:`, `!no_check`, `!case`, `h.!m`    → `MAIN:`, `no_check`, `case`, `h.*m`
-  operators       `plus minus times pow eq not_eq lt gt at_most at_least` → `+ - x ^ == != < > <= >=`;
+  operators       `plus minus times pow eq not_eq lt gt at_most at_least` → `+ - x std::pow == != < > <= >=`;
                   `neg 5` → `-5` (`and`, `or`, `concat` keep their words, owner 2026-10-28)
   number types    `int.sign.32`, `float.%deci.64`, …       → `i32`, `%d64`, …
   failures        `…) otherwise fail;`, `… otherwise 0;`   → `…)?;`, `… ?? 0;`
@@ -19,7 +19,7 @@ import re
 import sys
 
 OPS = [("not_eq", "!="), ("at_most", "<="), ("at_least", ">="),
-       ("plus", "+"), ("minus", "-"), ("times", "x"), ("pow", "^"), ("eq", "=="), ("lt", "<"), ("gt", ">")]
+       ("plus", "+"), ("minus", "-"), ("times", "x"), ("pow", "std::pow"), ("eq", "=="), ("lt", "<"), ("gt", ">")]
 INLINE_OPEN = re.compile(r'^\s*(?:!?no_check\s+)?inline\.%?(\w+)\b.*:\s*(#.*)?$')
 
 
@@ -130,6 +130,8 @@ def convert(src):
     for w, s in OPS:
         code = re.sub(r'(?<![\w.:$%])' + re.escape(w) + r'(?![\w.])', s, code)
     code = re.sub(r'(?<![\w.:$])neg\s+(?=[\w$(\x00])', '-', code)
+    # power is std's, and so are its narrowings (owner, 2026-10-28)
+    code = re.sub(r'(?<![\w.:$%])pow(?=\.(wrap|ieee)\b)', 'std::pow', code)
     # failures
     code = re.sub(r'\s+otherwise fail;', '?;', code)
     keep = r'(?:fail\b|ret\b|continue\b|break\b|:|\*|std::print' + ''.join(r'|' + re.escape(h) + r'\b' for h in handlers) + ')'

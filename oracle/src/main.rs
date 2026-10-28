@@ -811,7 +811,7 @@ fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
 /// (owner, 2026-10-28: "(b)": `<T: Whole and Ordered>`), and `any` gives nothing. Checked in code that runs or not.
 fn check_generic_ops(prog: &ast::Program) -> Result<(), String> {
     use ast::{Expr, Stmt, Handler, Value, Ty};
-    fn shown(op: &str) -> String { match op { "equal_to" => "==".into(), "not_equal" => "!=".into(), "at_most" => "<=".into(), "at_least" => ">=".into(), "xx" => "^".into(), o => o.to_string() } }
+    fn shown(op: &str) -> String { match op { "equal_to" => "==".into(), "not_equal" => "!=".into(), "at_most" => "<=".into(), "at_least" => ">=".into(), "xx" => "std::pow".into(), o => o.to_string() } }
     struct W<'a> { names: std::collections::HashMap<String, String>, bounds: &'a [(String, String)], prog: &'a ast::Program }
     impl<'a> W<'a> {
         fn tvar(&self, e: &Expr) -> Option<String> {

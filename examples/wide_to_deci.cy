@@ -2,7 +2,7 @@
 # than the deci's digits can (compiler claude, 2026-10-05: the oracle had said "cannot fail" past i128).
 MAIN:
     let $small: %not_std.i300 := 5;
-    let $huge: %not_std.i300 := 2 ^ 200;
+    let $huge: %not_std.i300 := 2 std::pow 200;
     let $a := to.%d128($small) ?? 0.0;
     let $b := to.%d128($huge) ?? 0.0;
     std::print($a, " ", $b, newln);

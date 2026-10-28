@@ -3775,9 +3775,7 @@ impl<'p> Interp<'p> {
             }
             _ => false,
         };
-        // `^` is power here, XOR in C, Rust, Java and Go: a XOR meant on real values overflows, so say where XOR is
-        let xor = if op == "xx" { " (`^` is power; XOR is `xor`)" } else { "" };
-        if past { return site(line, format!("{} goes past {bits} bits in between — `{op}` is exact, but no {bits}-bit type holds this{xor}", v.show_stored())); }
+        if past { return site(line, format!("{} goes past {bits} bits in between — `{op}` is exact, but no {bits}-bit type holds this", v.show_stored())); }
         Ok(())
     }
 

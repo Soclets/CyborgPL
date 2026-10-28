@@ -2,5 +2,5 @@
 MAIN:
     let $n: i32 := -1;
     let $h: u32 := 2;
-    let $w := $h pow.wrap $n;
+    let $w := $h std::pow.wrap $n;
 ;MAIN

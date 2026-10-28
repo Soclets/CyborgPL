@@ -6,11 +6,11 @@ MAIN:
     let $m: %d64 := -7.50;
     std::print.stored($t mod.floor 2, " ", $m mod.floor 2, " ", $t mod.floor -2, newln);
     let $r: %d64 := 1.05;
-    std::print.stored($r ^ 10, " ", $r ^ 0, " ", $r ^ -1, newln);
+    std::print.stored($r std::pow 10, " ", $r std::pow 0, " ", $r std::pow -1, newln);
     let $r2: %d128 := 1.05;
-    std::print.stored($r2 ^ 10, newln);
+    std::print.stored($r2 std::pow 10, newln);
     let $n: i32 := 3;
-    std::print.stored($r ^ $n, newln);
+    std::print.stored($r std::pow $n, newln);
     let $x: %d64 := 3.141592653589793;
     let $y := to.%d32($x) ?? 0;
     let $z: %d64 := 2.50;

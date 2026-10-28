@@ -1,6 +1,6 @@
 # A kit gives its operators a precedence (owner, 2026-10-03): `precedence.low_first` counts level 1
 # as the loosest (good practice), each level says how a chain reads, and a language operator in a
-# level pins it where that operator is. `^` binds above a negative, right pair first.
+# level pins it where that operator is. `std::pow` binds above a negative, right pair first.
 rec Vec:
     var x: f64;
     var y: f64;
@@ -32,5 +32,5 @@ MAIN:
     let $w := $u scale 2.0 dot $v;         # ('u' scale 2.0) dot 'v'
     let $ok := $d ~= 12.0;
     std::print($d, " ", $w, " ", $ok, newln);
-    std::print(2 ^ 3 + 1, " ", 2 ^ 3 ^ 2, " ", -2 ^ 2, " ", 2 x 3 ^ 2, newln);
+    std::print(2 std::pow 3 + 1, " ", 2 std::pow 3 std::pow 2, " ", -2 std::pow 2, " ", 2 x 3 std::pow 2, newln);
 ;MAIN

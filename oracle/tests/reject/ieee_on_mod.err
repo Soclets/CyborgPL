@@ -1,1 +1,1 @@
-`.ieee` goes on an operator that can make a -0, `+`, `-`, `x`, `^`, a `div.X`, `mod.floor`, `mod.ceil` or `mod.trunc`; `mod.near` has no `.ieee` form
+`.ieee` goes on an operator that can make a -0, `+`, `-`, `x`, `std::pow`, a `div.X`, `mod.floor`, `mod.ceil` or `mod.trunc`; `mod.near` has no `.ieee` form

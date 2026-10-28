@@ -1,1 +1,1 @@
-`**` is an old spelling: write `^`; power is `^` (redesign three)
+`**` is an old spelling: write `std::pow`; power is std's

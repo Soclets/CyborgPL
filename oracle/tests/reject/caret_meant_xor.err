@@ -1,1 +1,1 @@
-XOR is `xor`
+`^` is not an operator: power is `std::pow`, XOR is `xor`

@@ -18,6 +18,6 @@ MAIN:
     change $i to $i plus.wrap 1;                                 # 128 wraps to -128
     std::print($i, newln);
     var $p: u16 = 3;
-    change $p to $p pow.wrap 20;                               # 3^20 modulo 65536
+    change $p to $p std::pow.wrap 20;                               # 3^20 modulo 65536
     std::print($p, newln);
 ;MAIN
