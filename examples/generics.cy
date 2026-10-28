@@ -8,7 +8,11 @@ set Number:
 
 # a `set` gives only its types; `>` comes from a `sig` (owner, 2026-10-28: "(b)")
 sig Ordered <T>:
+    op < [lent $a: <T>, lent $b: <T>] -> bool;
     op > [lent $a: <T>, lent $b: <T>] -> bool;
+    op <= [lent $a: <T>, lent $b: <T>] -> bool;
+    op >= [lent $a: <T>, lent $b: <T>] -> bool;
+    op == [lent $a: <T>, lent $b: <T>] -> bool;
 ;sig Ordered
 
 fn max <T: Number and Ordered> [let $a: <T>, let $b: <T>] -> <T>:

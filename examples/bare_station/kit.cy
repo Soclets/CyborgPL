@@ -271,7 +271,11 @@ set Number:
 ;set Number
 
 sig Ordered <T>:
+    op < [lent $a: <T>, lent $b: <T>] -> bool;
     op > [lent $a: <T>, lent $b: <T>] -> bool;
+    op <= [lent $a: <T>, lent $b: <T>] -> bool;
+    op >= [lent $a: <T>, lent $b: <T>] -> bool;
+    op == [lent $a: <T>, lent $b: <T>] -> bool;
 ;sig Ordered
 
 fn larger <T: Number and Ordered> [let $a: <T>, let $b: <T>] -> <T>:
