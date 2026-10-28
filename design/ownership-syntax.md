@@ -68,7 +68,10 @@ over, so "give" and "lend" read as what the owner does. (Rust's `move` /
 
 **Plain values** — `i32`, `f64`, `bool`, `char.point`, … — own nothing:
 the value sits directly in the variable, with no allocation behind it to be
-responsible for. So `change 's' = 't';` simply copies with no keyword, and
+responsible for. So does a `union.tag` whose every case holds no data (`Age`:
+`adult`, `child`; owner, 2026-10-28: "sure"): it is plain, `fare(lend $t,
+$r.age)`, and turns owned the day a case gains data, the compiler then naming
+every use that needs a verb. So `change 's' = 't';` simply copies with no keyword, and
 `give`/`copy`/`lend` on a plain value is a **compile error** (decided
 2026-09-17): the verb would promise a transfer of a responsibility that does
 not exist.
