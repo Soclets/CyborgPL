@@ -4,5 +4,5 @@ rec Point:
 ;rec Point
 MAIN:
     let $p := Point[x = 3, y = 4];
-    let $t := to.str.utf8($p);
+    let $t := to.str.utf8(lend $p);
 ;MAIN

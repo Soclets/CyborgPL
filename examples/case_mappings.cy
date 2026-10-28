@@ -8,7 +8,7 @@ MAIN:
     std::print(std::str.upper.full(lend $s), newln);
     std::print(std::str.upper.full(lend $s, lang: std::casing.tr), newln);
     let $tag := "tr-TR";
-    let $l := to.casing($tag);
+    let $l := to.casing(lend $tag);
     let $city := "ISTANBUL";
     std::print(std::str.lower.full(lend $city, lang: $l), " ", std::str.lower.full(lend $city, lang: std::casing.root), newln);
     let $shop := "CAFÉ";

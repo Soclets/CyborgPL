@@ -2786,7 +2786,8 @@ impl<'p> Interp<'p> {
             // deciding; a language without rules of its own is `root`, so it never fails (design claude's pick, 2026-10-20)
             Expr::Convert(Ty::Struct(tname), b, handler, _, _) if tname == "casing" => {
                 if handler.is_some() { return rt(line, "`to.casing` cannot fail: a language without case rules of its own is `casing.root`; drop the `otherwise`"); }
-                let (v, _) = self.single(b, line)?;
+                let (v, prov) = self.single(b, line)?;
+                if let Prov::Bare(n) = &prov { return rt(line, format!("`to.casing` only looks at `{n}`: pass `lend {n}`")); }
                 let Value::Str(tag) = v else { return rt(line, format!("`to.casing` takes a language tag, as text (\"tr\", \"en-GB\"), not {}", v.kind())) };
                 let first = tag.split(['-', '_']).next().unwrap_or("").to_ascii_lowercase();
                 let case = match first.as_str() { "tr" | "tur" => "tr", "az" | "aze" => "az", "lt" | "lit" => "lt", _ => "root" };
@@ -2836,7 +2837,9 @@ impl<'p> Interp<'p> {
                 let form = *form;
                 let useful_flag = form == 2;
                 let useful = &useful_flag;
-                let (v, _) = self.single(b, line)?;
+                let (v, prov) = self.single(b, line)?;
+                // a conversion is a call like any other: what it only reads is lent (owner, 2026-10-28: "(a)")
+                if let Prov::Bare(n) = &prov { return rt(line, format!("`to.{}` only looks at `{n}`: pass `lend {n}`", ty_name(ty))); }
                 // a percent into a plain number is its fraction (owner, 2026-10-17: `to.d64['tax']`, 7% → 0.07)
                 let v = match v { Value::Percent(x) => *x, v => v };
                 // a fallback takes the conversion's type: `to.d32['x'] otherwise 0` is a d32 0
@@ -2899,7 +2902,7 @@ impl<'p> Interp<'p> {
                 // exists"); from ASCII text, a number or a byte it cannot
                 // bytes into text (owner, 2026-09-30: "yea"): a list or array of u8 read as UTF-8, failing
                 // `not_utf8` when they are not; only utf8 reads bytes so far
-                let src_ty = match b.values.first() { Some(crate::ast::Value::Expr(e)) => self.expr_ty(e), _ => None };
+                let src_ty = match b.values.first() { Some(crate::ast::Value::Expr(Expr::Owned(_, n, l))) => self.expr_ty(&Expr::Var(n.clone(), *l)), Some(crate::ast::Value::Expr(e)) => self.expr_ty(e), _ => None };
                 let from_bytes = matches!(&src_ty, Some(Ty::List(t, _) | Ty::Array(t)) if **t == Ty::Uint(IntWidth::W8));
                 if from_bytes {
                     match base {
@@ -3128,7 +3131,7 @@ impl<'p> Interp<'p> {
                         if !x.is_finite() { return rt(line, format!("a bin {} into a deci is not decided", if x.is_nan() { "NaN" } else { "infinity" })); }
                         // `.useful`: the shortest decimal that reads back as the same bin *at its own width*
                         // (a f32 0.1 is `0.1`, not its 64-bit widening; compiler session, 2026-09-29)
-                        let src_ty = match b.values.first() { Some(crate::ast::Value::Expr(e)) => self.expr_ty(e), _ => None };
+                        let src_ty = match b.values.first() { Some(crate::ast::Value::Expr(Expr::Owned(_, n, l))) => self.expr_ty(&Expr::Var(n.clone(), *l)), Some(crate::ast::Value::Expr(e)) => self.expr_ty(e), _ => None };
                         let d = if *useful {
                             let text = show_useful_as(&Value::Bin(*x), src_ty.as_ref());
                             match crate::deci::Deci::parse(&text, *w) { Ok(Some(d)) => Ok(d), _ => crate::deci::Deci::from_bin_useful(*x, *w) }

@@ -17,7 +17,7 @@ MAIN [let $argc: i32, let $argv: ptr[ptr[u8]]]:
             std::ls.append(lend.mut $bytes, value: $b);
             change $k += 1;
         ;loop
-        let $text := to.str.utf8($bytes) ?? "(not UTF-8)";      # bytes into text (owner, 2026-09-30)
+        let $text := to.str.utf8(lend $bytes) ?? "(not UTF-8)";      # bytes into text (owner, 2026-09-30)
         std::print.stored("argument ", $i, ": ", $text, newln);
         change $i += 1;
     ;while

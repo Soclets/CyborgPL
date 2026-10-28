@@ -35,7 +35,7 @@ conversion: two lines, two failures, each handled where it happens —
 
 ```
 let $text := std::input.line() ?? "";
-let $n := to.i32($text) ?? 0;
+let $n := to.i32(lend $text) ?? 0;
 ```
 
 (A failing call must be the whole right-hand side, so they cannot nest;

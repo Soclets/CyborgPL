@@ -1,0 +1,1 @@
+`to.i32` only looks at `$t`: pass `lend $t`

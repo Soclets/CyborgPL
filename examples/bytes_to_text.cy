@@ -3,8 +3,8 @@
 MAIN:
     let $good: std::ls[u8] := [104, 195, 169, 108, 108, 111];
     let $bad: std::ls[u8] := [104, 255, 105];
-    let $a := to.str.utf8($good) ?? "?";
-    let $b := to.str.utf8($bad) ?? "not UTF-8";
+    let $a := to.str.utf8(lend $good) ?? "?";
+    let $b := to.str.utf8(lend $bad) ?? "not UTF-8";
     std::print.stored($a, newln, $b, newln);
     std::print.stored(std::str.points(lend $a), " points, ", std::str.bytes(lend $a), " bytes", newln);
 ;MAIN

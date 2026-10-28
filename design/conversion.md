@@ -21,6 +21,11 @@ otherwise:
 ;otherwise
 ```
 
+
+**A conversion is a call like any other** (owner, 2026-10-28: "(a)", from multifinity's rules-first review): what it only
+reads is lent, `to.i32(lend $r.km_text)`, and bare owned text is refused naming `lend`; a number, being plain, goes bare
+(`to.f64($n)`), and a literal has no owner (`to.i32("42")`). A list's conversion into an array or list takes it, `give` or
+`copy`, as before.
 - **`to`** is a keyword and the head of the chain, like `list` in
   `list.length[…]`; the chain narrows to the target type (`to.str.utf8`,
   never a bare `to.str`); the bracket holds exactly one value. Owner's

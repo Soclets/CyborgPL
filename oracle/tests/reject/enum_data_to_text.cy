@@ -4,5 +4,5 @@ union.tag Status:
 ;union.tag Status
 MAIN:
     let $s := Status.claimed("Tankun");
-    let $t := to.str.utf8($s);
+    let $t := to.str.utf8(lend $s);
 ;MAIN

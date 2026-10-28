@@ -11,9 +11,9 @@ MAIN:
     let $two := to.char.%point("ZZ") ?? `?`;                # not_one_char
     std::print($one, $two, newln);                          # Z?
     let $g: char.%cluster := `é`;
-    let $p := to.char.%point($g) ?? `?`;                   # this é is one point: fine
+    let $p := to.char.%point(lend $g) ?? `?`;                   # this é is one point: fine
     let $y := to.char.byte($p) ?? `?`;                    # é is two bytes: not_one_byte
     std::print($p, $y, newln);                              # é?
     let $up := to.char.%cluster(`x`);                             # up never loses anything: no otherwise
-    std::print(to.str.utf8($up) concat "!", newln);               # x!
+    std::print(to.str.utf8(lend $up) concat "!", newln);               # x!
 ;MAIN

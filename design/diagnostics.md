@@ -28,7 +28,7 @@ where: in pick(), called from MAIN at line 48
 code:  $xs[pos: $k]
 when:  $k is 101, and $xs holds 100
 fix:   line 4:
-       let $n := to.i32[min: 1, max: 99]($text) ?? 0;
+       let $n := to.i32[min: 1, max: 99](lend $text) ?? 0;
 ```
 
 - **An error is named, and the name is its title**: `error[unclosed_name]`, `error[borrow_outlives_owner]`,

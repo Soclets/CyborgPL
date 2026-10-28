@@ -3,11 +3,11 @@
 MAIN:
     let $plain: str.utf8 := "hello";
     let $accented: str.utf8 := "héllo";
-    let $a := to.str.ascii($plain) ?? "?";
-    let $b := to.str.ascii($accented) ?? "not ascii";
+    let $a := to.str.ascii(lend $plain) ?? "?";
+    let $b := to.str.ascii(lend $accented) ?? "not ascii";
     std::print.stored($a, newln, $b, newln);
     let $s: str.ascii := "abc";
-    let $c := to.str.ascii($s);
-    let $w := to.str.%utf16($accented);
+    let $c := to.str.ascii(lend $s);
+    let $w := to.str.%utf16(lend $accented);
     std::print.stored($c, " ", $w, newln);
 ;MAIN

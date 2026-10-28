@@ -34,6 +34,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-28 — A conversion is a call like any other: what it only reads is lent, `to.i32(lend $r.km_text)` (owner: (a))
+
+From multifinity's rules-first review (a fresh Claude given only the written rules): "Conversions take text bare ... If
+conversions are meant to be an exception (they only read), it may be worth writing down; otherwise it'd be
+`to.i32(lend $r.km_text)`." Design claude found the oracle took both (`to.i32($t)` and `to.i32(lend $t)`) while an
+ordinary call refuses bare text ("`f` only looks at 's' — pass `lend $t`"): two spellings and no rule. Offered (a) a
+conversion is a call like any other, bare owned text refused, or (b) conversions always take their value bare;
+recommended (a) (nothing makes conversions special; one spelling; one rule for every call). The owner: "(a)". So
+**`to.i32(lend $r.km_text)`**, a bare owned value refused naming `lend`; numbers stay bare, being plain; a literal has no
+owner; a list into a list or array takes it, `give` or `copy`, as before. Built (the check that a conversion can fail now
+reads through the `lend`); examples swept (13 conversions), and the notes' samples; `design/conversion.md` says it. The
+review's other points: a data-free `union.tag` passed bare was today's ruling, now in `design/ownership-syntax.md`; bare
+literals, `to.%d64`, and what `to.i32` fails with were written already (ownership and conversion notes). Its third point,
+`>` on a `<T: Whole>` (a `set`), asked next.
+
 ### 2026-10-28 — The naming rule: a bare name is the obvious default, a narrowing a more specific choice; a symbol only where maths gives it exactly that meaning (owner)
 
 From multifinity's Claude, looking at the narrowings after `print` came to mean `print.shortest`: "Bare name = the

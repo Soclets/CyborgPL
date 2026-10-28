@@ -153,8 +153,8 @@ fn parse_link [lent $row: str.utf8] -> Link or fail[bad_row: str.utf8]:
     if $n < 3:
         fail bad_row[copy $row];
     ;if
-    let $minutes: i32[min: 1, max: 1440] := to.i32[min: 1, max: 1440]($words[pos: $n - 1]) otherwise fail bad_row[copy $row];
-    let $km: i32[min: 1, max: 3000] := to.i32[min: 1, max: 3000]($words[pos: $n]) otherwise fail bad_row[copy $row];
+    let $minutes: i32[min: 1, max: 1440] := to.i32[min: 1, max: 1440](lend $words[pos: $n - 1]) otherwise fail bad_row[copy $row];
+    let $km: i32[min: 1, max: 3000] := to.i32[min: 1, max: 3000](lend $words[pos: $n]) otherwise fail bad_row[copy $row];
     let $name_words := std::ls.slice(lend $words, from: pos 1, before: pos $n - 1);
     let $b := std::str.join(lend $name_words, between: " ");
     ret Link[a = copy $sides[pos: 1], b = give $b, minutes = $minutes, km = $km];
@@ -452,7 +452,7 @@ fn parse_seat [lent $text: str.utf8] -> Seat or fail[bad_request: str.utf8]:
     if std::ls.len(lend $words) != 2 or.else $words[pos: 1] != "sleeper":
         fail bad_request[copy $text];
     ;if
-    let $berths: i32[min: 1, max: 4] := to.i32[min: 1, max: 4]($words[pos: 2])-
+    let $berths: i32[min: 1, max: 4] := to.i32[min: 1, max: 4](lend $words[pos: 2])-
     otherwise:
         case not_a_number:
             fail bad_request[copy $text];

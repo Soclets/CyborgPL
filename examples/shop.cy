@@ -77,7 +77,7 @@ MAIN:
     std::print.stored("cheapest: ", $pick.name, newln);
 
     let $text := std::input.line() ?? str.empty;
-    let $budget := to.i32[min: 0, max: 100_000]($text)-
+    let $budget := to.i32[min: 0, max: 100_000](lend $text)-
     otherwise:
         case not_a_number:
             std::print.stored("no budget given", newln); std::exit(code: 0);
