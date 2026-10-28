@@ -2963,10 +2963,15 @@ impl Parser {
                 if *self.peek() == Tok::LBracket {
                     // 'xs'[pos i] = v;  (decided 2026-09-17)
                     let idx = self.index_bracket(&name)?;
+                    // a field of the element, `change $bodies[pos: $i].vx to …`
+                    let field = if *self.peek() == Tok::Dot {
+                        self.advance();
+                        match self.advance().tok { Tok::Word(w) => Some(w), other => return self.err(format!("expected a field name after the element's `.`, found {other}")) }
+                    } else { None };
                     self.expect(Tok::Eq, "`=` after the element")?;
                     let value = self.rhs()?;
                     self.expect(Tok::Semi, "`;`")?;
-                    return Ok(Stmt::AssignElem { name, index: idx, value, line });
+                    return Ok(Stmt::AssignElem { name, index: idx, value, line, field });
                 }
                 if *self.peek() == Tok::Dot {
                     // 'mine'.field = v;  (decided 2026-09-18)

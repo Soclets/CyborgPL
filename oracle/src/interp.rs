@@ -1065,7 +1065,7 @@ impl<'p> Interp<'p> {
                 *slot.cell.borrow_mut() = v;
                 Ok(Flow::Normal)
             }
-            Stmt::AssignElem { name, index, value, line } => {
+            Stmt::AssignElem { name, index, value, line, field } => {
                 let (kind, ty, immut, cell) = match self.lookup(name) {
                     Some(s) => (s.kind, s.ty.clone(), s.immut, s.cell.clone()),
                     None => return rt(*line, format!("`${name}` is not declared{}", self.var_twin(name))),
@@ -1098,13 +1098,31 @@ impl<'p> Interp<'p> {
                     },
                     _ => None,
                 };
-                let v = self.fit(v, prov, elem_ty.as_ref(), *line)?;
+                // a field of the element: its record's field, checked as `change $x.field to …` checks it
+                let fdef = if let Some(f) = field {
+                    let len = match &*cell.borrow() { Value::List(items) | Value::Simd(items) => items.len(), other => return rt(*line, format!("'{name}' is {}, not a list, array or vector", other.kind())) };
+                    if i < 1 || i as usize > len { return site(*line, format!("position {i} is out of range for '{name}', which has {len} element(s) (1 to {len})")); }
+                    let sname = match &*cell.borrow() { Value::List(items) => match &items[(i - 1) as usize] { Value::Struct(n, _) => n.clone(), other => return rt(*line, format!("'{name}'[pos: {i}] is {}, not a record; it has no field `{f}`", other.kind())) }, _ => unreachable!() };
+                    let def = self.prog.structs.iter().find(|d| d.name == sname).cloned().unwrap();
+                    let fd = match def.fields.iter().find(|d| &d.name == f) { Some(d) => d.clone(), None => return rt(*line, format!("{sname} has no field `{f}`")) };
+                    if fd.immut { return rt(*line, format!("'{f}' is a `let` field of {sname}; it cannot be changed")); }
+                    Some((fd, def.is_union))
+                } else { None };
+                let want = match &fdef { Some((fd, _)) => Some(&fd.ty), None => elem_ty.as_ref() };
+                let v = self.fit(v, prov, want, *line)?;
                 let mut cur = cell.borrow_mut();
                 let items = match &mut *cur { Value::List(items) | Value::Simd(items) => items, other => return rt(*line, format!("'{name}' is {}, not a list, array or vector", other.kind())) };
                 if i < 1 || i as usize > items.len() {
                     return site(*line, format!("position {i} is out of range for '{name}', which has {} element(s) (1 to {})", items.len(), items.len()));
                 }
-                items[(i - 1) as usize] = v;
+                match (field, fdef) {
+                    (Some(f), Some((_, is_union))) => {
+                        if let Value::Struct(_, fields) = &mut items[(i - 1) as usize] {
+                            if is_union { *fields = vec![(f.clone(), v)]; } else { for (k, slot) in fields.iter_mut() { if k == f { *slot = v; break; } } }
+                        }
+                    }
+                    _ => items[(i - 1) as usize] = v,
+                }
                 Ok(Flow::Normal)
             }
             Stmt::AssignField { name, field, value, line } => {

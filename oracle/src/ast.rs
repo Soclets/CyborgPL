@@ -337,7 +337,8 @@ pub enum Stmt {
     /// `'x' = v;`
     Assign { name: String, value: Bracket, line: usize },
     /// `'xs'[pos: i] = v;`
-    AssignElem { name: String, index: Expr, value: Bracket, line: usize },
+    /// `field`: `change $bodies[pos: $i].vx to …`, a field of the element
+    AssignElem { name: String, index: Expr, value: Bracket, line: usize, field: Option<String> },
     /// `'mine'.field = v;`
     AssignField { name: String, field: String, value: Bracket, line: usize },
     If { arms: Vec<(Bracket, Vec<Stmt>)>, otherwise: Option<Vec<Stmt>>, line: usize },
