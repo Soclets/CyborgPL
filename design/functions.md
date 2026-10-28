@@ -185,9 +185,16 @@ a value — `[[1, 2], [3, 4]]` is a list of lists.
 
 ## Brackets
 
-- `[ ]` — builds a value (list, arguments, construction, index, range).
-- `{ }` — body.
-- `( )` — arithmetic grouping only: `'a' plus ('b' times 2)`.
+Since 2026-10-22 (owner): **`( )` runs something; `[ ]` describes or holds something.**
+
+- `( )` — a call: `take_order(lend $items, 104)`. **The one exception is maths grouping**, which runs nothing:
+  `$a + ($b x 2)` (owner, 2026-10-28: "There's an exception, though. Maths grouping").
+- `[ ]` — a definition's parameters, a function's type, types, ranges, lists, indexes, building a struct, `fail[…]`
+  lists: `fn add [let $a: i32, let $b: i32] -> i32:`, `std::ls[u8]`, `i32[min: 1, max: 99]`, `[1, 2, 3]`, `$xs[pos: 2]`,
+  `Rect[w = 640, h = 480]`. A conversion has both: `to.i32[min: 1, max: 99]($text)`.
+- A body is `name:` … `;kind name` (redesign three, 2026-10-28).
+
+Before 2026-10-22, `[ ]` also carried a call's arguments and `( )` was arithmetic grouping only.
 
 ## Numbers
 

@@ -1737,10 +1737,8 @@ fn blocks_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
     let mut arm_bangs: HashMap<usize, (bool, usize, usize)> = HashMap::new();
     let mut use_bangs: Vec<(usize, usize, usize)> = Vec::new();   // (index in out of the word after `!`, line, col)
     let mut i = 0;
-    let mut depth = 0i32;
     while i < n {
         let t = &toks[i];
-        match t.tok { Tok::LBracket | Tok::LParen => depth += 1, Tok::RBracket | Tok::RParen => depth -= 1, _ => {} }
         // `end of …` / `!end of …`: up to the end of the line, or a `;`, `)`, `,`
         let bang = t.tok == Tok::Attention && matches!(toks.get(i + 1).map(|x| &x.tok), Some(Tok::Word(e)) if e == "end");
         let at_end = if bang { i + 1 } else { i };

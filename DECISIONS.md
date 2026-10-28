@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-28 — `( )` runs something, with one exception: maths grouping (owner)
+
+Answering the GO2 design session's question, for the owner, on what `( )` and `[ ]` mean, design claude gave
+2026-10-22's rule, "`( )` runs something; `[ ]` describes or holds something", and listed maths grouping under `( )`
+without saying it fits the rule only by exception. The owner: "There's an exception, though. Maths grouping". So
+**`( )` is a call, and the one exception is maths grouping** (`change $x to $x - ($a + $b)`), which runs nothing.
+`functions.md`'s Brackets section says so now, replacing its "`( )` — arithmetic grouping only" (stale since
+2026-10-22), and `syntax-sketch.md`'s old line is marked replaced.
+
 ### 2026-10-28 — Redesign three: `+=` and its family dropped; a change is spelled out, `change $x to $x + 1` (owner)
 
 The owner: "Now, I think we should remove symbols that kill reading flow. Say `+=`, because the spelled way is `change $x

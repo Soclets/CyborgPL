@@ -137,8 +137,10 @@ without the rest of that redesign. See `DECISIONS.md`.
   quotes; a default, never decided, now removed.)
 - **Names are quoted, so operators are free glyphs**: `let '+' := 10 plus 20;`
   is legal — the name `'+'` and the operator `+` are different tokens.
-- **`( )` is arithmetic grouping only**: `'a' plus ('b' times 2)`. Never a call,
-  never a parameter list.
+- **`( )` was arithmetic grouping only**: `'a' plus ('b' times 2)`. Never a call,
+  never a parameter list. *(Replaced 2026-10-22: `( )` runs something, a call, and `[ ]`
+  describes or holds; maths grouping is the one exception, owner 2026-10-28. See
+  `functions.md`, Brackets.)*
 - **`print.stored` vs `print.useful`** (decided 2026-09-14; both named since
   2026-10-02, owner: "it has to be required & compatible with `.weird`" —
   a bare `std::print.stdout` is refused, saying which to write):
