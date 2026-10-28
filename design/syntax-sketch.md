@@ -219,3 +219,12 @@ The type rode on the keyword chain, every value position wore `[ ]`, and
 control flow was chained from `loop`/`else`. The owner revised it on
 2026-09-19 for readability: name first, brackets only where they build. The
 long form (`variable.IEEE754.Binary:16-bit`) was dropped with it.
+
+## The naming rule (owner, 2026-10-28: "record")
+
+A bare name is the obvious default; a narrowing is a more specific choice, always written as a word; where no choice is
+obviously right, there is no bare name. A bare form gets a symbol only where maths, or nearly every language, already
+gives the symbol exactly that meaning. So `lend` / `lend.mut`, `print` / `print.stored`, `std::map` / `map.ordered`, no
+bare `div` (`div.floor`, `div.near`, …); `+` beside `plus.wrap`, `x` beside `times.wrap`; `and`, `or`, `not`, `concat`
+words. Its one exception: the number types' short names, `i32` … `%d64`, a closed list. From multifinity's Claude, the
+symbol clause the owner's.

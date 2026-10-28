@@ -34,6 +34,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-28 — The naming rule: a bare name is the obvious default, a narrowing a more specific choice; a symbol only where maths gives it exactly that meaning (owner)
+
+From multifinity's Claude, looking at the narrowings after `print` came to mean `print.shortest`: "Bare name = the
+obvious default. A narrowing = a more specific choice. And if there's *no* obvious default, there's *no* bare name" —
+`lend` / `lend.mut`, `and` / `and.then`, `std::map` / `map.ordered`, `print` / `print.stored`, and `div` with no bare form
+(rounding a real decision every time, 2026-10-02). The owner: "yes, but not yet. I think it needs a symbol rule in there
+too". Design claude drafted the symbol clause to explain the rulings so far (`+` keeping its symbol beside `plus.wrap`
+while `and` lost `&`), first as "only where readers already know the symbol to mean exactly it"; multifinity's Claude then
+checked each symbol against it, and with maths as the reference point (`++` back to `concat`, the entry before) the owner:
+"record". So the rule, for every name the language gives:
+
+> **A bare name is the obvious default; a narrowing is a more specific choice, always written as a word; where no choice
+> is obviously right, there is no bare name. A bare form gets a symbol only where maths, or nearly every language,
+> already gives the symbol exactly that meaning.**
+
+Its one exception is the number types' short names (`i32`, `%d64`), a closed list. In `design/syntax-sketch.md`.
+
 ### 2026-10-28 — Redesign three: `++` goes back to `concat`; a symbol only where maths, or nearly every language, gives it exactly that meaning (owner)
 
 multifinity's Claude, on the naming rule taking shape, checked each symbol against "readers already know it to mean
