@@ -169,7 +169,7 @@ pub fn from_three(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                         "plus" if !narrowed => Some("+"), "minus" if !narrowed => Some("-"), "times" if !narrowed => Some("x"),
                         "pow" if !narrowed => Some("^"), "eq" => Some("=="), "not_eq" => Some("!="), "lt" => Some("<"), "gt" => Some(">"),
                         "at_most" => Some("<="), "at_least" => Some(">="), "concat" => Some("++"),
-                        // negation as a value keeps its name, `op neg` (design claude's reading, PROVISIONAL)
+                        // negation as a value keeps its name, `op neg` (owner, 2026-10-28: "keep it")
                         "neg" if !narrowed && !matches!(prev.map(|p| &p.tok), Some(Tok::Word(o)) if o == "op") => Some("-"),
                         _ => None,
                     };

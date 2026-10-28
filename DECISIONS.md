@@ -34,6 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-28 — Redesign three: negation as a value keeps its name, `op neg` (owner)
+
+Design claude's pick from the build: with `neg` refused for `-5`, negation as a function value kept `op neg`. The owner:
+"why". Design claude: `op -` already names subtraction, two arguments; negation takes one (2026-09-29: "`op -` subtracts
+two values; negation as a value is `op neg`"); the narrowing `neg.ieee $x` keeps the word anyway, so `op neg` sits beside
+`op neg.ieee` as `op +` beside `op plus.wrap`; the alternative, a lambda `fn [let $n] = -$n`. The owner: "keep it". So
+**`op neg`**, and `neg` alone is refused everywhere else, naming `-`. Already built.
+
 ### 2026-10-28 — Redesign three: something may be named `x`, reached by its path, `my.x(…)` (owner)
 
 Design claude's pick from the build: `x` named nothing but a field, a lifetime label and the operator in a list. The owner,
