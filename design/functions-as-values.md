@@ -25,14 +25,14 @@ calls it. Since `pos` went (2026-09-27), a list read looks the same
 ## 2. The type of a function is its signature without the names
 
 ```
-function by_number [lent $a: Locker, lent $b: Locker] -> boolean:
+fn by_number [lent $a: Locker, lent $b: Locker] -> bool:
     …
-;function by_number     # the definition
-                function[lent Locker,      lent Locker]  -> boolean           # its type
+;fn by_number     # the definition
+                fn[lent Locker,      lent Locker]  -> bool           # its type
 
-procedure sort <T: any> [lent.mutable $xs: std::list[<T>], $less: function[lent <T>, lent <T>] -> boolean]:
+proc sort <T: any> [lent.mut $xs: std::ls[<T>], let $less: fn[lent <T>, lent <T>] -> bool]:
     …
-;procedure sort
+;proc sort
 ```
 
 Parameter kinds (`lent`, `lent.mut`, none) are part of the type — the

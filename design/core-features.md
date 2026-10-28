@@ -215,9 +215,11 @@ check if $x > 0:
   to confirm the `if` is enough:
 
   ```
-  if $x > 65_504 { deny(); } else {
-      check $y: f16 = $x;     # proven from the branch: check removed
-  }
+  if $x > 65_504:
+      deny();
+  else:
+      check let $y: f16 := $x;     # proven from the branch: check removed
+  ;if
   ```
   Without the `if`, the same line is a compile error: *"'x' does not fit
   bin16 when input is 70000."*

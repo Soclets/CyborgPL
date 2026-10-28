@@ -332,8 +332,12 @@ targets = [
     cyjet::target[name = "aarch64-none", table_bytes = 4_096],      # a small board: small tables
 ]
 
-table_bytes 1_024 fn square [$x: u8] -> u16 { … }    # this function's own limit
-table_bytes 0 fn fib [$n: i64[min: 0, max: 92]] -> i64 { … }   # never a table
+table_bytes 1_024 fn square [let $x: u8] -> u16:    # this function's own limit
+    …
+;fn square
+table_bytes 0 fn fib [let $n: i64[min: 0, max: 92]] -> i64:   # never a table
+    …
+;fn fib
 ```
 
 - Per target in `CyJet.cyr`, in bytes; **65,536** when not written (design claude's number: about the fast cache

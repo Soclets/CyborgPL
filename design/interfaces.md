@@ -15,15 +15,15 @@ that can be compared," and a type needs a way to *be* comparable.
 ## 1. A type may define the language's operators for itself (owner: yes)
 
 ```
-operator less_than [$a: Vec, $b: Vec] -> boolean:
+op < [lent $a: Vec, lent $b: Vec] -> bool:
     …
-;operator less_than
-operator equal_to [$a: Vec, $b: Vec] -> boolean:
+;op <
+op == [lent $a: Vec, lent $b: Vec] -> bool:
     …
-;operator equal_to
-operator + [$a: Vec, $b: Vec] -> Vec:
+;op ==
+op + [lent $a: Vec, lent $b: Vec] -> Vec:
     …
-;operator +
+;op +
 ```
 
 Revises 2026-09-19's "the language's operators cannot be redefined": they
@@ -123,6 +123,10 @@ is the built-in `any` (`generics.md`). Not built yet.
 list of operations is a `sig`, a list of types a `set` (`set Number:` … `end of set Number`), and a blank needing both
 joins them with `and`: `<T: Whole and Ordered>`. A `sig` with a type entry, a `set` with an operation, and a `sig` of
 types only are each refused, naming the other.
+
+**A `set` gives a body only its types** (owner, 2026-10-28: "(b)"): an operator on a `<T>` value comes from a `sig` in T's
+bound that lists it, so a body comparing needs `<T: Whole and Ordered>`; `any` gives nothing. The signature then says
+what the body uses.
 
 ## Open
 

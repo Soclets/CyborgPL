@@ -103,7 +103,11 @@ set Number:
     %d64;
 ;set Number
 
-fn total_of <T: Number> [lent $xs: std::ls[<T>]] -> <T>:
+sig Addable <T>:
+    op + [lent $a: <T>, lent $b: <T>] -> <T>;
+;sig Addable
+
+fn total_of <T: Number and Addable> [lent $xs: std::ls[<T>]] -> <T>:
     var $sum: <T> = 0;
     for $x in lend $xs:
         change $sum += $x;

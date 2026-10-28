@@ -34,6 +34,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-28 — A `set` gives a body only its types; an operation on a `<T>` comes from a `sig` in its bound (owner: (b))
+
+From multifinity's rules-first review, point 3: "`>` on a type that only requires a set ... Does membership in a closed
+set of number types already give `>`, or should this be `<T: Whole and Ordered>`?" The oracle allowed it, and in fact
+checked no operation on a `<T>` against its bound at all (`<T: any>` allowed `<`). Offered (a) a `set` gives every
+operation all its types have, (b) a `set` gives nothing but its types, operations coming from a `sig`; design claude first
+recommended (a). The owner: "What is a `set`" (a closed list of types, `<T: Whole>` reading T ∈ Whole; a `sig` the open
+list of operations), then "So, isn't it supposed to be `set` & `sig` working together?" Design claude changed to (b): the
+signature then says what the body uses, editing the set later fails at the bound and not in far bodies, and each block
+keeps one job. The owner: "(b)". So **an operator on a `<T>` value must be listed, `op <` …, by a `sig` in T's bound**:
+`<T: Whole and Ordered>`; a `set` gives only its types and `any` gives nothing; refused in code that runs or not. Built
+(`check_generic_ops`); four examples got the `sig` they need (`Ordered` with `op >`, `Addable` with `op +`). Found on the
+way and fixed: a member's `versions` block closed on its first word only (`;versions area` for `versions area.rect`); it
+now names the whole block, `examples/member_versions.cy`. Seven notes' code blocks still in redesign one's long words, and
+two in braces, rewritten in today's syntax.
+
 ### 2026-10-28 — A conversion is a call like any other: what it only reads is lent, `to.i32(lend $r.km_text)` (owner: (a))
 
 From multifinity's rules-first review (a fresh Claude given only the written rules): "Conversions take text bare ... If

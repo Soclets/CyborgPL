@@ -452,7 +452,11 @@ fn describe(toks: &[Token], start: usize, brace: usize, text: &dyn Fn(&Token) ->
             if word(0) == Some("for") { o.close = "for".into(); o.template = true; return o; }
             // a collection's member: `greet [ … ] -> T {`, `greet.loud [ … ] {`, `half_failed.as_zero {`, `versions area {`
             if word(0) == Some("versions") {
-                o.close = format!("versions {}", word(1).unwrap_or(""));
+                // the whole name, a member's too: `versions round.near:` … `;versions round.near`
+                let mut name = word(1).unwrap_or("").to_string();
+                let mut k = 2;
+                while matches!(s.get(k).map(|t| &t.tok), Some(Tok::Dot)) { if let Some(w) = word(k + 1) { name.push('.'); name.push_str(w); k += 2; } else { break; } }
+                o.close = format!("versions {name}");
                 o.members = Some(coll.clone());
                 return o;
             }

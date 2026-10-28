@@ -186,6 +186,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     let unkept = check_redeclared(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     redesign::check_purity(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     check_widthless_shifts(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
+    check_generic_ops(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     check_return_literals(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     if let Some(m) = unkept { return Err(format!("{}: {m}", path.display())); }
     check_opaque_held(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
@@ -803,6 +804,99 @@ fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
     for f in &prog.funcs { body(&f.body)?; }
     for c in &prog.consts { bracket(&c.value)?; }
     if let Some(m) = &prog.main { body(m)?; }
+    Ok(())
+}
+
+/// An operator on a `<T>` value comes from a `sig` in T's bound that lists it; a `set` gives a body nothing but its types
+/// (owner, 2026-10-28: "(b)": `<T: Whole and Ordered>`), and `any` gives nothing. Checked in code that runs or not.
+fn check_generic_ops(prog: &ast::Program) -> Result<(), String> {
+    use ast::{Expr, Stmt, Handler, Value, Ty};
+    fn shown(op: &str) -> String { match op { "equal_to" => "==".into(), "not_equal" => "!=".into(), "at_most" => "<=".into(), "at_least" => ">=".into(), "xx" => "^".into(), o => o.to_string() } }
+    struct W<'a> { names: std::collections::HashMap<String, String>, bounds: &'a [(String, String)], prog: &'a ast::Program }
+    impl<'a> W<'a> {
+        fn tvar(&self, e: &Expr) -> Option<String> {
+            match e { Expr::Var(n, _) | Expr::Owned(_, n, _) => self.names.get(n).cloned(), Expr::Paren(i, _) => self.tvar(i), _ => None }
+        }
+        fn allowed(&self, t: &str, op: &str) -> bool {
+            self.bounds.iter().filter(|(v, _)| v == t).any(|(_, b)| {
+                let last = b.rsplit(['.', ':']).next().unwrap_or(b);
+                self.prog.interfaces.iter().filter(|i| i.name == *b || i.name.rsplit(['.', ':']).next() == Some(last))
+                    .any(|i| i.entries.iter().any(|f| f.is_op && f.name == op))
+            })
+        }
+        fn check(&self, op: &str, l: &Expr, r: &Expr, line: usize) -> Result<(), String> {
+            for t in [self.tvar(l), self.tvar(r)].into_iter().flatten() {
+                if !self.allowed(&t, op) {
+                    let bound: Vec<&str> = self.bounds.iter().filter(|(v, _)| *v == t).map(|(_, b)| b.as_str()).collect();
+                    let has = if bound.is_empty() { "nothing".to_string() } else { format!("`{}`", bound.join(" and ")) };
+                    return Err(format!("line {line}: `{}` on a `<{t}>` comes from a `sig` in its bound listing `op {}`; `<{t}>` has {has}, and a `set` gives only its types: `<{t}: Whole and Ordered>` (owner, 2026-10-28)", shown(op), shown(op)));
+                }
+            }
+            Ok(())
+        }
+        fn bracket(&self, b: &ast::Bracket) -> Result<(), String> { for Value::Expr(e) in &b.values { self.expr(e)?; } Ok(()) }
+        fn handler(&self, h: &Option<Handler>) -> Result<(), String> {
+            match h { Some(Handler::Value(b)) => self.bracket(b), Some(Handler::Leave(s)) => self.stmt(s), Some(Handler::Arms(a)) => self.arms(a), _ => Ok(()) }
+        }
+        fn arms(&self, a: &[ast::Arm]) -> Result<(), String> { for arm in a { if let Some(v) = &arm.value { self.expr(v)?; } self.body(&arm.body)?; } Ok(()) }
+        fn body(&self, b: &[Stmt]) -> Result<(), String> { for st in b { self.stmt(st)?; } Ok(()) }
+        fn expr(&self, e: &Expr) -> Result<(), String> {
+            match e {
+                Expr::Binary(op, l, r, line) => { self.check(op, l, r, *line)?; self.expr(l)?; self.expr(r) }
+                Expr::Call(c) => { self.bracket(&c.args)?; self.handler(&c.handler) }
+                Expr::Nested(b) | Expr::PtrCast(_, b, _) => self.bracket(b),
+                Expr::Index(_, i, _) | Expr::FieldIndex(_, _, i, _) | Expr::OwnedElem(_, _, i, _) | Expr::Paren(i, _) | Expr::Unary(_, i, _) => self.expr(i),
+                Expr::FieldOf(i, _, _) | Expr::OwnedPath(_, i, _) => self.expr(i),
+                Expr::IndexOf(p, i, _) => { self.expr(p)?; self.expr(i) }
+                Expr::Builtin(_, _, b, _) => self.bracket(b),
+                Expr::Construct(_, fields, _) => { for (_, b) in fields { self.bracket(b)?; } Ok(()) }
+                Expr::Convert(_, b, h, _, _) | Expr::MapFail(_, b, h, _) | Expr::PtrReadChecked(b, h, _) | Expr::CharFromCode(_, b, h, _) | Expr::CallValue(_, b, h, _) => { self.bracket(b)?; self.handler(h) }
+                Expr::MapLit(items, _) => { for (k, v) in items { self.expr(k)?; self.bracket(v)?; } Ok(()) }
+                Expr::Match(v, a, _) => { self.bracket(v)?; self.arms(a) }
+                Expr::EnumValue(_, _, Some(b), _) => self.bracket(b),
+                _ => Ok(()),
+            }
+        }
+        fn stmt(&self, st: &Stmt) -> Result<(), String> {
+            match st {
+                Stmt::Decl { value, .. } | Stmt::LocalConst { value, .. } | Stmt::Assign { value, .. } | Stmt::AssignField { value, .. } | Stmt::Gives { value, .. } => self.bracket(value),
+                Stmt::AssignElem { index, value, .. } => { self.expr(index)?; self.bracket(value) }
+                Stmt::If { arms: a, otherwise, .. } => { for (c, b) in a { self.bracket(c)?; self.body(b)?; } if let Some(o) = otherwise { self.body(o)?; } Ok(()) }
+                Stmt::Loop { body: b, .. } | Stmt::Block { body: b, .. } => self.body(b),
+                Stmt::While { cond, body: b, .. } => { self.bracket(cond)?; self.body(b) }
+                Stmt::For { over, body: b, .. } => { self.bracket(over)?; self.body(b) }
+                Stmt::Range { bounds, body: b, .. } => { self.bracket(bounds)?; self.body(b) }
+                Stmt::Return { value: Some(v), .. } => self.bracket(v),
+                Stmt::Call { call, .. } => { self.bracket(&call.args)?; self.handler(&call.handler) }
+                Stmt::BuiltinStmt { args, .. } => self.bracket(args),
+                Stmt::Tier { body: b, .. } => self.stmt(b),
+                Stmt::Fail { payload: Some(p), .. } => self.bracket(p),
+                Stmt::Match { value, arms: a, .. } => { self.bracket(value)?; self.arms(a) }
+                Stmt::Must { cond: e, .. } | Stmt::MustFail { expr: e, .. } | Stmt::MustStop { expr: e, .. } => self.expr(e),
+                Stmt::Concur { body: b, handler: h, .. } => { self.body(b)?; self.handler(h) }
+                Stmt::MapFailStmt { args, handler: h, .. } | Stmt::CallValue { args, handler: h, .. } => { self.bracket(args)?; self.handler(h) }
+                _ => Ok(()),
+            }
+        }
+    }
+    for f in &prog.funcs {
+        // the names typed `<T>`: its parameters and its locals declared so
+        let mut names = std::collections::HashMap::new();
+        for p in &f.params { if let Some(Ty::Var(t)) = &p.ty { names.insert(p.name.clone(), t.clone()); } }
+        fn locals(b: &[Stmt], out: &mut std::collections::HashMap<String, String>) {
+            for st in b {
+                match st {
+                    Stmt::Decl { name, ty: Some(Ty::Var(t)), .. } => { out.insert(name.clone(), t.clone()); }
+                    Stmt::If { arms, otherwise, .. } => { for (_, b) in arms { locals(b, out); } if let Some(o) = otherwise { locals(o, out); } }
+                    Stmt::Loop { body, .. } | Stmt::Block { body, .. } | Stmt::While { body, .. } | Stmt::For { body, .. } | Stmt::Range { body, .. } => locals(body, out),
+                    _ => {}
+                }
+            }
+        }
+        locals(&f.body, &mut names);
+        if names.is_empty() { continue; }
+        W { names, bounds: &f.bounds, prog }.body(&f.body)?;
+    }
     Ok(())
 }
 

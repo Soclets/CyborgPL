@@ -135,15 +135,15 @@ A parameter declares what it accepts, so the signature *is* the ownership
 contract:
 
 ```
-function count [lent $text: string.utf8] -> integer.signed.32_bit:
+fn count [lent $text: str.utf8] -> i32:
     …
-;function count    # looks at it
-procedure edit  [lent.mutable $text: string.utf8]:
+;fn count    # looks at it
+proc edit  [lent.mut $text: str.utf8]:
     …
-;procedure edit         # may modify it
-function keep  [$text: string.utf8]:
+;proc edit         # may modify it
+fn keep  [let $text: str.utf8]:
     …
-;function keep                  # owns it
+;fn keep                  # owns it
 ```
 
 - **`lent`** — receives a shared borrow. The caller writes `lend`.

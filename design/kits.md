@@ -204,16 +204,16 @@ shapes.circle.$pi             # a const through modules
 ### Visibility — three audiences
 
 ```
-function helper []:
+fn helper []:
     …
-;function helper                 # this module and its descendants
-public.kit function shared []:
+;fn helper                 # this module and its descendants
+pub.kit fn shared []:
     …
-;function shared        # the whole Kit, not outside
-public function api []:
+;fn shared        # the whole Kit, not outside
+pub fn api []:
     …
-;function api                # other Kits too
-public.kit module tests:
+;fn api                # other Kits too
+pub.kit module tests:
     …
 ;module tests        # modules carry it as well
 ```

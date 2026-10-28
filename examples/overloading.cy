@@ -50,7 +50,7 @@ coll.fn area:
         [let $w: i64, let $h: i64] -> i64:
             ret $w x $h;
         ;version
-    ;versions area
+    ;versions area.rect
 ;coll.fn area
 
 MAIN:

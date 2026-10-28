@@ -287,10 +287,10 @@ run both and refuse such lines at compile time.
 day), for when the second half should depend on the first:
 
 ```
-if $i <= std::list.length(lend $xs) and.then $xs[position: $i] equal_to 5:
+if $i <= std::ls.len(lend $xs) and.then $xs[pos: $i] == 5:
     …
 ;if
-if $n equal_to 0 or.else 100 divide.floor $n less_than 2:
+if $n == 0 or.else 100 divide.floor $n < 2:
     …
 ;if
 ```

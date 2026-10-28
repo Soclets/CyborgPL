@@ -92,9 +92,9 @@ a plain `T` they do nothing (`interfaces.md`).
 ## A generic `op` (owner, 2026-09-29)
 
 ```
-operator ~= <T>: Number [$a: <T>, $b: <T>] -> boolean:
+op ~= <T: Number> [lent $a: <T>, lent $b: <T>] -> bool:
     …
-;operator ~=   # once, for any type keeping Number's promises
+;op ~=   # once, for any type keeping Number's promises
 ```
 
 An operator may be generic, with the rules of a generic `fn`: announced

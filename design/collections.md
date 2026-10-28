@@ -78,17 +78,19 @@ picked by how many arguments it has and their types. This is the only place over
 `fn` twice anywhere else is refused, naming `coll.fn` (owner: "(b)").
 
 ```
-public collection.function round:
-    round.nearest [$x: float.binary.64_bit] -> float.binary.64_bit:
-        …
-    ;round.nearest
-    round.nearest [$x: float.%decimal.64_bit] -> float.%decimal.64_bit:
-        …
-    ;round.nearest
-    round.nearest [$x: float.binary.64_bit, $decimals: integer.signed.32_bit] -> float.binary.64_bit:
-        …
-    ;round.nearest
-;collection.function round
+pub coll.fn round:
+    versions round.near:
+        [let $x: f64] -> f64:
+            …
+        ;version
+        [let $x: %d64] -> %d64:
+            …
+        ;version
+        [let $x: f64, let $places: i32] -> f64:
+            …
+        ;version
+    ;versions round.near
+;coll.fn round
 ```
 
 - **Who**: any kit's functions, std's and yours (owner: "(a)"). Two versions with the same types are refused.
@@ -277,18 +279,23 @@ bounded"). The collection's name alone is its own bound, and members narrow it (
 is"). Every line writes its full name, as in the other kinds.
 
 ```
-coll.bound quantity {
+coll.bounded quantity:
     quantity = i32[min: 1, max: 99];
     quantity.small = i32[min: 1, max: 9];
-}
+;coll.bounded quantity
 
-coll.bound order {
+coll.bounded order:
     order.discount = i32[min: 0, max: 50];
-    order.name = str.utf8[min: 1, max: 40 %graphemes];
-}
+    order.name = str.utf8[min: 1, max: 40 %clusters];
+;coll.bounded order
 
-struct Line { name: order.name, count: quantity }
-fn apply_discount [$amount: %d64, $percent: order.discount] -> %d64 { … }
+rec Line:
+    var name: order.name;
+    var count: quantity;
+;rec Line
+fn apply_discount [let $amount: %d64, let $percent: order.discount] -> %d64:
+    …
+;fn apply_discount
 ```
 
 - **Only a bounded type**: a type with a limit after it — a number's `min:` / `max:`, a text's length, a list's or

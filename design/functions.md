@@ -16,18 +16,18 @@ let $big := mathstuff::pow(2, 64);    # another Kit: Kit::path
 ## Definition
 
 ```
-function count [lent $text: string.utf8] -> integer.signed.32_bit:
+fn count [lent $text: str.utf8] -> i32:
     …
-;function count     # looks at it
-procedure edit  [lent.mutable $text: string.utf8]:
+;fn count     # looks at it
+proc edit  [lent.mut $text: str.utf8]:
     …
-;procedure edit          # may modify it
-function keep  [$text: string.utf8]:
+;proc edit          # may modify it
+fn keep  [let $text: str.utf8]:
     …
-;function keep                   # owns it
-function twice [$n: integer.signed.32_bit] -> integer.signed.32_bit:
+;fn keep                   # owns it
+fn twice [let $n: i32] -> i32:
     …
-;function twice          # stated mutability
+;fn twice          # stated mutability
 ```
 
 - **`fn`**, bare name, parameters in one `[ ]`, optional `--> type`, body in

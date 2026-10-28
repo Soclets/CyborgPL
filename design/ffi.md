@@ -214,12 +214,12 @@ refusing it, with plain fields checked by hand. A range on an `extern.C fn`
 ## `layout.C enum` — C's enum (owner, 2026-09-27: a)
 
 ```
-%layout.C enumeration Key:
+%layout.C enum Key:
     a = 65;
     b = 66;
     escape = 256;
-;enumeration Key
-%external.C procedure IsKeyDown [$key: Key] -> boolean;
+;enum Key
+%extern.C proc IsKeyDown [let $key: Key] -> bool;
 ```
 
 A C enum is a number with names, and here it is a Cyborg enum laid out

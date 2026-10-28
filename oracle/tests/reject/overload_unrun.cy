@@ -6,7 +6,7 @@ coll.fn ov:
         [let $x: i64] -> i32:
             ret 2;
         ;version
-    ;versions ov
+    ;versions ov.flip
 ;coll.fn ov
 MAIN:
     let $p := false;
