@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
 """The redesign's round trip (2026-10-27): copy examples/ (or another folder) to a scratch folder, rewrite the copy with
 `oracle --redesign` and then `redesign_three.py`, run every program there with the oracle, and compare with its `.out` / `.exit`. Run from the repo:
-`python3 oracle/tools/redesign_round_trip.py [folder] [scratch]`."""
+`python3 oracle/tools/redesign_round_trip.py [folder] [scratch]`. With no folder it takes the examples as they were before
+the redesigns, from git (`b82572d1^`), which is the round trip that means something: today's examples are converted already."""
 import os, shutil, subprocess, sys, tempfile
 
 repo = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # the newer of the two builds, release or debug, whichever exists
 oracle = max((p for p in (os.path.join(repo, "oracle", "target", k, "oracle") for k in ("release", "debug")) if os.path.exists(p)),
              key=os.path.getmtime, default=os.path.join(repo, "oracle", "target", "debug", "oracle"))
-src = sys.argv[1] if len(sys.argv) > 1 else os.path.join(repo, "examples")
+OLD = "b82572d1^"   # the last commit before redesign one
+if len(sys.argv) > 1:
+    src = sys.argv[1]
+else:
+    old = tempfile.mkdtemp(prefix="cyborgpl-old-examples-")
+    archive = subprocess.run(["git", "-C", repo, "archive", OLD, "examples"], capture_output=True, check=True).stdout
+    subprocess.run(["tar", "-x", "-C", old], input=archive, check=True)
+    src = os.path.join(old, "examples")
 work = sys.argv[2] if len(sys.argv) > 2 else os.path.join(tempfile.gettempdir(), "cyborgpl-round-trip")
 shutil.rmtree(work, ignore_errors=True)
 shutil.copytree(src, work)
