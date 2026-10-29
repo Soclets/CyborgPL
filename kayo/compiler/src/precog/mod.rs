@@ -95,6 +95,20 @@ pub struct Analysis {
     /// The functions made tables, and the near misses.
     pub tables: Vec<tables::Table>,
     pub not_tables: Vec<tables::NotTable>,
+    /// What Spacer was asked and said, loop by loop, site by site
+    /// (`KAYO_SPACER_LOG=1` prints it).
+    pub spacer: Vec<SpacerRecord>,
+}
+
+/// One loop Spacer was asked about for one site.
+#[derive(Debug, Clone)]
+pub struct SpacerRecord {
+    pub function: usize,
+    pub site: SiteId,
+    pub head: usize,
+    pub outcome: smt::Spacer,
+    /// The site was proven with this loop's invariant among those assumed.
+    pub proved: bool,
 }
 
 /// One local's value, as far as this path knows.
@@ -376,6 +390,7 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
     let portfolio = smt::Portfolio::find();
     let mut solved = 0usize;
     let mut disagreements = Vec::new();
+    let mut spacer = Vec::new();
     if !portfolio.members.is_empty() {
         let asked: Vec<usize> = sites
             .iter()
@@ -392,7 +407,7 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
         // and the answers are applied in site order, so the build says the
         // same whichever finished first. A slow CVC5 question no longer
         // holds up the rest (std claude, 2026-10-19: 78 s, three of them).
-        let outcomes: Vec<std::sync::Mutex<Option<Layer3>>> = asked.iter().map(|_| std::sync::Mutex::new(None)).collect();
+        let outcomes: Vec<std::sync::Mutex<Option<(Layer3, Vec<SpacerRecord>)>>> = asked.iter().map(|_| std::sync::Mutex::new(None)).collect();
         let next = std::sync::atomic::AtomicUsize::new(0);
         {
             let (prog, sites_ref, facts_ref, portfolio_ref): (&Program, &Vec<SiteResult>, &Facts, &smt::Portfolio) = (&*p, &sites, &facts, &portfolio);
@@ -408,7 +423,8 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
             });
         }
         for (k, &i) in asked.iter().enumerate() {
-            let Some(out) = outcomes[k].lock().unwrap().take() else { continue };
+            let Some((out, asked_spacer)) = outcomes[k].lock().unwrap().take() else { continue };
+            spacer.extend(asked_spacer);
             let r = &mut sites[i];
             if let Some(v) = out.verdict {
                 r.verdict = v;
@@ -442,7 +458,7 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
     let proven: std::collections::HashSet<(usize, u32)> = sites.iter().filter(|r| matches!(r.verdict, Verdict::Proven { .. })).map(|r| (r.function, r.site.0)).collect();
     let (tables, not_tables) = tables::keep_proven(p, table_answers, &proven);
     p.tables = tables.clone();
-    Analysis { sites, certain, certain_under_nocheck, steps: a.steps, whole_program: !a.reads_outside, folded, portfolio: portfolio.describe(), solved, disagreements, always_reached, held: a.held, tables, not_tables }
+    Analysis { sites, certain, certain_under_nocheck, steps: a.steps, whole_program: !a.reads_outside, folded, portfolio: portfolio.describe(), solved, disagreements, always_reached, held: a.held, tables, not_tables, spacer }
 }
 
 struct Precog {
@@ -4279,10 +4295,53 @@ struct Layer3 {
     disagreement: Option<String>,
 }
 
+/// One site, asked exactly, and then, if a loop on the way to it keeps it
+/// unproven, with the invariants Spacer finds for those loops (owner,
+/// 2026-10-25: the shapes first, Spacer only where none fits).
+fn layer3(p: &Program, r: &SiteResult, facts: &Facts, portfolio: &smt::Portfolio) -> (Layer3, Vec<SpacerRecord>) {
+    let out = layer3_shapes(p, r, facts, portfolio);
+    if !smt::spacer_on() || matches!(out.verdict, Some(Verdict::Proven { .. })) || out.disagreement.is_some() || !out.solved && out.verdict.is_none() && out.note.as_deref() == Some("layer 3 has no way to ask about this one yet") {
+        return (out, Vec::new());
+    }
+    let mut records = Vec::new();
+    let mut invariants = Vec::new();
+    for head in smt::loops_before(p, r.function, r.site) {
+        let outcome = smt::spacer(p, r.function, r.site, facts, head, portfolio);
+        if let smt::Spacer::Confirmed(inv) = &outcome {
+            invariants.push(inv.clone());
+        }
+        records.push(SpacerRecord { function: r.function, site: r.site, head, outcome, proved: false });
+    }
+    if invariants.is_empty() {
+        return (out, records);
+    }
+    // The site asked again with each invariant assumed at its loop's head:
+    // first with every head standing for every trip, then walked.
+    let counted = p.functions[r.function].fors.iter().any(|fl| fl.start.is_some());
+    for unroll in [0, smt::UNROLL_PER_LOOP] {
+        let Some(q) = smt::encode_with_invariants(p, r.function, r.site, facts, counted, unroll, &invariants) else { continue };
+        if q.text.len() > smt::QUERY_CAP {
+            continue;
+        }
+        let (a, each) = portfolio.ask(&q);
+        if smt::disagreed(&each) {
+            break;
+        }
+        let reached = !q.assumed || matches!(portfolio.ask_text(&q.reach), smt::Answer::Sat(_));
+        if matches!(a, smt::Answer::Unsat) && reached && !q.truncated {
+            for rec in records.iter_mut() {
+                rec.proved = matches!(rec.outcome, smt::Spacer::Confirmed(_));
+            }
+            return (Layer3 { verdict: Some(Verdict::Proven { how: "layer 3, with Spacer's loop invariant" }), note: Some("layer 3, with a loop invariant Spacer found and both solvers confirmed: no input reaches it with a bad value".into()), solved: true, disagreement: None }, records);
+        }
+    }
+    (out, records)
+}
+
 /// One site, asked exactly: its question, the counted-loop question if
 /// that one is better informed, and the reach check a proof leaning on
 /// landings needs.
-fn layer3(p: &Program, r: &SiteResult, facts: &Facts, portfolio: &smt::Portfolio) -> Layer3 {
+fn layer3_shapes(p: &Program, r: &SiteResult, facts: &Facts, portfolio: &smt::Portfolio) -> Layer3 {
     let note = |n: &str| Layer3 { verdict: None, note: Some(n.to_string()), solved: false, disagreement: None };
     let Some(q) = smt::encode(p, r.function, r.site, facts) else {
         // A site whose values bit-vectors do not describe — what a task

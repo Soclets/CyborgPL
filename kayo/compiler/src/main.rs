@@ -589,6 +589,24 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     }
     laps.mark("Ownership and borrows");
     let analysis = kayo::precog::analyse_opts(&mut mir, !assert_proofs);
+    // `KAYO_SPACER_LOG=1`: each loop Spacer was asked about, for which site,
+    // and what came of it (owner, 2026-10-25: measured before deciding).
+    if std::env::var("KAYO_SPACER_LOG").is_ok() {
+        for rec in &analysis.spacer {
+            let f = &mir.functions[rec.function];
+            let line = |sp: kayo::source::Span| sources.get(sp.file).line_col(sp.start).0;
+            let site = line(f.span(f.site(rec.site).span));
+            let head = line(f.span(f.blocks[rec.head].term_span));
+            let said = match &rec.outcome {
+                kayo::precog::smt::Spacer::Confirmed(inv) => format!("confirmed: {}", inv.shown),
+                kayo::precog::smt::Spacer::NotConfirmed { shown, why } => format!("not confirmed ({}): {}", why, shown),
+                kayo::precog::smt::Spacer::Budget => "spent its step budget".to_string(),
+                kayo::precog::smt::Spacer::Refuted => "found a way through its clauses to the bad value".to_string(),
+                kayo::precog::smt::Spacer::Unasked(why) => format!("not asked: {}", why),
+            };
+            eprintln!("spacer: site line {} (in {}), loop at line {}: {}{}", site, f.name, head, said, if rec.proved { "; the site is proven" } else { "" });
+        }
+    }
     // Every note goes in the build report only; there are no warnings
     // (owner, 2026-10-22; diagnostics.md rule 4). Each `use` has one.
     let mut notes = kayo::precog::notes(&analysis, &mir, &sources);

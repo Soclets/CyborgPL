@@ -183,6 +183,44 @@ fn layer_3_proves_what_layer_2_can_only_guess_at() {
     );
 }
 
+/// Spacer (owner, 2026-10-25, on by default while it is measured): two
+/// counters that move together are a relation no shape says, so `$j - $i
+/// + 1` after the loop is never 0 only by an invariant Spacer finds and
+/// both solvers confirm. Started one apart, the same division is 0 on every
+/// run, and no invariant may prove it.
+#[test]
+fn spacer_finds_the_invariant_no_shape_says_and_never_a_false_one() {
+    assert!(have_a_solver(), "no solver on this machine, so layer 3 cannot be tested at all");
+    if !smt::spacer_on() {
+        return;
+    }
+    let program = |j0: &str| {
+        format!(
+            "fn gap [$n: i32] -> i32:\n\
+             \x20   var $i: i32 = 0;\n\
+             \x20   var $j: i32 = {};\n\
+             \x20   while $i < $n:\n\
+             \x20       change $i to $i + 1;\n\
+             \x20       change $j to $j + 1;\n\
+             \x20   ;while\n\
+             \x20   ret 100 div.floor ($j - $i + 1);\n\
+             ;fn gap\n\
+             MAIN [$argc: i32, $argv: ptr[ptr[u8]]]:\n\
+             \x20   std::print(gap($argc));\n\
+             ;MAIN\n",
+            j0
+        )
+    };
+    let division = |p: &Program| {
+        let f = p.functions.iter().find(|f| f.name == "gap").unwrap();
+        f.sites.iter().find(|s| matches!(s.kind, kayo::mir::SiteKind::DivZero)).map(|s| describe(&s.verdict)).unwrap()
+    };
+    let good = division(&build(&program("0")));
+    assert!(good.contains("Spacer"), "the division after the lock-step loop should be proven with Spacer's invariant: {}", good);
+    let bad = division(&build(&program("-1")));
+    assert!(!bad.starts_with("proven"), "the division is 0 on every run, and it was proven: {}", bad);
+}
+
 /// Programs whose sites are worth putting to a solver: every width, both
 /// signs, a range, a length, a loop.
 ///

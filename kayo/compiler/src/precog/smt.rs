@@ -459,6 +459,16 @@ pub fn encode_opts(p: &Program, f: usize, site: SiteId, facts: &crate::precog::F
 /// are worth having (design claude, 2026-10-26: std's `sits_at`, whose
 /// counted loop's sixteen trips made questions CVC5 took 29 s over).
 pub fn encode_unrolled(p: &Program, f: usize, site: SiteId, facts: &crate::precog::Facts, assume: bool, counted: bool, unroll: u32) -> Option<Query> {
+    encode_with(p, f, site, facts, assume, counted, unroll, &[])
+}
+
+/// `encode_unrolled`, with loop invariants Spacer found assumed at their
+/// heads.
+pub fn encode_with_invariants(p: &Program, f: usize, site: SiteId, facts: &crate::precog::Facts, counted: bool, unroll: u32, invariants: &[Invariant]) -> Option<Query> {
+    encode_with(p, f, site, facts, true, counted, unroll, invariants)
+}
+
+fn encoder<'a>(p: &'a Program, f: usize, facts: &'a crate::precog::Facts, assume: bool, counted: bool, unroll: u32, goal: Goal, invariants: &[Invariant]) -> Enc<'a> {
     let mut aliased = std::collections::HashSet::new();
     for b in &p.functions[f].blocks {
         for s in &b.stmts {
@@ -468,7 +478,12 @@ pub fn encode_unrolled(p: &Program, f: usize, site: SiteId, facts: &crate::preco
         }
     }
     let borrows = shared_borrows(&p.functions[f]);
-    let mut e = Enc { p, f, defs: Vec::new(), next: 0, truncated: false, reached: Vec::new(), inputs: Vec::new(), aliased, unexpressible: false, facts, borrows, entries: HashMap::new(), assume, counted, assumed: false, reach: Vec::new(), points: Vec::new(), operands: Vec::new(), entry_fields: HashMap::new(), field_places: HashMap::new(), unroll };
+    Enc { p, f, defs: Vec::new(), next: 0, truncated: false, reached: Vec::new(), inputs: Vec::new(), aliased, unexpressible: false, facts, borrows, entries: HashMap::new(), assume, counted, assumed: false, reach: Vec::new(), points: Vec::new(), operands: Vec::new(), entry_fields: HashMap::new(), field_places: HashMap::new(), unroll, goal, head_keys: Vec::new(), start_terms: Vec::new(), recorded: Vec::new(), invariants: invariants.to_vec() }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn encode_with(p: &Program, f: usize, site: SiteId, facts: &crate::precog::Facts, assume: bool, counted: bool, unroll: u32, invariants: &[Invariant]) -> Option<Query> {
+    let mut e = encoder(p, f, facts, assume, counted, unroll, Goal::Site, invariants);
     e.build(site)?;
     if e.reached.is_empty() || e.unexpressible {
         return None;
@@ -559,6 +574,59 @@ struct Enc<'a> {
     /// How many times each loop is walked before its head stands for the
     /// trips after.
     unroll: u32,
+    /// What the walk is for: a site's question, or one of the three parts
+    /// of a loop's Horn clauses for Spacer.
+    goal: Goal,
+    /// For Spacer's parts: the values the invariant is about, what each
+    /// started as when the walk starts at the head, and each arrival at the
+    /// head with its guard and those values.
+    head_keys: Vec<HeadKey>,
+    start_terms: Vec<String>,
+    recorded: Vec<(String, Vec<String>)>,
+    /// Invariants confirmed for loops of this function, assumed at their
+    /// heads wherever a head stands for later trips.
+    invariants: Vec<Invariant>,
+}
+
+/// What a walk of the flow graph is for. A site's question starts at the
+/// function's entry and asks about the site; Spacer's three parts of one
+/// loop are: what arrives at its head from outside it, what one trip round
+/// it does, and what the site sees from its head on.
+#[derive(Clone, Copy, PartialEq, Debug)]
+enum Goal {
+    Site,
+    Entry(usize),
+    Trip(usize),
+    FromHead(usize),
+}
+
+/// One value a loop invariant is about: a whole-number local the loop
+/// reads or writes, or a length it reads.
+#[derive(Clone, Debug)]
+struct HeadKey {
+    key: Key,
+    bits: u32,
+    signed: bool,
+}
+
+/// A loop invariant Spacer found and both solvers confirmed: it holds on
+/// every arrival at the loop's head (owner, 2026-10-25: measured before
+/// deciding).
+#[derive(Clone, Debug)]
+pub struct Invariant {
+    pub head: usize,
+    keys: Vec<HeadKey>,
+    /// Spacer's parameter list and body, as it wrote them.
+    params: String,
+    body: String,
+    /// In the program's names, for the log.
+    pub shown: String,
+}
+
+impl Invariant {
+    fn define(&self) -> String {
+        format!("(define-fun inv{} {} Bool {})", self.head, self.params, self.body)
+    }
 }
 
 /// What the query knows at one point: the value of each whole-number
@@ -745,14 +813,58 @@ impl<'a> Enc<'a> {
                 env0.insert(Key::Pristine(*l), pristine());
             }
         }
-        incoming.insert((0, 0), vec![("true".to_string(), env0)]);
-        let mut queue = vec![(0usize, 0u32)];
+        for inv in self.invariants.clone() {
+            self.defs.push(inv.define());
+        }
+        // Spacer's parts start at the loop's head, or stop at it.
+        let mut start = 0usize;
+        match self.goal {
+            Goal::Site => {}
+            Goal::Entry(h) => self.head_keys = self.keys_of_loop(h),
+            Goal::Trip(h) | Goal::FromHead(h) => {
+                self.head_keys = self.keys_of_loop(h);
+                start = h;
+                // Any state the head can be in: each value the invariant is
+                // about unknown, the parameters' fields as they are at this
+                // trip (unknown, the same at every read), and what layer 2
+                // knows holds at the head on every trip.
+                env0.retain(|k, _| matches!(k, Key::Pristine(_)));
+                for hk in self.head_keys.clone() {
+                    let v = self.fresh(if matches!(hk.key, Key::Len(..)) { "len" } else { "in" }, hk.bits, hk.signed, "a value at the loop's head".into());
+                    match &hk.key {
+                        Key::Local(l) => self.constrain_range(&v, &f.locals[l.0 as usize].ty.clone()),
+                        Key::Len(..) => self.defs.push(format!("(assert (bvsge {} (_ bv0 64)))", v.term)),
+                        _ => {}
+                    }
+                    self.start_terms.push(v.term.clone());
+                    env0.insert(hk.key.clone(), v);
+                }
+                for hk in self.head_keys.clone() {
+                    if let Key::Local(l) = hk.key {
+                        self.assume_fact(&mut env0, h, l);
+                    }
+                }
+            }
+        }
+        incoming.insert((start, 0), vec![("true".to_string(), env0)]);
+        let mut queue = vec![(start, 0u32)];
         let mut unrollings = 0usize;
         // Only the blocks the site can be reached from: what comes after it
         // says nothing about it, and a loop there must not cut the question
         // (check claude, seed 28124: a site before any loop was "proved for
         // the first trips" because a later loop ran out of room).
-        let mut to_site: std::collections::HashSet<usize> = f.blocks.iter().enumerate().filter(|(_, bb)| bb.stmts.iter().any(|st| matches!(st.kind, StmtKind::Site(id) if id == site))).map(|(i, _)| i).collect();
+        // Spacer's entry part goes to the ways into the loop's head from
+        // outside it, never through the head; its trip part to the ways
+        // round.
+        let loop_body = |h: usize| -> std::collections::HashSet<usize> { back.iter().filter(|(_, hd)| *hd == h).flat_map(|(from, _)| crate::precog::natural_loop(f, h, *from)).collect() };
+        let mut to_site: std::collections::HashSet<usize> = match self.goal {
+            Goal::Site | Goal::FromHead(_) => f.blocks.iter().enumerate().filter(|(_, bb)| bb.stmts.iter().any(|st| matches!(st.kind, StmtKind::Site(id) if id == site))).map(|(i, _)| i).collect(),
+            Goal::Entry(h) => {
+                let body = loop_body(h);
+                f.blocks.iter().enumerate().filter(|(i, bb)| !body.contains(i) && crate::mir::verify::successors(&bb.term).iter().any(|t| t.0 as usize == h)).map(|(i, _)| i).collect()
+            }
+            Goal::Trip(h) => back.iter().filter(|(_, hd)| *hd == h).map(|(from, _)| *from).collect(),
+        };
         let mut preds: HashMap<usize, Vec<usize>> = HashMap::new();
         for (i, bb) in f.blocks.iter().enumerate() {
             for t in crate::mir::verify::successors(&bb.term) {
@@ -762,6 +874,9 @@ impl<'a> Enc<'a> {
         let mut stack: Vec<usize> = to_site.iter().copied().collect();
         while let Some(n) = stack.pop() {
             for &pb in preds.get(&n).into_iter().flatten() {
+                if matches!(self.goal, Goal::Entry(h) if h == pb) {
+                    continue;
+                }
                 if to_site.insert(pb) {
                     stack.push(pb);
                 }
@@ -830,7 +945,7 @@ impl<'a> Enc<'a> {
                 let reach = avoiding.entry(*head).or_insert_with(|| {
                     let skip = (*head, self.unroll);
                     let mut got = std::collections::HashSet::new();
-                    let mut stack = vec![(0usize, 0u32)];
+                    let mut stack = vec![(start, 0u32)];
                     while let Some(n) = stack.pop() {
                         if n == skip || !got.insert(n) {
                             continue;
@@ -1059,6 +1174,21 @@ impl<'a> Enc<'a> {
                 let ti = to.0 as usize;
                 let is_back = crate::precog::back_edges(this.func()).contains(&(b, ti));
                 let lvl = if is_back { level + 1 } else { level };
+                // Spacer's parts: an arrival at the head they are about is
+                // what they record, and the walk stops there.
+                match this.goal {
+                    Goal::Entry(h) if ti == h => {
+                        let terms = this.key_terms(&mut e, false);
+                        this.recorded.push((g, terms));
+                        return;
+                    }
+                    Goal::Trip(h) if ti == h && is_back => {
+                        let terms = this.key_terms(&mut e, false);
+                        this.recorded.push((g, terms));
+                        return;
+                    }
+                    _ => {}
+                }
                 // The last level a loop head is copied at stands for that
                 // trip *and every one after it*: what the loop writes is
                 // forgotten, what it leaves alone is kept. Any later trip
@@ -1100,6 +1230,7 @@ impl<'a> Enc<'a> {
                         // its inner loop had used the levels up).
                         let ways = this.choices(&g, 2);
                         g = ways[0].clone();
+                        this.assume_invariant(&mut late, ti, &ways[1]);
                         incoming.entry((ti, this.unroll)).or_default().push((ways[1].clone(), late));
                     }
                 }
@@ -1141,6 +1272,7 @@ impl<'a> Enc<'a> {
                                 this.defs.push(format!("(assert (= {} (bvadd {} (bvsub {} {}))))", lh.term, l0.term, ch.term, c0.term));
                             }
                         }
+                        this.assume_invariant(&mut e, ti, &g);
                     }
                 }
                 if seen.contains(&(ti, lvl)) || incoming.contains_key(&(ti, lvl)) {
@@ -1577,6 +1709,118 @@ impl<'a> Enc<'a> {
         }
     }
 
+    /// What a loop invariant for the loop at `head` is about: each named
+    /// whole-number local the loop reads or writes, each one made before
+    /// the loop and read in it (a `for`'s stop), the counters, and the
+    /// lengths the loop reads. Values made and used within one trip are
+    /// left out: no trip carries them to the next.
+    fn keys_of_loop(&self, head: usize) -> Vec<HeadKey> {
+        let f = self.func();
+        let back = crate::precog::back_edges(f);
+        let body: std::collections::BTreeSet<usize> = back.iter().filter(|(_, h)| *h == head).flat_map(|(from, _)| crate::precog::natural_loop(f, head, *from)).collect();
+        let mut written = std::collections::HashSet::new();
+        let mut mentioned: std::collections::BTreeSet<LocalId> = std::collections::BTreeSet::new();
+        let mut lens: Vec<Key> = Vec::new();
+        for &b in &body {
+            let block = &f.blocks[b];
+            written_in(block, &mut written);
+            for st in &block.stmts {
+                mentioned.extend(crate::mir::channels::stmt_reads(st));
+                if let StmtKind::Op { op: op @ (Op::ListLength | Op::ArrayLength | Op::MapLength | Op::StrBytes | Op::StrPoints | Op::StrGraphemes), args, .. } = &st.kind {
+                    if let Some(k) = self.len_key(op, args) {
+                        if !lens.contains(&k) {
+                            lens.push(k);
+                        }
+                    }
+                }
+            }
+            mentioned.extend(crate::mir::channels::term_reads(&block.term));
+        }
+        mentioned.extend(written.iter().copied());
+        let mut outside = std::collections::HashSet::new();
+        for (i, block) in f.blocks.iter().enumerate() {
+            if !body.contains(&i) {
+                written_in(block, &mut outside);
+            }
+        }
+        let counters: Vec<LocalId> = f.fors.iter().filter(|fl| fl.head.0 as usize == head).flat_map(|fl| [Some(fl.counter), Some(fl.stop), fl.step]).flatten().collect();
+        let mut keys = Vec::new();
+        for l in mentioned {
+            let decl = &f.locals[l.0 as usize];
+            let carried = decl.name.is_some() || counters.contains(&l) || (outside.contains(&l) && !written.contains(&l)) || f.params.contains(&l);
+            if !carried || self.aliased.contains(&l) {
+                continue;
+            }
+            if let Some((bits, signed)) = int_shape(&decl.ty) {
+                keys.push(HeadKey { key: Key::Local(l), bits, signed });
+            }
+        }
+        keys.extend(lens.into_iter().map(|key| HeadKey { key, bits: 64, signed: false }));
+        keys
+    }
+
+    /// The terms of the values an invariant is about, in this state, each
+    /// at its width. One the state does not know is anything at all; with
+    /// `keep`, it is put into the state, so every later read agrees.
+    fn key_terms(&mut self, env: &mut Env, keep: bool) -> Vec<String> {
+        let keys = self.head_keys.clone();
+        self.terms_of(env, &keys, keep)
+    }
+
+    fn terms_of(&mut self, env: &mut Env, keys: &[HeadKey], keep: bool) -> Vec<String> {
+        let mut out = Vec::new();
+        for hk in keys {
+            let v = match env.get(&hk.key).cloned() {
+                Some(v) => self.resize(v, hk.bits, hk.signed),
+                None => {
+                    let v = match &hk.key {
+                        Key::Local(l) => self.unknown_of(*l).unwrap_or_else(|| self.fresh("in", hk.bits, hk.signed, "a value".into())),
+                        Key::Len(..) => {
+                            let v = self.fresh("len", 64, false, "a length".into());
+                            self.defs.push(format!("(assert (bvsge {} (_ bv0 64)))", v.term));
+                            v
+                        }
+                        _ => self.fresh("in", hk.bits, hk.signed, "a value".into()),
+                    };
+                    if keep {
+                        env.insert(hk.key.clone(), v.clone());
+                    }
+                    self.resize(v, hk.bits, hk.signed)
+                }
+            };
+            out.push(v.term);
+        }
+        out
+    }
+
+    /// A loop invariant both solvers confirmed holds on every arrival at
+    /// its head, this one too (when the path here is the one taken).
+    fn assume_invariant(&mut self, env: &mut Env, head: usize, guard: &str) {
+        let Some(inv) = self.invariants.iter().find(|i| i.head == head).cloned() else { return };
+        let terms = self.terms_of(env, &inv.keys, true);
+        self.defs.push(format!("(assert (=> {} (inv{} {})))", guard, head, terms.join(" ")));
+        // An assumption like the landings: a proof leaning on it is checked
+        // for a site that can still be reached.
+        self.assumed = true;
+    }
+
+    /// The key a length is remembered under, when it is one the query
+    /// remembers.
+    fn len_key(&self, op: &Op, args: &[Operand]) -> Option<Key> {
+        args.first().and_then(|a| a.place()).map(|p| self.through_borrows(p)).and_then(|p| {
+            let fields_only = p.proj.iter().all(|x| matches!(x, Proj::Field(_)));
+            if fields_only && !self.aliased.contains(&p.local) {
+                // An array's length is the one a list's would be: one key, or
+                // `array.length` and a read's bounds were two unknowns (std
+                // claude, 2026-10-21: "7 and 0 at once").
+                let op = if *op == Op::ArrayLength { &Op::ListLength } else { op };
+                Some(Key::Len(p.local, format!("{:?}{:?}", p.proj, op)))
+            } else {
+                None
+            }
+        })
+    }
+
     /// A place, seen through the shared borrows that name it. A `for` over
     /// `lend 's'.scores` walks a temporary holding that borrow, and the
     /// temporary's length *is* the list's: the same list, not a second one
@@ -1619,19 +1863,7 @@ impl<'a> Enc<'a> {
     /// have changed it. Only a place reached by fields alone is remembered:
     /// `'xs'['i']` names a different element each time `'i'` moves.
     fn length(&mut self, op: &Op, args: &[Operand], env: &mut Env) -> Option<Val> {
-        let key = args.first().and_then(|a| a.place()).map(|p| self.through_borrows(p)).and_then(|p| {
-            let p = &p;
-            let fields_only = p.proj.iter().all(|x| matches!(x, Proj::Field(_)));
-            if fields_only && !self.aliased.contains(&p.local) {
-                // An array's length is the one a list's would be: one key, or
-                // `array.length` and a read's bounds were two unknowns (std
-                // claude, 2026-10-21: "7 and 0 at once").
-                let op = if *op == Op::ArrayLength { &Op::ListLength } else { op };
-                Some(Key::Len(p.local, format!("{:?}{:?}", p.proj, op)))
-            } else {
-                None
-            }
-        });
+        let key = self.len_key(op, args);
         if let Some(k) = &key {
             if let Some(v) = env.get(k) {
                 return Some(v.clone());
@@ -2120,6 +2352,241 @@ impl<'a> Enc<'a> {
             _ => None,
         }
     }
+}
+
+/// Spacer's step budget, in Z3's own `rlimit` steps and never a clock, so
+/// the same build proves the same sites every time (owner, 2026-10-25:
+/// Spacer measured before deciding; the budget is the owner's call).
+pub const SPACER_RLIMIT: u64 = 10_000_000;
+
+/// The budget a build uses: `SPACER_RLIMIT`, or `KAYO_SPACER_RLIMIT` for
+/// measuring others (still a step count, so still the same every time).
+pub fn spacer_rlimit() -> u64 {
+    std::env::var("KAYO_SPACER_RLIMIT").ok().and_then(|v| v.replace('_', "").parse().ok()).unwrap_or(SPACER_RLIMIT)
+}
+
+/// Spacer, Z3's Horn clause engine, is Precog's second way to find a
+/// loop's invariant, on by default; `KAYO_NO_SPACER` turns it off (owner,
+/// 2026-10-25: "yes"; whether it stays is decided from the measurement).
+pub fn spacer_on() -> bool {
+    std::env::var("KAYO_NO_SPACER").is_err()
+}
+
+/// What Spacer made of one loop, for one site.
+#[derive(Debug, Clone)]
+pub enum Spacer {
+    /// It found an invariant, and both solvers confirmed it.
+    Confirmed(Invariant),
+    /// It found one, and a solver did not confirm it: never used.
+    NotConfirmed { shown: String, why: String },
+    /// It spent its step budget.
+    Budget,
+    /// It found a way through its clauses to the bad value: no invariant
+    /// of this loop alone proves the site.
+    Refuted,
+    /// It was not asked, and why.
+    Unasked(String),
+}
+
+/// The heads of the loops on some way from the function's entry to the
+/// site: the loops whose invariants the site's question may need.
+pub fn loops_before(p: &Program, f: usize, site: SiteId) -> Vec<usize> {
+    let func = &p.functions[f];
+    let back = crate::precog::back_edges(func);
+    let mut heads: Vec<usize> = back.iter().map(|(_, h)| *h).collect();
+    heads.sort();
+    heads.dedup();
+    let mut to_site: std::collections::HashSet<usize> = func.blocks.iter().enumerate().filter(|(_, bb)| bb.stmts.iter().any(|st| matches!(st.kind, StmtKind::Site(id) if id == site))).map(|(i, _)| i).collect();
+    let mut preds: HashMap<usize, Vec<usize>> = HashMap::new();
+    for (i, bb) in func.blocks.iter().enumerate() {
+        for t in crate::mir::verify::successors(&bb.term) {
+            preds.entry(t.0 as usize).or_default().push(i);
+        }
+    }
+    let mut stack: Vec<usize> = to_site.iter().copied().collect();
+    while let Some(n) = stack.pop() {
+        for &pb in preds.get(&n).into_iter().flatten() {
+            if to_site.insert(pb) {
+                stack.push(pb);
+            }
+        }
+    }
+    heads.retain(|h| to_site.contains(h));
+    heads
+}
+
+/// Ask Spacer for an invariant of the loop at `head` strong enough for the
+/// site, then have both solvers confirm it is one: it holds on every way
+/// into the loop, and one trip round keeps it. Spacer only proposes; a
+/// bug in it can make the confirmation fail, never a wrong proof.
+///
+/// The clauses come from three walks of the flow graph with every loop's
+/// head standing for every trip (as the shallow question does): from the
+/// entry to the ways into this loop, round it once from its head, and
+/// from its head to the site.
+pub fn spacer(p: &Program, f: usize, site: SiteId, facts: &crate::precog::Facts, head: usize, portfolio: &Portfolio) -> Spacer {
+    let Some(z3) = portfolio.members.iter().find(|s| s.name == "Z3") else { return Spacer::Unasked("Z3 is not here".into()) };
+    if !portfolio.is_complete() {
+        return Spacer::Unasked("only one solver is here, and an invariant is confirmed by both".into());
+    }
+    let none = SiteId(u32::MAX);
+    let mut entry = encoder(p, f, facts, true, false, 0, Goal::Entry(head), &[]);
+    // A loop entered where the function starts, or with no way in found,
+    // would leave the first condition asked about nothing, and an
+    // invariant confirmed by that would be confirmed by default.
+    if head == 0 || entry.build(none).is_none() || entry.truncated || entry.recorded.is_empty() {
+        return Spacer::Unasked("the ways into the loop could not all be put into words".into());
+    }
+    let keys = entry.head_keys.clone();
+    if keys.is_empty() {
+        return Spacer::Unasked("the loop has no whole number for an invariant to be about".into());
+    }
+    let mut trip = encoder(p, f, facts, true, false, 0, Goal::Trip(head), &[]);
+    if trip.build(none).is_none() || trip.truncated {
+        return Spacer::Unasked("a trip round the loop could not be put into words".into());
+    }
+    let mut from = encoder(p, f, facts, true, false, 0, Goal::FromHead(head), &[]);
+    if from.build(site).is_none() || from.reached.is_empty() || from.unexpressible {
+        return Spacer::Unasked("the site could not be asked about from the loop's head".into());
+    }
+    let sorts: Vec<String> = keys.iter().map(|k| format!("(_ BitVec {})", k.bits)).collect();
+    let mut text = String::new();
+    let _ = writeln!(text, "; CyborgPL — Precog's Horn clauses for one loop, {}", describe_site(p, f, site));
+    let _ = writeln!(text, "(set-option :rlimit {})", spacer_rlimit());
+    let _ = writeln!(text, "(set-logic HORN)");
+    let _ = writeln!(text, "(declare-fun Inv ({}) Bool)", sorts.join(" "));
+    let (vars, conj) = horn_parts(&entry.defs);
+    for (g, terms) in &entry.recorded {
+        text.push_str(&horn_rule(&vars, &conj, &[g.clone()], &format!("(Inv {})", terms.join(" "))));
+    }
+    let (vars, conj) = horn_parts(&trip.defs);
+    let at_head = format!("(Inv {})", trip.start_terms.join(" "));
+    for (g, terms) in &trip.recorded {
+        text.push_str(&horn_rule(&vars, &conj, &[at_head.clone(), g.clone()], &format!("(Inv {})", terms.join(" "))));
+    }
+    let (vars, conj) = horn_parts(&from.defs);
+    let bad = format!("(or false {})", from.reached.join(" "));
+    text.push_str(&horn_rule(&vars, &conj, &[format!("(Inv {})", from.start_terms.join(" ")), bad], "false"));
+    let _ = writeln!(text, "(check-sat)\n(get-model)\n(get-info :reason-unknown)");
+    if text.len() > QUERY_CAP {
+        return Spacer::Unasked(format!("its clauses came out too big to ask ({} MB)", text.len() / 1_000_000));
+    }
+    let out = run_raw(z3, &text);
+    let said = out.lines().map(str::trim).find(|l| matches!(*l, "sat" | "unsat" | "unknown"));
+    match said {
+        Some("sat") => {}
+        Some("unsat") => return Spacer::Refuted,
+        Some("unknown") if out.contains("resource") || out.contains("canceled") => return Spacer::Budget,
+        _ => return Spacer::Unasked(format!("Spacer did not say: {}", out.lines().last().unwrap_or("").trim())),
+    }
+    let Some(at) = out.find("(define-fun Inv ") else { return Spacer::Unasked("Spacer gave no invariant".into()) };
+    let b = out.as_bytes();
+    let Some((params, i)) = read_sexp(b, at + "(define-fun Inv ".len()) else { return Spacer::Unasked("Spacer's invariant could not be read".into()) };
+    let Some((sort, i)) = read_sexp(b, i) else { return Spacer::Unasked("Spacer's invariant could not be read".into()) };
+    let Some((body, _)) = read_sexp(b, i) else { return Spacer::Unasked("Spacer's invariant could not be read".into()) };
+    if sort != "Bool" {
+        return Spacer::Unasked("Spacer's invariant could not be read".into());
+    }
+    let shown = show_invariant(p, f, &keys, &body);
+    let inv = Invariant { head, keys, params, body, shown: shown.clone() };
+    // Confirmed: on every way in, and kept by every way round.
+    let header = format!("(set-option :rlimit {})\n(set-logic QF_BV)\n", RLIMIT);
+    let fails = |recorded: &[(String, Vec<String>)]| -> String {
+        let ways: Vec<String> = recorded.iter().map(|(g, t)| format!("(and {} (not (inv{} {})))", g, head, t.join(" "))).collect();
+        format!("(assert (or false {}))\n(check-sat)\n", ways.join(" "))
+    };
+    let base = format!("{}{}\n{}\n{}", header, entry.defs.join("\n"), inv.define(), fails(&entry.recorded));
+    let step = format!("{}{}\n{}\n(assert (inv{} {}))\n{}", header, trip.defs.join("\n"), inv.define(), head, trip.start_terms.join(" "), fails(&trip.recorded));
+    for (what, q) in [("the ways into the loop", base), ("a trip round it", step)] {
+        let (_, each) = portfolio.ask(&Query { text: q, assumptions: String::new(), truncated: false, assumed: false, reach: String::new(), inputs: Vec::new(), points: Vec::new() });
+        if !each.iter().all(|(_, a)| *a == Answer::Unsat) {
+            let said: Vec<String> = each.iter().map(|(n, a)| format!("{} {}", n, match a { Answer::Unsat => "confirmed it", Answer::Sat(_) => "found it false", Answer::Unknown => "could not say" })).collect();
+            return Spacer::NotConfirmed { shown, why: format!("on {}: {}", what, said.join(", ")) };
+        }
+    }
+    Spacer::Confirmed(inv)
+}
+
+/// A query's lines as one Horn clause body: each value it declares or
+/// defines is a variable of the clause, each definition and assertion a
+/// conjunct.
+fn horn_parts(defs: &[String]) -> (Vec<String>, Vec<String>) {
+    let mut vars = Vec::new();
+    let mut conj = Vec::new();
+    for d in defs {
+        if let Some(rest) = d.strip_prefix("(declare-fun ") {
+            let Some((name, rest)) = rest.split_once(' ') else { continue };
+            let sort = rest.strip_prefix("() ").and_then(|s| s.strip_suffix(')')).unwrap_or("Bool");
+            vars.push(format!("({} {})", name, sort));
+        } else if let Some(rest) = d.strip_prefix("(define-fun ") {
+            let Some((name, rest)) = rest.split_once(' ') else { continue };
+            let Some(rest) = rest.strip_prefix("() ") else { continue };
+            let (sort, body) = match rest.strip_prefix("Bool ") {
+                Some(body) => ("Bool", body),
+                None => {
+                    let Some(end) = rest.find(") ") else { continue };
+                    (&rest[..=end], &rest[end + 2..])
+                }
+            };
+            let body = body.strip_suffix(')').unwrap_or(body);
+            vars.push(format!("({} {})", name, sort));
+            conj.push(format!("(= {} {})", name, body));
+        } else if let Some(rest) = d.strip_prefix("(assert ") {
+            conj.push(rest.strip_suffix(')').unwrap_or(rest).to_string());
+        }
+    }
+    (vars, conj)
+}
+
+fn horn_rule(vars: &[String], conj: &[String], extra: &[String], head: &str) -> String {
+    let body = format!("(and true {} {})", conj.join(" "), extra.join(" "));
+    if vars.is_empty() {
+        format!("(assert (=> {} {}))\n", body, head)
+    } else {
+        format!("(assert (forall ({}) (=> {} {})))\n", vars.join(" "), body, head)
+    }
+}
+
+/// Spacer's invariant in the program's names, for the log.
+fn show_invariant(p: &Program, f: usize, keys: &[HeadKey], body: &str) -> String {
+    let func = &p.functions[f];
+    let mut s = body.split_whitespace().collect::<Vec<_>>().join(" ");
+    for (i, k) in keys.iter().enumerate().rev() {
+        let name = |l: &LocalId| func.locals[l.0 as usize].name.clone().map(|n| format!("${}", n)).unwrap_or_else(|| format!("_{}", l.0));
+        let shown = match &k.key {
+            Key::Local(l) => name(l),
+            Key::Len(l, _) => format!("len({})", name(l)),
+            _ => format!("v{}", i),
+        };
+        s = s.replace(&format!("x!{}", i), &shown);
+    }
+    s
+}
+
+/// Z3 on a text, its whole answer back.
+fn run_raw(s: &Solver, text: &str) -> String {
+    if std::env::var("KAYO_KEEP_SMT").is_ok() {
+        static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let dir = std::env::temp_dir().join("cca-smt");
+        let _ = std::fs::create_dir_all(&dir);
+        let _ = std::fs::write(dir.join(format!("h{}-{}.smt2", std::process::id(), n)), text);
+    }
+    let mut cmd = std::process::Command::new(s.program);
+    cmd.arg("-smt2").arg("-in");
+    cmd.stdin(std::process::Stdio::piped()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::null());
+    let started = std::time::Instant::now();
+    let Ok(mut child) = cmd.spawn() else { return String::new() };
+    if let Some(mut input) = child.stdin.take() {
+        use std::io::Write as _;
+        let _ = input.write_all(text.as_bytes());
+    }
+    let Ok(out) = child.wait_with_output() else { return String::new() };
+    let out = String::from_utf8_lossy(&out.stdout).to_string();
+    if std::env::var("KAYO_SMT_TIMES").is_ok() {
+        eprintln!("smt: Spacer {} bytes, {:.2} s, {}", text.len(), started.elapsed().as_secs_f64(), out.lines().next().unwrap_or("no answer"));
+    }
+    out
 }
 
 fn compare(op: &BinOp, signed: bool, a: &str, b: &str) -> String {
