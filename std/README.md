@@ -80,13 +80,11 @@ comparison runs a std call three ways: the oracle's built-in std, a copy of this
 `stdtest`), and this folder through kayo. The fixed test programs are in `programs.py`, not `.cy` files, since
 every `.cy` under `std/` is a module of the kit.
 
-Rerun 2026-10-29 in redesign three (oracle 95b167ad, KAYO 84545791), every count as before: text 820, at 118, slice
+Rerun 2026-10-29 in redesign three (oracle f23a338e, KAYO 220abe9e), every count as before: text 820, at 118, slice
 356, slice.point 304 and slice.byte 807 against Python, round 4,795, case 756, sigma 3,264 (0 wrong against Table
 3-17), dots 1,906, and std's sites in the command-line programs 556, 84 and 24, all proven with the inputs counted;
-`argument_words` and `inventory` print their `.out`. KAYO did not have the owner's ruling that changing what a
-function was lent is no effect yet, and refused std's three `lent.mut` helpers as `fn`s, so its builds read a copy
-of this folder with them, and `upper` and `lower`, as `proc`s (`STD=…/std sh check.sh`; `common.sh` lets `STD` stand in
-for this folder). check claude's corpus program in `more.sh` waits for check claude's conversion.
+`argument_words` and `inventory` print their `.out`, and KAYO's conformance passes against this folder but for its
+own list of pending examples. check claude's corpus program in `more.sh` waits for check claude's conversion.
 
 - `examples/argument_words.cy` and `examples/inventory.cy`, unchanged, built by KAYO against this
   folder, print their `.out`, every one of their sites proven; so do `round.cy`, `whole.cy` and

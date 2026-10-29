@@ -15,11 +15,9 @@ MONEY_ID=d7b62f4448a5b23d792a25bcdba89220e02691fb5e27cf18640ee491d049df0f
 MONEY_VER=2026-10-07T20:22:24+07:00
 CNC_ID=04b99a7cbb141b84b9f2f38c085c124e2badc37d663f71c6deebdd6ac24e79b1
 CNC_VER=2026-10-10T16:42:00+07:00
-# STD: the std/ the word `std` names below, this clone's unless set (a stand-in while kayo lags a ruling).
-STD="${STD:-$R/std}"
 
 # toml DIR NAME WORD…: DIR/CyJet.toml for a kit named NAME. Each WORD adds one thing:
-#   std          $STD, by its path            builtin   the oracle's built-in std, by its id
+#   std          this std/, by its path       builtin   the oracle's built-in std, by its id
 #   stdtest=DIR  a copy of std/ as stdtest     unicode, money, cnc   that limb
 #   vouch, raw_memory, c_calls   that power
 toml() {
@@ -27,7 +25,7 @@ toml() {
     _kits=""; _limbs=""; _powers=""
     for _w in "$@"; do
         case "$_w" in
-            std) _kits="${_kits}std {\npath = $STD\n}\n" ;;
+            std) _kits="${_kits}std {\npath = $R/std\n}\n" ;;
             builtin) _kits="${_kits}std {\nid = $STD_ID\nver = $STD_VER\n}\n" ;;
             stdtest=*) _kits="${_kits}stdtest {\npath = ${_w#stdtest=}\n}\n" ;;
             unicode) _limbs="${_limbs}unicode {\nid = $UNICODE_ID\nver = $UNICODE_VER\n}\n" ;;
