@@ -201,7 +201,14 @@ impl FnCtx {
 
     /// Refused as not declared, with the close name when there is one.
     pub fn not_declared(&self, d: crate::diag::Diagnostic, name: &str, at: crate::source::Span) -> Box<crate::diag::Diagnostic> {
-        Box::new(match self.close_name(name) {
+        let twin = self.scopes.iter().flat_map(|s| s.keys()).find(|k| k.as_str() != name && k.to_lowercase() == name.to_lowercase()).cloned();
+        Box::new(match twin.or_else(|| self.close_name(name)) {
+            // Every name is exact (owner, 2026-10-27): one differing only in case is asked about.
+            Some(c) if c.to_lowercase() == name.to_lowercase() => {
+                let mut d = d;
+                d.sentence = format!("`${}` is not declared; did you mean `${}`? Every name is exact (owner, 2026-10-27)", name, c);
+                d.fix_edit(at, crate::diag::Edit::Replace, crate::diag::name_written(&c))
+            }
             Some(c) => d.fix_edit(at, crate::diag::Edit::Replace, crate::diag::name_written(&c)),
             None => d,
         })
@@ -1144,4 +1151,56 @@ impl Checker {
         }
         Ok(())
     }
+}
+
+/// Two names a program uses that differ only in case (owner, 2026-10-27): each name is exact, so
+/// they are two, and the build report says so. Its functions, types and constants, and each
+/// function's variables. Inside std, nothing (it is not the writer's).
+pub fn case_twins(program: &Program) -> Vec<(crate::source::Span, String)> {
+    let mut out = Vec::new();
+    let mut pair = |names: &[(String, crate::source::Span)], what: &str| {
+        for (i, (a, at)) in names.iter().enumerate() {
+            for (b, _) in &names[..i] {
+                if a != b && a.to_lowercase() == b.to_lowercase() {
+                    out.push((*at, format!("{} `{}` and `{}` differ only in case: every name is exact, so they are two names (owner, 2026-10-27)", what, b, a)));
+                }
+            }
+        }
+    };
+    let std_kit = |m: crate::resolve::ModuleId| program.items.nerve_cord.is_some_and(|c| program.items.kit_root(m) == c);
+    let mut items: Vec<(String, crate::source::Span)> = Vec::new();
+    for f in &program.items.fns {
+        if !f.is_literal && f.op.is_none() && !std_kit(f.module) && !items.iter().any(|(n, _)| *n == f.name) {
+            items.push((f.name.clone(), f.name_span));
+        }
+    }
+    for s in &program.items.structs {
+        if !items.iter().any(|(n, _)| *n == s.name) {
+            items.push((s.name.clone(), s.span));
+        }
+    }
+    for e in &program.items.enums {
+        if !items.iter().any(|(n, _)| *n == e.name) {
+            items.push((e.name.clone(), e.span));
+        }
+    }
+    pair(&items, "the names");
+    for inst in &program.instances {
+        let Some(body) = &inst.body else { continue };
+        // MAIN has no entry among the functions.
+        if program.items.fns.get(inst.key.fn_id.0 as usize).is_some_and(|d| std_kit(d.module)) {
+            continue;
+        }
+        let mut vars: Vec<(String, crate::source::Span)> = Vec::new();
+        for l in &body.locals {
+            if !l.name.contains(':') && !l.name.contains(' ') && !vars.iter().any(|(n, _)| *n == l.name) {
+                vars.push((l.name.clone(), l.span));
+            }
+        }
+        let shown: Vec<(String, crate::source::Span)> = vars.into_iter().map(|(n, s)| (format!("${}", n), s)).collect();
+        pair(&shown, "the variables");
+    }
+    out.sort_by_key(|(s, _)| (s.file.0, s.start));
+    out.dedup();
+    out
 }

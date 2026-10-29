@@ -1,28 +1,30 @@
 # An iterator handing out owned lists (owner, 2026-10-09): each item is
 # freed after its trip, and `perm` keeps the last one past the loop.
-%extern.C fn exit [$code: i32];
+%extern.C proc exit [let $code: i32];
 
-struct Rows {
-    left: i32
-}
+rec Rows:
+    var left: i32;
+;rec Rows
 
-fn Rows.next [lent.mut $r: Rows] -> optional[std::list[i32]] {
-    if $r.left equal_to 0 { return optional.none; }
-    change $r.left = $r.left minus 1;
-    let mut $row: std::list[i32] = [1, 2];
-    std::list.append(lend.mut $row, value: $r.left);
-    return optional.value(give $row);
-}
+proc Rows.next [lent.mut $r: Rows] -> optional[std::ls[i32]]:
+    if $r.left == 0:
+        ret optional.none;
+    ;if
+    change $r.left to $r.left - 1;
+    var $row: std::ls[i32] = [1, 2];
+    std::ls.append(lend.mut $row, value: $r.left);
+    ret optional.value(give $row);
+;proc Rows.next
 
-MAIN {
-    let mut $total: i32 = 0;
-    let mut $r := Rows[left = 4];
-    for $row in lend.mut $r {
-        change $total = $total plus to.i32(std::list.length(lend $row));
-    }
+MAIN:
+    var $total: i32 = 0;
+    var $r = Rows[left = 4];
+    for $row in lend.mut $r:
+        change $total to $total + to.i32(std::ls.len(lend $row));
+    ;for
     let $s := Rows[left = 3];
-    for perm $last in give $s {
-        change $total = $total plus 1;
-    }
-    no_check my.exit($total plus to.i32(std::list.length(lend $last)));
-}
+    for perm $last in give $s:
+        change $total to $total + 1;
+    ;for
+    no_check my.exit($total + to.i32(std::ls.len(lend $last)));
+;MAIN

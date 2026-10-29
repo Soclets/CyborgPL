@@ -1,2 +1,4 @@
 
-pub fn app [] -> i32 { return 1; }
+pub fn app [] -> i32:
+    ret 1;
+;fn app

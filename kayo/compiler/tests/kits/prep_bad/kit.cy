@@ -1,2 +1,4 @@
 
-pub fn bad [] -> i32 { return 1; }
+pub fn bad [] -> i32:
+    ret 1;
+;fn bad

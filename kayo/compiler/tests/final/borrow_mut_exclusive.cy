@@ -1,9 +1,11 @@
 # While a `lent.mut` borrow is in use, what it borrows is not read by anyone
 # else.
-fn pickmut [lent.mut $a: std::list[i32]] -> lent.mut std::list[i32] { return lend.mut $a; }
-MAIN {
-    let mut $xs: std::list[i32] = [1, 2];
-    let $m := pickmut(lend.mut $xs);
+proc pickmut [lent.mut $a: std::ls[i32]] -> lent.mut std::ls[i32]:
+    ret lend.mut $a;
+;proc pickmut
+MAIN:
+    var $xs: std::ls[i32] = [1, 2];
+    var $m = pickmut(lend.mut $xs);
     let $y := $xs[pos: 1];
-    change $m[pos: 1] = 7;
-}
+    change $m[pos: 1] to 7;
+;MAIN

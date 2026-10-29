@@ -1,2 +1,4 @@
 
-pub fn geometry [] -> i32 { return 1; }
+pub fn geometry [] -> i32:
+    ret 1;
+;fn geometry

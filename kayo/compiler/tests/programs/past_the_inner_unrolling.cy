@@ -7,34 +7,44 @@
 # Inner 3, failing on trip 6 (15): checked. Guess, unread: precog.md's 16 iterations per loop are
 # counted across the outer loop's trips, and the trips past them are taken as unreachable, where
 # the note has anything past the budget unproven.
-%extern.C fn write [$fd: i32, $buf: ptr[u8], $len: u64] -> i64;
+%extern.C proc write [let $fd: i32, let $buf: ptr[u8], let $len: u64] -> i64;
 
-fn emit [$m: u64, $neg: bool] {
-    let mut $buf: std::list[u8] = [];
-    if $neg { std::list.append(lend.mut $buf, value: 45); }
-    let mut $v: u64 = $m;
-    let mut $ds: std::list[u8] = [];
-    loop {
-        std::list.append(lend.mut $ds, value: to.u8(48 plus ($v mod.floor 10)));
-        change $v = $v div.floor 10;
-        if $v equal_to 0 { break; }
-    }
-    for $k: u64 [from: std::list.length(lend $ds), to: 1, by: -1] {
-        std::list.append(lend.mut $buf, value: $ds[pos: $k]);
-    }
-    std::list.append(lend.mut $buf, value: 10);
-    NO_FUCKING_CHECKS write(1, lend $buf, std::list.length(lend $buf));
-}
+proc emit [let $m: u64, let $neg: bool]:
+    var $buf: std::ls[u8] = [];
+    if $neg:
+        std::ls.append(lend.mut $buf, value: 45);
+    ;if
+    var $v: u64 = $m;
+    var $ds: std::ls[u8] = [];
+    loop:
+        std::ls.append(lend.mut $ds, value: to.u8(48 + ($v mod.floor 10)));
+        change $v to $v div.floor 10;
+        if $v == 0:
+            break;
+        ;if
+    ;loop
+    for $k: u64 [from: std::ls.len(lend $ds), to: 1, by: -1]:
+        std::ls.append(lend.mut $buf, value: $ds[pos: $k]);
+    ;for
+    std::ls.append(lend.mut $buf, value: 10);
+    NO_FUCKING_CHECKS write(1, lend $buf, std::ls.len(lend $buf));
+;proc emit
 
-fn put_u [$n: u64] {
+proc put_u [let $n: u64]:
     emit($n, false);
-}
+;proc put_u
 
-fn put_i [$n: i64] {
-    if $n < 0 {
-        emit(to.u64(0 minus ($n plus 1)) plus 1, true);
-    } else {
+proc put_i [let $n: i64]:
+    if $n < 0:
+        emit(to.u64(0 - ($n + 1)) + 1, true);
+    else:
         emit(to.u64($n), false);
-    }
-}
-MAIN { for $i: i64 [from: 4, to: -2, by: -3] { for $j: u8 [from: 1, to: 9, by: 1] { put_u(to.u32($i)); } } }
+    ;if
+;proc put_i
+MAIN:
+    for $i: i64 [from: 4, to: -2, by: -3]:
+        for $j: u8 [from: 1, to: 9, by: 1]:
+            put_u(to.u32($i));
+        ;for
+    ;for
+;MAIN

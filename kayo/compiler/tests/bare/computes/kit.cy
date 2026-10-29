@@ -2,31 +2,41 @@
 # the CPU sleeps in the entry. A wrong answer would take a u8 below 0, a
 # failed check, and freeze it on a trap instead: there is no exit code to
 # carry the answer, so the trap is the test.
-fn fib [$n: i64] -> i64 {
-    if $n < 2 { return $n; }
-    return fib($n minus 1) plus fib($n minus 2);
-}
+fn fib [let $n: i64] -> i64:
+    if $n < 2:
+        ret $n;
+    ;if
+    ret fib($n - 1) + fib($n - 2);
+;fn fib
 
-struct Counter {
-    now: i32,
-    stop: i32
-}
+rec Counter:
+    var now: i32;
+    var stop: i32;
+;rec Counter
 
-fn Counter.next [lent.mut $c: Counter] -> optional[i32] {
-    if $c.now equal_to $c.stop { return optional.none; }
-    change $c.now = $c.now plus 1;
-    return optional.value($c.now);
-}
+proc Counter.next [lent.mut $c: Counter] -> optional[i32]:
+    if $c.now == $c.stop:
+        ret optional.none;
+    ;if
+    change $c.now to $c.now + 1;
+    ret optional.value($c.now);
+;proc Counter.next
 
-MAIN {
-    let mut $wrong: u8 = 0;
-    if fib(24) not_equal 46368 { change $wrong = $wrong minus 1; }
-    let $half: f64 = 3.0 times 0.5;
-    if $half not_equal 1.5 { change $wrong = $wrong minus 1; }
-    let mut $sum: i32 = 0;
-    let mut $c := Counter[now = 0, stop = 10];
-    for $x in lend.mut $c {
-        change $sum = $sum plus $x;
-    }
-    if $sum not_equal 55 { change $wrong = $wrong minus 1; }
-}
+MAIN:
+    var $wrong: u8 = 0;
+    if fib(24) != 46368:
+        change $wrong to $wrong - 1;
+    ;if
+    let $half: f64 := 3.0 x 0.5;
+    if $half != 1.5:
+        change $wrong to $wrong - 1;
+    ;if
+    var $sum: i32 = 0;
+    var $c = Counter[now = 0, stop = 10];
+    for $x in lend.mut $c:
+        change $sum to $sum + $x;
+    ;for
+    if $sum != 55:
+        change $wrong to $wrong - 1;
+    ;if
+;MAIN

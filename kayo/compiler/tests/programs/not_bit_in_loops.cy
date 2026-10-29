@@ -4,18 +4,18 @@
 # the loops lost the interval and the build refused the `check`. The
 # quotient is exact now (owner, 2026-10-02) and a shift of an exact answer
 # is open, so it is an i8 first, as it was.
-%extern.C fn exit [$code: i32];
-%extern.C fn strlen [$s: ptr[u8]] -> u64;
-MAIN {
+%extern.C proc exit [let $code: i32];
+%extern.C proc strlen [let $s: ptr[u8]] -> u64;
+MAIN:
     let $s := "seven!!";
-    no_check let $n: u64 = strlen(lend $s);
-    let mut $v2: i8 = (to.i8($n mod.floor 100) mod.floor 7) minus 102;
-    let mut $w3: i16 = 7;
-    while $w3 > 0 {
-        change $w3 = $w3 minus 1;
-        for $i4: u16 [from: 29, to: 3, by: -3] {
-            check change $v2 = ((to.i8((126 or.bit $v2) div.floor (not.bit $v2)) shl 6) mod.floor 7) minus 102;
-        }
-    }
-    no_check my.exit(to.i32(0 minus $v2));
-}
+    no_check let $n: u64 := strlen(lend $s);
+    var $v2: i8 = (to.i8($n mod.floor 100) mod.floor 7) - 102;
+    var $w3: i16 = 7;
+    while $w3 > 0:
+        change $w3 to $w3 - 1;
+        for $i4: u16 [from: 29, to: 3, by: -3]:
+            check change $v2 to ((to.i8((126 or.bit $v2) div.floor (not.bit $v2)) shl 6) mod.floor 7) - 102;
+        ;for
+    ;while
+    no_check my.exit(to.i32(0 - $v2));
+;MAIN

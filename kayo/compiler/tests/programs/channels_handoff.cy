@@ -1,15 +1,21 @@
-%extern.C fn exit [$code: i32];
-fn fetch [lent $url: str.utf8] -> str.utf8 { return "page of " concat $url; }
-MAIN {
-    let $results: %channel[str.utf8] = %channel.empty;
+%extern.C proc exit [let $code: i32];
+fn fetch [lent $url: str.utf8] -> str.utf8:
+    ret "page of " concat $url;
+;fn fetch
+MAIN:
+    let $results: %channel[str.utf8] := %channel.empty;
     let $a := "a.com";
-    %concur with [lend $results, give $a] { %channel.send(lend $results, value: fetch(lend $a)); }
-    %concur with [lend $results] { %channel.send(lend $results, value: fetch("b.com")); }
-    let mut $total: i32 = 0;
-    for $i [from: 1, to: 2, by: 1] {
-        let $page := %channel.take(lend $results) otherwise str.empty;
-        change $total = $total plus std::str.bytes(lend $page);
-    }
-    let $extra := %channel.take(lend $results) otherwise "closed!";
-    no_check my.exit($total plus std::str.bytes(lend $extra));
-}
+    %spawn.task with [lend $results, give $a]:
+        %channel.send(lend $results, value: fetch(lend $a));
+    ;%spawn.task
+    %spawn.task with [lend $results]:
+        %channel.send(lend $results, value: fetch("b.com"));
+    ;%spawn.task
+    var $total: i32 = 0;
+    for $i [from: 1, to: 2, by: 1]:
+        let $page := %channel.take(lend $results) ?? str.empty;
+        change $total to $total + std::str.bytes(lend $page);
+    ;for
+    let $extra := %channel.take(lend $results) ?? "closed!";
+    no_check my.exit($total + std::str.bytes(lend $extra));
+;MAIN

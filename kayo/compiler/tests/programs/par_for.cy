@@ -3,28 +3,28 @@
 # or adds into one total — and give what the loop in order gives. The sum
 # is 0 or more every time, so its one check at the end is the loop's.
 # (Their total mod 256, as the oracle computes it: 160.)
-%extern.C fn exit [$code: i32];
-MAIN {
-    let $n: i64 = 300000;
-    let mut $xs: std::list[i64] = std::list.fill(value: 3, count: $n);
-    for $i: i64 [from: 1, to: $n, by: 1] {
-        change $xs[pos: $i] = ($xs[pos: $i] times 7) mod.floor 11;
-    }
-    let mut $total: i64 = 0;
-    for $x in lend $xs {
-        change $total = $total plus ($x mod.floor 7);
-    }
-    let mut $grid: std::list[i64] = std::list.fill(value: 0, count: 2000);
-    for $r: i64 [from: 1, to: 2000, by: 1] {
-        let mut $row: i64 = 0;
-        for $c: i64 [from: 1, to: 200, by: 1] {
-            change $row = $row plus (($r times $c) mod.floor 5);
-        }
-        change $grid[pos: $r] = $row;
-    }
-    let mut $g: i64 = 0;
-    for $v in lend $grid {
-        change $g = $g plus $v;
-    }
-    no_check my.exit(to.i32(($total plus $g) mod.floor 256));
-}
+%extern.C proc exit [let $code: i32];
+MAIN:
+    let $n: i64 := 300000;
+    var $xs: std::ls[i64] = std::ls.fill(value: 3, count: $n);
+    for $i: i64 [from: 1, to: $n, by: 1]:
+        change $xs[pos: $i] to ($xs[pos: $i] x 7) mod.floor 11;
+    ;for
+    var $total: i64 = 0;
+    for $x in lend $xs:
+        change $total to $total + ($x mod.floor 7);
+    ;for
+    var $grid: std::ls[i64] = std::ls.fill(value: 0, count: 2000);
+    for $r: i64 [from: 1, to: 2000, by: 1]:
+        var $row: i64 = 0;
+        for $c: i64 [from: 1, to: 200, by: 1]:
+            change $row to $row + (($r x $c) mod.floor 5);
+        ;for
+        change $grid[pos: $r] to $row;
+    ;for
+    var $g: i64 = 0;
+    for $v in lend $grid:
+        change $g to $g + $v;
+    ;for
+    no_check my.exit(to.i32(($total + $g) mod.floor 256));
+;MAIN

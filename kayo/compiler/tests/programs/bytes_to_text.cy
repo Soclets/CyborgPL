@@ -3,14 +3,14 @@
 # 104 195 169 108 108 111 is "héllo": 5 points, 6 bytes; 255 is never
 # UTF-8, so 'b' is "not" (3 bytes); the array is "hi" (2 bytes).
 # 5 x 16 + 6 + 3 + 2 = 91.
-%extern.C fn exit [$code: i32];
-MAIN {
-    let $good: std::list[u8] = [104, 195, 169, 108, 108, 111];
-    let $bad: std::list[u8] = [104, 255, 105];
-    let $arr: array[u8] = [104, 105];
-    let $a := to.str.utf8($good) otherwise "?";
-    let $b := to.str.utf8($bad) otherwise "not";
-    let $c := to.str.utf8($arr) otherwise "?";
-    let $n: u64 = std::str.points(lend $a) times 16 plus std::str.bytes(lend $a) plus std::str.bytes(lend $b) plus std::str.bytes(lend $c);
+%extern.C proc exit [let $code: i32];
+MAIN:
+    let $good: std::ls[u8] := [104, 195, 169, 108, 108, 111];
+    let $bad: std::ls[u8] := [104, 255, 105];
+    let $arr: arr[u8] := [104, 105];
+    let $a := to.str.utf8(lend $good) ?? "?";
+    let $b := to.str.utf8(lend $bad) ?? "not";
+    let $c := to.str.utf8(lend $arr) ?? "?";
+    let $n: u64 := std::str.points(lend $a) x 16 + std::str.bytes(lend $a) + std::str.bytes(lend $b) + std::str.bytes(lend $c);
     no_check my.exit(to.i32($n));
-}
+;MAIN

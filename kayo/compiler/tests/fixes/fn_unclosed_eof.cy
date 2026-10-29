@@ -1,3 +1,3 @@
 # unclosed_block: a function never closed, at the end of the file.
-fn f [] -> i32 {
-    return 1;
+fn f [] -> i32:
+    ret 1;

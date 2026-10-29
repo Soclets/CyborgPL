@@ -5,19 +5,27 @@
 # at u32 is 0); bare numbers are worked out exactly however big they get
 # on the way ((4294967294 pow 12) mod 2147483649 is 16777216); and a deci
 # past a narrower one's largest takes the `otherwise` (-180). All four: 15.
-%extern.C fn exit [$code: i32];
-MAIN {
-    let mut $code: i32 = 0;
-    let $a: i8 = 20;
-    let $b: i8 = (-($a minus 1)) shr 1;
-    if $b equal_to -10 { change $code = $code plus 1; }
-    let $u: u32 = 5;
-    let $c: u32 = 7 shr (($u minus 1) mod.floor 32);
-    if $c equal_to 0 { change $code = $code plus 2; }
-    let $n: u64 = (4294967294 pow 12) mod.floor 2147483649;
-    if $n equal_to 16777216 { change $code = $code plus 4; }
-    let $big := to.%d128("1e400") otherwise -21.363;
-    let $small := to.%d32($big) otherwise -180.0;
-    if $small equal_to -180.0 { change $code = $code plus 8; }
+%extern.C proc exit [let $code: i32];
+MAIN:
+    var $code: i32 = 0;
+    let $a: i8 := 20;
+    let $b: i8 := (-($a - 1)) shr 1;
+    if $b == -10:
+        change $code to $code + 1;
+    ;if
+    let $u: u32 := 5;
+    let $c: u32 := 7 shr (($u - 1) mod.floor 32);
+    if $c == 0:
+        change $code to $code + 2;
+    ;if
+    let $n: u64 := (4294967294 std::pow 12) mod.floor 2147483649;
+    if $n == 16777216:
+        change $code to $code + 4;
+    ;if
+    let $big := to.%d128("1e400") ?? -21.363;
+    let $small := to.%d32($big) ?? -180.0;
+    if $small == -180.0:
+        change $code to $code + 8;
+    ;if
     no_check my.exit($code);
-}
+;MAIN

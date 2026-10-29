@@ -4,41 +4,55 @@
 # right, 0 when wrong. The oracle gives 56. `mod` and `pow` too
 # (owner, 2026-10-07: "yea.").
 # Values come from calls so nothing is folded, then once more as literals.
-%extern.C fn exit [$code: i32];
-fn zero [] -> f64 { return 0.0; }
-fn two [] -> f64 { return -2.0; }
-fn three [] -> f64 { return 3.0; }
-fn tiny [] -> f64 { return 0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001; }
-fn sign [$q: f64] -> i32 {
-    let $t := to.useful.str.utf8($q);
-    if std::str.bytes(lend $t) equal_to 1 { return 1; }
-    return 0;
-}
-fn plus [$q: f64] -> i32 { return sign($q); }
-fn ieee [$q: f64] -> i32 { return 2 times (1 minus sign($q)); }
-MAIN {
+%extern.C proc exit [let $code: i32];
+fn zero [] -> f64:
+    ret 0.0;
+;fn zero
+fn two [] -> f64:
+    ret -2.0;
+;fn two
+fn three [] -> f64:
+    ret 3.0;
+;fn three
+fn tiny [] -> f64:
+    ret 0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001;
+;fn tiny
+fn sign [let $q: f64] -> i32:
+    let $t := to.shortest.str.utf8($q);
+    if std::str.bytes(lend $t) == 1:
+        ret 1;
+    ;if
+    ret 0;
+;fn sign
+fn + [let $q: f64] -> i32:
+    ret sign($q);
+;fn +
+fn ieee [let $q: f64] -> i32:
+    ret 2 x (1 - sign($q));
+;fn ieee
+MAIN:
     let $z := zero();
     let $n := two();
     let $t := tiny();
-    let $m: f64 = negate.ieee $z;
-    let $a := plus($z times $n) plus ieee($z times.ieee $n);
-    let $b := plus(-$z) plus ieee(negate.ieee $z);
-    let $c := plus($t times (-$t)) plus ieee($t times.ieee (-$t));
-    let $d := plus($z div.near $n) plus ieee($z div.near.ieee $n) plus plus($z div.ceil $n) plus ieee($z div.ceil.ieee $n);
-    let $e := plus($m plus $m) plus ieee($m plus.ieee $m) plus plus($m minus $z) plus ieee($m minus.ieee $z);
-    let $f := plus(3.0 mod.floor (-3.0)) plus plus($n mod.floor $n) plus ieee($m);
-    let $bz: %brain16 = 0.0;
-    let $bc: %brain16 = -3.0;
-    let $g := plus(to.f64($bz times $bc)) plus ieee(to.f64($bz times.ieee $bc)) plus plus(to.f64(-$bz)) plus ieee(to.f64(negate.ieee $bz));
-    let $w: f32 = to.f32($t times (-1.0));
-    let $k: f32 = to.f32($m);
-    let $h := plus(to.f64($w)) plus ieee(to.f64($k)) plus plus(to.f64(to.%brain16($t times (-1.0))));
-    let $vz: simd[f64, count: 2] = simd.fill(value: $z);
-    let $vm: simd[f64, count: 2] = simd.fill(value: $m);
-    let $vn: simd[f64, count: 2] = simd.fill(value: $n);
-    let $s := plus(simd.max($vm)) plus plus(simd.min($vm)) plus plus(simd.sum($vm)) plus plus(simd.max($vz times $vn)) plus plus(simd.max($vz times.ieee $vn));
+    let $m: f64 := neg.ieee $z;
+    let $a := +($z x $n) + ieee($z times.ieee $n);
+    let $b := +(-$z) + ieee(neg.ieee $z);
+    let $c := +($t x (-$t)) + ieee($t times.ieee (-$t));
+    let $d := +($z div.near $n) + ieee($z div.near.ieee $n) + +($z div.ceil $n) + ieee($z div.ceil.ieee $n);
+    let $e := +($m + $m) + ieee($m plus.ieee $m) + +($m - $z) + ieee($m minus.ieee $z);
+    let $f := +(3.0 mod.floor (-3.0)) + +($n mod.floor $n) + ieee($m);
+    let $bz: %bf16 := 0.0;
+    let $bc: %bf16 := -3.0;
+    let $g := +(to.f64($bz x $bc)) + ieee(to.f64($bz times.ieee $bc)) + +(to.f64(-$bz)) + ieee(to.f64(neg.ieee $bz));
+    let $w: f32 := to.f32($t x (-1.0));
+    let $k: f32 := to.f32($m);
+    let $h := +(to.f64($w)) + ieee(to.f64($k)) + +(to.f64(to.%bf16($t x (-1.0))));
+    let $vz: simd[f64, count: 2] := simd.fill(value: $z);
+    let $vm: simd[f64, count: 2] := simd.fill(value: $m);
+    let $vn: simd[f64, count: 2] := simd.fill(value: $n);
+    let $s := +(simd.max($vm)) + +(simd.min($vm)) + +(simd.sum($vm)) + +(simd.max($vz x $vn)) + +(simd.max($vz times.ieee $vn));
     let $r := three();
-    let $x := plus((-$r) mod.trunc $r) plus ieee((-$r) mod.trunc.ieee $r) plus ieee($r mod.floor.ieee (-$r)) plus plus((-$t) pow 3) plus ieee((-$t) pow.ieee 3) plus ieee((-$t) std::pow.ieee 3);
-    let $lit := plus(0.0 times (-2.0)) plus ieee(0.0 times.ieee (-2.0)) plus plus(-0.0) plus ieee(negate.ieee 0.0);
-    no_check my.exit(to.i32($a plus $b plus $c plus $d plus $e plus $f plus $g plus $h plus $s plus $x plus $lit));
-}
+    let $x := +((-$r) mod.trunc $r) + ieee((-$r) mod.trunc.ieee $r) + ieee($r mod.floor.ieee (-$r)) + +((-$t) std::pow 3) + ieee((-$t) std::pow.ieee 3) + ieee((-$t) std::pow.ieee 3);
+    let $lit := +(0.0 x (-2.0)) + ieee(0.0 times.ieee (-2.0)) + +(-0.0) + ieee(neg.ieee 0.0);
+    no_check my.exit(to.i32($a + $b + $c + $d + $e + $f + $g + $h + $s + $x + $lit));
+;MAIN

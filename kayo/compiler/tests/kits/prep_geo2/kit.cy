@@ -1,2 +1,4 @@
 
-pub fn two [] -> i32 { return 2; }
+pub fn two [] -> i32:
+    ret 2;
+;fn two

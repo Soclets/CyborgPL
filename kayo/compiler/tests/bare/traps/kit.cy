@@ -1,12 +1,12 @@
 # A check that fails with no OS freezes the CPU on a trap, `brk` (owner,
 # 2026-10-08: "yea, freeze there").
-fn down [$n: u8] -> u8 {
-    return $n minus 1;
-}
+fn down [let $n: u8] -> u8:
+    ret $n - 1;
+;fn down
 
-MAIN {
-    let mut $k: u8 = 3;
-    while true {
-        change $k = down($k);
-    }
-}
+MAIN:
+    var $k: u8 = 3;
+    while true:
+        change $k to down($k);
+    ;while
+;MAIN

@@ -2,43 +2,81 @@
 # bare name, held in a variable and called as 'f'[…], passed to a function
 # that takes a `fn[…]`; a literal capturing nothing, and one borrowing with
 # `with [lend …]`, called from inside a loop. Values chosen at run time.
-%extern.C fn exit [$code: i32];
-%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
-struct Locker { number: i32, owner: str.utf8 }
-fn by_number [lent $a: Locker, lent $b: Locker] -> bool { return $a.number < $b.number; }
-fn by_owner [lent $a: Locker, lent $b: Locker] -> bool { return std::str.bytes(lend $a.owner) < std::str.bytes(lend $b.owner); }
-fn first_by [lent $xs: std::list[Locker], $less: fn[lent Locker, lent Locker] -> bool] -> i32 {
-    let mut $best := 1;
-    for $i [from: 2, to: std::list.length(lend $xs), by: 1] {
-        if $less(lend $xs[pos: $i], lend $xs[pos: $best]) { change $best = $i; }
-    }
+%extern.C proc exit [let $code: i32];
+%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
+rec Locker:
+    var number: i32; var owner: str.utf8;
+;rec Locker
+fn by_number [lent $a: Locker, lent $b: Locker] -> bool:
+    ret $a.number < $b.number;
+;fn by_number
+fn by_owner [lent $a: Locker, lent $b: Locker] -> bool:
+    ret std::str.bytes(lend $a.owner) < std::str.bytes(lend $b.owner);
+;fn by_owner
+fn first_by [lent $xs: std::ls[Locker], let $less: fn[lent Locker, lent Locker] -> bool] -> i32:
+    var $best = 1;
+    for $i [from: 2, to: std::ls.len(lend $xs), by: 1]:
+        if $less(lend $xs[pos: $i], lend $xs[pos: $best]):
+            change $best to $i;
+        ;if
+    ;for
     let $winner := lend $xs[pos: $best];
-    return $winner.number;
-}
-fn count_if [lent $xs: std::list[i32], $test: fn[i32] -> bool] -> i32 {
-    let mut $n: i32 = 0;
-    for $x in lend $xs { if $test[pos: $x] { change $n = $n plus 1; } }
-    return $n;
-}
-MAIN {
+    ret $winner.number;
+;fn first_by
+fn count_if [lent $xs: std::ls[i32], let $test: fn[i32] -> bool] -> i32:
+    var $n: i32 = 0;
+    for $x in lend $xs:
+        if $test[pos: $x]:
+            change $n to $n + 1;
+        ;if
+    ;for
+    ret $n;
+;fn count_if
+MAIN:
     let $k := "SYNAPSE_SURELY_UNSET_VARIABLE";
     no_check let $there := ptr.is_null(getenv(lend $k));
-    let mut $got: i32 = 0;
-    let mut $first: i32 = 9;
-    if $there { change $first = 7; }
+    var $got: i32 = 0;
+    var $first: i32 = 9;
+    if $there:
+        change $first to 7;
+    ;if
     let $lockers := [Locker[number = $first, owner = "Cy"], Locker[number = 2, owner = "Annabel"], Locker[number = 5, owner = "Bo"]];
-    if first_by(lend $lockers, by_number) equal_to 2 { change $got = $got plus 1; }
-    if first_by(lend $lockers, by_owner) equal_to $first { change $got = $got plus 2; }
+    if first_by(lend $lockers, by_number) == 2:
+        change $got to $got + 1;
+    ;if
+    if first_by(lend $lockers, by_owner) == $first:
+        change $got to $got + 2;
+    ;if
     let $f := by_number;
-    if $f(lend $lockers[pos: 2], lend $lockers[pos: 1]) { change $got = $got plus 4; }
-    let mut $limit := 60;
-    if $there { change $limit = 50; }
+    if $f(lend $lockers[pos: 2], lend $lockers[pos: 1]):
+        change $got to $got + 4;
+    ;if
+    var $limit = 60;
+    if $there:
+        change $limit to 50;
+    ;if
     let $scores := [72, 40, 95, 55];
-    if count_if(lend $scores, fn [$s: i32] -> bool with [lend $limit] { return $s at_least $limit; }) equal_to 3 { change $got = $got plus 8; }
-    if count_if(lend $scores, fn [$s: i32] -> bool { return ($s mod.floor 2) equal_to 0; }) equal_to 2 { change $got = $got plus 16; }
-    let $g := fn [$s: i32] -> bool with [lend $limit] { return $s < $limit; };
-    let mut $h := $g;
-    if $there { change $h = fn [$s: i32] -> bool { return $s > 90; }; }
-    if count_if(lend $scores, $h) equal_to 1 and count_if(lend $scores, $g) equal_to 1 { change $got = $got plus 32; }
+    if count_if(lend $scores, fn [let $s: i32] -> bool with [lend $limit]:
+        ret $s >= $limit;
+    ;fn) == 3:
+        change $got to $got + 8;
+    ;)
+    if count_if(lend $scores, fn [let $s: i32] -> bool:
+        ret ($s mod.floor 2) == 0;
+    ;fn) == 2:
+        change $got to $got + 16;
+    ;)
+    let $g := fn [let $s: i32] -> bool with [lend $limit]:
+        ret $s < $limit;
+    ;fn;
+    var $h = $g;
+    if $there:
+        change $h to fn [let $s: i32] -> bool:
+            ret $s > 90;
+        ;fn;
+    ;if
+    if count_if(lend $scores, $h) == 1 and count_if(lend $scores, $g) == 1:
+        change $got to $got + 32;
+    ;if
     no_check my.exit($got);
-}
+;MAIN

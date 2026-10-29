@@ -312,7 +312,7 @@ impl Diagnostic {
         Diagnostic::new(Kind::Note, sentence)
     }
     pub fn new(kind: Kind, sentence: impl Into<String>) -> Diagnostic {
-        Diagnostic { kind, name: None, sentence: crate::marks::in_message(&dollar_names(sentence.into())), span: None, place: None, when: None, why: Vec::new(), try_: None, fixes: Vec::new(), outside: false, keep_about: false }
+        Diagnostic { kind, name: None, sentence: crate::marks::in_message(&crate::surface::in_message(&dollar_names(sentence.into()))), span: None, place: None, when: None, why: Vec::new(), try_: None, fixes: Vec::new(), outside: false, keep_about: false }
     }
     /// Its name from `errors.cyr`.
     pub fn named(mut self, name: &'static str) -> Diagnostic {
@@ -399,7 +399,8 @@ impl Diagnostic {
     }
     /// A fix made from the source: the line holding `span`, edited.
     pub fn fix_edit(mut self, span: Span, how: Edit, text: impl Into<String>) -> Diagnostic {
-        let text = text.into();
+        // What a fix writes is code, in the one spelling (redesign three).
+        let text = crate::surface::code(&text.into());
         // The same edit twice is one fix.
         if !self.fixes.iter().any(|f| f.also.is_empty() && f.text == text && f.edit.as_ref() == Some(&(span, how.clone()))) {
             self.fixes.push(Fix { line: None, text, edit: Some((span, how)), also: Vec::new() });

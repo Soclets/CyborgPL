@@ -578,6 +578,7 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     let mut checker = kayo::check::Checker::new(items);
     checker.std_stubs = std::env::var("KAYO_STD_STUBS").is_ok();
     let program = checker.check_program().map_err(|d| d.render(&sources))?;
+    let twins: Vec<String> = kayo::check::case_twins(&program).into_iter().map(|(at, msg)| kayo::diag::Diagnostic::note(msg).at(at).render(&sources)).collect();
     laps.mark("Checking");
     let mut mir = kayo::mir::build::build(program);
     kayo::mir::verify::program(&mir).map_err(|p| format!("error: the flow graph is not well formed — a bug in kayo:\n  {}\n", p.join("\n  ")))?;
@@ -595,6 +596,7 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
         notes.push(kayo::diag::Diagnostic::note(format!("`{}` stands for `{}` in this file (its `use`)", name, path)).at(at).render(&sources));
     }
     notes.extend(kayo::precog::paged::notes(&mir, &sources));
+    notes.extend(twins);
     let refusals = kayo::precog::refusals_opts(&analysis, &mir, &sources, final_build);
     if !refusals.is_empty() {
         return Err(refusals.join(""));

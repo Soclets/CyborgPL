@@ -1,2 +1,2 @@
-MAIN {
-}
+MAIN:
+;MAIN

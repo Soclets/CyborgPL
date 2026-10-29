@@ -501,12 +501,35 @@ impl<'a> Reader<'a> {
                 if !glued {
                     // An operator's own spelling may be `<`: its list starts after it.
                     let mut j = if ctx == Ctx::Op { k + 2 } else { k + 1 };
-                    while j < n && line[j].tok != Tok::LBracket && !matches!(line[j].tok, Tok::Semi | Tok::Colon | Tok::Walrus) {
-                        // `<T: Number>` holds a `:`.
-                        if is_op(&line[j], "<") {
-                            while j < n && !is_op(&line[j], ">") {
-                                j += 1;
+                    loop {
+                        while j < n && line[j].tok != Tok::LBracket && !matches!(line[j].tok, Tok::Semi | Tok::Colon | Tok::Walrus) {
+                            // `<T: Number>`, the old list, holds a `:`.
+                            if is_op(&line[j], "<") {
+                                while j < n && !is_op(&line[j], ">") {
+                                    j += 1;
+                                }
                             }
+                            j += 1;
+                        }
+                        // The placeholders' list, `[<T>: Addable]`, and the lifetimes', `[@x]`, come
+                        // before the parameters' (owner, 2026-10-29).
+                        let skipped = j < n && line[j].tok == Tok::LBracket && line.get(j + 1).is_some_and(|x| is_op(x, "<") || is_op(x, "@"));
+                        if !skipped {
+                            break;
+                        }
+                        let mut depth = 0i32;
+                        while j < n {
+                            match line[j].tok {
+                                Tok::LBracket => depth += 1,
+                                Tok::RBracket => {
+                                    depth -= 1;
+                                    if depth == 0 {
+                                        break;
+                                    }
+                                }
+                                _ => {}
+                            }
+                            j += 1;
                         }
                         j += 1;
                     }
@@ -637,6 +660,44 @@ impl<'a> Reader<'a> {
                 Tok::LBrace | Tok::RBrace => {
                     return err(Diagnostic::error(old_said("{ }", "name:")).named("old_spelling").at(t.span));
                 }
+                // `[<T>: Addable, <U>: any]`: a generic's placeholders in their own `[ ]` (owner,
+                // 2026-10-29), the parser's `<T: Addable, U: any>`.
+                Tok::LBracket if line.get(i + 1).is_some_and(|n| is_op(n, "<")) && line.get(i + 2).is_some_and(|n| matches!(n.tok, Tok::Word(_))) && line.get(i + 3).is_some_and(|n| is_op(n, ">")) => {
+                    let mut depth = 0i32;
+                    let mut j = i;
+                    while j < n {
+                        match &line[j].tok {
+                            Tok::LBracket | Tok::LParen => depth += 1,
+                            Tok::RBracket | Tok::RParen => {
+                                depth -= 1;
+                                if depth == 0 {
+                                    break;
+                                }
+                            }
+                            _ => {}
+                        }
+                        j += 1;
+                    }
+                    out.push(tok(Tok::Op("<".into()), t.span));
+                    let mut k = i + 1;
+                    while k < j {
+                        let u = &line[k];
+                        // `<T>` drops its brackets inside the list: `T`.
+                        if is_op(u, "<") && line.get(k + 2).is_some_and(|c| is_op(c, ">")) && matches!(line.get(k + 1).map(|c| &c.tok), Some(Tok::Word(_))) && matches!(line.get(k - 1).map(|c| &c.tok), Some(Tok::LBracket) | Some(Tok::Comma)) {
+                            out.push(line[k + 1].clone());
+                            k += 3;
+                            continue;
+                        }
+                        let words = self.words(vec![u.clone()], Kind::Body)?;
+                        out.extend(words);
+                        k += 1;
+                    }
+                    if j < n {
+                        out.push(tok(Tok::Op(">".into()), line[j].span));
+                    }
+                    i = j + 1;
+                    continue;
+                }
                 Tok::Op(o) => {
                     let written = self.text(t.span).to_string();
                     let ends_value = matches!(prev, Some(Tok::Name(_) | Tok::Num { .. } | Tok::Str(_) | Tok::Char(_) | Tok::RParen | Tok::RBracket | Tok::Word(_)));
@@ -662,6 +723,10 @@ impl<'a> Reader<'a> {
                         out.push(tok(Tok::Op(m.into()), t.span));
                         i += 1;
                         continue;
+                    }
+                    // `fn total <T: Addable>`: the placeholders are declared in their own `[ ]` now.
+                    if o == "<" && out.len() >= 2 && matches!(&out[out.len() - 1].tok, Tok::Word(_)) && matches!(&out[out.len() - 2].tok, Tok::Word(k) if matches!(k.as_str(), "fn" | "struct" | "enum" | "interface")) && line.get(i + 1).is_some_and(|x| matches!(x.tok, Tok::Word(_))) {
+                        return err(Diagnostic::error("a generic's placeholders are declared in their own `[ ]`, before the parameters: `fn total [<T>: Addable] [lent $xs: std::ls[<T>]]` (owner, 2026-10-29)").named("old_spelling").at(t.span));
                     }
                     if o == "?" {
                         out.push(word("otherwise", t.span));
@@ -1260,4 +1325,97 @@ fn short_number(parts: &[String]) -> Option<String> {
         ["float", "%brain", "16"] | ["float", "brain", "16"] => "%bf16".to_string(),
         _ => return None,
     })
+}
+
+/// The code in a message, `` `…` ``, in redesign three's spellings (owner, 2026-10-29: kayo's
+/// messages use the one spelling): the parser's words for the ones a program writes now,
+/// `return` as `ret`, `equal_to` as `==`, `list` as `ls`, `{ … }` as a block's `:`.
+pub fn in_message(sentence: &str) -> String {
+    if !sentence.contains('`') {
+        return sentence.to_string();
+    }
+    sentence.split('`').enumerate().map(|(n, part)| if n % 2 == 1 { code(part) } else { part.to_string() }).collect::<Vec<_>>().join("`")
+}
+
+/// One piece of code, in redesign three's spellings.
+pub fn code(text: &str) -> String {
+    // Words and the rest, each kept with what stood before it.
+    let b = text.as_bytes();
+    let mut pieces: Vec<String> = Vec::new();
+    let mut i = 0;
+    while i < b.len() {
+        let c = b[i];
+        let start = i;
+        if c.is_ascii_alphabetic() || c == b'_' {
+            while i < b.len() && (b[i].is_ascii_alphanumeric() || b[i] == b'_') {
+                i += 1;
+            }
+        } else {
+            i += text[i..].chars().next().map_or(1, |c| c.len_utf8());
+        }
+        pieces.push(text[start..i].to_string());
+    }
+    let word = |k: usize| pieces.get(k).map(|s| s.as_str()).unwrap_or("");
+    let mut out: Vec<String> = Vec::with_capacity(pieces.len());
+    let mut k = 0;
+    while k < pieces.len() {
+        let w = pieces[k].as_str();
+        let before = if k > 0 { word(k - 1) } else { "" };
+        let before2 = if k > 1 { word(k - 2) } else { "" };
+        let after = word(k + 1);
+        let path_before = before == "." || before == ":";
+        let narrowed = after == ".";
+        let new: Option<String> = match w {
+            "return" => Some("ret".into()),
+            "struct" => Some("rec".into()),
+            "interface" => Some("sig".into()),
+            "enum" if !(before == " " && before2 == "C") && !path_before => Some("union.tag".into()),
+            "equal_to" => Some("==".into()),
+            "not_equal" => Some("!=".into()),
+            "at_most" => Some("<=".into()),
+            "at_least" => Some(">=".into()),
+            "less_than" => Some("<".into()),
+            "greater_than" => Some(">".into()),
+            "plus" | "minus" | "times" if !narrowed && !path_before => Some(match w { "plus" => "+", "minus" => "-", _ => "x" }.into()),
+            "negate" => Some("neg".into()),
+            "immut" => Some("let".into()),
+            "list" if before != "'" => Some("ls".into()),
+            "array" => Some("arr".into()),
+            "length" if path_before => Some(if before2 == "map" { "count" } else { "len" }.into()),
+            "useful" if path_before && before2 == "print" && after != "." => {
+                // `print.useful(…)` is `print`; `print.useful.stderr` keeps its words.
+                out.pop();
+                Some(String::new())
+            }
+            "useful" if path_before => Some("shortest".into()),
+            "weird" if path_before => Some("arrows".into()),
+            "grapheme" => Some("cluster".into()),
+            "graphemes" => Some("clusters".into()),
+            "brain16" => Some("bf16".into()),
+            "concur" => Some("spawn.task".into()),
+            "no_cheat" => Some("no_skip".into()),
+            "nocheck" => Some("no_check".into()),
+            "auto_newln" => Some("auto_newline".into()),
+            _ => None,
+        };
+        // `let mut` is `var`; `mut $x` a `var` parameter; `lend.mut` stays.
+        if w == "let" && after == " " && word(k + 2) == "mut" {
+            out.push("var".into());
+            k += 3;
+            continue;
+        }
+        if w == "mut" && !path_before {
+            out.push("var".into());
+            k += 1;
+            continue;
+        }
+        match new {
+            Some(n) => out.push(n),
+            None => out.push(w.to_string()),
+        }
+        k += 1;
+    }
+    let s = out.concat();
+    // A block in braces, `{ … }`, is `:` and its closer now.
+    s.replace(" { … }", ": …").replace(" {…}", ": …").replace("{ … }", ": …").replace(" { }", ":")
 }

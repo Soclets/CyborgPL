@@ -5,46 +5,66 @@
 # by hand: calloc's 0 is no key, after the write the read is b, memset's
 # 0x41414141 is no key, memcpy's b and a are keys, and the trusted read is b
 # — each right answer is one bit, 1 + 2 + 4 + 8 + 16 = 31.
-%extern.C fn exit [$code: i32];
-%extern.C fn calloc [$n: u64, $size: u64] -> ptr.mut[Key];
-%extern.C fn free [$p: ptr.mut[Key]];
-%extern.C fn memset [$s: ptr.mut[Key], $c: i32, $n: u64] -> ptr.mut[Key];
-%extern.C fn memcpy [$d: ptr.mut[Key], $s: ptr[Key], $n: u64] -> ptr.mut[Key];
-%layout.C enum Key { a = 65, b = 66, escape = 256 }
+%extern.C proc exit [let $code: i32];
+%extern.C proc calloc [let $n: u64, let $size: u64] -> ptr.mut[Key];
+%extern.C proc free [let $p: ptr.mut[Key]];
+%extern.C proc memset [let $s: ptr.mut[Key], let $c: i32, let $n: u64] -> ptr.mut[Key];
+%extern.C proc memcpy [let $d: ptr.mut[Key], let $s: ptr[Key], let $n: u64] -> ptr.mut[Key];
+%layout.C enum Key:
+    a = 65; b = 66; escape = 256;
+;%layout.C enum Key
 
-fn num [$k: Key] -> i32 {
-    match $k {
-        a { return 1; }
-        b { return 2; }
-        escape { return 3; }
-    }
-}
+fn num [let $k: Key] -> i32:
+    match $k:
+        case a:
+            ret 1;
+        ;case a
+        case b:
+            ret 2;
+        ;case b
+        case escape:
+            ret 3;
+        ;case escape
+    ;match
+;fn num
 
-fn flag [$b: bool, $v: i32] -> i32 {
-    if $b { return $v; }
-    return 0;
-}
+fn flag [let $b: bool, let $v: i32] -> i32:
+    if $b:
+        ret $v;
+    ;if
+    ret 0;
+;fn flag
 
-fn by_memset [] -> i32 {
-    let mut $keys: std::list[Key] = [Key.a, Key.a];
-    no_check let $q := memset(lend.mut $keys, 65, 8) otherwise { out_of_range { return 3; } };
-    return 0;
-}
+proc by_memset [] -> i32:
+    var $keys: std::ls[Key] = [Key.a, Key.a];
+    no_check let $q := memset(lend.mut $keys, 65, 8)-
+    otherwise:
+        case out_of_range:
+            ret 3;
+        ;case out_of_range
+    ;otherwise;
+    ret 0;
+;proc by_memset
 
-fn by_memcpy [] -> i32 {
-    let $src: std::list[Key] = [Key.b, Key.a];
-    let mut $dst: std::list[Key] = [Key.escape, Key.escape];
-    no_check let $q := memcpy(lend.mut $dst, lend $src, 8) otherwise { out_of_range { return 9; } };
-    return num(copy $dst[pos: 1]) plus num(copy $dst[pos: 2]) times 2;
-}
+proc by_memcpy [] -> i32:
+    let $src: std::ls[Key] := [Key.b, Key.a];
+    var $dst: std::ls[Key] = [Key.escape, Key.escape];
+    no_check let $q := memcpy(lend.mut $dst, lend $src, 8)-
+    otherwise:
+        case out_of_range:
+            ret 9;
+        ;case out_of_range
+    ;otherwise;
+    ret num($dst[pos: 1]) + num($dst[pos: 2]) x 2;
+;proc by_memcpy
 
-MAIN {
+MAIN:
     no_check let $p := calloc(1, 4);
-    no_check let $zero := ptr.read($p) otherwise Key.escape;
+    no_check let $zero := ptr.read($p) ?? Key.escape;
     no_check ptr.write($p, value: Key.b);
-    no_check let $two := ptr.read($p) otherwise Key.escape;
+    no_check let $two := ptr.read($p) ?? Key.escape;
     NO_FUCKING_CHECKS let $trusted := ptr.read($p);
     no_check free($p);
-    let $bits := flag(num(give $zero) equal_to 3, 1) plus flag(num(give $two) equal_to 2, 2) plus flag(by_memset() equal_to 3, 4) plus flag(by_memcpy() equal_to 4, 8) plus flag(num(give $trusted) equal_to 2, 16);
+    let $bits := flag(num($zero) == 3, 1) + flag(num($two) == 2, 2) + flag(by_memset() == 3, 4) + flag(by_memcpy() == 4, 8) + flag(num($trusted) == 2, 16);
     no_check my.exit($bits);
-}
+;MAIN

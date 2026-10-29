@@ -2,19 +2,23 @@
 # "hello world"`. argc is 4 (the program's name first); the first word's
 # first byte is `a`, 97; the last word is 11 bytes long; argv[argc] is
 # null. 4 + 97 + 11 + 100 = 212.
-%extern.C fn exit [$code: i32];
-MAIN [$argc: i32, $argv: ptr[ptr[u8]]] {
+%extern.C proc exit [let $code: i32];
+MAIN [let $argc: i32, let $argv: ptr[ptr[u8]]]:
     no_check let $first := ptr.read(ptr.at($argv, by: 1));
     no_check let $a := ptr.read($first);
-    no_check let $last := ptr.read(ptr.at($argv, by: $argc minus 1));
-    let mut $n: i32 = 0;
-    loop {
+    no_check let $last := ptr.read(ptr.at($argv, by: $argc - 1));
+    var $n: i32 = 0;
+    loop:
         no_check let $b := ptr.read(ptr.at($last, by: $n));
-        if $b equal_to 0 { break; }
-        change $n = $n plus 1;
-    }
+        if $b == 0:
+            break;
+        ;if
+        change $n to $n + 1;
+    ;loop
     no_check let $end := ptr.read(ptr.at($argv, by: $argc));
-    let mut $null: i32 = 0;
-    if ptr.is_null($end) { change $null = 100; }
-    no_check my.exit($argc plus to.i32($a) plus $n plus $null);
-}
+    var $null: i32 = 0;
+    if ptr.is_null($end):
+        change $null to 100;
+    ;if
+    no_check my.exit($argc + to.i32($a) + $n + $null);
+;MAIN

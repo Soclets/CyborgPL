@@ -3,18 +3,24 @@
 # wide[2 shl 3] is a 32-bit shift (16), wide[not.bit 0] is 4294967295, and
 # list.append's value takes the element type (0 -~ 2 is 254).
 # examples/argument_context.cpls as an exit code: one bit per right answer.
-%extern.C fn exit [$code: i32];
-fn show [$b: u8] -> u8 { return $b; }
-fn wide [$w: u32] -> u32 { return $w; }
-fn flag [$b: bool, $v: i32] -> i32 {
-    if $b { return $v; }
-    return 0;
-}
-MAIN {
+%extern.C proc exit [let $code: i32];
+fn show [let $b: u8] -> u8:
+    ret $b;
+;fn show
+fn wide [let $w: u32] -> u32:
+    ret $w;
+;fn wide
+fn flag [let $b: bool, let $v: i32] -> i32:
+    if $b:
+        ret $v;
+    ;if
+    ret 0;
+;fn flag
+MAIN:
     let $a := show(0 minus.wrap 1);
-    let $v: u64 = to.u64(wide(2 shl 3));
+    let $v: u64 := to.u64(wide(2 shl 3));
     let $n := wide(not.bit 0);
-    let mut $xs: std::list[u8] = [1,];
-    std::list.append(lend.mut $xs, value: 0 minus.wrap 2);
-    no_check my.exit(flag($a equal_to 255, 1) plus flag($v equal_to 16, 2) plus flag($n equal_to 4294967295, 4) plus flag($xs[pos: 2] equal_to 254, 8));
-}
+    var $xs: std::ls[u8] = [1,];
+    std::ls.append(lend.mut $xs, value: 0 minus.wrap 2);
+    no_check my.exit(flag($a == 255, 1) + flag($v == 16, 2) + flag($n == 4294967295, 4) + flag($xs[pos: 2] == 254, 8));
+;MAIN

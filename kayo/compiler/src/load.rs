@@ -357,7 +357,7 @@ fn board_fn(items: &Items, written: &str, at: crate::source::Span, field: &str) 
 }
 
 /// What every program has without writing it (owner, 2026-10-08: "yea").
-const BASE_SOURCE: &str = "union.tag optional <T: any>:\n    value: <T>;\n    none;\n;union.tag optional\n";
+const BASE_SOURCE: &str = "union.tag optional [<T>: any]:\n    value: <T>;\n    none;\n;union.tag optional\n";
 
 /// The targets CCA writes code for: `cca/targets.txt`, the one list,
 /// which Synthia copies.

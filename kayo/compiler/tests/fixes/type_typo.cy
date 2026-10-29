@@ -1,4 +1,9 @@
 # unknown_type: a type a letter off.
-struct Point { x: i32 }
-fn f [$p: Pont] -> i32 { return 1; }
-MAIN { }
+rec Point:
+    var x: i32;
+;rec Point
+fn f [let $p: Pont] -> i32:
+    ret 1;
+;fn f
+MAIN:
+;MAIN

@@ -1,4 +1,4 @@
 # unknown_rounding: a way to round that is not one.
-MAIN {
+MAIN:
     let $v := std::round.up(2.5);
-}
+;MAIN

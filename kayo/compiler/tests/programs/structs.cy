@@ -1,10 +1,14 @@
-%extern.C fn exit [$code: i32];
+%extern.C proc exit [let $code: i32];
 
-struct Point { x: i32, y: i32 }
+rec Point:
+    var x: i32; var y: i32;
+;rec Point
 
-fn area [lent $p: Point] -> i32 { return $p.x times $p.y; }
+fn area [lent $p: Point] -> i32:
+    ret $p.x x $p.y;
+;fn area
 
-MAIN {
+MAIN:
     let $p := Point[x = 6, y = 7];
     no_check my.exit(area(lend $p));                     # 42
-}
+;MAIN

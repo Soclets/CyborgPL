@@ -3,24 +3,33 @@
 # covers its own name, so `Mood`'s cases stay exact. examples/case_marks.cpls
 # without printing: 1 + 2 x 10 + 2 x 100 = 221.
 case.any [fn, var];
-%extern.C fn exit [$code: i32];
+%extern.C proc exit [let $code: i32];
 
-case.any enum Mood {
-    Happy,
-    Grumpy
-}
+case.any union.tag Mood:
+    Happy;
+    Grumpy;
+;union.tag Mood
 
-case.exact struct Exact {
-    n: i32
-}
+case.exact rec Exact:
+    var n: i32;
+;rec Exact
 
-fn Describe [$m: Mood] -> i32 {
-    return match $M { Happy { is 1; } Grumpy { is 2; } };
-}
+fn Describe [let $m: Mood] -> i32:
+    ret match $M:
+        case Happy:
+            is 1;
+        ;case Happy
+        case Grumpy:
+            is 2;
+        ;case Grumpy
+    ;match;
+;fn Describe
 
-MAIN {
+MAIN:
     let $Count := 2;
     let $e := Exact[n = $COUNT];
-    let $fn_lit := fn [$x: i32] -> i32 { let $Y := $X; return $y; };
-    no_check my.exit(describe(MOOD.Happy) plus DESCRIBE(mood.Grumpy) times 10 plus $e.n times 100 plus $FN_LIT[pos: 0]);
-}
+    let $fn_lit := fn [let $x: i32] -> i32:
+        let $Y := $X; ret $y;
+    ;fn;
+    no_check my.exit(describe(MOOD.Happy) + DESCRIBE(mood.Grumpy) x 10 + $e.n x 100 + $FN_LIT[pos: 0]);
+;MAIN

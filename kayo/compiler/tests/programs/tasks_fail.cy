@@ -1,17 +1,48 @@
-%extern.C fn exit [$code: i32];
-fn judge [$n: i32] -> fail[small, odd: i32] {
-    if $n < 10 { fail small; }
-    if ($n mod.floor 2) equal_to 1 { fail odd[$n]; }
-}
-MAIN {
-    let mut $seen: i32 = 0;
-    {
-        %concur with [] { judge(3) otherwise fail; }
-            otherwise { small { change $seen = $seen plus 1; } odd $v { change $seen = $seen plus 100; } };
-        %concur with [] { judge(13) otherwise fail; }
-            otherwise { small { change $seen = $seen plus 1000; } odd $v { change $seen = $seen plus $v; } };
-        %concur with [] { judge(20) otherwise fail; }
-            otherwise { small { change $seen = $seen plus 7; } odd $v { change $seen = $seen plus 7; } };
-    }
+%extern.C proc exit [let $code: i32];
+fn judge [let $n: i32] -> fail[small, odd: i32]:
+    if $n < 10:
+        fail small;
+    ;if
+    if ($n mod.floor 2) == 1:
+        fail odd[$n];
+    ;if
+;fn judge
+MAIN:
+    var $seen: i32 = 0;
+    block:
+        %spawn.task with []:
+            judge(3)?;
+        ;%spawn.task
+            otherwise:
+                case small:
+                    change $seen to $seen + 1;
+                ;case small
+                case odd $v:
+                    change $seen to $seen + 100;
+                ;case odd
+            ;otherwise;
+        %spawn.task with []:
+            judge(13)?;
+        ;%spawn.task
+            otherwise:
+                case small:
+                    change $seen to $seen + 1000;
+                ;case small
+                case odd $v:
+                    change $seen to $seen + $v;
+                ;case odd
+            ;otherwise;
+        %spawn.task with []:
+            judge(20)?;
+        ;%spawn.task
+            otherwise:
+                case small:
+                    change $seen to $seen + 7;
+                ;case small
+                case odd $v:
+                    change $seen to $seen + 7;
+                ;case odd
+            ;otherwise;
+    ;block
     no_check my.exit($seen);
-}
+;MAIN

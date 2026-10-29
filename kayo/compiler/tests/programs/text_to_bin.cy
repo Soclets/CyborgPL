@@ -3,36 +3,84 @@
 # from the digits to the width; past the largest fails out_of_range, and
 # so does a value outside a range type. Which text is read is known only
 # at run time: whether an unset variable is there.
-%extern.C fn exit [$code: i32];
-%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
-fn b64 [$t: str.utf8] -> f64 {
-    let $v := to.f64($t) otherwise { not_a_number { return -1.0; } out_of_range { return -2.0; } };
-    return $v;
-}
-fn b32 [$t: str.utf8] -> f32 {
-    let $v := to.f32($t) otherwise { not_a_number { return -1.0; } out_of_range { return -2.0; } };
-    return $v;
-}
-fn b16 [$t: str.utf8] -> f16 {
-    let $v := to.f16($t) otherwise { not_a_number { return -1.0; } out_of_range { return -2.0; } };
-    return $v;
-}
-fn unit [$t: str.utf8] -> f64 {
-    let $v := to.f64[min: 0.0, max: 1.0]($t) otherwise { not_a_number { return -1.0; } out_of_range { return -2.0; } };
-    return $v;
-}
-MAIN {
+%extern.C proc exit [let $code: i32];
+%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
+fn b64 [let $t: str.utf8] -> f64:
+    let $v := to.f64(lend $t)-
+    otherwise:
+        case not_a_number:
+            ret -1.0;
+        ;case not_a_number
+        case out_of_range:
+            ret -2.0;
+        ;case out_of_range
+    ;otherwise;
+    ret $v;
+;fn b64
+fn b32 [let $t: str.utf8] -> f32:
+    let $v := to.f32(lend $t)-
+    otherwise:
+        case not_a_number:
+            ret -1.0;
+        ;case not_a_number
+        case out_of_range:
+            ret -2.0;
+        ;case out_of_range
+    ;otherwise;
+    ret $v;
+;fn b32
+fn b16 [let $t: str.utf8] -> f16:
+    let $v := to.f16(lend $t)-
+    otherwise:
+        case not_a_number:
+            ret -1.0;
+        ;case not_a_number
+        case out_of_range:
+            ret -2.0;
+        ;case out_of_range
+    ;otherwise;
+    ret $v;
+;fn b16
+fn unit [let $t: str.utf8] -> f64:
+    let $v := to.f64[min: 0.0, max: 1.0](lend $t)-
+    otherwise:
+        case not_a_number:
+            ret -1.0;
+        ;case not_a_number
+        case out_of_range:
+            ret -2.0;
+        ;case out_of_range
+    ;otherwise;
+    ret $v;
+;fn unit
+MAIN:
     let $k := "SYNAPSE_SURELY_UNSET_VARIABLE";
     no_check let $there := ptr.is_null(getenv(lend $k));
-    let mut $s := str.empty;
-    if $there { change $s = "5"; }
-    let mut $got: i32 = 0;
-    if b64("2.5e3") equal_to 2500.0 and b64("-1E-2") equal_to -0.01 and b64("+" concat $s) equal_to 5.0 { change $got = $got plus 1; }
-    if b64("nan") equal_to -1.0 and b64("inf") equal_to -1.0 and b64("." concat $s) equal_to -1.0 and b64($s concat ".") equal_to -1.0 and b64("1_0") equal_to -1.0 and b64(" " concat $s) equal_to -1.0 { change $got = $got plus 2; }
-    if b64("1e400") equal_to -2.0 and b32("1e39") equal_to -2.0 and b16("6552" concat $s concat ".0") equal_to -2.0 { change $got = $got plus 4; }
-    if b16("65519.99999999999999999") equal_to 65504.0 and b32("340282356779733661637539395458142568447.0") equal_to 340282346638528859811704183484516925440.0 { change $got = $got plus 8; }
-    if b32("0.1") equal_to 0.100000001490116119384765625 and b32("1.00000005960464477539062500001") equal_to 1.00000011920928955078125 { change $got = $got plus 16; }
-    if unit("0." concat $s) equal_to 0.5 and unit("1." concat $s) equal_to -2.0 and unit("x") equal_to -1.0 { change $got = $got plus 32; }
-    if b64("1e-400") equal_to 0.0 and b16("0.0000000298023223876953125") equal_to 0.0 and b16("0.0000000298023223876953126") > 0.0 { change $got = $got plus 64; }
+    var $s = str.empty;
+    if $there:
+        change $s to "5";
+    ;if
+    var $got: i32 = 0;
+    if b64("2.5e3") == 2500.0 and b64("-1E-2") == -0.01 and b64("+" concat $s) == 5.0:
+        change $got to $got + 1;
+    ;if
+    if b64("nan") == -1.0 and b64("inf") == -1.0 and b64("." concat $s) == -1.0 and b64($s concat ".") == -1.0 and b64("1_0") == -1.0 and b64(" " concat $s) == -1.0:
+        change $got to $got + 2;
+    ;if
+    if b64("1e400") == -2.0 and b32("1e39") == -2.0 and b16("6552" concat $s concat ".0") == -2.0:
+        change $got to $got + 4;
+    ;if
+    if b16("65519.99999999999999999") == 65504.0 and b32("340282356779733661637539395458142568447.0") == 340282346638528859811704183484516925440.0:
+        change $got to $got + 8;
+    ;if
+    if b32("0.1") == 0.100000001490116119384765625 and b32("1.00000005960464477539062500001") == 1.00000011920928955078125:
+        change $got to $got + 16;
+    ;if
+    if unit("0." concat $s) == 0.5 and unit("1." concat $s) == -2.0 and unit("x") == -1.0:
+        change $got to $got + 32;
+    ;if
+    if b64("1e-400") == 0.0 and b16("0.0000000298023223876953125") == 0.0 and b16("0.0000000298023223876953126") > 0.0:
+        change $got to $got + 64;
+    ;if
     no_check my.exit($got);
-}
+;MAIN
