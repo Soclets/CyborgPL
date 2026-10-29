@@ -1,4 +1,4 @@
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $c: %channel[i32] := %channel.empty;
     var $got: i32 = 0;

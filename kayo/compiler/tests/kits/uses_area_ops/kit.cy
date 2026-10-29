@@ -3,7 +3,7 @@
 # is 3.5 and the low mean 3.0, so 3.5 times 2 is 7, the low one 3, and 3
 # times 10 is 30; and areas' own `precedence` puts `mean` at `times`' level, so
 # 'x' mean 'y' plus 1.0 is 4.5, and twice that 9 (9cc5e25): 7 + 3 + 30 + 9 = 49.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $x: f64 := 3.0;
     let $y: f64 := 4.0;

@@ -2,7 +2,7 @@
 # name (examples/generic_op.cpls as an exit code): 95 ~= 100 is true (1), 50
 # ~= 100 false, A 3 <+> A 3 is 6 and B 3 <+> B 3 is 9 → 1 + 60 + 9 x 100 = 961,
 # which exits as 961 mod 256 = 193.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 sig Number [<T>]:
     op - [lent $a: <T>, lent $b: <T>] -> <T>;
     op < [lent $a: <T>, lent $b: <T>] -> bool;

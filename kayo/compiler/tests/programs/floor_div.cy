@@ -1,7 +1,7 @@
 # `/` floors and `mod` takes the divisor's sign (operators.md). The values
 # come from C so that the division happens at run time, not in Precog.
-%extern.C proc exit [let $code: i32];
-%extern.C proc abs [let $v: i32] -> i32;
+%extern.C proc exit [$code: i32];
+%extern.C proc abs [$v: i32] -> i32;
 MAIN:
     no_check let $seven: i32 := abs(-7);
     let $a: i32 := (0 - $seven) div.floor 2;       # -4

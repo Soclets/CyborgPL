@@ -3,7 +3,7 @@
 # 104 195 169 108 108 111 is "héllo": 5 points, 6 bytes; 255 is never
 # UTF-8, so 'b' is "not" (3 bytes); the array is "hi" (2 bytes).
 # 5 x 16 + 6 + 3 + 2 = 91.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $good: std::ls[u8] := [104, 195, 169, 108, 108, 111];
     let $bad: std::ls[u8] := [104, 255, 105];

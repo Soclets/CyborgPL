@@ -4,8 +4,8 @@
 # plus.wrap 1 is 0), a !std.int256's floored mod, two int128s added at 128
 # bits in between, a !std.uint4 wrapping at 16; and the digits of a wide
 # value as text and into a f64. Each right group adds its bit: 255.
-%extern.C proc exit [let $code: i32];
-%extern.C proc strlen [let $s: ptr[u8]] -> u64;
+%extern.C proc exit [$code: i32];
+%extern.C proc strlen [$s: ptr[u8]] -> u64;
 MAIN:
     let $s := "x";
     no_check let $n: u64 := strlen(lend $s);

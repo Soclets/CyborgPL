@@ -3,9 +3,9 @@
 # from the digits to the width; past the largest fails out_of_range, and
 # so does a value outside a range type. Which text is read is known only
 # at run time: whether an unset variable is there.
-%extern.C proc exit [let $code: i32];
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
-fn b64 [let $t: str.utf8] -> f64:
+%extern.C proc exit [$code: i32];
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
+fn b64 [$t: str.utf8] -> f64:
     let $v := to.f64(lend $t)-
     otherwise:
         case not_a_number:
@@ -17,7 +17,7 @@ fn b64 [let $t: str.utf8] -> f64:
     ;otherwise;
     ret $v;
 ;fn b64
-fn b32 [let $t: str.utf8] -> f32:
+fn b32 [$t: str.utf8] -> f32:
     let $v := to.f32(lend $t)-
     otherwise:
         case not_a_number:
@@ -29,7 +29,7 @@ fn b32 [let $t: str.utf8] -> f32:
     ;otherwise;
     ret $v;
 ;fn b32
-fn b16 [let $t: str.utf8] -> f16:
+fn b16 [$t: str.utf8] -> f16:
     let $v := to.f16(lend $t)-
     otherwise:
         case not_a_number:
@@ -41,7 +41,7 @@ fn b16 [let $t: str.utf8] -> f16:
     ;otherwise;
     ret $v;
 ;fn b16
-fn unit [let $t: str.utf8] -> f64:
+fn unit [$t: str.utf8] -> f64:
     let $v := to.f64[min: 0.0, max: 1.0](lend $t)-
     otherwise:
         case not_a_number:

@@ -4,8 +4,8 @@
 # `mod.X` is what `div.X` leaves. On a bin or deci `div.near` is ordinary
 # division and the others give a whole quotient. The smallest i8 by -1
 # is 128, exact where it lands. Each right group adds its own bit: 255.
-%extern.C proc exit [let $code: i32];
-%extern.C proc strlen [let $s: ptr[u8]] -> u64;
+%extern.C proc exit [$code: i32];
+%extern.C proc strlen [$s: ptr[u8]] -> u64;
 MAIN:
     let $s := "x";
     no_check let $n: u64 := strlen(lend $s);

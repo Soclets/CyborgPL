@@ -2,9 +2,9 @@
 # back becomes unreachable — which is what a leak checker can see. A
 # handle still sitting on the stack at exit looks reachable and would be
 # reported as no leak at all.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 
-fn round [let $n: i32] -> i32:
+fn round [$n: i32] -> i32:
     var $xs: std::ls[i32] = [];
     for $i: i32 [from: 1, to: 20, by: 1]:
         std::ls.append(lend.mut $xs, value: $i + $n);

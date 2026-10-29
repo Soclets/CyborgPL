@@ -1,7 +1,7 @@
 # `and.bit.wrap`, `or.bit.wrap`, `xor.wrap` take an operand as its bits (owner,
 # 2026-10-07): keep 5, none 0, flip 4294967295 (mod 7: 3), all 4294967295
 # (mod 3: 0); 5 x 10 + 0 + 3 + 0 = 53, as the oracle has it.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 fn five [] -> u32:
     ret 5;
 ;fn five

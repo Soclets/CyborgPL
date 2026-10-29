@@ -1,8 +1,8 @@
 # Conversions that can fail: text into a whole number (not_a_number), a bin
 # into one (not_whole, or out_of_range when too big: owner, 2026-09-30),
 # and anything into a range type (out_of_range).
-%extern.C proc exit [let $code: i32];
-fn read [let $t: str.utf8] -> i32:
+%extern.C proc exit [$code: i32];
+fn read [$t: str.utf8] -> i32:
     let $v := to.i32(lend $t)-
     otherwise:
         case not_a_number:
@@ -14,7 +14,7 @@ fn read [let $t: str.utf8] -> i32:
     ;otherwise;
     ret $v;
 ;fn read
-fn share [let $t: str.utf8] -> i32:
+fn share [$t: str.utf8] -> i32:
     let $v := to.i32[min: 0, max: 100](lend $t)-
     otherwise:
         case not_a_number:
@@ -26,7 +26,7 @@ fn share [let $t: str.utf8] -> i32:
     ;otherwise;
     ret $v;
 ;fn share
-fn whole [let $x: f64] -> i32:
+fn whole [$x: f64] -> i32:
     let $v := to.i32($x)-
     otherwise:
         case not_whole:

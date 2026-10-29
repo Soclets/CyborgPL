@@ -1,7 +1,7 @@
 # A bin power with no number (owner, 2026-09-29: a): -1.0 xx 0.5 would be
 # a NaN, so the power's site stops the program; 2.0 xx 0.5 is fine.
-%extern.C proc exit [let $code: i32];
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
+%extern.C proc exit [$code: i32];
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
 proc base [] -> f64:
     let $key := "SYNAPSE_NO_SUCH_VARIABLE";
     no_check let $p := getenv(lend $key);

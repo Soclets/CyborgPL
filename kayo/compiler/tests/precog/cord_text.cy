@@ -2,7 +2,7 @@
 # cannot run them: `sits_at`'s two positions in `for 'k' from 'pos' to …` (the counter is never
 # below 'pos'), and `count_pieces`' `'text'[pos 'pos']` (the landing of `'pos' plus 'm'` in a
 # `u64[min 1]` passed, so 'pos' never wrapped round to 0). All three are proven.
-proc word [let $argv: ptr[ptr[u8]], let $i: i32] -> std::ls[u8]:
+proc word [$argv: ptr[ptr[u8]], $i: i32] -> std::ls[u8]:
     no_check let $w := ptr.read(ptr.at($argv, by: $i));
     var $k: i32 = 0;
     var $bytes: std::ls[u8] = [];
@@ -17,7 +17,7 @@ proc word [let $argv: ptr[ptr[u8]], let $i: i32] -> std::ls[u8]:
     ret give $bytes;
 ;proc word
 
-fn sits_at [lent $text: std::ls[u8], lent $part: std::ls[u8], let $pos: u64[min: 1]] -> bool:
+fn sits_at [lent $text: std::ls[u8], lent $part: std::ls[u8], $pos: u64[min: 1]] -> bool:
     let $n := std::ls.len(lend $text);
     let $m := std::ls.len(lend $part);
     if $m == 0:
@@ -56,7 +56,7 @@ fn count_pieces [lent $text: std::ls[u8], lent $sep: std::ls[u8]] -> u64:
     ret $pieces;
 ;fn count_pieces
 
-MAIN [let $argc: i32, let $argv: ptr[ptr[u8]]]:
+MAIN [$argc: i32, $argv: ptr[ptr[u8]]]:
     let $text := word($argv, 1);
     let $sep := word($argv, 2);
     std::print(sits_at(lend $text, lend $sep, 1), " ", count_pieces(lend $text, lend $sep), newln);

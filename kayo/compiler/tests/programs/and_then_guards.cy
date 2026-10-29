@@ -1,7 +1,7 @@
 # `and.then` / `or.else` stop once the answer is known (owner, 2026-09-25), so
 # the check on the left guards the read on the right: Precog proves each read
 # in range, and the reads that would be out of range never run.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 
 MAIN:
     let $xs := [3, 5, 8];

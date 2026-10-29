@@ -3,7 +3,7 @@
 # bytes, nothing copied; taken to keep and change (`let mut 'b' := 'four'`)
 # it is a fresh array each time. Three passes of 1 + 2 + 3 + 4 with the
 # first set to 10 is 57; plus the const's own sum, 10, read in place: 67.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 
 const $four := incl.bytes["incl_assets/four.bin"];
 

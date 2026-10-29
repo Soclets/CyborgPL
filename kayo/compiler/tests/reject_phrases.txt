@@ -966,10 +966,8 @@ not_std_old [fnv:4d2d7b892c3871ad] :: `int.sign.%not_std.24` is an old spelling:
 not_std_unmarked [fnv:7d59065065751575] :: `not_std` is the WSMW limb's, so it is marked: `%not_std.i24`
 old_word_as_operator [fnv:bfbae4d7ba5aaed4] :: `lt` is an old spelling: write `<`; redesign three
 op_closer_as_written [fnv:90c1c47675946ce0] :: `;op not` does not close the `op !` that is open: write `;op !`
-op_operand_bare [fnv:e32dcd19940a6e11] :: an operand says how it comes
 op_operand_give [fnv:66be7a3eee3cb5e9] :: `give` on an operand is an old spelling
-param_bare [fnv:d75712f2f1e2a9dd] :: a parameter says whether it changes: `let $a` or `var $a`
-param_let_changed [fnv:21c0844779d673e3] :: `$n` is a `let` parameter, which never changes, but something changes it: write `var $n`
+param_let_changed [fnv:78e09984c2176cb5] :: is a parameter without `var`, so it never changes, but something changes it: write `var $n`
 println_old [fnv:f45993f433441c57] :: `std::println` is an old spelling
 println_stored_old [fnv:5683986a9803326d] :: `std::println.stored` is an old spelling
 proc_into_fn_type [fnv:a4fba89e4cefcbef] :: expected fn[i32] -> bool: this value is a `proc`, which a `fn[…]` cannot hold

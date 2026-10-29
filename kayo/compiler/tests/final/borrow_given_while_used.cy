@@ -1,7 +1,7 @@
 # A borrow lasts until its last use (Rust-style, core-features.md): giving
 # 's' away while 'l' — a borrow of it that `first` handed back — is still
 # used after is refused.
-fn eat [let $s: str.utf8]:
+fn eat [$s: str.utf8]:
 ;fn eat
 fn first [lent $a: str.utf8] -> lent str.utf8:
     ret lend $a;

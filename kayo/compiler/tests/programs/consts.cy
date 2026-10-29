@@ -2,8 +2,8 @@
 # text, f64 and powers, used in a struct, a call, a loop's bound.
 
 
-%extern.C proc exit [let $code: i32];
-%extern.C proc strlen [let $s: ptr[u8]] -> u64;
+%extern.C proc exit [$code: i32];
+%extern.C proc strlen [$s: ptr[u8]] -> u64;
 pub const $max := 8;
 const $pi: f64 := 3.141_592_653_589_793;
 const $twice_max := $max x 2;
@@ -12,7 +12,7 @@ const $big: i64 := $max std::pow 20;
 pub rec P:
     var x: i32;
 ;rec P
-pub fn area [let $r: f64] -> f64:
+pub fn area [$r: f64] -> f64:
     ret $pi x $r x $r;
 ;fn area
 MAIN:

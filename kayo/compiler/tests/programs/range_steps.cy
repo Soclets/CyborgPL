@@ -1,6 +1,6 @@
 # A step past the counter's last value is never taken (control-flow.md,
 # owner 2026-09-23), and a negative step counts a u64 down.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     var $t: i32 = 0;
     for $i: u8 [from: 1, to: 0, by: -2]:

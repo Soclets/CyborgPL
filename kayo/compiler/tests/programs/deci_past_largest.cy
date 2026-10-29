@@ -2,8 +2,8 @@
 # (owner, 2026-09-29; the oracle: "does not fit d32: past the largest
 # value"): 9999999 to the 15th is past 10^96. The exit before it is never
 # reached.
-%extern.C proc exit [let $code: i32];
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
+%extern.C proc exit [$code: i32];
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
 MAIN:
     let $m: %d32 := 9999999;
     var $q: %d32 = $m;

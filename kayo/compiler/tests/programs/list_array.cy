@@ -2,7 +2,7 @@
 # (owner, 2026-09-23). `give` hands the elements over without a copy;
 # `copy` keeps the original. Texts inside are copied, not shared: the
 # leak check frees each once.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     var $l: std::ls[i32] = [1, 2];
     std::ls.append(lend.mut $l, value: 3);

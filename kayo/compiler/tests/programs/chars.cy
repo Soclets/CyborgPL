@@ -4,9 +4,9 @@
 # failing conversions, a char as text (a byte as the point of its number,
 # the oracle's reading), `==` across units, and `++` beside text. Values
 # are known only at run time: whether an unset variable is there.
-%extern.C proc exit [let $code: i32];
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
-fn point [let $code: i64] -> u32:
+%extern.C proc exit [$code: i32];
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
+fn point [$code: i64] -> u32:
     let $c := char.%point.from_code($code)-
     otherwise:
         case not_a_char:
@@ -15,7 +15,7 @@ fn point [let $code: i64] -> u32:
     ;otherwise;
     ret char.code($c);
 ;fn point
-fn byte [let $code: i64] -> u8:
+fn byte [$code: i64] -> u8:
     let $c := char.byte.from_code($code)-
     otherwise:
         case not_a_char:

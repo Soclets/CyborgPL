@@ -1,8 +1,8 @@
 # deci, IEEE 754 decimal (owner, 2026-09-29), as examples/deci.cpls has it
 # but checked by the program itself: each value's text against the
 # oracle's, one point each, so the exit is how many agree (30).
-%extern.C proc exit [let $code: i32];
-fn same [let $v: %d64, let $want: str.utf8] -> i32:
+%extern.C proc exit [$code: i32];
+fn same [$v: %d64, $want: str.utf8] -> i32:
     if to.stored.str.utf8($v) == $want:
         ret 1;
     ;if

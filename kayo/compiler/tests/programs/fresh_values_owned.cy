@@ -2,7 +2,7 @@
 # it — and a fresh one sent, appended or set is moved in, never given back
 # twice. Both were wrong until 2026-09-29: an answer held in a variable was
 # never freed, which only hid the second.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 fn page [lent $u: str.utf8] -> str.utf8:
     ret "page of " concat $u;
 ;fn page

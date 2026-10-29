@@ -5,7 +5,7 @@
 # marking runs in parallel slices that share bytes: 9592. A list handed to
 # a call stays bytes and still reads the same: 2 of 3 set. 11 + 9592 + 2 is
 # 9605, and 9605 mod 256 is 133.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 
 fn trues [lent $xs: std::ls[bool]] -> i64:
     var $k: i64 = 0;

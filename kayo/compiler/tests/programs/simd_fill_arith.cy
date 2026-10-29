@@ -4,7 +4,7 @@
 # It now lands in every lane of the type the vector gets, and is asked there.
 # And a vector nothing gives a lane width (`:=` of bare numbers) has the
 # natural one, 64 bits, two lanes; it had none. 6 + 2 + 25 + 5 + 6 = 44.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $x: i32 := 5;
     let $a: simd[i32, count: 4] := simd.fill(value: $x + 1);

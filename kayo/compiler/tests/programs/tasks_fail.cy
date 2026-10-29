@@ -1,5 +1,5 @@
-%extern.C proc exit [let $code: i32];
-fn judge [let $n: i32] -> fail[small, odd: i32]:
+%extern.C proc exit [$code: i32];
+fn judge [$n: i32] -> fail[small, odd: i32]:
     if $n < 10:
         fail small;
     ;if

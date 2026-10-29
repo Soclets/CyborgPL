@@ -2,8 +2,8 @@
 # "Do the bit shit"), worked out at run time at the type's true width, and
 # a u128's shl 127 and not.bit at all 128 bits; each answer's digits
 # against examples/wide_bits.out, checked against Python. All nine: 9.
-%extern.C proc exit [let $code: i32];
-%extern.C proc strlen [let $s: ptr[u8]] -> u64;
+%extern.C proc exit [$code: i32];
+%extern.C proc strlen [$s: ptr[u8]] -> u64;
 MAIN:
     var $right: i32 = 0;
     let $s := "x";

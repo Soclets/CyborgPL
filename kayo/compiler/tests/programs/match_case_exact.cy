@@ -2,7 +2,7 @@
 # 2026-09-29, seed 1011): the case's bare numbers are exact, as in a
 # declaration — (14576284062462565771 div 6) mod 51 is 25 — where they had
 # been worked out at 64 bits and the asserted build printed 16.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 union.tag E:
     a; b;
 ;union.tag E

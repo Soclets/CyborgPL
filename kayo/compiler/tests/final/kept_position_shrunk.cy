@@ -1,6 +1,6 @@
 # A position kept from a walk, in a list made one shorter since, may be past its end.
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
-%extern.C proc atoi [let $s: ptr[u8]] -> i32;
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C proc atoi [$s: ptr[u8]] -> i32;
 rec Net:
     var stations: std::ls[i32];
     var others: std::ls[i32];
@@ -10,7 +10,7 @@ fn pick [lent $net: Net] -> i32:
     ret 0;
 ;fn pick
 
-fn own [let $n: i32] -> i32:
+fn own [$n: i32] -> i32:
     var $xs: std::ls[i32] = std::ls.empty;
     for $j [from: 1, to: $n, by: 1]:
         std::ls.append(lend.mut $xs, value: $j);

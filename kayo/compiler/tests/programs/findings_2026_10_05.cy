@@ -5,7 +5,7 @@
 # at u32 is 0); bare numbers are worked out exactly however big they get
 # on the way ((4294967294 pow 12) mod 2147483649 is 16777216); and a deci
 # past a narrower one's largest takes the `otherwise` (-180). All four: 15.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     var $code: i32 = 0;
     let $a: i8 := 20;

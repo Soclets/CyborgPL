@@ -3,7 +3,7 @@
 # the result depends on (examples/lifetimes.cpls as an exit code: "hello",
 # "hi" and "hello" are 5, 2 and 5 bytes → 5 x 100 + 2 x 10 + 5 = 525,
 # which exits as 525 mod 256 = 13).
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 fn longer [@x] [lent @x $a: str.utf8, lent @x $b: str.utf8] -> lent @x str.utf8:
     if std::str.bytes(lend $a) >= std::str.bytes(lend $b):
         ret lend $a;

@@ -4,18 +4,18 @@
 # toupper['2'] is no case, 50 is past quot's range, and both take `otherwise`.
 # The oracle cannot link C, so the answer is worked out by hand:
 # 1000 + 200 + 30 + (3 + 1) + 9 = 1243, which exits as 1243 mod 256 = 219.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 %layout.C enum Key:
     a = 65; b = 66; escape = 256;
 ;%layout.C enum Key
-%extern.C proc abs [let $k: Key] -> i32;
-%extern.C proc toupper [let $c: i32] -> Key;
+%extern.C proc abs [$k: Key] -> i32;
+%extern.C proc toupper [$c: i32] -> Key;
 %layout.C rec Div:
     var quot: i32[min: 0, max: 10]; var rem: i32;
 ;%layout.C rec Div
-%extern.C proc divide [let $n: i32, let $d: i32] -> Div;
+%extern.C proc divide [$n: i32, $d: i32] -> Div;
 
-fn code [let $k: Key] -> i32:
+fn code [$k: Key] -> i32:
     match $k:
         case a:
             ret 1;

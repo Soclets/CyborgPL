@@ -1,7 +1,7 @@
 # The brain float (owner, 2026-10-02): `brain16` (`bf16` and `bfloat16` were old spellings). Literals
 # round to the nearest, each step rounds, and it converts to and from every
 # number family and text, both forms of each. The oracle gives 66.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $a: %bf16 := 0.1;
     let $b: %bf16 := 0.2;

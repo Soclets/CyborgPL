@@ -1,9 +1,9 @@
 # Inline assembly (ffi.md), arm64: values into registers and out, a real
 # syscall (getpid, 20) checked against C's, and x29/x30 clobbered in a
 # function that then returns (spelled fp/lr for LLVM: the compiler rule).
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 %extern.C proc getpid [] -> i32;
-proc trample [let $n: i64] -> i64:
+proc trample [$n: i64] -> i64:
     no_check inline.ASM with [$n -> x0, $m <- x0, clobber x30, clobber x29]:
         mov x30, #0
         mov x29, #0

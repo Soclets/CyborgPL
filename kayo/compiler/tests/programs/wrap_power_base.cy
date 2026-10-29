@@ -2,8 +2,8 @@
 # shift's, so a u32 base with an i32 exponent is not mixing sizes
 # (operators.md, the oracle's reading). The exponent is known only at run
 # time: whether an unset variable is there.
-%extern.C proc exit [let $code: i32];
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
+%extern.C proc exit [$code: i32];
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
 MAIN:
     let $k := "SYNAPSE_SURELY_UNSET_VARIABLE";
     no_check let $there := ptr.is_null(getenv(lend $k));

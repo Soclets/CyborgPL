@@ -1,10 +1,10 @@
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 union.tag Shape:
     dot;
     line: i32;
     box: i32;
 ;union.tag Shape
-fn measure [let $s: Shape] -> i32:
+fn measure [$s: Shape] -> i32:
     match $s:
         case dot:
             ret 1;

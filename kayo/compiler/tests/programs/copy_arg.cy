@@ -2,9 +2,9 @@
 # owns it and gives it back, and the caller's own list is untouched. Read as
 # the same bytes, the callee freed the caller's list, which was then used
 # and freed again. Built at run time so the calls are not worked out ahead.
-%extern.C proc exit [let $code: i32];
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
-fn first [let $xs: std::ls[i32]] -> i32:
+%extern.C proc exit [$code: i32];
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
+fn first [$xs: std::ls[i32]] -> i32:
     ret $xs[pos: 1];
 ;fn first
 MAIN:

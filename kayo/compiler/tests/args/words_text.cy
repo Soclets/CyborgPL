@@ -2,8 +2,8 @@
 # so a word past ASCII arrives whole: run with "héllo", "ab" and the one
 # byte 0xFF. Points 5 + 2 = 7, bytes 6 + 2 = 8, and 0xFF is not UTF-8
 # (100): 7 x 10 + 8 + 100 = 178.
-%extern.C proc exit [let $code: i32];
-MAIN [let $argc: i32, let $argv: ptr[ptr[u8]]]:
+%extern.C proc exit [$code: i32];
+MAIN [$argc: i32, $argv: ptr[ptr[u8]]]:
     var $points: u64 = 0;
     var $bytes: u64 = 0;
     var $bad: i32 = 0;

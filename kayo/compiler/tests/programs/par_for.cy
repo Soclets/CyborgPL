@@ -3,7 +3,7 @@
 # or adds into one total — and give what the loop in order gives. The sum
 # is 0 or more every time, so its one check at the end is the loop's.
 # (Their total mod 256, as the oracle computes it: 160.)
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $n: i64 := 300000;
     var $xs: std::ls[i64] = std::ls.fill(value: 3, count: $n);

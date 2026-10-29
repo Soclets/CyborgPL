@@ -1,11 +1,11 @@
-%extern.C proc exit [let $code: i32];
-fn inner [let $n: i32] -> i32 or fail[bad: std::ls[i32]]:
+%extern.C proc exit [$code: i32];
+fn inner [$n: i32] -> i32 or fail[bad: std::ls[i32]]:
     if $n < 0:
         fail bad[[1, 2, 3]];
     ;if
     ret $n;
 ;fn inner
-fn outer [let $n: i32] -> i32 or fail[bad: std::ls[i32]]:
+fn outer [$n: i32] -> i32 or fail[bad: std::ls[i32]]:
     let $v := inner($n)?;
     ret $v + 1;
 ;fn outer

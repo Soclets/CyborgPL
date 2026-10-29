@@ -1,7 +1,7 @@
 # Text in two forms (owner, 2026-09-30): `to.str.utf8` the exact value,
 # `to.useful.str.utf8` the useful one, as the oracle prints them. Each
 # form that reads as expected counts one: 22 in all.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 
 union.tag Size:
     small;

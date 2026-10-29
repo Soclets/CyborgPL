@@ -4,8 +4,8 @@
 # nested list passes it down (0 -~ 2 is 254); bare numbers alone stay exact
 # (check claude's seed 197). examples/list_item_context.cpls as an exit
 # code: one bit per right answer, 127.
-%extern.C proc exit [let $code: i32];
-fn flag [let $b: bool, let $v: i32] -> i32:
+%extern.C proc exit [$code: i32];
+fn flag [$b: bool, $v: i32] -> i32:
     if $b:
         ret $v;
     ;if

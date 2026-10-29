@@ -1,6 +1,6 @@
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 
-fn grade [let $n: i32] -> i32:
+fn grade [$n: i32] -> i32:
     if $n > 90:
         ret 1;
     else if $n > 50:

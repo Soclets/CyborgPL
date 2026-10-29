@@ -3,9 +3,9 @@
 # and up(98) — past an i64 in truth — ran on with a wrong number. It is
 # asked at the true value now: this must stop. 'n' is 97, and up(97) goes
 # through up(98).
-%extern.C proc exit [let $code: i32];
-%extern.C proc strlen [let $s: ptr[u8]] -> u64;
-fn up [let $n: i64[min: 0, max: 100]] -> i64:
+%extern.C proc exit [$code: i32];
+%extern.C proc strlen [$s: ptr[u8]] -> u64;
+fn up [$n: i64[min: 0, max: 100]] -> i64:
     if $n >= 100:
         ret 1;
     ;if

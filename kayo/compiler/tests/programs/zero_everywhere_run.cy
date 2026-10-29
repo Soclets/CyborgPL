@@ -4,7 +4,7 @@
 # right, 0 when wrong. The oracle gives 56. `mod` and `pow` too
 # (owner, 2026-10-07: "yea.").
 # Values come from calls so nothing is folded, then once more as literals.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 fn zero [] -> f64:
     ret 0.0;
 ;fn zero
@@ -17,17 +17,17 @@ fn three [] -> f64:
 fn tiny [] -> f64:
     ret 0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001;
 ;fn tiny
-fn sign [let $q: f64] -> i32:
+fn sign [$q: f64] -> i32:
     let $t := to.shortest.str.utf8($q);
     if std::str.bytes(lend $t) == 1:
         ret 1;
     ;if
     ret 0;
 ;fn sign
-fn plus_zero [let $q: f64] -> i32:
+fn plus_zero [$q: f64] -> i32:
     ret sign($q);
 ;fn plus_zero
-fn ieee [let $q: f64] -> i32:
+fn ieee [$q: f64] -> i32:
     ret 2 x (1 - sign($q));
 ;fn ieee
 MAIN:

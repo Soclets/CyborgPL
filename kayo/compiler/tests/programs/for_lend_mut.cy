@@ -2,7 +2,7 @@
 # changes the list (owner, 2026-09-30: "the program looks legal to me").
 # [10, 20, 30] doubled sums to 120; 100000 twos made sixes, in slices,
 # sum to 600000, 192 mod 256; (120 + 192) mod 256 is 56.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     var $prices: std::ls[i32] = [10, 20, 30];
     for $x in lend.mut $prices:

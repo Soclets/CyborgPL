@@ -4,7 +4,7 @@ fn first [lent $xs: std::ls[i64][min: 1]] -> u64:
     ret std::ls.len(lend $xs);
 ;fn first
 
-MAIN [let $argc: i32, let $argv: ptr[ptr[u8]]]:
+MAIN [$argc: i32, $argv: ptr[ptr[u8]]]:
     var $w: std::ls[i64] = [1,];
     if $argc > 1:
         change $w to std::ls.empty;

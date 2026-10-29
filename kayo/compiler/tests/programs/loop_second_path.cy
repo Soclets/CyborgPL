@@ -3,9 +3,9 @@
 # path still on its way: the call on the `if` side was never analysed, and
 # layer 1 folded a value from the other call into both (check claude,
 # generator seed 2). A process id is never 0, so 'b' is true.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 %extern.C proc getpid [] -> i32;
-fn pick [let $n: i64] -> i64:
+fn pick [$n: i64] -> i64:
     ret $n x 10;
 ;fn pick
 MAIN:

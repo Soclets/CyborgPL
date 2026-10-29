@@ -2,11 +2,11 @@
 # `to.Key[…]` fails `out_of_range` for a number no case has — 302, a key a
 # newer library added — so the program decides what it means
 # (examples/c_enum_convert.cpls as an exit code: 2, 0, 3 → 203).
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 %layout.C enum Key:
     a = 65; b = 66; escape = 256;
 ;%layout.C enum Key
-fn on_key [let $code: i32] -> i32:
+fn on_key [$code: i32] -> i32:
     let $k := to.Key($code)-
     otherwise:
         case out_of_range:

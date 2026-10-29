@@ -4,7 +4,7 @@
 # and power off through PSCI (SYSTEM_OFF, over `hvc`), which ends QEMU.
 
 pub module serial:
-    pub proc write [let $b: u8]:
+    pub proc write [$b: u8]:
         no_check inline.ASM with [$b -> x0, clobber x9]:
             mov x9, #0x09000000
             strb w0, [x9]
@@ -20,7 +20,7 @@ pub module serial:
 ;module serial
 
 pub module machine:
-    pub proc off [let $code: u8]:
+    pub proc off [$code: u8]:
         no_check inline.ASM with [$code -> x1, clobber x0]:
             movz x0, #0x0008
             movk x0, #0x8400, lsl #16

@@ -1,4 +1,4 @@
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $a: std::ls[i32] := [1, 2, 3];
     var $b: std::ls[i32] = copy $a;

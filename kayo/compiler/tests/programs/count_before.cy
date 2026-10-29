@@ -2,9 +2,9 @@
 # an `i8` counting before 128 (which no `i8` holds) is 0 50 100, 150; a
 # `u64` from 0 before 0 runs no rounds and before 3 runs three; a slice
 # before pos 4 from pos 2 holds two. 6 + 9 + 150 + 0 + 3 + 2 is 170.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 
-fn rounds [let $n: u64] -> i64:
+fn rounds [$n: u64] -> i64:
     var $c: i64 = 0;
     for $i: u64 [from: 0, before: $n, by: 1]:
         change $c to $c + 1;

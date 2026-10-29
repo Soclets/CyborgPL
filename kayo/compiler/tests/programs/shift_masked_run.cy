@@ -1,7 +1,7 @@
 # shl.masked / shr.masked (owner, 2026-10-07): the count modulo the width (-1 is
 # 63), the bits past it cut off, a signed answer read as signed. 254 + 64 + 127
 # - 1 - 128 - 64 = 252, as the oracle has it.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 fn n255 [] -> u8:
     ret 255;
 ;fn n255

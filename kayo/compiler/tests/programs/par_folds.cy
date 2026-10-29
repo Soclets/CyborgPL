@@ -2,7 +2,7 @@
 # products of integers, bins and decis run in slices, each folding its own
 # trips, the partials combined in slice order at the end. The values are
 # exact, so the rounding the order may change never shows here.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $n: i64 := 300000;
     let $bs: std::ls[f64] := std::ls.fill(value: 0.5, count: $n);

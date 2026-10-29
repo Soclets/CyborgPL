@@ -1,11 +1,11 @@
 # CCA's own test programs, not the language's examples (those are the design
 # session's). Each one exits with a number this test knows.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 
-fn add [let $a: i32, let $b: i32] -> i32:
+fn add [$a: i32, $b: i32] -> i32:
     ret $a + $b;
 ;fn add
-fn twice [let $n: i32] -> i32:
+fn twice [$n: i32] -> i32:
     ret $n x 2;
 ;fn twice
 

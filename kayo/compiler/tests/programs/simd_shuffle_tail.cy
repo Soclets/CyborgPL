@@ -2,7 +2,7 @@
 # `simd.load.some` / `simd.store.some` touch only the first k lanes, so a
 # list of any length is one vector loop (examples/simd_shuffle.cpls and
 # examples/simd_tail.cpls, read out as an exit code).
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 
 MAIN:
     let $ys: arr[i32] := [10, 20, 30, 40];

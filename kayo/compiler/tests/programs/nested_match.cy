@@ -2,7 +2,7 @@
 # in a statement match it runs; in a value match it is the case's value
 # (examples/nested_match.cpls as an exit code: "mail" is 2, the price 9 →
 # 2 x 10 + 9 = 29).
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 union.tag Order:
     cancelled; paid;
 ;union.tag Order

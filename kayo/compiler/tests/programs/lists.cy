@@ -1,4 +1,4 @@
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     var $xs: std::ls[i32] = [10, 20, 30];
     std::ls.append(lend.mut $xs, value: 12);

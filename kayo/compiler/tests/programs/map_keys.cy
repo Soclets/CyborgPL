@@ -1,4 +1,4 @@
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 rec Point:
     var x: i32; var y: i32;
 ;rec Point

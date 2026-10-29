@@ -3,11 +3,11 @@
 # fits, and with 5e18, where it never does; the second call is behind an
 # `if` the run does not take, so the program ends 2. It was refused as
 # failing every time it reaches the multiply.
-%extern.C proc exit [let $code: i32];
-fn double [let $p: i64] -> i64:
+%extern.C proc exit [$code: i32];
+fn double [$p: i64] -> i64:
     ret $p x 2;
 ;fn double
-MAIN [let $argc: i32, let $argv: ptr[ptr[u8]]]:
+MAIN [$argc: i32, $argv: ptr[ptr[u8]]]:
     var $code: i64 = double(1);
     if $argc > 5:
         change $code to double(5000000000000000000);

@@ -3,9 +3,9 @@
 # 2 is no i32[min 0, max 1]. Filled straight into the place, it was never asked
 # — the store held 2 and Precog believed the type (the oracle: "2 does not
 # fit i32[min 0, max 1]").
-%extern.C proc exit [let $code: i32];
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
-fn twice [let $d: i32] -> i32:
+%extern.C proc exit [$code: i32];
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
+fn twice [$d: i32] -> i32:
     ret $d x 2;
 ;fn twice
 proc one [] -> i32:

@@ -1,4 +1,4 @@
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 fn total [lent $xs: std::ls[i32]] -> i32:
     var $s: i32 = 0;
     for $x in lend $xs:

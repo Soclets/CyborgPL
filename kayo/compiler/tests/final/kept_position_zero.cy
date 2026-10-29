@@ -1,6 +1,6 @@
 # A position kept from a walk that may have kept nothing is 0, no position.
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
-%extern.C proc atoi [let $s: ptr[u8]] -> i32;
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C proc atoi [$s: ptr[u8]] -> i32;
 rec Net:
     var stations: std::ls[i32];
     var others: std::ls[i32];
@@ -16,7 +16,7 @@ fn pick [lent $net: Net] -> i32:
     ret $net.stations[pos: $at];
 ;fn pick
 
-fn own [let $n: i32] -> i32:
+fn own [$n: i32] -> i32:
     ret 0;
 ;fn own
 

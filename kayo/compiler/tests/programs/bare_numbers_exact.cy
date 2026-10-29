@@ -4,7 +4,7 @@
 # division by a group whose big number fits only a `u64` divides by 1:
 # the build asserting its proofs read the big number as negative, divided
 # by 0, and said a proof had failed (seed 371).
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     var $got: i32 = 0;
     if 3876992840477302775 + 7782534087963747351 > 0:

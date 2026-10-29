@@ -2,7 +2,7 @@
 rec Point:
     var x: i32;
 ;rec Point
-fn f [let $p: Pont] -> i32:
+fn f [$p: Pont] -> i32:
     ret 1;
 ;fn f
 MAIN:

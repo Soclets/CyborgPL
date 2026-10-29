@@ -4,7 +4,7 @@
 # Lanes of each width, a position worked out at run time, and a load whose
 # lanes differ, to see the order: 4 + 4 + (200 - 190) + (-5 + 10) +
 # 2.5 x 2 + 30 = 58.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $a: simd[i32, count: 4] := simd.fill(value: 4);
     let $b: simd[u8, count: 16] := simd.fill(value: 200);

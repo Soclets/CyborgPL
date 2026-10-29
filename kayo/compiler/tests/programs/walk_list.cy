@@ -1,4 +1,4 @@
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $xs: std::ls[i32] := [4, 5, 6];
     var $acc: i32 = 0;

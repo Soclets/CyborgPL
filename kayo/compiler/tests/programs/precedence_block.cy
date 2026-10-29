@@ -7,7 +7,7 @@
 #   20 gap 3 times 2 = 20 - 6 = 14;  20 gap 3 plus 2 = 17 + 2 = 19
 #   -2 pow 2 = -4;  2 pow 3 pow 2 = 512 (mod 256 is 0);  2 times 3 pow 2 = 18
 # 13 + 14 + 19 - 4 + 0 + 18 + 1 (the ~= holds) = 61.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 
 precedence.low_first:
     level 1 [==, ~=] refused;

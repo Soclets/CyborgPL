@@ -1,6 +1,6 @@
 # A character literal of several code points can only be a grapheme
 # (types.md), with its unit unwritten too: e + a combining accent.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $g := `é`;
     let $t := to.str.utf8(lend $g);

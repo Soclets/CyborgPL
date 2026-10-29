@@ -1,15 +1,15 @@
 # fib on 0 to 93, N from outside: fib(93) does not fit an i64, so the
 # final build must refuse where it lands.
-%extern.C proc exit [let $code: i32];
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
-%extern.C proc atoll [let $s: ptr[u8]] -> i64[min: 0, max: 93];
-fn fib [let $n: i64[min: 0, max: 93]] -> i64:
+%extern.C proc exit [$code: i32];
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C proc atoll [$s: ptr[u8]] -> i64[min: 0, max: 93];
+fn fib [$n: i64[min: 0, max: 93]] -> i64:
     if $n < 2:
         ret $n;
     ;if
     ret fib($n - 1) + fib($n - 2);
 ;fn fib
-proc read_n [let $text: ptr[u8]] -> i64[min: 0, max: 93] or fail[missing, out_of_range]:
+proc read_n [$text: ptr[u8]] -> i64[min: 0, max: 93] or fail[missing, out_of_range]:
     if ptr.is_null($text):
         fail missing;
     ;if

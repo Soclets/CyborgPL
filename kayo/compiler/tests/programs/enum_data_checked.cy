@@ -1,7 +1,7 @@
 # A case's data is checked where it lands, at run time too (check claude, seed
 # 15174): -5 into a `u64` case stops, as the oracle does: exit 101.
-%extern.C proc exit [let $code: i32];
-%extern.C proc strlen [let $s: ptr[u8]] -> u64;
+%extern.C proc exit [$code: i32];
+%extern.C proc strlen [$s: ptr[u8]] -> u64;
 union.tag E1:
     c1: u32;
     c4: u64;

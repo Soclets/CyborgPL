@@ -2,7 +2,7 @@
 # maths, as wide as its own values need, and wraps to the operator's width
 # (check claude, seed 34247): 5 + 2^63, 5 + (2^64 + 1) = 6, 5 + (-1) = 4,
 # and (-1) + 5 = 4: 13 + 60 + 400 + 4000 = 4473, exit 121 (the oracle's).
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 fn five [] -> u64:
     ret 5;
 ;fn five

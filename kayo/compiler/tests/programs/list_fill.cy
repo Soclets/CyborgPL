@@ -2,7 +2,7 @@
 # The scores are 0 but one 7 (7); three flags, all false (30, and no 50);
 # no ones (0); four int8s of 100, the fourth read back (100); two bins of
 # 1.5, the second doubled (3). 7 + 30 + 0 + 100 + 3 = 140.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     var $scores = std::ls.fill(value: 0, count: 5);
     change $scores[pos: 3] to 7;

@@ -2,7 +2,7 @@
 # 1990): 'd' shr 35 is 0 for 284, so 5 div 'v' divides by zero. The query
 # kept only the first case's value, 1, and "proved" the division; and it
 # shifted a u64 arithmetically. Now it traps, as the oracle stops.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 union.tag E:
     a; b: u64;
 ;union.tag E

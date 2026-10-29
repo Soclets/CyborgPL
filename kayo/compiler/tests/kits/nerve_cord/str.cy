@@ -8,7 +8,7 @@ pub fn shout [lent $s: str.utf8] -> str.utf8:
 # (owner, 2026-10-08): `std::str.at.byte[lend 's', pos 1]`. This stand-in
 # hands back the position plus 103, to show it arrives as the number.
 pub coll.fn at:
-    member at.byte [lent $s: str.utf8, let $pos: u64[min: 1]] -> u64 or fail[out_of_range]:
+    member at.byte [lent $s: str.utf8, $pos: u64[min: 1]] -> u64 or fail[out_of_range]:
         if $pos > std::str.bytes(lend $s):
             fail out_of_range;
         ;if

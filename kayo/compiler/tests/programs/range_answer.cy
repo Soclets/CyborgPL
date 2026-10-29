@@ -2,8 +2,8 @@
 # tells LLVM its range (owner, 2026-09-29: c), so a loop bounded by it is
 # worked out at 64 bits. `pick` gives 3 here (no SYNAPSE_NO_SUCH_VARIABLE),
 # and the sum of 1 to 3 is 6.
-%extern.C proc exit [let $code: i32];
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
+%extern.C proc exit [$code: i32];
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
 proc pick [] -> i64[min: 0, max: 1000] or fail[missing]:
     let $key := "SYNAPSE_NO_SUCH_VARIABLE";
     no_check let $p := getenv(lend $key);

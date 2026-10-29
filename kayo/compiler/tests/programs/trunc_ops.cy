@@ -4,7 +4,7 @@
 # `fmod`: -370 mod.trunc 360 is -10. The lowest i8 mod.trunc -1 is 0 and
 # no check; div.trunc of it is past the type, like `div`. Each right answer
 # adds its own bit to the exit code: 255 when all are right.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $x: i32 := -7;
     let $y: i32 := 2;

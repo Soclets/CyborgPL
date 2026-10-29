@@ -4,7 +4,7 @@ fn first [lent $part: str.utf8[min: 1 bytes]] -> u64:
     ret std::str.bytes(lend $part);
 ;fn first
 
-MAIN [let $argc: i32, let $argv: ptr[ptr[u8]]]:
+MAIN [$argc: i32, $argv: ptr[ptr[u8]]]:
     var $w: str.utf8 = "x";
     if $argc > 1:
         change $w to str.empty;

@@ -1,6 +1,6 @@
 # A position kept from a walk, starting at 1, is inside a list that is not empty.
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
-%extern.C proc atoi [let $s: ptr[u8]] -> i32;
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C proc atoi [$s: ptr[u8]] -> i32;
 rec Net:
     var stations: std::ls[i32];
 ;rec Net

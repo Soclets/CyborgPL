@@ -1,8 +1,8 @@
 # A map keyed by a type with its own `op ==` and `fn hash` (maps.md): keys
 # equal by `==` are one key; "equal keys hash the same" is a check site,
 # checked in the working build and refused unproven by the final one.
-%extern.C proc exit [let $code: i32];
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
+%extern.C proc exit [$code: i32];
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
 rec User:
     var id: i32; var name: str.utf8;
 ;rec User

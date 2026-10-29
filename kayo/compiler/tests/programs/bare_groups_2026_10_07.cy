@@ -3,7 +3,7 @@
 # exact answer in `xor`, and in a comparison; a shift waiting for its width
 # takes it through `plus.wrap`. r2 is 10803112279996704310 (mod 200: 110),
 # the comparison holds (1), r1 and w are 0: 111.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 fn one [] -> u64:
     ret 1;
 ;fn one

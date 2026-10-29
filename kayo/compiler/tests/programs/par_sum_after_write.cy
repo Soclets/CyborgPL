@@ -3,7 +3,7 @@
 # to it, and each slice ran from its own first trip to the loop's end,
 # 8000 ones summing to 16001. 8000 ones, then 4538 trues of 20000
 # flags: 12538, and 12538 mod 256 is 250.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     var $b: std::ls[u8] = std::ls.fill(value: 0, count: 8000);
     for %para $i: u64 [from: 1, to: 8000, by: 1]:

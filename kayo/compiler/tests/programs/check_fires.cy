@@ -1,6 +1,6 @@
 # An unproven site keeps its check in a working build, and a check that
 # fires stops the program with 101 and says where.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 %extern.C proc getpid [] -> i32;
 
 MAIN:

@@ -1,8 +1,8 @@
 # == and !== on an enum (with and without a payload), a struct and a text:
 # the same shape all the way down. The instruction used to be dropped
 # silently and the answer left unwritten. Each true case adds its bit.
-%extern.C proc exit [let $code: i32];
-%extern.C proc strlen [let $s: ptr[u8]] -> u64;
+%extern.C proc exit [$code: i32];
+%extern.C proc strlen [$s: ptr[u8]] -> u64;
 union.tag Status:
     empty;
     claimed: str.utf8;

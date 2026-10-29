@@ -3,8 +3,8 @@
 # trip: the stack grew until the program died (exit 139). Every slot is
 # now made once, in the function's first block. The sum of 1 to 10^7 is
 # 50000005000000; 0 mod 1000, and 7 is the exit.
-%extern.C proc exit [let $code: i32];
-fn half [let $n: i64] -> i64 or fail[odd]:
+%extern.C proc exit [$code: i32];
+fn half [$n: i64] -> i64 or fail[odd]:
     if ($n mod.floor 2) == 1:
         fail odd;
     ;if

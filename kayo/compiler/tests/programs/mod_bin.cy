@@ -3,7 +3,7 @@
 # is 0, never -0 (owner, 2026-10-07: "a"; until then it took the divisor's
 # sign, "-0"): 4.0 mod -2.0 is "0"; a tiny negative over 360 that rounds up to
 # 360 is 0, always below the divisor (owner: b).
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $angle: f64 := -370.0;
     let $turn: f64 := 360.0;

@@ -2,9 +2,9 @@
 # 2026-09-30: a): malloc's bytes as a `layout.C` Point, written and read
 # whole, then as int32s one at a time. 3 x 10 + 4 = 34, and the second
 # i32 is y, 4: 34 + 4 = 38.
-%extern.C proc malloc [let $bytes: u64] -> ptr.mut[u8];
-%extern.C proc free [let $p: ptr.mut[u8]];
-%extern.C proc exit [let $code: i32];
+%extern.C proc malloc [$bytes: u64] -> ptr.mut[u8];
+%extern.C proc free [$p: ptr.mut[u8]];
+%extern.C proc exit [$code: i32];
 
 %layout.C rec Point:
     var x: i32;

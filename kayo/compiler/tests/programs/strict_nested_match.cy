@@ -1,14 +1,14 @@
 # In a #strict file a bare nested `match` is a statement, and a nested match
 # that is the value says `giveS` (owner, 2026-09-29): "mail" is 2, the price
 # 9 → 29 (examples/strict_nested_match.cpls as an exit code).
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 union.tag Order:
     cancelled; paid;
 ;union.tag Order
 union.tag Ship:
     pickup; post;
 ;union.tag Ship
-fn handle [let $o: Order, let $s: Ship] -> i32:
+fn handle [$o: Order, $s: Ship] -> i32:
     var $went: i32 = 0;
     match $o:
         case cancelled:
@@ -26,7 +26,7 @@ fn handle [let $o: Order, let $s: Ship] -> i32:
     ;match
     ret $went;
 ;fn handle
-fn price [let $o: Order, let $s: Ship] -> i32:
+fn price [$o: Order, $s: Ship] -> i32:
     let $p: i32 := match $o:
         case cancelled:
             is 0;

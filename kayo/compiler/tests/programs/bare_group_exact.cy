@@ -2,7 +2,7 @@
 # `/` and `mod` too, with no 64-bit window in between: only where the answer
 # lands is checked. (2^64 - 1 + 1) mod 1 is 0; it was refused, in a loop and
 # out of one (check claude, attack a: 2026-09-24-bare-sum-past-64-in-loop).
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     var $v: u64 = 9;
     var $w: u16 = 2;

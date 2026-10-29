@@ -1,4 +1,4 @@
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     var $grid: std::ls[std::ls[i32]] = [[1, 2], [3, 4]];
     let $row: std::ls[i32] := [5, 6, 7];

@@ -1,4 +1,4 @@
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 fn fetch [lent $url: str.utf8] -> str.utf8:
     ret "page of " concat $url;
 ;fn fetch

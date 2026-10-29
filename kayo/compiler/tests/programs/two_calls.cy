@@ -1,8 +1,8 @@
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 rec P:
     var x: i32;
 ;rec P
-fn get [let $p: P] -> i32:
+fn get [$p: P] -> i32:
     ret $p.x;
 ;fn get
 MAIN:

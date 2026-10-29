@@ -1,10 +1,10 @@
 # A counter stepped on only some trips does not bound how many trips there
 # are: for an odd N this loop goes round forever, and the sum overflows.
 # The final build must not bound 'acc' by the counter.
-%extern.C proc exit [let $code: i32];
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
-%extern.C proc atoll [let $s: ptr[u8]] -> i64[min: 0, max: 1000];
-proc read_n [let $text: ptr[u8]] -> i64[min: 0, max: 1000] or fail[missing, out_of_range]:
+%extern.C proc exit [$code: i32];
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C proc atoll [$s: ptr[u8]] -> i64[min: 0, max: 1000];
+proc read_n [$text: ptr[u8]] -> i64[min: 0, max: 1000] or fail[missing, out_of_range]:
     if ptr.is_null($text):
         fail missing;
     ;if

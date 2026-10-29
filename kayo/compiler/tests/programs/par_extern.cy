@@ -3,8 +3,8 @@
 # is safe on many cores (owner, 2026-09-30). `labs` is: the sum of |i - 12345|
 # mod 256 for i in 1 to 100000, as both loops give: 40 (worked out by hand;
 # the oracle cannot link C).
-%extern.C proc exit [let $code: i32];
-%extern.C proc labs [let $n: i64] -> i64;
+%extern.C proc exit [$code: i32];
+%extern.C proc labs [$n: i64] -> i64;
 MAIN:
     let $n: i64 := 100000;
     var $a: std::ls[i64] = std::ls.fill(value: 0, count: $n);

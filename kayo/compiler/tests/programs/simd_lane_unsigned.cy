@@ -1,7 +1,7 @@
 # An unsigned lane narrower than 64 bits, widened (check claude): a lane's
 # type was `nothing` below MIR, so it was widened by sign, and a `u8` of
 # 200 read back as 2^64 - 56. 200 + 60000 + 4000000000 - 4000060000 = 200.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $b: simd[u8, count: 16] := simd.fill(value: 200);
     let $u: u64 := to.u64($b[pos: 1]);

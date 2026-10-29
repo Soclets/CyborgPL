@@ -2,7 +2,7 @@
 # lend 'xs'` — 'i' is 1, 2, 3 … (a u64), 'x' the item there; `perm`
 # keeps both after the loop (examples/for_position.cpls as an exit code:
 # best at 2, and after the loop 3 and 88 → 2 x 100 + 3 x 10 + 8 = 238).
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $scores: std::ls[i32] := [70, 95, 88];
     var $best_at: u64 = 0;

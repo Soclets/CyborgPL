@@ -2,8 +2,8 @@
 # (check claude, 2026-09-29, seed 1027): the -1 stops at the call, which
 # traps when it runs, and Precog no longer walks it into `half`, where it
 # made the division look wrong every time.
-%extern.C proc exit [let $code: i32];
-fn half [let $n: u64] -> u64:
+%extern.C proc exit [$code: i32];
+fn half [$n: u64] -> u64:
     ret ($n div.floor 10) + 1;
 ;fn half
 MAIN:

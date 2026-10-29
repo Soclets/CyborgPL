@@ -2,8 +2,8 @@
 # points and grapheme clusters (UAX #29, extended: เกี่ยว is 4 clusters, 6
 # points, 18 bytes); text <-> grapheme conversions; a text bound counted
 # in graphemes, checked at run time. Values chosen at run time.
-%extern.C proc exit [let $code: i32];
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
+%extern.C proc exit [$code: i32];
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
 fn short [lent $t: str.utf8] -> i32:
     let $s: str.utf8[min: 0, max: 2 %clusters] := to.str.utf8[min: 0, max: 2 %clusters](lend $t)-
     otherwise:

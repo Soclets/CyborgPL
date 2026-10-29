@@ -3,12 +3,12 @@
 # it on, and dropping it gives back what it holds. One carrying nothing, or
 # only lends, copies by itself. Lent to a `lent` parameter, it stays put;
 # given or copied to a `fn[…]` parameter, the callee owns it and gives it back.
-%extern.C proc exit [let $code: i32];
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
+%extern.C proc exit [$code: i32];
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
 fn look [lent $f: fn[] -> u64] -> u64:
     ret $f();
 ;fn look
-fn run [let $f: fn[] -> u64] -> u64:
+fn run [$f: fn[] -> u64] -> u64:
     ret $f();
 ;fn run
 MAIN:
@@ -28,7 +28,7 @@ MAIN:
     let $size := fn [] -> u64 with [give $words]:
         ret std::str.bytes(lend $words[pos: 2]);
     ;fn;
-    let $inc := fn [let $a: i32] -> i32:
+    let $inc := fn [$a: i32] -> i32:
         ret $a + 1;
     ;fn;
     let $inc2 := $inc;

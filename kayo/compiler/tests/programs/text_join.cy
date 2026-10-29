@@ -1,4 +1,4 @@
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 fn greet [lent $who: str.utf8] -> str.utf8:
     ret "hello, " concat $who;
 ;fn greet

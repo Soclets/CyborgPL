@@ -1,6 +1,6 @@
 # The whole struct replaced: the guard on its old field says nothing.
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
-%extern.C proc atoi [let $s: ptr[u8]] -> i32;
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C proc atoi [$s: ptr[u8]] -> i32;
 rec Clock:
     var now: i32[min: 0, max: 2895];
     var stop: i32[min: 0, max: 2880];

@@ -2,9 +2,9 @@
 # symbols, a `.`, single spaces between words and a `'` written `\'`, in a
 # const, parameters and locals, through LLVM and the debug info as they
 # are. 'v1.2' is not 'v1' and a field. 1 + 2 + 5 + 12 + 3 is 23.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 const $'rate%' := 5;
-fn add [let $'a+b': i32, let $'c?': i32] -> i32:
+fn add [$'a+b': i32, $'c?': i32] -> i32:
     ret $'a+b' + $'c?';
 ;fn add
 MAIN:

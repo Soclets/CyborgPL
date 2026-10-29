@@ -1,4 +1,4 @@
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     var $m: std::map[str.utf8, i32] = std::map.empty;
     std::map.set(lend.mut $m, key: "seven", value: 7);

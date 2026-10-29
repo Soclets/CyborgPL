@@ -2,7 +2,7 @@
 # An exact answer shifted lands in the width first: -1 shifted at a u32
 # width is refused, where its count of 0 alone had been taken as a proof
 # that failed at run time (check claude, seed 28123).
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 fn one [] -> u32:
     ret 1;
 ;fn one

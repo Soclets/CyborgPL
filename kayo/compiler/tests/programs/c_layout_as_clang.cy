@@ -3,7 +3,7 @@
 # level -8 in one byte, 141, and Mixed in three words, 5054277, 999999 and
 # 30000 (each checked against a C program). 141 + 5054277 + 999999 + 30000
 # is 6084417, and 6084417 mod 256 is 65.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 %layout.C rec Status:
     var mode: u8[bits: 3]; var ready: bool[bits: 1]; var level: i8[bits: 4];
 ;%layout.C rec Status

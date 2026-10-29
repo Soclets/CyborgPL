@@ -2,14 +2,14 @@
 # them, checked by the program itself against the oracle's text: mod takes
 # the divisor's sign, xx a whole exponent, a narrower deci fails
 # too_many_digits, and a deci may be a range type. One point each: 19.
-%extern.C proc exit [let $code: i32];
-fn same [let $v: %d64, let $want: str.utf8] -> i32:
+%extern.C proc exit [$code: i32];
+fn same [$v: %d64, $want: str.utf8] -> i32:
     if to.stored.str.utf8($v) == $want:
         ret 1;
     ;if
     ret 0;
 ;fn same
-fn in_unit [let $v: %d64] -> i32:
+fn in_unit [$v: %d64] -> i32:
     let $p := to.%d64[min: 0.0, max: 1.0]($v)-
     otherwise:
         case out_of_range:

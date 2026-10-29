@@ -2,23 +2,23 @@
 # its own; lent or owned; `...'xs'` unpacking a list (literal, bounded with
 # a length known only at run time, or a bundle passed on), `...copy` and
 # `...give` of owned elements. The call builds the bundle.
-%extern.C proc exit [let $code: i32];
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
-fn sum [let ...$nums] -> f64:
+%extern.C proc exit [$code: i32];
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
+fn sum [...$nums] -> f64:
     var $total: f64 = 0.0;
     for $n in lend $nums:
         change $total to $total + to.f64($n);
     ;for
     ret $total;
 ;fn sum
-fn add [let ...$nums: i32] -> i32:
+fn add [...$nums: i32] -> i32:
     var $total: i32 = 0;
     for $n in lend $nums:
         change $total to $total + $n;
     ;for
     ret $total;
 ;fn add
-fn count [let ...$nums: i32] -> u64:
+fn count [...$nums: i32] -> u64:
     ret std::ls.len(lend $nums);
 ;fn count
 fn bytes [lent $label: str.utf8, lent ...$parts: str.utf8] -> u64:
@@ -31,7 +31,7 @@ fn bytes [lent $label: str.utf8, lent ...$parts: str.utf8] -> u64:
 fn pass_on [lent ...$parts: str.utf8] -> u64:
     ret bytes("x", ...$parts);
 ;fn pass_on
-fn keep [let ...$names: str.utf8] -> u64:
+fn keep [...$names: str.utf8] -> u64:
     ret std::ls.len(lend $names);
 ;fn keep
 MAIN:

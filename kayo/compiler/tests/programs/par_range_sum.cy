@@ -2,7 +2,7 @@
 # start plus the trips times the largest term (a bin's with room for its
 # rounding), so both adds are proven and both loops run in slices.
 # 300000 x 0.5 = 150000, and the i x i mod 7 terms total 599999: 600149 mod 256 = 85.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $n: i64 := 300000;
     var $half: f64 = 0.0;

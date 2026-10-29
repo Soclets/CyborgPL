@@ -1,7 +1,7 @@
 # Iterators (owner, 2026-10-08/09): `fn Counter.next`, called by hand and
 # by `for`, taken `lend.mut` (it remains) and `give` (gone after); `break`
 # ends an endless one, and `perm` keeps its last item.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 rec Counter:
     var now: i32;
     var stop: i32;

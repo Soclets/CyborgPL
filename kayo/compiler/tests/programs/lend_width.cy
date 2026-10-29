@@ -1,7 +1,7 @@
 # A `:=` list of bare numbers takes its width from its use (types.md:
 # Precog picks the type): lent to a `list[i32]`, it is one. Left at the
 # exact width, the callee read the wrong layout and summed garbage.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 fn total [lent $xs: std::ls[i32]] -> i32:
     var $n: i32 = 0;
     for $x in lend $xs:

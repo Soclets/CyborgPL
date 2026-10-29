@@ -1,8 +1,8 @@
 # `==` says 7 and 107 are equal, and `hash` gives 7 and 107: the second
 # key would sit in another slot. A miss asks every key there is, and the
 # comparison that finds them equal stops the program.
-%extern.C proc exit [let $code: i32];
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
+%extern.C proc exit [$code: i32];
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
 rec User:
     var id: i32; var name: str.utf8;
 ;rec User

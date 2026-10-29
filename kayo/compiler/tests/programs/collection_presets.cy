@@ -4,17 +4,17 @@
 # function written elsewhere (owner, 2026-10-19), in a collection with its
 # own function and in one without. 73 + 12 + 100 (the empty list's
 # failure) + 7 is 192, + 9 (`mix.square[3]`) + 4 (`only.twice[2]`) is 205.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 
-fn square [let $x: i32] -> i32:
+fn square [$x: i32] -> i32:
     ret $x x $x;
 ;fn square
-fn double [let $x: i32] -> i32:
+fn double [$x: i32] -> i32:
     ret $x x 2;
 ;fn double
 
 coll.fn mix:
-    member mix [lent $xs: std::ls[i32], let $a: i32, let $b: i32] -> i32 or fail[empty]:
+    member mix [lent $xs: std::ls[i32], $a: i32, $b: i32] -> i32 or fail[empty]:
         if std::ls.len(lend $xs) == 0:
             fail empty;
         ;if
@@ -25,15 +25,15 @@ coll.fn mix:
     member mix.square = square;
     for $n [from: 1, to: 2, by: 1]:
         named "plus_" concat to.stored.str.utf8($n);
-        member [let $x: i32] -> i32:
+        member [$x: i32] -> i32:
             ret $x + $n;
         ;member
     ;for
     #generated_6_lines_below
-    member mix.plus_1 [let $x: i32] -> i32:
+    member mix.plus_1 [$x: i32] -> i32:
         ret $x + 1;
     ;member mix.plus_1
-    member mix.plus_2 [let $x: i32] -> i32:
+    member mix.plus_2 [$x: i32] -> i32:
         ret $x + 2;
     ;member mix.plus_2
 ;coll.fn mix

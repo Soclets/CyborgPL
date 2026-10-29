@@ -2,8 +2,8 @@
 # gives the true quotient wrapped at the type's width, so the smallest i8
 # by -1 is -128 under all four roundings, and an i128's too; an ordinary
 # quotient is the true one. Run-time values, through C: 1 + 2 + 4 = 7.
-%extern.C proc exit [let $code: i32];
-%extern.C proc strlen [let $s: ptr[u8]] -> u64;
+%extern.C proc exit [$code: i32];
+%extern.C proc strlen [$s: ptr[u8]] -> u64;
 MAIN:
     let $s := "x";
     no_check let $n: u64 := strlen(lend $s);

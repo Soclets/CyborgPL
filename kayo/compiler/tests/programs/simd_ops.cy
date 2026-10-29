@@ -2,7 +2,7 @@
 # their checks, and the folds all, any, max, sum. Each true case adds its bit.
 # A store used to leave Precog believing the list unchanged, and an `if`
 # about a stored element was folded to false.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 fn is_ascii [lent $bytes: arr[u8]] -> bool:
     var $acc: simd[u8, count: 16] = simd.fill(value: 0);
     for $i [from: 1, to: arr.len(lend $bytes), by: 16]:

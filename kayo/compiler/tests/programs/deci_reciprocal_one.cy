@@ -2,7 +2,7 @@
 # the exponent one over it gives: 1 pow -1 is 1, not 1.0 (check claude,
 # 2026-10-15, corpus ffe48e05). Each text as the oracle prints it counts
 # one: 8 in all.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 
 MAIN:
     var $got: i32 = 0;

@@ -1,9 +1,9 @@
 # An average of i32 values fits an i32 (precog.md: "a sum bounded by n x
 # max divided by n is at most max"), for a list whose length and contents
 # come from outside. The final build accepts it with no checks left.
-%extern.C proc exit [let $code: i32];
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
-%extern.C proc atoi [let $s: ptr[u8]] -> i32;
+%extern.C proc exit [$code: i32];
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C proc atoi [$s: ptr[u8]] -> i32;
 fn average [lent $xs: std::ls[i32]] -> i32 or fail[empty]:
     if std::ls.len(lend $xs) == 0:
         fail empty;

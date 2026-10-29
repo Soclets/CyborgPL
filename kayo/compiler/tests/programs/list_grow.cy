@@ -1,4 +1,4 @@
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     var $xs: std::ls[i32] = [];
     for $i: i32 [from: 1, to: 100, by: 1]:

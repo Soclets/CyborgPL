@@ -1,13 +1,13 @@
 # `pos` is removed (owner, 2026-09-27): 'x'[…] reads a list when 'x' holds
 # one and calls a function when it holds one; a position can be any
 # whole number, a 65-bit exact answer included. 3 + 30 + 4 = 37 (oracle).
-fn inc [let $n: i32] -> i32:
+fn inc [$n: i32] -> i32:
     ret $n + 1;
 ;fn inc
-fn add [let $a: i32, let $b: i32] -> i32:
+fn add [$a: i32, $b: i32] -> i32:
     ret $a + $b;
 ;fn add
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $f := inc;
     let $g := add;

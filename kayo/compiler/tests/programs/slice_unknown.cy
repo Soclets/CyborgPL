@@ -1,7 +1,7 @@
 # A slice whose end is not known is checked at run time: past the end
 # of the list, it stops. `strlen` is extern, so 'k' is any `u64`.
-%extern.C proc exit [let $code: i32];
-%extern.C proc strlen [let $s: ptr[u8]] -> u64;
+%extern.C proc exit [$code: i32];
+%extern.C proc strlen [$s: ptr[u8]] -> u64;
 MAIN:
     let $s := "nine char";
     no_check let $k: u64 := strlen(lend $s);

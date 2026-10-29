@@ -644,9 +644,9 @@ impl<'a> Reader<'a> {
                     (Tok::Word(w), Ctx::Op) if w == "give" => {
                         return err(Diagnostic::error("`give` on an operand is an old spelling: an operand taken whole says `let $a: T` (or `var $a: T`), one looked at `lent $a: T` (owner, 2026-10-27)").named("old_spelling").at(t.span).fix_edit(t.span, Edit::Replace, "let"));
                     }
-                    (Tok::Name(nm), Ctx::Op) => {
-                        return err(Diagnostic::error(format!("an operand says how it comes: `lent ${}: T` (looked at), `let ${}: T` or `var ${}: T` (taken whole) (owner, 2026-10-27)", nm, nm, nm)).named("parameter_form").at(t.span).fix_edit(t.span, Edit::Insert, "lent "));
-                    }
+                    // A name in brackets is fixed unless it says `var` (owner, 2026-10-29: "(c)"): a bare
+                    // operand is taken whole and never changes.
+                    (Tok::Name(_), Ctx::Op) => edits.push((st, vec![word("give", t.span), t.clone()], 1)),
                     (Tok::Word(w), Ctx::Main) if w == "var" => {
                         return err(Diagnostic::error("MAIN's parameters are C's and never change: `let $argc: i32`").named("main_parameters_wrong").at(t.span).fix_edit(t.span, Edit::Replace, "let"));
                     }
@@ -658,9 +658,8 @@ impl<'a> Reader<'a> {
                     }
                     // A preset, `[$word = "hi"]`, names a parameter already said.
                     (Tok::Name(_), _) if next.is_some_and(|n| is_op(n, "=")) => {}
-                    (Tok::Name(nm), _) => {
-                        return err(Diagnostic::error(format!("a parameter says whether it changes: `let ${}` or `var ${}` (owner, 2026-10-27)", nm, nm)).named("parameter_form").at(t.span).fix_edit(t.span, Edit::Insert, "let "));
-                    }
+                    // A bare parameter is fixed: the parser's `immut` (owner, 2026-10-29: "(c)").
+                    (Tok::Name(_), _) => edits.push((st, vec![word("immut", t.span), t.clone()], 1)),
                     _ => {}
                 }
             }

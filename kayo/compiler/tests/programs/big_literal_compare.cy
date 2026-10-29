@@ -2,7 +2,7 @@
 # its value. Built at 128 bits, it counted toward the widest side, and
 # `2^63 </== 'v1'` became a 16-bit compare with 0 under --assert-proofs
 # (check claude, seed 1086).
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $v1: u16 := 0;
     let $w: i8 := -1;

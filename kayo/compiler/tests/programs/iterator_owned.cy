@@ -1,6 +1,6 @@
 # An iterator handing out owned lists (owner, 2026-10-09): each item is
 # freed after its trip, and `perm` keeps the last one past the loop.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 
 rec Rows:
     var left: i32;

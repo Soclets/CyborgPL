@@ -3,8 +3,8 @@
 # (15 mod 'v')` is guarded by the `!==` alone. A range could not lose a
 # value it holds at one end; now 0 at the bottom of a `u32` goes.
 # 15 mod 1 is 0; 0 !== 3, so 5.
-%extern.C proc exit [let $code: i32];
-fn pick [let $n: u32] -> u32:
+%extern.C proc exit [$code: i32];
+fn pick [$n: u32] -> u32:
     ret $n;
 ;fn pick
 MAIN:

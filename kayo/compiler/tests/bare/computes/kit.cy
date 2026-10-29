@@ -2,7 +2,7 @@
 # the CPU sleeps in the entry. A wrong answer would take a u8 below 0, a
 # failed check, and freeze it on a trap instead: there is no exit code to
 # carry the answer, so the trap is the test.
-fn fib [let $n: i64] -> i64:
+fn fib [$n: i64] -> i64:
     if $n < 2:
         ret $n;
     ;if

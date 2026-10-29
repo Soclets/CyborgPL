@@ -2,10 +2,10 @@
 # every trip — the count is the input's, not the list's length. The sum
 # over length template must not fit (its read has to be in the loop, at the
 # current position), so the final build refuses the narrowing.
-%extern.C proc exit [let $code: i32];
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
-%extern.C proc atoi [let $s: ptr[u8]] -> i32;
-fn stale [lent $xs: std::ls[i32], let $n: i32] -> i32:
+%extern.C proc exit [$code: i32];
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C proc atoi [$s: ptr[u8]] -> i32;
+fn stale [lent $xs: std::ls[i32], $n: i32] -> i32:
     var $total = 0;
     let $v := lend $xs;
     var $i = 1;

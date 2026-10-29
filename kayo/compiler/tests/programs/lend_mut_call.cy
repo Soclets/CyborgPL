@@ -1,4 +1,4 @@
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 proc fill [lent.mut $into: std::ls[i32]]:
     std::ls.append(lend.mut $into, value: 7);
 ;proc fill

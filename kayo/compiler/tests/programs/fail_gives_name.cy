@@ -1,10 +1,10 @@
 # A name given to a failure, `fail sold_out[give $kind]`, reaches its handler whole (design claude's night_trains,
 # 2026-10-25): the scope's drop came before the failure gave it away, and the handler read freed memory. The
 # text is made when the program runs, and texts made after it would take its freed memory: exit 13 if it is whole.
-fn kind_of [let $n: i32] -> str.utf8:
+fn kind_of [$n: i32] -> str.utf8:
     ret "sleeper for " concat to.stored.str.utf8($n);
 ;fn kind_of
-fn take [let $n: i32] -> i32 or fail[sold_out: str.utf8]:
+fn take [$n: i32] -> i32 or fail[sold_out: str.utf8]:
     let $kind := kind_of($n);
     if $n == 1:
         fail sold_out[give $kind];

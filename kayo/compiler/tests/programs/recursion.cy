@@ -1,6 +1,6 @@
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 
-fn fib [let $n: i32] -> i32:
+fn fib [$n: i32] -> i32:
     if $n < 2:
         ret $n;
     ;if

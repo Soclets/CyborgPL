@@ -1,6 +1,6 @@
 # A position kept from a walk over a list, tested not 0, is inside it (design claude, 2026-10-26).
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
-%extern.C proc atoi [let $s: ptr[u8]] -> i32;
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C proc atoi [$s: ptr[u8]] -> i32;
 rec Net:
     var stations: std::ls[i32];
 ;rec Net

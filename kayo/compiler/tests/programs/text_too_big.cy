@@ -1,8 +1,8 @@
 # Text holding a number its type cannot hold fails `out_of_range`, however
 # many digits, above or below; never a check site, never `not_a_number`
 # (owner, 2026-09-24: c). `examples/text_to_number.cpls`.
-%extern.C proc exit [let $code: i32];
-fn read [let $t: str.utf8] -> i32:
+%extern.C proc exit [$code: i32];
+fn read [$t: str.utf8] -> i32:
     let $v := to.i32(lend $t)-
     otherwise:
         case not_a_number:
@@ -14,7 +14,7 @@ fn read [let $t: str.utf8] -> i32:
     ;otherwise;
     ret $v;
 ;fn read
-fn byte [let $t: str.utf8] -> i32:
+fn byte [$t: str.utf8] -> i32:
     let $v := to.u8(lend $t)-
     otherwise:
         case not_a_number:

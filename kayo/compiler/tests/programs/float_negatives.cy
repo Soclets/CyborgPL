@@ -1,7 +1,7 @@
 # A negative literal in a f16, f32 or brain16 place is written at that
 # width, as a positive one is: a brain16 -0.3 was stored as a f64 into its
 # two bytes, so every negative brain16 went wrong (check claude, 13ca93c).
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $a: %bf16 := -0.3;
     let $b: %bf16 := -1.75;

@@ -1,5 +1,5 @@
 # The same give, after the borrow's last use: nothing still looks at 's'.
-fn eat [let $s: str.utf8]:
+fn eat [$s: str.utf8]:
 ;fn eat
 fn first [lent $a: str.utf8] -> lent str.utf8:
     ret lend $a;

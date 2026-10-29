@@ -167,7 +167,7 @@ errors::table[
         errors::error[name = "unlabelled_after_labelled", means = "An unlabelled argument comes after labelled ones.", tests = ["labels_unlabelled_after",]],
         errors::error[name = "label_order_unsaid", means = "A `pub` function does not say whether its labels keep their order.", tests = ["labels_pub_unsaid",]],
         errors::error[name = "position_unlabelled", means = "A position is written without saying `pos`, as in `$xs[pos: 2]`.", tests = ["index_needs_pos", "index_needs_pos_change", "index_unlabelled", "slice_needs_pos", "str_at_needs_pos",]],
-        errors::error[name = "parameter_form", means = "A parameter is written in the wrong shape, such as its type first or with `var`.", tests = ["op_operand_bare", "param_bare", "param_lent_chain", "param_type_first",]],
+        errors::error[name = "parameter_form", means = "A parameter is written in the wrong shape, such as its type first or with `var`.", tests = ["param_lent_chain", "param_type_first",]],
         errors::error[name = "parameter_type_missing", means = "A parameter does not say its type.", tests = ["extern_untyped_param",]],
         errors::error[name = "field_form", means = "A struct field is written in the wrong shape; a field is `name: type`.", tests = ["struct_field_no_colon", "struct_field_unbracketed", "struct_field_walrus", "struct_var_in_field",]],
         errors::error[name = "field_missing", means = "A struct is built without one of its fields.", tests = ["struct_missing_field",]],

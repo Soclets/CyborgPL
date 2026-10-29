@@ -2,8 +2,8 @@
 # the program only learns at run time goes past the largest f64 on the
 # 1024th step, and the check there stops it. Before, it became infinity
 # and the loop ran on.
-%extern.C proc exit [let $code: i32];
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
+%extern.C proc exit [$code: i32];
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
 proc start [] -> f64:
     let $key := "SYNAPSE_NO_SUCH_VARIABLE";
     no_check let $p := getenv(lend $key);

@@ -2,7 +2,7 @@
 # MAIN runs when it is run itself, and is left out when another uses it.
 
 
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 pub fn seven [] -> i32:
     ret 7;
 ;fn seven

@@ -1,6 +1,6 @@
-%extern.C proc exit [let $code: i32];
-%extern.C proc strlen [let $s: ptr[u8]] -> u64;
-fn r [let $d: i32[min: 0, max: 12], let $v: u8, let $w: u16] -> i8:
+%extern.C proc exit [$code: i32];
+%extern.C proc strlen [$s: ptr[u8]] -> u64;
+fn r [$d: i32[min: 0, max: 12], $v: u8, $w: u16] -> i8:
     if $d >= 12:
         ret to.i8($v);
     ;if

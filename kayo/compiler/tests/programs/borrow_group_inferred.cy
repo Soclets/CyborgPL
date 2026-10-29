@@ -7,7 +7,7 @@ fn b1 [lent $b: std::ls[i32]] -> lent std::ls[i32]:
 fn b2 [@x, @y] [lent @y $a: std::ls[i32], lent @x $b: std::ls[i32]] -> lent @x std::ls[i32]:
     ret b1(lend $b);
 ;fn b2
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     let $s: std::ls[i32] := [1,];
     let $t: std::ls[i32] := [2, 3];

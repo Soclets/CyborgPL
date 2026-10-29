@@ -3,9 +3,9 @@
 # a literal function borrowing a value (fib[10] + 3, 58), and the body of a
 # task started inside (fib[15], 610), each a `no_cheat` copy. 6765 + 58 +
 # 610 = 7433, and 7433 mod 256 is 9.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 
-fn fib [let $n: i64[min: 0, max: 92]] -> i64:
+fn fib [$n: i64[min: 0, max: 92]] -> i64:
     if $n < 2:
         ret $n;
     ;if
@@ -17,7 +17,7 @@ MAIN:
     var $a: i64 = 0;
     no_skip change $a to $f(20);
     let $k: i64 := 3;
-    let $g := fn [let $n: i64[min: 0, max: 92]] -> i64 with [lend $k]:
+    let $g := fn [$n: i64[min: 0, max: 92]] -> i64 with [lend $k]:
         ret fib($n) + $k;
     ;fn;
     var $b: i64 = 0;

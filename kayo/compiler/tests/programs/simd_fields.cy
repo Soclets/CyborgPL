@@ -1,13 +1,13 @@
 # A simd value goes anywhere a number does (owner, 2026-09-27: a): a struct's
 # field, a list's element, a parameter and a return (examples/simd_fields.cpls
 # with i32 lanes, read out as an exit code).
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 
 rec Particle:
     var place: simd[i32, count: 4]; var vel: simd[i32, count: 4];
 ;rec Particle
 
-fn step [let $p: Particle] -> Particle:
+fn step [$p: Particle] -> Particle:
     ret Particle[place = $p.place + $p.vel, vel = $p.vel];
 ;fn step
 

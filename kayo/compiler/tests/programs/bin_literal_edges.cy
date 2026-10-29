@@ -1,7 +1,7 @@
 # A literal into a f16 or f32 is decided and written from its digits,
 # rounded once (oracle 8705014): read at 64 bits first, the first two
 # land on the limit, tie to infinity, and were refused.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     var $got: i32 = 0;
     let $a: f32 := 340282356779733661637539395458142568447.0;

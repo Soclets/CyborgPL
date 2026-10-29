@@ -2,8 +2,8 @@
 # 9148). Layer 3 asked only whether the count was 0 to 31 — it is, 5 down
 # to 0 — never whether 2030534677 shifted still fits a u32, "proved"
 # the shift, and the binary printed wrapped values. It stops at the first.
-%extern.C proc exit [let $code: i32];
-fn f1 [let $p1: i64] -> i32:
+%extern.C proc exit [$code: i32];
+fn f1 [$p1: i64] -> i32:
     var $w10: i8 = 6;
     var $sum: u64 = 0;
     loop:

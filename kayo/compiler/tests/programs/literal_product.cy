@@ -1,10 +1,10 @@
 # Two bare numbers multiplied into a u64: an unsigned 64-bit multiply,
 # in the ordinary build (folded) and with proofs asserted (computed).
-%extern.C proc exit [let $code: i32];
-fn put_u [let $n: u64] -> u64:
+%extern.C proc exit [$code: i32];
+fn put_u [$n: u64] -> u64:
     ret $n;
 ;fn put_u
-fn f3 [let $p1: u32] -> u16:
+fn f3 [$p1: u32] -> u16:
     var $w6: i32 = 1;
     var $got: u64 = 0;
     while $w6 > 0:

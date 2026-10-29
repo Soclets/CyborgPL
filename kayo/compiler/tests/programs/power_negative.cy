@@ -1,6 +1,6 @@
 # A negative exponent makes a fraction, which no integer holds: it stops.
-%extern.C proc exit [let $code: i32];
-%extern.C proc strlen [let $s: ptr[u8]] -> u64;
+%extern.C proc exit [$code: i32];
+%extern.C proc strlen [$s: ptr[u8]] -> u64;
 MAIN:
     let $s := "ab";
     no_check let $two: i64 := to.i64(strlen(lend $s));

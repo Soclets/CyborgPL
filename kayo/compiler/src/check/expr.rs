@@ -608,7 +608,10 @@ impl Checker {
                 if local.mutability == Some(ast::Mutability::Immut) {
                     // A `let` never changes (owner, 2026-10-27).
                     let param = self.is_param(ctx, name);
-                    return err(Diagnostic::error(format!("`${}` is a `let`{}, which never changes, but something changes it: write `var ${}` (owner, 2026-10-27)", name, if param { " parameter" } else { "" }, name)).named("cannot_change_immut").at(span).why_at(local.span, "declared `let` here"));
+                    if param {
+                        return err(Diagnostic::error(format!("`${}` is a parameter without `var`, so it never changes, but something changes it: write `var ${}` (owner, 2026-10-29)", name, name)).named("cannot_change_immut").at(span).why_at(local.span, "the parameter"));
+                    }
+                    return err(Diagnostic::error(format!("`${}` is a `let`, which never changes, but something changes it: write `var ${}` (owner, 2026-10-27)", name, name)).named("cannot_change_immut").at(span).why_at(local.span, "declared `let` here"));
                 }
                 match local.kind {
                     LocalKind::Lent => return err(Diagnostic::error(format!("'{}' is lent (shared) and cannot be changed: it belongs to whoever lent it — `lent.mut` would allow it", name)).named("changed_through_lend").at(span).why_at(local.span, "lent here")),

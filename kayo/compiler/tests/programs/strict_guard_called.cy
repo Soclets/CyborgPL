@@ -3,17 +3,17 @@
 # folded to true for the whole program, and layer 3 then asked about
 # `16 mod 'p'` with no `if` and refused it for p = 0. f[5]: 16 mod 5 is 1,
 # not >= 3, so false; g[5] and h[5] the same; 1 + 2 + 4 when each is false.
-%extern.C proc exit [let $code: i32];
-fn f [let $p: i32] -> bool:
+%extern.C proc exit [$code: i32];
+fn f [$p: i32] -> bool:
     if $p != 0:
         ret (16 mod.floor $p) >= 3;
     ;if
     ret false;
 ;fn f
-fn g [let $p: i32] -> bool:
+fn g [$p: i32] -> bool:
     ret $p != 0 and.then ((16 mod.floor $p) >= 3);
 ;fn g
-fn h [let $p: i32] -> bool:
+fn h [$p: i32] -> bool:
     ret $p == 0 or.else ((16 mod.floor $p) >= 3);
 ;fn h
 MAIN:

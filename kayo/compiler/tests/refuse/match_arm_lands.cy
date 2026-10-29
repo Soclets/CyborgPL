@@ -2,7 +2,7 @@
 # A `match` arm's answer lands in the place the match is stored into, checked
 # like any store: -1 into a u32 went through unchecked (check claude,
 # seed 102).
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 union.tag E:
     c1; c2;
 ;union.tag E

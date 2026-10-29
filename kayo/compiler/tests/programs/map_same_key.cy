@@ -1,7 +1,7 @@
 # The keys a map can hold are tracked as a set that may be too large, never
 # too small: a `set` of a key surely absent adds one entry, any other adds
 # none or one. The same key twice into a map bounded to one entry fits.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 MAIN:
     var $m: std::map[str.utf8, i32][min: 0, max: 1] = std::map.empty;
     std::map.set(lend.mut $m, key: "ab", value: 5);

@@ -1,6 +1,6 @@
 # `list.remove` in range, its position computed (check claude, 2026-10-08):
 # 7, then 5; two left, then one: 7 + 5 x 10 + 1 x 100 = 157.
-%extern.C proc exit [let $code: i32];
+%extern.C proc exit [$code: i32];
 fn three [] -> u64:
     ret 3;
 ;fn three
