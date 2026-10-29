@@ -15,7 +15,7 @@ the prover sees every call site, so `max[3, 9]` and `max[2.5, 1.5]` become an
 hand-written copies. This is the machinery variadics already use; Zig's
 comptime and Rust's monomorphisation do the same.
 
-## Declared in `[ ]` (owner, 2026-10-29; not built)
+## Declared in `[ ]` (owner, 2026-10-29; built the same day)
 
 The bracket rule (2026-10-22: "`( )` runs something; `[ ]` describes or holds") covers every declaration list, so a
 generic's placeholders are declared in their own `[ ]`, and `< >` only marks a placeholder's name, at every mention:
@@ -30,27 +30,27 @@ rec Pair [<A>, <B>]:
 
 Three lists, in this order, each holding one kind: the placeholders (`<T>`, with bounds), the lifetimes (`@x`), the
 parameters (`$x`). The first two appear only when used; the parameters are always written, `[]` when there are none.
-What a list holds says which it is. Until this is built, the spelling below (`fn total <T: Addable> […]`) is what the
-oracle reads.
+What a list holds says which it is. The old `fn total <T: Addable> […]` is refused naming the new list; the section
+below is the history of how the placeholders came to be declared up front.
 
 ## Spelling (revised 2026-10-02)
 
 ```
-fn max <T: Number> [let $a: <T>, let $b: <T>] -> <T>:
+fn max [<T>: Number] [let $a: <T>, let $b: <T>] -> <T>:
     …
 ;fn max           # announced after the name, with what it accepts
-fn first <T: any> [lent $xs: std::ls[<T>]] -> <T> or fail[empty]:
+fn first [<T>: any] [lent $xs: std::ls[<T>]] -> <T> or fail[empty]:
     …
 ;fn first
-fn pick <T: any> [@x] [lent @x $xs: std::ls[<T>]] -> lent @x <T>:
+fn pick [<T>: any] [@x] [lent @x $xs: std::ls[<T>]] -> lent @x <T>:
     …
 ;fn pick   # then the lifetime groups, after a `|`
 
-rec Pair <A: any, B: any>:
+rec Pair [<A>: any, <B>: any]:
     var left: <A>;
     var right: <B>;
 ;rec Pair         # blanks in the order announced
-union.tag Maybe <T: any>:
+union.tag Maybe [<T>: any]:
     none;
     some: <T>;
 ;union.tag Maybe
@@ -110,7 +110,7 @@ a plain `T` they do nothing (`interfaces.md`).
 ## A generic `op` (owner, 2026-09-29)
 
 ```
-op ~= <T: Number> [lent $a: <T>, lent $b: <T>] -> bool:
+op ~= [<T>: Number] [lent $a: <T>, lent $b: <T>] -> bool:
     …
 ;op ~=   # once, for any type keeping Number's promises
 ```

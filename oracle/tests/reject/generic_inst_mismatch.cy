@@ -1,4 +1,4 @@
-rec Box <T: any>:
+rec Box [<T>: any]:
     var item: <T>;
 ;rec Box
 MAIN:

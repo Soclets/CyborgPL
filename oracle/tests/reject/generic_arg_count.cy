@@ -1,4 +1,4 @@
-rec Pair <A: any, B: any>:
+rec Pair [<A>: any, <B>: any]:
     var left: <A>;
     var right: <B>;
 ;rec Pair

@@ -1,4 +1,4 @@
-sig Ordered <T>:
+sig Ordered [<T>]:
     op < [lent $a: <T>, lent $b: <T>] -> bool;
 ;sig Ordered
 rec V:

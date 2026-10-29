@@ -69,8 +69,62 @@ fn number_tokens(kind: &str, sub: &str, width: &str, limb: bool, t: &Token, out:
     out.push(word(width, t));
 }
 
+/// Whether the `[` or `<` at `k` follows a declaration's name: `fn total`, `sig Addable`, `union.tag Maybe`, `%layout.C rec X`
+fn after_declared_name(toks: &[Token], k: usize) -> bool {
+    let mut j = k;
+    // the name, possibly dotted (`member half_failed.or_default`), or an operator's glyph
+    if j == 0 { return false; }
+    j -= 1;
+    if !matches!(toks[j].tok, Tok::Word(_) | Tok::Op(_)) { return false; }
+    while j >= 2 && toks[j - 1].tok == Tok::Dot && matches!(toks[j - 2].tok, Tok::Word(_)) { j -= 2; }
+    j >= 1 && matches!(&toks[j - 1].tok, Tok::Word(kw) if matches!(kw.as_str(), "fn" | "proc" | "op" | "rec" | "sig" | "set" | "tag" | "union" | "enum" | "member"))
+}
+
+/// A generic's placeholders are declared in their own `[ ]` (owner, 2026-10-29: "Why not just have three `[]` one for
+/// life, one for gener, one for param"): `fn total [<T>: Addable] […]` becomes the `<T: Addable>` the rest of the front
+/// reads; the old `fn total <T: Addable>` is refused naming it
+fn generic_lists(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
+    let is_op = |t: &Token, o: &str| matches!(&t.tok, Tok::Op(x) if x == o);
+    let mut out: Vec<Token> = Vec::with_capacity(toks.len());
+    let mut i = 0;
+    while i < toks.len() {
+        let t = &toks[i];
+        if is_op(t, "<") && after_declared_name(&toks, i) && matches!(toks.get(i + 1).map(|x| &x.tok), Some(Tok::Word(_))) {
+            return Err((t.line, t.col, "a generic's placeholders are declared in their own `[ ]`, before the parameters: `fn total [<T>: Addable] [lent $xs: std::ls[<T>]]` (owner, 2026-10-29)".into()));
+        }
+        let starts = t.tok == Tok::LBracket && after_declared_name(&toks, i)
+            && toks.get(i + 1).is_some_and(|x| is_op(x, "<")) && matches!(toks.get(i + 2).map(|x| &x.tok), Some(Tok::Word(_))) && toks.get(i + 3).is_some_and(|x| is_op(x, ">"));
+        if !starts { out.push(t.clone()); i += 1; continue; }
+        // `[<A>: any, <B>: Ordered]` → `<A: any, B: Ordered>`
+        let open = toks[i + 1].clone();
+        out.push(open);
+        let mut j = i + 1;
+        let mut depth = 0;
+        let mut close: Option<Token> = None;
+        while j < toks.len() {
+            let x = &toks[j];
+            match &x.tok {
+                Tok::LBracket => { depth += 1; out.push(x.clone()); j += 1; }
+                Tok::RBracket if depth == 0 => break,
+                Tok::RBracket => { depth -= 1; out.push(x.clone()); j += 1; }
+                // a placeholder's mark, `<A>`: only its name goes in
+                Tok::Op(o) if o == "<" && depth == 0 && matches!(toks.get(j + 1).map(|y| &y.tok), Some(Tok::Word(_))) && toks.get(j + 2).is_some_and(|y| is_op(y, ">")) => {
+                    out.push(toks[j + 1].clone());
+                    close = Some(toks[j + 2].clone());
+                    j += 3;
+                }
+                _ => { out.push(x.clone()); j += 1; }
+            }
+        }
+        let Some(c) = close else { return Err((t.line, t.col, "a generic's list holds placeholders, each written `<T>`: `[<T>: Addable]`".into())); };
+        out.push(c);
+        i = j + 1;
+    }
+    Ok(out)
+}
+
 pub fn from_three(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
-    let toks = prints(toks)?;
+    let toks = generic_lists(prints(toks)?)?;
     let n = toks.len();
     let mut out: Vec<Token> = Vec::with_capacity(n + n / 4);
     let tok = |i: usize| toks.get(i).map(|t| &t.tok).unwrap_or(&Tok::Eof);

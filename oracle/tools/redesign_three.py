@@ -23,6 +23,21 @@ OPS = [("not_eq", "!="), ("at_most", "<="), ("at_least", ">="),
 INLINE_OPEN = re.compile(r'^\s*(?:!?no_check\s+)?inline\.%?(\w+)\b.*:\s*(#.*)?$')
 
 
+GENERIC_DECL = re.compile(r'(\b(?:fn|proc|op|rec|sig|set|tag|union|enum|member)\s+(?:%?[\w.]+|[!%&*+\-/=?@^|~]+)\s+)<((?:[A-Z]\w*)(?:\s*:[^<>,\[\]]*)?(?:\s*,\s*[A-Z]\w*(?:\s*:[^<>,\[\]]*)?)*)>')
+
+
+def generic_lists(code):
+    """`fn total <T: Addable>` → `fn total [<T>: Addable]`, `rec Pair <A: any, B: any>` → `rec Pair [<A>: any, <B>: any]`."""
+    def one(m):
+        items = [x.strip() for x in m.group(2).split(',')]
+        out = []
+        for it in items:
+            name, _, bound = it.partition(':')
+            out.append(f'<{name.strip()}>' + (f': {bound.strip()}' if bound.strip() else ''))
+        return m.group(1) + '[' + ', '.join(out) + ']'
+    return GENERIC_DECL.sub(one, code)
+
+
 def mask(src):
     """The source with every string, character, comment and inline block's code replaced by a placeholder, and the
     pieces taken out, in order."""
@@ -126,6 +141,8 @@ def convert(src):
                      (r'int\.sign\.(\d+)', r'i\1'), (r'int\.unsign\.(\d+)', r'u\1'), (r'float\.bin\.(\d+)', r'f\1'),
                      (r'float\.deci\.(\d+)', r'%d\1'), (r'float\.brain\.16', '%bf16')]:
         code = re.sub(r'(?<![\w$])' + pat + r'(?!\w)', rep, code)
+    # a generic's placeholders are declared in their own `[ ]` (owner, 2026-10-29): `fn total <T: Addable>` → `fn total [<T>: Addable]`
+    code = generic_lists(code)
     # the base's operators never take `std::` (owner, 2026-10-28: "`plus` isn't even `std`")
     code = re.sub(r'std::divide\.', 'div.', code)
     code = re.sub(r'std::shift_left\b', 'shl', code)

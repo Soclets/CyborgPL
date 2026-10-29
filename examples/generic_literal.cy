@@ -1,10 +1,10 @@
 # A bare literal takes a generic's type, as it takes a written one (owner, 2026-10-22: "it should work"): `let $sum: <T>
 # = 0;` is a d64 0 when `<T>` is filled with d64, an f64 0 with f64, an integer with i32.
-sig Addable <T>:
+sig Addable [<T>]:
     op + [lent $a: <T>, lent $b: <T>] -> <T>;
 ;sig Addable
 
-fn total <T: Addable> [lent $xs: std::ls[<T>]] -> <T>:
+fn total [<T>: Addable] [lent $xs: std::ls[<T>]] -> <T>:
     var $sum: <T> = 0;
     for $x in lend $xs:
         change $sum to $sum + $x;

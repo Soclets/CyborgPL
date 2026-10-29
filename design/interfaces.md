@@ -36,11 +36,11 @@ language's.
 ## 2. The promise — `interface`
 
 ```
-sig Ordered <T>:
+sig Ordered [<T>]:
     op < [lent $a: <T>, lent $b: <T>] -> bool;
     op == [lent $a: <T>, lent $b: <T>] -> bool;
 ;sig Ordered
-sig Printable <T>:
+sig Printable [<T>]:
     fn show [lent $x: <T>] -> str.utf8;
 ;sig Printable
 set Number:
@@ -79,7 +79,7 @@ noun-named interfaces; `satisfies` reads right for any name).
 ## 4. Asking — `<T>: Ordered`
 
 ```
-fn max <T: Ordered> [let $a: <T>, let $b: <T>] -> <T>:
+fn max [<T>: Ordered] [let $a: <T>, let $b: <T>] -> <T>:
     if $b < $a:
         ret give $a;
     ;if

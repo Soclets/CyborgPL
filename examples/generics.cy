@@ -7,7 +7,7 @@ set Number:
 ;set Number
 
 # a `set` gives only its types; `>` comes from a `sig` (owner, 2026-10-28: "(b)")
-sig Ordered <T>:
+sig Ordered [<T>]:
     op < [lent $a: <T>, lent $b: <T>] -> bool;
     op > [lent $a: <T>, lent $b: <T>] -> bool;
     op <= [lent $a: <T>, lent $b: <T>] -> bool;
@@ -15,26 +15,26 @@ sig Ordered <T>:
     op == [lent $a: <T>, lent $b: <T>] -> bool;
 ;sig Ordered
 
-fn max <T: Number and Ordered> [let $a: <T>, let $b: <T>] -> <T>:
+fn max [<T>: Number and Ordered] [let $a: <T>, let $b: <T>] -> <T>:
     if $a > $b:
         ret give $a;
     ;if     # a <T> may be owned: generic code writes the verbs
     ret give $b;
 ;fn max
 
-fn first <T: any> [lent $xs: std::ls[<T>]] -> <T> or fail[empty]:
+fn first [<T>: any] [lent $xs: std::ls[<T>]] -> <T> or fail[empty]:
     if std::ls.len(lend $xs) == 0:
         fail empty;
     ;if
     ret $xs[pos: 1];
 ;fn first
 
-rec Pair <A: any, B: any>:
+rec Pair [<A>: any, <B>: any]:
     var left: <A>;
     var right: <B>;
 ;rec Pair     # blanks in the order announced: A, B
 
-union.tag Maybe <T: any>:
+union.tag Maybe [<T>: any]:
     none;
     some: <T>;
 ;union.tag Maybe

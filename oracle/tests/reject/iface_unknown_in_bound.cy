@@ -1,4 +1,4 @@
-fn f <T: Nope> [let $a: <T>] -> <T>:
+fn f [<T>: Nope] [let $a: <T>] -> <T>:
     ret $a;
 ;fn f
 MAIN:

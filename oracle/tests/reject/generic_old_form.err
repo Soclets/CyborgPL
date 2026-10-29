@@ -1,1 +1,1 @@
-what `<T>` accepts goes inside the brackets: `<T: any>`
+what `<T>` accepts goes inside its list: `[<T>: any]`

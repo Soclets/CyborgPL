@@ -1,5 +1,5 @@
 # A shop: an interface, an enum, structs and prices.
-sig Priced <T>:
+sig Priced [<T>]:
     fn price [lent $x: <T>] -> i32;
 ;sig Priced
 
@@ -19,7 +19,7 @@ fn price [lent $i: Item] -> i32:
     ret $i.cents;
 ;fn price
 
-fn cheapest <T: Priced> [lent $xs: std::ls[<T>]] -> <T> or fail[empty]:
+fn cheapest [<T>: Priced] [lent $xs: std::ls[<T>]] -> <T> or fail[empty]:
     if std::ls.len(lend $xs) == 0:
         fail empty;
     ;if

@@ -2,7 +2,7 @@
 # `to.`, `check`, `no_check` and generics were ASP's, IEG's and Genny's then and are the base's now; std
 # for printing.
 
-fn first <T: any> [let $a: <T>, let $b: <T>] -> <T>:
+fn first [<T>: any] [let $a: <T>, let $b: <T>] -> <T>:
     ret $a;
 ;fn first
 

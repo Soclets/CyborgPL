@@ -1739,9 +1739,9 @@ impl Parser {
                     if *self.peek() == Tok::Colon { return self.err(format!("an interface's `<{name}>` is the type being checked; it accepts nothing in particular")); }
                 } else {
                     if matches!(self.peek(), Tok::Op(o) if o == ">") && *self.peek_at(1) == Tok::Colon {
-                        return self.err(format!("what `<{name}>` accepts goes inside the brackets: `<{name}: any>` (owner, 2026-10-07)"));
+                        return self.err(format!("what `<{name}>` accepts goes inside its list: `[<{name}>: any]` (owner, 2026-10-07, 2026-10-29)"));
                     }
-                    if *self.peek() != Tok::Colon { return self.err(format!("`<{name}>` says what it accepts: `<{name}: any>`, or an interface, `<{name}: Ordered>`")); }
+                    if *self.peek() != Tok::Colon { return self.err(format!("`<{name}>` says what it accepts: `[<{name}>: any]`, or a sig, `[<{name}>: Ordered]`")); }
                     self.advance();
                     loop {
                         if self.is_word("any") { self.advance(); if !bound.is_empty() || self.is_word("and") { return self.err("`any` stands alone: it already accepts every type"); } break; }
@@ -1768,7 +1768,7 @@ impl Parser {
             }
             if matches!(self.peek(), Tok::Op(o) if o == "<") { return self.err("one `< >` holds every generic, commas between: `<A: any, B: any>` (owner, 2026-10-07)"); }
         }
-        if matches!(self.peek(), Tok::Op(o) if o == "|" || o == "|@") { return self.err("lifetime groups go in a bracket of their own, before the parameters: `fn pick <T: any> [@x, @y] [...]` (owner, 2026-10-07)"); }
+        if matches!(self.peek(), Tok::Op(o) if o == "|" || o == "|@") { return self.err("lifetime groups go in a bracket of their own, before the parameters: `fn pick [<T>: any] [@x, @y] [...]` (owner, 2026-10-07)"); }
         if matches!(self.peek(), Tok::Op(o) if o == "@") { return self.err("lifetime groups go in a bracket of their own, before the parameters: `fn pick [@x, @y] [...]` (owner, 2026-10-07)"); }
         if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Op(o) if o == "@") {
             if what != "fn" { return self.err(format!("only a `fn` has lifetime groups; a{} `{what}` cannot hand back a borrow", if what == "op" || what == "enum" || what == "interface" { "n" } else { "" })); }
@@ -2220,10 +2220,10 @@ impl Parser {
                 other => return self.err(format!("expected a type variable's name after `<`, found {other}")),
             };
             if *self.peek() == Tok::Colon {
-                return self.err(format!("what `<{name}>` accepts is said once, where it is announced after the name: `fn f <{name}: Ordered> […]`"));
+                return self.err(format!("what `<{name}>` accepts is said once, where it is announced after the name: `fn f [<{name}>: Ordered] […]`"));
             }
             if !self.declared.as_ref().map_or(false, |d| d.contains(&name)) {
-                return self.err(format!("`<{name}>` was never announced: announce it after the name, `fn f <{name}: any> […]` (or `struct S <{name}: any> {{ … }}`)"));
+                return self.err(format!("`<{name}>` was never announced: announce it after the name, `fn f [<{name}>: any] […]` (or `rec S [<{name}>: any]:`)"));
             }
             match self.advance().tok { Tok::Op(o) if o == ">" => {}, other => return self.err(format!("expected `>` to close `<{name}`, found {other}")) }
             return Ok(Ty::Var(name));

@@ -7,7 +7,7 @@ set Number:
     f64;
 ;set Number
 
-sig Ordered <T>:
+sig Ordered [<T>]:
     op < [lent $a: <T>, lent $b: <T>] -> bool;
     op == [lent $a: <T>, lent $b: <T>] -> bool;
 ;sig Ordered
@@ -17,25 +17,25 @@ set Whole:
     i64;
 ;set Whole
 
-fn bigger <T: Number and Ordered> [let $a: <T>, let $b: <T>] -> <T>:
+fn bigger [<T>: Number and Ordered] [let $a: <T>, let $b: <T>] -> <T>:
     if $b < $a:
         ret $a;
     ;if
     ret $b;
 ;fn bigger
 
-fn smaller <T: Whole and Ordered> [let $a: <T>, let $b: <T>] -> <T>:
+fn smaller [<T>: Whole and Ordered] [let $a: <T>, let $b: <T>] -> <T>:
     if $a < $b:
         ret $a;
     ;if
     ret $b;
 ;fn smaller
 
-fn whole <T: any> [@x] [lent @x $xs: std::ls[<T>]] -> lent @x std::ls[<T>]:
+fn whole [<T>: any] [@x] [lent @x $xs: std::ls[<T>]] -> lent @x std::ls[<T>]:
     ret lend $xs;
 ;fn whole
 
-rec Box <T: Number>:
+rec Box [<T>: Number]:
     var item: <T>;
 ;rec Box
 

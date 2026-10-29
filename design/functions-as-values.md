@@ -30,7 +30,7 @@ fn by_number [lent $a: Locker, lent $b: Locker] -> bool:
 ;fn by_number     # the definition
                 fn[lent Locker,      lent Locker]  -> bool           # its type
 
-proc sort <T: any> [lent.mut $xs: std::ls[<T>], let $less: fn[lent <T>, lent <T>] -> bool]:
+proc sort [<T>: any] [lent.mut $xs: std::ls[<T>], let $less: fn[lent <T>, lent <T>] -> bool]:
     …
 ;proc sort
 ```

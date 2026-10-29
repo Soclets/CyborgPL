@@ -1,7 +1,7 @@
 set Number:
     i32;
 ;set Number
-rec Box <T: Number>:
+rec Box [<T>: Number]:
     var item: <T>;
 ;rec Box
 MAIN:

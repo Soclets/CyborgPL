@@ -34,7 +34,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
-### 2026-10-29 — A generic's placeholders are declared in their own `[ ]`, `fn total [<T>: Addable] [lent $xs: std::ls[<T>]]` (owner: "yes, record it"; not built)
+### 2026-10-29 — A generic's placeholders are declared in their own `[ ]`, `fn total [<T>: Addable] [lent $xs: std::ls[<T>]]` (owner: "yes, record it"; built the same day, owner: "send, and implement")
 
 multifinity's Claude, on the bracket rule: `< >` is a third bracket kind the rule never mentions, generic parameters
 being declared in `< >` and passed in `[ ]`; it offered (a) recording `< >` as its own kind or (b) folding generics into
@@ -48,7 +48,9 @@ placeholders are declared in their own `[ ]`, before the lifetimes' and the para
 mention** (2026-09-20 kept), now only a placeholder's mark, never a list. Each list holds one kind, in that order, the
 first two only when used. By the redesign checklist: Go (`func Max[T cmp.Ordered]`), Scala and Python 3.12 declare
 generics in `[ ]`; nothing runs with another meaning; 27 declaration lists in 12 example files change, the 121 `<T>`
-mentions do not. `design/generics.md`. Not built (no go yet).
+mentions do not. `design/generics.md`. Built (owner: "send, and implement"): the oracle reads the lists and refuses the old
+`fn total <T: Addable>` naming them (reject test `generic_angle_list`); 41 files converted, code only, by
+`oracle/tools/generic_brackets.py`, and `redesign_three.py` writes the new lists.
 
 ### 2026-10-29 — Until std is converted, kayo's tests read a converted copy of std/ (owner: "(a)")
 

@@ -1,4 +1,4 @@
-set Ordered <T>:
+set Ordered [<T>]:
     op < [lent $a: <T>, lent $b: <T>] -> bool;
 ;set Ordered
 MAIN:

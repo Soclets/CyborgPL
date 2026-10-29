@@ -1,10 +1,10 @@
 # Interfaces (design/interfaces.md): a named list of promises about some <T>, announced after the name.
-sig Ordered <T>:
+sig Ordered [<T>]:
     op < [lent $a: <T>, lent $b: <T>] -> bool;
     op == [lent $a: <T>, lent $b: <T>] -> bool;
 ;sig Ordered
 
-sig Printable <T>:
+sig Printable [<T>]:
     fn show [lent $x: <T>] -> str.utf8;
 ;sig Printable
 
@@ -29,14 +29,14 @@ Vec satisfies Ordered;        # optional: a claim the compiler checks
 Vec satisfies Printable;
 
 # a generic says what its blank accepts where it announces it (owner, 2026-10-02)
-fn max <T: Ordered> [let $a: <T>, let $b: <T>] -> <T>:
+fn max [<T>: Ordered] [let $a: <T>, let $b: <T>] -> <T>:
     if $b < $a:
         ret give $a;
     ;if     # a <T> may be owned, so generic code writes the verbs;
     ret give $b;                       # for a plain T (i32) the verb does nothing
 ;fn max
 
-fn describe <T: Printable> [lent $x: <T>] -> str.utf8:
+fn describe [<T>: Printable] [lent $x: <T>] -> str.utf8:
     ret "value " concat show(lend $x);
 ;fn describe
 

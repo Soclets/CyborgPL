@@ -1,7 +1,7 @@
 # Map keys (decided 2026-09-22): plain values, text, chars, structs and enums by structure —
 # or a type's own `op ==` and `fn hash` (it satisfies `Key`), with "equal keys hash the same"
 # a check site the compiler must prove.
-sig Key <T>:
+sig Key [<T>]:
     op == [lent $a: <T>, lent $b: <T>] -> bool;  fn hash [lent $v: <T>] -> u64;
 ;sig Key
 

@@ -1,4 +1,4 @@
-fn f <T: any> [let $a: <T>]:
+fn f [<T>: any] [let $a: <T>]:
     let $n := size.of[<T>];
 ;fn f
 MAIN:
