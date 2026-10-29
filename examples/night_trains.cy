@@ -264,8 +264,8 @@ proc try_reach [
     lent $done: std::map[str.utf8, bool],
     lent $next: str.utf8,
     lent $pick: str.utf8,
-    let $minutes: i32,
-    let $km: i32
+    $minutes: i32,
+    $km: i32
 ]:
     if std::map.has(lend $done, key: lend $next):
         ret;
@@ -535,7 +535,7 @@ proc book [
     lent $net: Network,
     lent.mut $left: std::map.ordered[str.utf8, i32],
     lent $req: Request,
-    let $ticket: i32
+    $ticket: i32
 ] -> Booking or fail[unknown_station: str.utf8, same_station, no_route, sold_out: str.utf8]:
     let $trip := journey(lend $net, lend $req.origin, lend $req.destination)?;
     let $kind := seat_name(lend $req.seat);

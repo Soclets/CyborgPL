@@ -8,5 +8,5 @@ fn apply [$v: i32, $f: fn[i32] -> i32] -> i32:
 ;fn apply
 MAIN:
     std::print(double(4), " ", apply(5, double), newln);
-    std::print.arrows.shortest <- "weird: " <- double(2) <- newln;
+    std::print.arrows <- "weird: " <- double(2) <- newln;
 ;MAIN

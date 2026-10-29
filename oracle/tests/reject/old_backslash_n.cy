@@ -1,3 +1,3 @@
 MAIN:
-    std::print.shortest["hi", \n];
+    std::print["hi", \n];
 ;MAIN

@@ -16,5 +16,5 @@ MAIN:
     std::print($line, newln);
 
     # stderr
-    std::print.shortest.stderr("warning: ", $count, " is low", newln);
+    std::print.stderr("warning: ", $count, " is low", newln);
 ;MAIN

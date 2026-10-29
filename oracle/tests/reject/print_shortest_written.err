@@ -1,0 +1,1 @@
+`std::print` is `print.shortest`, the default: write `std::print`, without `.shortest`

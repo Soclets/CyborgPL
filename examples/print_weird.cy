@@ -5,6 +5,6 @@
 MAIN:
     let $tenth: f64 := 0.1;
     let $n := 3;
-    std::print.arrows.shortest <- "tenth is " <- $tenth <- ", n is " <- $n <- newln;
+    std::print.arrows <- "tenth is " <- $tenth <- ", n is " <- $n <- newln;
     std::print.arrows.stored <- "stored: " <- $tenth <- newln;
 ;MAIN

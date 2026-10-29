@@ -3227,6 +3227,8 @@ impl Parser {
         if self.is_word("seq") || self.is_word("para") { return self.err("`for %para` says it once"); }
         if self.is_word("no_cheat") || self.is_word("!c") { return self.err("`no_cheat` goes in front of the loop: `no_skip for $i in …` (owner, 2026-10-18)"); }
         let perm = match self.peek().clone() {
+            // `temp` is a loop's default and is not written out (owner, 2026-10-29: "refuse")
+            Tok::Word(w) if w == "temp" && !READING_OLD.with(|o| o.get()) => return self.err("`temp` is a loop's default: drop it; `perm` keeps the variable after the loop (owner, 2026-10-29)"),
             Tok::Word(w) if w == "temp" => { self.advance(); false }
             Tok::Word(w) if w == "perm" => { self.advance(); true }
             Tok::Word(w) if w == "seq" => return self.err("a plain `for` runs in order, so `seq` is gone: drop it; `for %para` is MCPS's parallel loop (owner, 2026-10-29)"),

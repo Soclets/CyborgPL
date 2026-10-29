@@ -2643,8 +2643,13 @@ fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
         let in_params = operands || PARAMS.with(|p| p.borrow().last() == Some(&depth));
         if in_params && i > 0 && matches!(toks[i - 1].tok, Tok::LBracket | Tok::Comma) {
             match &t.tok {
-                Tok::Word(w) if (w == "let" || w == "var") && matches!(next, Tok::Var(_) | Tok::Ellipsis) => {
-                    out.push(word_tok(if w == "let" { "let" } else { "variable" }, t));
+                // a parameter is fixed unless it says `var`, and the default is not written out (owner, 2026-10-29: "refuse")
+                Tok::Word(w) if w == "let" && matches!(next, Tok::Var(_) | Tok::Ellipsis) => {
+                    let shown = match &next { Tok::Var(v) => format!("${v}"), _ => "...$values".into() };
+                    return fault(format!("a parameter is fixed unless it says `var`: write `{shown}`, without `let` (owner, 2026-10-29)"));
+                }
+                Tok::Word(w) if w == "var" && matches!(next, Tok::Var(_) | Tok::Ellipsis) => {
+                    out.push(word_tok("variable", t));
                     i += 1;
                     continue;
                 }

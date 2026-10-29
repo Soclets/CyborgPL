@@ -41,9 +41,13 @@ def generic_lists(code):
 PARAM_LET = re.compile(r'([\[,]\s*)let\s+(?=\$|\.\.\.)')
 
 
+# a parameter on a line of its own in a long list: `    let $minutes: i32,` (no `=`, no `;`)
+PARAM_LINE_LET = re.compile(r'^(\s*)let\s+(?=(?:\$|\.\.\.)[^=;]*$)', re.M)
+
+
 def drop_param_let(code):
     """`fn add [let $a: i32, let $b: i32]` → `fn add [$a: i32, $b: i32]`; a statement's `let $x := …` stays."""
-    return PARAM_LET.sub(r'\1', code)
+    return PARAM_LINE_LET.sub(r'\1', PARAM_LET.sub(r'\1', code))
 
 
 def mask(src):
@@ -153,6 +157,10 @@ def convert(src):
     code = generic_lists(code)
     # a name inside brackets is fixed unless it says `var` (owner, 2026-10-29: "(c)"): a parameter's `let` goes
     code = drop_param_let(code)
+    # nor any other written-out default (owner, 2026-10-29: "refuse")
+    code = re.sub(r'std::print\.shortest(?=\.std(?:err|out)\b)', 'std::print', code)
+    code = re.sub(r'std::print\.arrows\.shortest\b', 'std::print.arrows', code)
+    code = re.sub(r'\bfor\s+((?:%para\s+)?)temp\s+', r'for \1', code)
     # a plain `for` runs in order, so `seq` is gone (owner, 2026-10-29); a plain loop stays plain: MCPS no longer makes it
     # parallel, and only `for %para` is
     code = re.sub(r'\bfor\s+seq\s+', 'for ', code)

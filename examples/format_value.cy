@@ -5,6 +5,6 @@ MAIN:
     let $n := 3;
     let $line := std::format("{} items at {places: 2} each, 0x{base: hex}{newln}", $n, 1.5, 255);
     std::print($line);
-    std::print.arrows.shortest <- "hex: " <- std::format("{base: hex}", $n x 100) <- newln;
-    std::print.shortest.stdout("said ", "stdout", newln);
+    std::print.arrows <- "hex: " <- std::format("{base: hex}", $n x 100) <- newln;
+    std::print.stdout("said ", "stdout", newln);
 ;MAIN

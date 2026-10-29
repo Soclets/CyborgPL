@@ -34,6 +34,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-29 — A default is not written out: `print.shortest`, `for temp` and a parameter's `let` are refused, naming the bare form (owner: "refuse")
+
+Found while choosing whether `[let $a]` stays beside `[$a]`: CyborgPL refused every old spelling but let a default be
+written out in a few places, by 2026-10-27's "saying it is allowed": `std::print.shortest(…)` (10 uses), `for temp`
+(1), and now a parameter's `let`. The owner: "Hm, do we not allow like that everywhere, or allow?"; `for seq`, which the
+owner noted "depends if you have that limb", turned out to be no default (MCPS's choice, settled in its own entry).
+Design claude recommended refusing everywhere, one spelling per meaning, as when the `words` style was dropped; asked
+"What would refus do?": each written-out default refused naming the short form, 11 uses converted, nothing lost but
+spelling the default out for a reader. The owner: "refuse". So **a default is never written out**: `std::print.shortest(…)`
+→ `std::print(…)`, `std::print.shortest.stderr` → `std::print.stderr` (bare `print.stderr` / `.stdout` now the
+shortest form, as bare `print` is), `std::print.arrows.shortest` → `std::print.arrows` (bare arrows now the shortest),
+`for temp $i` → `for $i`, `[let $a: i32]` → `[$a: i32]`. A word that changes what the code does stays (`for perm`,
+`print.stored`). This reverses 2026-10-27's "saying it is allowed". Built: the oracle refuses each (reject tests
+`print_shortest_written`, `for_temp_written`, `param_let_written`) and shows `print.shortest` as `print` in its messages;
+`oracle/tools/written_defaults.py` and `redesign_three.py` convert, code only; `syntax-sketch.md`, the naming rule.
+
 ### 2026-10-29 — A declaration on its own line says `let` or `var`; a name inside brackets or set by a construct is fixed unless it says `var` (owner: "(c)")
 
 Asked "Is `for` a documented exception of `let` & `var`?" (it was not: the oracle gave a loop's variable no word, no ruling
@@ -48,8 +64,8 @@ by the rule, not as an exception; changing a bare parameter is refused naming `v
 parameter changing unannounced) met. This replaces 2026-10-27's "an owned one without `let` or `var` is refused". Built:
 the oracle reads a bare parameter or operand as fixed; 263 files' parameter `let`s dropped, code only
 (`oracle/tools/param_let.py`, and `redesign_three.py` with it); `examples/bare_params.cy` replaces the reject tests
-`param_bare` and `op_operand_bare`; `design/functions.md`, "`let` and `var`". Still accepted, pending the owner: a
-parameter written `let $a` (whether a written-out default is refused everywhere is the next question).
+`param_bare` and `op_operand_bare`; `design/functions.md`, "`let` and `var`". A parameter written `let $a` is refused since
+the next entry.
 
 ### 2026-10-29 — A plain `for` always runs in order; `for %para` is MCPS's parallel loop; `seq` is gone (owner: "(a)")
 

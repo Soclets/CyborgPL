@@ -108,7 +108,8 @@ fn countdown [$from: i32, var $left: i32] -> i32:
   `[var $n: i32]`), an operator's operand, a lambda's, a member's and a `versions` entry's parameters; and with no word
   at all, a loop's variable (`for $i`), a case's data (`case hot $level:`), a handler's payload. What is lent already says
   it: `lent` / `lent.mut`, and `for $x in lend.mut $xs`.
-- Changing a fixed one is refused, naming `var`.
+- Changing a fixed one is refused, naming `var`, and a parameter written `let $a` is refused naming `$a` (a default is not
+  written out, owner, 2026-10-29: "refuse").
 
 ## `fn` and `proc` (owner, 2026-10-27; revised 2026-10-29)
 

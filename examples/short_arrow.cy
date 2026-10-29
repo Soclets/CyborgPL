@@ -4,5 +4,5 @@ fn double [$n: i32] -> i32:
     ret $n x 2;
 ;fn double
 MAIN:
-    std::print.arrows.shortest <- double(3) <- newln;
+    std::print.arrows <- double(3) <- newln;
 ;MAIN

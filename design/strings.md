@@ -72,7 +72,7 @@ form is decided: `print` and `print.format` have no `auto_newline`.
 ## `std::print.weird` — C++'s `cout <<`, with arrows (owner, 2026-10-01)
 
 ```
-std::print.arrows.shortest <- "tenth is " <- $tenth <- ", n is " <- $n <- newln;
+std::print.arrows <- "tenth is " <- $tenth <- ", n is " <- $n <- newln;
 std::print.arrows.stored <- "stored: " <- $tenth <- newln;
 ```
 

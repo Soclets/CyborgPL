@@ -71,7 +71,7 @@ of a file:
 
 ```
 use std::ls as ls;                  # list[i64], list.append[…], list.length[…] in this file
-use std::print.shortest as say;           # say[…]
+use std::print as say;           # say[…]
 use greet::formal as formal;
 use std::print.stored as std::print;    # a rename onto a path is allowed ("it's their choice")
 ```

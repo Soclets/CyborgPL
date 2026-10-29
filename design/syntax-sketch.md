@@ -230,3 +230,8 @@ gives the symbol exactly that meaning. So `lend` / `lend.mut`, `print` / `print.
 bare `div` (`div.floor`, `div.near`, …); `+` beside `plus.wrap`, `x` beside `times.wrap`; `and`, `or`, `not`, `concat`
 words. Its one exception: the number types' short names, `i32` … `%d64`, a closed list. From multifinity's Claude, the
 symbol clause the owner's.
+
+**A default is not written out** (owner, 2026-10-29: "refuse"): the bare form is the one spelling, and writing its default
+is refused naming it, as an old spelling is. `std::print.shortest(…)` is `std::print(…)`, `std::print.shortest.stderr` is
+`std::print.stderr`, `std::print.arrows.shortest` is `std::print.arrows`, `for temp $i` is `for $i`, and a parameter's
+`[let $a: i32]` is `[$a: i32]`. A word that changes what the code does is not a default and stays: `for perm`, `print.stored`.

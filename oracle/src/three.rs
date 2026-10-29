@@ -328,7 +328,31 @@ fn prints(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
             if form_words.iter().any(|w| w == "auto_newline" || w == "auto_newln") { return Err(old(t, &format!("print.{}", form_words.join(".")), "std::print(…, newln)")); }
             // `println` was dropped (owner, 2026-10-28: "drop"): a line ends with `newln`, in every form
             if ln { return Err(old(t, &format!("std::println{}", form_words.iter().map(|w| format!(".{w}")).collect::<String>()), &format!("std::print{}(…, newln)", form_words.iter().map(|w| format!(".{w}")).collect::<String>()))); }
+            // a written-out default is refused, naming the bare form (owner, 2026-10-29: "refuse"): `print.shortest` is
+            // `print`, `print.arrows.shortest` is `print.arrows`
+            let rest = |from: usize| form_words[from..].iter().map(|w| format!(".{w}")).collect::<String>();
+            if form_words.first().is_some_and(|w| w == "shortest") {
+                return Err((t.line, t.col, format!("`std::print` is `print.shortest`, the default: write `std::print{}`, without `.shortest` (owner, 2026-10-29)", rest(1))));
+            }
+            if form_words.len() >= 2 && form_words[0] == "arrows" && form_words[1] == "shortest" {
+                return Err((t.line, t.col, format!("`std::print.arrows` shows the shortest form, the default: write `std::print.arrows{}`, without `.shortest` (owner, 2026-10-29)", rest(2))));
+            }
+            // a bare `std::print.stderr(…)` / `.stdout(…)` is the shortest form too
+            if form_words.len() == 1 && (form_words[0] == "stderr" || form_words[0] == "stdout") {
+                out.push(t.clone()); out.push(like(Tok::Dot, t)); out.push(word("shortest", t));
+                i += 1; continue;
+            }
+            // a bare `std::print.arrows <- …` is the shortest form, as a bare `std::print(…)` is
+            if form_words.len() == 1 && form_words[0] == "arrows" && toks.get(j).is_some_and(|x| x.tok == Tok::LeftArrow) {
+                out.push(t.clone()); out.extend(form.iter().cloned()); out.push(like(Tok::Dot, t)); out.push(word("shortest", t));
+                i = j; continue;
+            }
             let call = toks.get(j).is_some_and(|x| x.tok == Tok::LParen);
+            // a bare `std::print` named, not called (`otherwise std::print;`, `use std::print as say;`), is the shortest form
+            if !call && form.is_empty() {
+                out.push(t.clone()); out.push(like(Tok::Dot, t)); out.push(word("shortest", t));
+                i += 1; continue;
+            }
             if !call || (!ln && !form.is_empty()) {
                 // a named form of `print` (`print.stored(…)`, `print.flush`, `print.writer…`) is as it was
                 out.push(t.clone()); i += 1; continue;
@@ -402,7 +426,7 @@ pub fn threes(msg: &str) -> String {
         let Some(b) = after.find('`') else { out.push_str(&rest[a..]); return out; };
         out.push('`');
         // the spelling a message refuses stays as written: "`and` is an old spelling: write `&`"
-        let refused = [" is an old spelling", " is gone", " is a limb's", " is the base's", " is standard"].iter().any(|r| after[b + 1..].starts_with(r));
+        let refused = [" is an old spelling", " is gone", " is a limb's", " is the base's", " is standard", ", the default"].iter().any(|r| after[b + 1..].starts_with(r));
         out.push_str(&if refused { after[..b].to_string() } else { three_code(&after[..b]) });
         out.push('`');
         rest = &after[b + 1..];
@@ -413,7 +437,12 @@ pub fn threes(msg: &str) -> String {
 
 fn three_code(c: &str) -> String {
     let mut s = c.to_string();
-    for (a, b) in [("to.useful.", "to.shortest."), ("print.useful", "print.shortest"), ("otherwise fail;", "?"), ("otherwise fail", "?"), ("!end of ", ";"), ("end of ", ";"), ("!MAIN", "MAIN"), ("!no_check", "no_check"), ("!case ", "case "), (".!", ".*")] { s = s.replace(a, b); }
+    // the default is not written out (owner, 2026-10-29): `print.shortest` is shown as `print`
+    for (a, b) in [("print.arrows.shortest", "print.arrows"), ("print.shortest.", "print."), ("print.shortest(", "print("), ("print.useful", "print")] {
+        if s.contains(a) && !s.ends_with("print.shortest") { s = s.replace(a, b); }
+    }
+    if s == "std::print.shortest" { s = "std::print".into(); }
+    for (a, b) in [("to.useful.", "to.shortest."), ("otherwise fail;", "?"), ("otherwise fail", "?"), ("!end of ", ";"), ("end of ", ";"), ("!MAIN", "MAIN"), ("!no_check", "no_check"), ("!case ", "case "), (".!", ".*")] { s = s.replace(a, b); }
     for m in ["MAIN", "no_check", "NO_FUCKING_CHECKS", "case "] { if let Some(r) = s.strip_prefix('!') { if r.starts_with(m) { s = r.to_string(); } } }
     let words: Vec<String> = s.split(' ').map(|w| match w {
         "plus" => "+".into(), "minus" => "-".into(), "times" => "x".into(), "pow" => "std::pow".into(), "eq" => "==".into(), "not_eq" => "!=".into(),

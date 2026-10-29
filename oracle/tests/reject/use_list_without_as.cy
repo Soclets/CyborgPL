@@ -1,4 +1,4 @@
-use [std::print.shortest as printu, std::ls];
+use [std::print as printu, std::ls];
 MAIN:
     printu("x", newln);
 ;MAIN

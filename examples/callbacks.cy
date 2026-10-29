@@ -1,6 +1,6 @@
 # Callbacks (design/ffi.md, 2026-09-21): a capture-free, C-shaped CyborgPL function handed to C.
 %extern.C proc qsort [$base: ptr.mut[i32], $n: u64, $size: u64,
-                 let $cmp: proc[ptr[i32], ptr[i32]] -> i32];
+                 $cmp: proc[ptr[i32], ptr[i32]] -> i32];
 
 proc ascending [$a: ptr[i32], $b: ptr[i32]] -> i32:
     no_check ret ptr.read($a) - ptr.read($b);        # C hands pointers to two elements

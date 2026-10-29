@@ -3,7 +3,7 @@
 # lets `ls[i64]` and `ls.append` stand for std's. A rename onto a path, `as std::exact`, is allowed (owner: "it's their
 # choice"); every `use` gets a note in kayo's build report.
 use std::ls as ls;
-use std::print.shortest as say;
+use std::print as say;
 use std::print.stored as std::exact;
 
 MAIN:
