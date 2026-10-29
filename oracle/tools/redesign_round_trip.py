@@ -5,7 +5,9 @@
 import os, shutil, subprocess, sys, tempfile
 
 repo = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-oracle = os.path.join(repo, "oracle", "target", "debug", "oracle")
+# the newer of the two builds, release or debug, whichever exists
+oracle = max((p for p in (os.path.join(repo, "oracle", "target", k, "oracle") for k in ("release", "debug")) if os.path.exists(p)),
+             key=os.path.getmtime, default=os.path.join(repo, "oracle", "target", "debug", "oracle"))
 src = sys.argv[1] if len(sys.argv) > 1 else os.path.join(repo, "examples")
 work = sys.argv[2] if len(sys.argv) > 2 else os.path.join(tempfile.gettempdir(), "cyborgpl-round-trip")
 shutil.rmtree(work, ignore_errors=True)

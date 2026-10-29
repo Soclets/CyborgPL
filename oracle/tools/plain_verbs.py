@@ -13,7 +13,9 @@ import re
 import subprocess
 import sys
 
-ORACLE = os.path.join(os.path.dirname(__file__), '..', 'target', 'debug', 'oracle')
+# the newer of the two builds, release or debug, whichever exists
+ORACLE = max((p for p in (os.path.join(os.path.dirname(__file__), '..', 'target', k, 'oracle') for k in ('release', 'debug'))
+              if os.path.exists(p)), key=os.path.getmtime, default=os.path.join(os.path.dirname(__file__), '..', 'target', 'debug', 'oracle'))
 MSG = re.compile(r"^(.*?): line (\d+)(?::\d+)?: '([^']+)'((?:\.\w+)*) is a plain \w+ and owns nothing")
 # a conversion that only reads an owned value (owner, 2026-10-28: a conversion is a call like any other)
 LEND = re.compile(r"^(.*?): line (\d+)(?::\d+)?: `(to\.[^`]+)` only looks at `\$([\w.]+)`: pass `lend")
