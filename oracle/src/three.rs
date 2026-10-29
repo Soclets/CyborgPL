@@ -242,7 +242,8 @@ pub fn from_three(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                 // redesign two's operator words, refused naming their symbol; a narrowing keeps its word (`times.wrap`).
                 // Only where an operator stands: a name may still be `lt` (Lithuanian's case in std's casing, compiler
                 // claude, 2026-10-29), at a line's start or after the word that declares or picks it
-                let naming = starts_line || matches!(prev.map(|p| &p.tok), Some(Tok::Word(k)) if matches!(k.as_str(), "case" | "module" | "rec" | "sig" | "set" | "tag" | "union" | "enum" | "fn" | "proc" | "op" | "member" | "use" | "as" | "const" | "let" | "var" | "versions"));
+                // an operator never follows a `;` or a block's `:`, so a word there is a name (`en; lt; root;`, std claude)
+                let naming = starts_line || matches!(prev.map(|p| &p.tok), Some(Tok::Semi | Tok::Colon)) || matches!(prev.map(|p| &p.tok), Some(Tok::Word(k)) if matches!(k.as_str(), "case" | "module" | "rec" | "sig" | "set" | "tag" | "union" | "enum" | "fn" | "proc" | "op" | "member" | "use" | "as" | "const" | "let" | "var" | "versions"));
                 if !after_dot && !after_kit && !naming {
                     let narrowed = tok(i + 1) == &Tok::Dot;
                     let sym = match w {

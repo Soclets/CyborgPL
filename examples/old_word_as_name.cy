@@ -4,8 +4,13 @@ union.tag Lang:
     en;
     lt;
 ;union.tag Lang
+
+union.tag Short:
+    en; lt; root;
+;union.tag Short
 MAIN:
     let $l := Lang.lt;
+    std::print(Short.lt, newln);
     match $l:
         case en:
             std::print("en", newln);
