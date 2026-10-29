@@ -17,7 +17,7 @@ union.tag Way:
 # Round to a whole number, or to `places:` places, a tie to even.
 pub coll.fn near:
     versions near:
-        [let $x: f16] -> f16:
+        [$x: f16] -> f16:
             if $x >= 1024.0:
                 ret $x;
             ;if
@@ -34,12 +34,12 @@ pub coll.fn near:
             ;if
             ret $t;
         ;version
-        [let $x: f16, let $places: i32[min: 0]] -> f16:
+        [$x: f16, $places: i32[min: 0]] -> f16:
             let $text := to.stored.str.utf8($x);
             let $cut := my.round.digits(lend $text, $places, Way.nearest_even);
             ret to.f16(lend $cut) ?? bug "a rounded bin's digits did not read back";
         ;version
-        [let $x: f32] -> f32:
+        [$x: f32] -> f32:
             if $x >= 8388608.0:
                 ret $x;
             ;if
@@ -56,12 +56,12 @@ pub coll.fn near:
             ;if
             ret $t;
         ;version
-        [let $x: f32, let $places: i32[min: 0]] -> f32:
+        [$x: f32, $places: i32[min: 0]] -> f32:
             let $text := to.stored.str.utf8($x);
             let $cut := my.round.digits(lend $text, $places, Way.nearest_even);
             ret to.f32(lend $cut) ?? bug "a rounded bin's digits did not read back";
         ;version
-        [let $x: f64] -> f64:
+        [$x: f64] -> f64:
             if $x >= 4503599627370496.0:
                 ret $x;
             ;if
@@ -78,27 +78,27 @@ pub coll.fn near:
             ;if
             ret $t;
         ;version
-        [let $x: f64, let $places: i32[min: 0]] -> f64:
+        [$x: f64, $places: i32[min: 0]] -> f64:
             let $text := to.stored.str.utf8($x);
             let $cut := my.round.digits(lend $text, $places, Way.nearest_even);
             ret to.f64(lend $cut) ?? bug "a rounded bin's digits did not read back";
         ;version
-        [let $x: %d32] -> %d32:
+        [$x: %d32] -> %d32:
             ret my.round.whole_d32($x, Way.nearest_even);
         ;version
-        [let $x: %d32, let $places: i32[min: 0]] -> %d32:
+        [$x: %d32, $places: i32[min: 0]] -> %d32:
             ret my.round.places_d32($x, $places, Way.nearest_even);
         ;version
-        [let $x: %d64] -> %d64:
+        [$x: %d64] -> %d64:
             ret my.round.whole_d64($x, Way.nearest_even);
         ;version
-        [let $x: %d64, let $places: i32[min: 0]] -> %d64:
+        [$x: %d64, $places: i32[min: 0]] -> %d64:
             ret my.round.places_d64($x, $places, Way.nearest_even);
         ;version
-        [let $x: %d128] -> %d128:
+        [$x: %d128] -> %d128:
             ret my.round.whole_d128($x, Way.nearest_even);
         ;version
-        [let $x: %d128, let $places: i32[min: 0]] -> %d128:
+        [$x: %d128, $places: i32[min: 0]] -> %d128:
             ret my.round.places_d128($x, $places, Way.nearest_even);
         ;version
     ;versions near
@@ -107,7 +107,7 @@ pub coll.fn near:
 # Round to a whole number, or to `places:` places, a tie away from zero.
 pub coll.fn half_up:
     versions half_up:
-        [let $x: f16] -> f16:
+        [$x: f16] -> f16:
             if $x >= 1024.0:
                 ret $x;
             ;if
@@ -124,12 +124,12 @@ pub coll.fn half_up:
             ;if
             ret $t;
         ;version
-        [let $x: f16, let $places: i32[min: 0]] -> f16:
+        [$x: f16, $places: i32[min: 0]] -> f16:
             let $text := to.stored.str.utf8($x);
             let $cut := my.round.digits(lend $text, $places, Way.half_away);
             ret to.f16(lend $cut) ?? bug "a rounded bin's digits did not read back";
         ;version
-        [let $x: f32] -> f32:
+        [$x: f32] -> f32:
             if $x >= 8388608.0:
                 ret $x;
             ;if
@@ -146,12 +146,12 @@ pub coll.fn half_up:
             ;if
             ret $t;
         ;version
-        [let $x: f32, let $places: i32[min: 0]] -> f32:
+        [$x: f32, $places: i32[min: 0]] -> f32:
             let $text := to.stored.str.utf8($x);
             let $cut := my.round.digits(lend $text, $places, Way.half_away);
             ret to.f32(lend $cut) ?? bug "a rounded bin's digits did not read back";
         ;version
-        [let $x: f64] -> f64:
+        [$x: f64] -> f64:
             if $x >= 4503599627370496.0:
                 ret $x;
             ;if
@@ -168,27 +168,27 @@ pub coll.fn half_up:
             ;if
             ret $t;
         ;version
-        [let $x: f64, let $places: i32[min: 0]] -> f64:
+        [$x: f64, $places: i32[min: 0]] -> f64:
             let $text := to.stored.str.utf8($x);
             let $cut := my.round.digits(lend $text, $places, Way.half_away);
             ret to.f64(lend $cut) ?? bug "a rounded bin's digits did not read back";
         ;version
-        [let $x: %d32] -> %d32:
+        [$x: %d32] -> %d32:
             ret my.round.whole_d32($x, Way.half_away);
         ;version
-        [let $x: %d32, let $places: i32[min: 0]] -> %d32:
+        [$x: %d32, $places: i32[min: 0]] -> %d32:
             ret my.round.places_d32($x, $places, Way.half_away);
         ;version
-        [let $x: %d64] -> %d64:
+        [$x: %d64] -> %d64:
             ret my.round.whole_d64($x, Way.half_away);
         ;version
-        [let $x: %d64, let $places: i32[min: 0]] -> %d64:
+        [$x: %d64, $places: i32[min: 0]] -> %d64:
             ret my.round.places_d64($x, $places, Way.half_away);
         ;version
-        [let $x: %d128] -> %d128:
+        [$x: %d128] -> %d128:
             ret my.round.whole_d128($x, Way.half_away);
         ;version
-        [let $x: %d128, let $places: i32[min: 0]] -> %d128:
+        [$x: %d128, $places: i32[min: 0]] -> %d128:
             ret my.round.places_d128($x, $places, Way.half_away);
         ;version
     ;versions half_up
@@ -197,7 +197,7 @@ pub coll.fn half_up:
 # Round to a whole number, or to `places:` places, down.
 pub coll.fn floor:
     versions floor:
-        [let $x: f16] -> f16:
+        [$x: f16] -> f16:
             if $x >= 1024.0:
                 ret $x;
             ;if
@@ -206,12 +206,12 @@ pub coll.fn floor:
             ;if
             ret $x div.floor 1.0;
         ;version
-        [let $x: f16, let $places: i32[min: 0]] -> f16:
+        [$x: f16, $places: i32[min: 0]] -> f16:
             let $text := to.stored.str.utf8($x);
             let $cut := my.round.digits(lend $text, $places, Way.down);
             ret to.f16(lend $cut) ?? bug "a rounded bin's digits did not read back";
         ;version
-        [let $x: f32] -> f32:
+        [$x: f32] -> f32:
             if $x >= 8388608.0:
                 ret $x;
             ;if
@@ -220,12 +220,12 @@ pub coll.fn floor:
             ;if
             ret $x div.floor 1.0;
         ;version
-        [let $x: f32, let $places: i32[min: 0]] -> f32:
+        [$x: f32, $places: i32[min: 0]] -> f32:
             let $text := to.stored.str.utf8($x);
             let $cut := my.round.digits(lend $text, $places, Way.down);
             ret to.f32(lend $cut) ?? bug "a rounded bin's digits did not read back";
         ;version
-        [let $x: f64] -> f64:
+        [$x: f64] -> f64:
             if $x >= 4503599627370496.0:
                 ret $x;
             ;if
@@ -234,27 +234,27 @@ pub coll.fn floor:
             ;if
             ret $x div.floor 1.0;
         ;version
-        [let $x: f64, let $places: i32[min: 0]] -> f64:
+        [$x: f64, $places: i32[min: 0]] -> f64:
             let $text := to.stored.str.utf8($x);
             let $cut := my.round.digits(lend $text, $places, Way.down);
             ret to.f64(lend $cut) ?? bug "a rounded bin's digits did not read back";
         ;version
-        [let $x: %d32] -> %d32:
+        [$x: %d32] -> %d32:
             ret my.round.whole_d32($x, Way.down);
         ;version
-        [let $x: %d32, let $places: i32[min: 0]] -> %d32:
+        [$x: %d32, $places: i32[min: 0]] -> %d32:
             ret my.round.places_d32($x, $places, Way.down);
         ;version
-        [let $x: %d64] -> %d64:
+        [$x: %d64] -> %d64:
             ret my.round.whole_d64($x, Way.down);
         ;version
-        [let $x: %d64, let $places: i32[min: 0]] -> %d64:
+        [$x: %d64, $places: i32[min: 0]] -> %d64:
             ret my.round.places_d64($x, $places, Way.down);
         ;version
-        [let $x: %d128] -> %d128:
+        [$x: %d128] -> %d128:
             ret my.round.whole_d128($x, Way.down);
         ;version
-        [let $x: %d128, let $places: i32[min: 0]] -> %d128:
+        [$x: %d128, $places: i32[min: 0]] -> %d128:
             ret my.round.places_d128($x, $places, Way.down);
         ;version
     ;versions floor
@@ -263,7 +263,7 @@ pub coll.fn floor:
 # Round to a whole number, or to `places:` places, up.
 pub coll.fn ceil:
     versions ceil:
-        [let $x: f16] -> f16:
+        [$x: f16] -> f16:
             if $x >= 1024.0:
                 ret $x;
             ;if
@@ -272,12 +272,12 @@ pub coll.fn ceil:
             ;if
             ret $x div.ceil 1.0;
         ;version
-        [let $x: f16, let $places: i32[min: 0]] -> f16:
+        [$x: f16, $places: i32[min: 0]] -> f16:
             let $text := to.stored.str.utf8($x);
             let $cut := my.round.digits(lend $text, $places, Way.up);
             ret to.f16(lend $cut) ?? bug "a rounded bin's digits did not read back";
         ;version
-        [let $x: f32] -> f32:
+        [$x: f32] -> f32:
             if $x >= 8388608.0:
                 ret $x;
             ;if
@@ -286,12 +286,12 @@ pub coll.fn ceil:
             ;if
             ret $x div.ceil 1.0;
         ;version
-        [let $x: f32, let $places: i32[min: 0]] -> f32:
+        [$x: f32, $places: i32[min: 0]] -> f32:
             let $text := to.stored.str.utf8($x);
             let $cut := my.round.digits(lend $text, $places, Way.up);
             ret to.f32(lend $cut) ?? bug "a rounded bin's digits did not read back";
         ;version
-        [let $x: f64] -> f64:
+        [$x: f64] -> f64:
             if $x >= 4503599627370496.0:
                 ret $x;
             ;if
@@ -300,27 +300,27 @@ pub coll.fn ceil:
             ;if
             ret $x div.ceil 1.0;
         ;version
-        [let $x: f64, let $places: i32[min: 0]] -> f64:
+        [$x: f64, $places: i32[min: 0]] -> f64:
             let $text := to.stored.str.utf8($x);
             let $cut := my.round.digits(lend $text, $places, Way.up);
             ret to.f64(lend $cut) ?? bug "a rounded bin's digits did not read back";
         ;version
-        [let $x: %d32] -> %d32:
+        [$x: %d32] -> %d32:
             ret my.round.whole_d32($x, Way.up);
         ;version
-        [let $x: %d32, let $places: i32[min: 0]] -> %d32:
+        [$x: %d32, $places: i32[min: 0]] -> %d32:
             ret my.round.places_d32($x, $places, Way.up);
         ;version
-        [let $x: %d64] -> %d64:
+        [$x: %d64] -> %d64:
             ret my.round.whole_d64($x, Way.up);
         ;version
-        [let $x: %d64, let $places: i32[min: 0]] -> %d64:
+        [$x: %d64, $places: i32[min: 0]] -> %d64:
             ret my.round.places_d64($x, $places, Way.up);
         ;version
-        [let $x: %d128] -> %d128:
+        [$x: %d128] -> %d128:
             ret my.round.whole_d128($x, Way.up);
         ;version
-        [let $x: %d128, let $places: i32[min: 0]] -> %d128:
+        [$x: %d128, $places: i32[min: 0]] -> %d128:
             ret my.round.places_d128($x, $places, Way.up);
         ;version
     ;versions ceil
@@ -329,7 +329,7 @@ pub coll.fn ceil:
 # Round to a whole number, or to `places:` places, toward zero.
 pub coll.fn trunc:
     versions trunc:
-        [let $x: f16] -> f16:
+        [$x: f16] -> f16:
             if $x >= 1024.0:
                 ret $x;
             ;if
@@ -338,12 +338,12 @@ pub coll.fn trunc:
             ;if
             ret $x div.trunc 1.0;
         ;version
-        [let $x: f16, let $places: i32[min: 0]] -> f16:
+        [$x: f16, $places: i32[min: 0]] -> f16:
             let $text := to.stored.str.utf8($x);
             let $cut := my.round.digits(lend $text, $places, Way.toward_zero);
             ret to.f16(lend $cut) ?? bug "a rounded bin's digits did not read back";
         ;version
-        [let $x: f32] -> f32:
+        [$x: f32] -> f32:
             if $x >= 8388608.0:
                 ret $x;
             ;if
@@ -352,12 +352,12 @@ pub coll.fn trunc:
             ;if
             ret $x div.trunc 1.0;
         ;version
-        [let $x: f32, let $places: i32[min: 0]] -> f32:
+        [$x: f32, $places: i32[min: 0]] -> f32:
             let $text := to.stored.str.utf8($x);
             let $cut := my.round.digits(lend $text, $places, Way.toward_zero);
             ret to.f32(lend $cut) ?? bug "a rounded bin's digits did not read back";
         ;version
-        [let $x: f64] -> f64:
+        [$x: f64] -> f64:
             if $x >= 4503599627370496.0:
                 ret $x;
             ;if
@@ -366,27 +366,27 @@ pub coll.fn trunc:
             ;if
             ret $x div.trunc 1.0;
         ;version
-        [let $x: f64, let $places: i32[min: 0]] -> f64:
+        [$x: f64, $places: i32[min: 0]] -> f64:
             let $text := to.stored.str.utf8($x);
             let $cut := my.round.digits(lend $text, $places, Way.toward_zero);
             ret to.f64(lend $cut) ?? bug "a rounded bin's digits did not read back";
         ;version
-        [let $x: %d32] -> %d32:
+        [$x: %d32] -> %d32:
             ret my.round.whole_d32($x, Way.toward_zero);
         ;version
-        [let $x: %d32, let $places: i32[min: 0]] -> %d32:
+        [$x: %d32, $places: i32[min: 0]] -> %d32:
             ret my.round.places_d32($x, $places, Way.toward_zero);
         ;version
-        [let $x: %d64] -> %d64:
+        [$x: %d64] -> %d64:
             ret my.round.whole_d64($x, Way.toward_zero);
         ;version
-        [let $x: %d64, let $places: i32[min: 0]] -> %d64:
+        [$x: %d64, $places: i32[min: 0]] -> %d64:
             ret my.round.places_d64($x, $places, Way.toward_zero);
         ;version
-        [let $x: %d128] -> %d128:
+        [$x: %d128] -> %d128:
             ret my.round.whole_d128($x, Way.toward_zero);
         ;version
-        [let $x: %d128, let $places: i32[min: 0]] -> %d128:
+        [$x: %d128, $places: i32[min: 0]] -> %d128:
             ret my.round.places_d128($x, $places, Way.toward_zero);
         ;version
     ;versions trunc
@@ -394,7 +394,7 @@ pub coll.fn trunc:
 
 # A bin's stored digits ($t: a `-` perhaps, digits, a `.` and more digits perhaps, no exponent) cut to
 # $n places the way $way says.
-fn digits [lent $t: str.utf8, let $n: i32[min: 0], let $way: Way] -> str.utf8:
+fn digits [lent $t: str.utf8, $n: i32[min: 0], $way: Way] -> str.utf8:
     var $whole: ls[u8] = [];
     var $frac: ls[u8] = [];
     var $neg = false;
@@ -507,7 +507,7 @@ fn digits [lent $t: str.utf8, let $n: i32[min: 0], let $way: Way] -> str.utf8:
 
 
 # A d32 rounded to a whole number the way $way says. One at or past 10000000 has no places left.
-fn whole_d32 [let $x: %d32, let $way: Way] -> %d32:
+fn whole_d32 [$x: %d32, $way: Way] -> %d32:
     let $big: %d32 := exactly 10000000;
     if $x >= $big:
         ret $x;
@@ -561,7 +561,7 @@ fn whole_d32 [let $x: %d32, let $way: Way] -> %d32:
 
 # A d32 rounded to $n places the way $way says, keeping $n places as a deci does ("2.500") as far as
 # its digits go. The point moves right until the number is whole or $n places are passed.
-fn places_d32 [let $x: %d32, let $n: i32[min: 0], let $way: Way] -> %d32:
+fn places_d32 [$x: %d32, $n: i32[min: 0], $way: Way] -> %d32:
     let $one: %d32 := exactly 1;
     let $ten: %d32 := exactly 10;
     let $tenth: %d32 := exactly 0.1;
@@ -591,7 +591,7 @@ fn places_d32 [let $x: %d32, let $n: i32[min: 0], let $way: Way] -> %d32:
 ;fn places_d32
 
 # A d64 rounded to a whole number the way $way says. One at or past 10000000000000000 has no places left.
-fn whole_d64 [let $x: %d64, let $way: Way] -> %d64:
+fn whole_d64 [$x: %d64, $way: Way] -> %d64:
     let $big: %d64 := exactly 10000000000000000;
     if $x >= $big:
         ret $x;
@@ -645,7 +645,7 @@ fn whole_d64 [let $x: %d64, let $way: Way] -> %d64:
 
 # A d64 rounded to $n places the way $way says, keeping $n places as a deci does ("2.500") as far as
 # its digits go. The point moves right until the number is whole or $n places are passed.
-fn places_d64 [let $x: %d64, let $n: i32[min: 0], let $way: Way] -> %d64:
+fn places_d64 [$x: %d64, $n: i32[min: 0], $way: Way] -> %d64:
     let $one: %d64 := exactly 1;
     let $ten: %d64 := exactly 10;
     let $tenth: %d64 := exactly 0.1;
@@ -675,7 +675,7 @@ fn places_d64 [let $x: %d64, let $n: i32[min: 0], let $way: Way] -> %d64:
 ;fn places_d64
 
 # A d128 rounded to a whole number the way $way says. One at or past 10000000000000000000000000000000000 has no places left.
-fn whole_d128 [let $x: %d128, let $way: Way] -> %d128:
+fn whole_d128 [$x: %d128, $way: Way] -> %d128:
     let $big: %d128 := exactly 10000000000000000000000000000000000;
     if $x >= $big:
         ret $x;
@@ -729,7 +729,7 @@ fn whole_d128 [let $x: %d128, let $way: Way] -> %d128:
 
 # A d128 rounded to $n places the way $way says, keeping $n places as a deci does ("2.500") as far as
 # its digits go. The point moves right until the number is whole or $n places are passed.
-fn places_d128 [let $x: %d128, let $n: i32[min: 0], let $way: Way] -> %d128:
+fn places_d128 [$x: %d128, $n: i32[min: 0], $way: Way] -> %d128:
     let $one: %d128 := exactly 1;
     let $ten: %d128 := exactly 10;
     let $tenth: %d128 := exactly 0.1;

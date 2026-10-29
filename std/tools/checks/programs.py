@@ -7,7 +7,7 @@ PROGRAMS = {}
 
 PROGRAMS["argv"] = r'''use std::ls as ls;
 # Each argument, read as text: the first is worked on, the second is the part.
-proc arg [let $argv: ptr[ptr[u8]], let $i: i32] -> str.utf8:
+proc arg [$argv: ptr[ptr[u8]], $i: i32] -> str.utf8:
     no_check let $word := ptr.read(ptr.at($argv, by: $i));
     var $k: i32 = 0;
     var $bytes: ls[u8] = [];
@@ -23,7 +23,7 @@ proc arg [let $argv: ptr[ptr[u8]], let $i: i32] -> str.utf8:
     ret give $text;
 ;proc arg
 
-MAIN [let $argc: i32, let $argv: ptr[ptr[u8]]]:
+MAIN [$argc: i32, $argv: ptr[ptr[u8]]]:
     if $argc < 3:
         std::exit(code: 2);
     ;if
@@ -54,7 +54,7 @@ MAIN [let $argc: i32, let $argv: ptr[ptr[u8]]]:
 
 PROGRAMS["argv_round"] = r'''use std::ls as ls;
 # Rounding a bin read from the command line, so Precog proves std's round from std's own code.
-proc arg [let $argv: ptr[ptr[u8]], let $i: i32] -> str.utf8:
+proc arg [$argv: ptr[ptr[u8]], $i: i32] -> str.utf8:
     no_check let $word := ptr.read(ptr.at($argv, by: $i));
     var $k: i32 = 0;
     var $bytes: ls[u8] = [];
@@ -70,7 +70,7 @@ proc arg [let $argv: ptr[ptr[u8]], let $i: i32] -> str.utf8:
     ret give $text;
 ;proc arg
 
-MAIN [let $argc: i32, let $argv: ptr[ptr[u8]]]:
+MAIN [$argc: i32, $argv: ptr[ptr[u8]]]:
     if $argc < 3:
         std::exit(code: 2);
     ;if
@@ -87,7 +87,7 @@ MAIN [let $argc: i32, let $argv: ptr[ptr[u8]]]:
 
 PROGRAMS["argv_rdeci"] = r'''use std::ls as ls;
 # Rounding a deci read from the command line, so Precog proves std's round of the decis from std's own code.
-proc arg [let $argv: ptr[ptr[u8]], let $i: i32] -> str.utf8:
+proc arg [$argv: ptr[ptr[u8]], $i: i32] -> str.utf8:
     no_check let $word := ptr.read(ptr.at($argv, by: $i));
     var $k: i32 = 0;
     var $bytes: ls[u8] = [];
@@ -104,7 +104,7 @@ proc arg [let $argv: ptr[ptr[u8]], let $i: i32] -> str.utf8:
 ;proc arg
 
 
-MAIN [let $argc: i32, let $argv: ptr[ptr[u8]]]:
+MAIN [$argc: i32, $argv: ptr[ptr[u8]]]:
     if $argc < 3:
         std::exit(code: 2);
     ;if

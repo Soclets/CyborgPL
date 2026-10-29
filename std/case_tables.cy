@@ -194,7 +194,7 @@ pub.kit const $simple_upper_values: arr[u32] := [
 ];
 
 # Unicode's simple uppercase: one code point for one.
-pub.kit fn simple_upper_at [let $c: u32] -> u64:
+pub.kit fn simple_upper_at [$c: u32] -> u64:
     let $n := arr.len($simple_upper_keys);
     var $p: u64[max: 1505] = 0;
     if $p + 1024 <= $n and.then $simple_upper_keys[pos: $p + 1024] <= $c:
@@ -234,12 +234,12 @@ pub.kit fn simple_upper_at [let $c: u32] -> u64:
 ;fn simple_upper_at
 
 # 'c' mapped by simple_upper, or 'c' itself when it has no mapping.
-pub.kit fn simple_upper [let $c: u32] -> u32:
+pub.kit fn simple_upper [$c: u32] -> u32:
     let $p := simple_upper_at($c);
     if $p >= 1 and.then $p <= arr.len($simple_upper_keys) and.then $simple_upper_keys[pos: $p] == $c
         and.then $p <= arr.len($simple_upper_values):
-            ret $simple_upper_values[pos: $p];
-        ;if
+        ret $simple_upper_values[pos: $p];
+    ;if
     ret $c;
 ;fn simple_upper
 
@@ -430,7 +430,7 @@ pub.kit const $simple_lower_values: arr[u32] := [
 ];
 
 # Unicode's simple lowercase: one code point for one.
-pub.kit fn simple_lower_at [let $c: u32] -> u64:
+pub.kit fn simple_lower_at [$c: u32] -> u64:
     let $n := arr.len($simple_lower_keys);
     var $p: u64[max: 1488] = 0;
     if $p + 1024 <= $n and.then $simple_lower_keys[pos: $p + 1024] <= $c:
@@ -470,12 +470,12 @@ pub.kit fn simple_lower_at [let $c: u32] -> u64:
 ;fn simple_lower_at
 
 # 'c' mapped by simple_lower, or 'c' itself when it has no mapping.
-pub.kit fn simple_lower [let $c: u32] -> u32:
+pub.kit fn simple_lower [$c: u32] -> u32:
     let $p := simple_lower_at($c);
     if $p >= 1 and.then $p <= arr.len($simple_lower_keys) and.then $simple_lower_keys[pos: $p] == $c
         and.then $p <= arr.len($simple_lower_values):
-            ret $simple_lower_values[pos: $p];
-        ;if
+        ret $simple_lower_values[pos: $p];
+    ;if
     ret $c;
 ;fn simple_lower
 
@@ -514,7 +514,7 @@ pub.kit const $full_upper_3: arr[u32] := [
 ];
 
 # SpecialCasing's unconditional uppercase, up to three code points (0: none).
-pub.kit fn full_upper_at [let $c: u32] -> u64:
+pub.kit fn full_upper_at [$c: u32] -> u64:
     let $n := arr.len($full_upper_keys);
     var $p: u64[max: 102] = 0;
     if $p + 64 <= $n and.then $full_upper_keys[pos: $p + 64] <= $c:
@@ -542,38 +542,38 @@ pub.kit fn full_upper_at [let $c: u32] -> u64:
 ;fn full_upper_at
 
 # Whether 'c' has a longer mapping in full_upper.
-pub.kit fn full_upper_has [let $c: u32] -> bool:
+pub.kit fn full_upper_has [$c: u32] -> bool:
     let $p := full_upper_at($c);
     ret $p >= 1 and.then $p <= arr.len($full_upper_keys) and.then $full_upper_keys[pos: $p] == $c;
 ;fn full_upper_has
 
 # The code point number 1 of 'c''s longer mapping in full_upper, or 0 when there is none.
-pub.kit fn full_upper_1_of [let $c: u32] -> u32:
+pub.kit fn full_upper_1_of [$c: u32] -> u32:
     let $p := full_upper_at($c);
     if $p >= 1 and.then $p <= arr.len($full_upper_keys) and.then $full_upper_keys[pos: $p] == $c
         and.then $p <= arr.len($full_upper_1):
-            ret $full_upper_1[pos: $p];
-        ;if
+        ret $full_upper_1[pos: $p];
+    ;if
     ret 0;
 ;fn full_upper_1_of
 
 # The code point number 2 of 'c''s longer mapping in full_upper, or 0 when there is none.
-pub.kit fn full_upper_2_of [let $c: u32] -> u32:
+pub.kit fn full_upper_2_of [$c: u32] -> u32:
     let $p := full_upper_at($c);
     if $p >= 1 and.then $p <= arr.len($full_upper_keys) and.then $full_upper_keys[pos: $p] == $c
         and.then $p <= arr.len($full_upper_2):
-            ret $full_upper_2[pos: $p];
-        ;if
+        ret $full_upper_2[pos: $p];
+    ;if
     ret 0;
 ;fn full_upper_2_of
 
 # The code point number 3 of 'c''s longer mapping in full_upper, or 0 when there is none.
-pub.kit fn full_upper_3_of [let $c: u32] -> u32:
+pub.kit fn full_upper_3_of [$c: u32] -> u32:
     let $p := full_upper_at($c);
     if $p >= 1 and.then $p <= arr.len($full_upper_keys) and.then $full_upper_keys[pos: $p] == $c
         and.then $p <= arr.len($full_upper_3):
-            ret $full_upper_3[pos: $p];
-        ;if
+        ret $full_upper_3[pos: $p];
+    ;if
     ret 0;
 ;fn full_upper_3_of
 
@@ -596,7 +596,7 @@ pub.kit const $full_lower_3: arr[u32] := [
 ];
 
 # SpecialCasing's unconditional lowercase, up to three code points (0: none).
-pub.kit fn full_lower_at [let $c: u32] -> u64:
+pub.kit fn full_lower_at [$c: u32] -> u64:
     let $n := arr.len($full_lower_keys);
     var $p: u64[max: 28] = 0;
     if $p + 16 <= $n and.then $full_lower_keys[pos: $p + 16] <= $c:
@@ -618,38 +618,38 @@ pub.kit fn full_lower_at [let $c: u32] -> u64:
 ;fn full_lower_at
 
 # Whether 'c' has a longer mapping in full_lower.
-pub.kit fn full_lower_has [let $c: u32] -> bool:
+pub.kit fn full_lower_has [$c: u32] -> bool:
     let $p := full_lower_at($c);
     ret $p >= 1 and.then $p <= arr.len($full_lower_keys) and.then $full_lower_keys[pos: $p] == $c;
 ;fn full_lower_has
 
 # The code point number 1 of 'c''s longer mapping in full_lower, or 0 when there is none.
-pub.kit fn full_lower_1_of [let $c: u32] -> u32:
+pub.kit fn full_lower_1_of [$c: u32] -> u32:
     let $p := full_lower_at($c);
     if $p >= 1 and.then $p <= arr.len($full_lower_keys) and.then $full_lower_keys[pos: $p] == $c
         and.then $p <= arr.len($full_lower_1):
-            ret $full_lower_1[pos: $p];
-        ;if
+        ret $full_lower_1[pos: $p];
+    ;if
     ret 0;
 ;fn full_lower_1_of
 
 # The code point number 2 of 'c''s longer mapping in full_lower, or 0 when there is none.
-pub.kit fn full_lower_2_of [let $c: u32] -> u32:
+pub.kit fn full_lower_2_of [$c: u32] -> u32:
     let $p := full_lower_at($c);
     if $p >= 1 and.then $p <= arr.len($full_lower_keys) and.then $full_lower_keys[pos: $p] == $c
         and.then $p <= arr.len($full_lower_2):
-            ret $full_lower_2[pos: $p];
-        ;if
+        ret $full_lower_2[pos: $p];
+    ;if
     ret 0;
 ;fn full_lower_2_of
 
 # The code point number 3 of 'c''s longer mapping in full_lower, or 0 when there is none.
-pub.kit fn full_lower_3_of [let $c: u32] -> u32:
+pub.kit fn full_lower_3_of [$c: u32] -> u32:
     let $p := full_lower_at($c);
     if $p >= 1 and.then $p <= arr.len($full_lower_keys) and.then $full_lower_keys[pos: $p] == $c
         and.then $p <= arr.len($full_lower_3):
-            ret $full_lower_3[pos: $p];
-        ;if
+        ret $full_lower_3[pos: $p];
+    ;if
     ret 0;
 ;fn full_lower_3_of
 
@@ -682,7 +682,7 @@ pub.kit const $cased_hi: arr[u32] := [
 ];
 
 # Cased (DerivedCoreProperties), for final sigma.
-pub.kit fn cased_at [let $c: u32] -> u64:
+pub.kit fn cased_at [$c: u32] -> u64:
     let $n := arr.len($cased_lo);
     var $p: u64[max: 158] = 0;
     if $p + 128 <= $n and.then $cased_lo[pos: $p + 128] <= $c:
@@ -713,7 +713,7 @@ pub.kit fn cased_at [let $c: u32] -> u64:
 ;fn cased_at
 
 # Whether 'c' is in cased.
-pub.kit fn cased [let $c: u32] -> bool:
+pub.kit fn cased [$c: u32] -> bool:
     let $p := cased_at($c);
     ret $p >= 1 and.then $p <= arr.len($cased_hi) and.then $cased_hi[pos: $p] >= $c;
 ;fn cased
@@ -785,7 +785,7 @@ pub.kit const $case_ignorable_hi: arr[u32] := [
 ];
 
 # Case_Ignorable (DerivedCoreProperties), for final sigma.
-pub.kit fn case_ignorable_at [let $c: u32] -> u64:
+pub.kit fn case_ignorable_at [$c: u32] -> u64:
     let $n := arr.len($case_ignorable_lo);
     var $p: u64[max: 464] = 0;
     if $p + 256 <= $n and.then $case_ignorable_lo[pos: $p + 256] <= $c:
@@ -819,7 +819,7 @@ pub.kit fn case_ignorable_at [let $c: u32] -> u64:
 ;fn case_ignorable_at
 
 # Whether 'c' is in case_ignorable.
-pub.kit fn case_ignorable [let $c: u32] -> bool:
+pub.kit fn case_ignorable [$c: u32] -> bool:
     let $p := case_ignorable_at($c);
     ret $p >= 1 and.then $p <= arr.len($case_ignorable_hi) and.then $case_ignorable_hi[pos: $p] >= $c;
 ;fn case_ignorable
@@ -837,7 +837,7 @@ pub.kit const $soft_dotted_hi: arr[u32] := [
 ];
 
 # Soft_Dotted (PropList), for the Lithuanian rules.
-pub.kit fn soft_dotted_at [let $c: u32] -> u64:
+pub.kit fn soft_dotted_at [$c: u32] -> u64:
     let $n := arr.len($soft_dotted_lo);
     var $p: u64[max: 34] = 0;
     if $p + 32 <= $n and.then $soft_dotted_lo[pos: $p + 32] <= $c:
@@ -862,7 +862,7 @@ pub.kit fn soft_dotted_at [let $c: u32] -> u64:
 ;fn soft_dotted_at
 
 # Whether 'c' is in soft_dotted.
-pub.kit fn soft_dotted [let $c: u32] -> bool:
+pub.kit fn soft_dotted [$c: u32] -> bool:
     let $p := soft_dotted_at($c);
     ret $p >= 1 and.then $p <= arr.len($soft_dotted_hi) and.then $soft_dotted_hi[pos: $p] >= $c;
 ;fn soft_dotted
@@ -892,7 +892,7 @@ pub.kit const $above_hi: arr[u32] := [
 ];
 
 # Combining class 230, Above, for the Lithuanian and Turkish rules.
-pub.kit fn above_at [let $c: u32] -> u64:
+pub.kit fn above_at [$c: u32] -> u64:
     let $n := arr.len($above_lo);
     var $p: u64[max: 137] = 0;
     if $p + 128 <= $n and.then $above_lo[pos: $p + 128] <= $c:
@@ -923,7 +923,7 @@ pub.kit fn above_at [let $c: u32] -> u64:
 ;fn above_at
 
 # Whether 'c' is in above.
-pub.kit fn above [let $c: u32] -> bool:
+pub.kit fn above [$c: u32] -> bool:
     let $p := above_at($c);
     ret $p >= 1 and.then $p <= arr.len($above_hi) and.then $above_hi[pos: $p] >= $c;
 ;fn above
@@ -961,7 +961,7 @@ pub.kit const $marks_hi: arr[u32] := [
 ];
 
 # Any combining class but 0, for the Lithuanian and Turkish rules.
-pub.kit fn marks_at [let $c: u32] -> u64:
+pub.kit fn marks_at [$c: u32] -> u64:
     let $n := arr.len($marks_lo);
     var $p: u64[max: 202] = 0;
     if $p + 128 <= $n and.then $marks_lo[pos: $p + 128] <= $c:
@@ -992,7 +992,7 @@ pub.kit fn marks_at [let $c: u32] -> u64:
 ;fn marks_at
 
 # Whether 'c' is in marks.
-pub.kit fn marks [let $c: u32] -> bool:
+pub.kit fn marks [$c: u32] -> bool:
     let $p := marks_at($c);
     ret $p >= 1 and.then $p <= arr.len($marks_hi) and.then $marks_hi[pos: $p] >= $c;
 ;fn marks

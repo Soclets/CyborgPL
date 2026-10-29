@@ -106,22 +106,24 @@ def const(name, values):
             line = "   "
         line += piece
     body.append(line)
-    return f"pub.kit const ${name}: array[u32] = [\n" + "\n".join(body) + "\n];\n"
+    return f"pub.kit const ${name}: arr[u32] := [\n" + "\n".join(body) + "\n];\n"
 
 
 def search(fn, keys, n, doc):
     """A function giving the last position whose key is at most 'c', or 0: halves, unrolled."""
-    lines = [f"# {doc}", f"pub.kit fn {fn} [$c: u32] -> u64 {{",
-             f"    let $n := array.length(${keys});",
-             f"    let mut $p: u64[max: {n}] = 0;"]
+    lines = [f"# {doc}", f"pub.kit fn {fn} [$c: u32] -> u64:",
+             f"    let $n := arr.len(${keys});",
+             f"    var $p: u64[max: {n}] = 0;"]
     b = 1
     while b * 2 <= n:
         b *= 2
     while b >= 1:
-        lines.append(f"    if $p + {b} at_most $n and.then ${keys}[pos: $p + {b}] at_most $c {{ change $p = $p + {b}; }}")
+        lines.append(f"    if $p + {b} <= $n and.then ${keys}[pos: $p + {b}] <= $c:")
+        lines.append(f"        change $p to $p + {b};")
+        lines.append("    ;if")
         b //= 2
-    lines.append("    return $p;")
-    lines.append("}\n")
+    lines.append("    ret $p;")
+    lines.append(f";fn {fn}\n")
     return "\n".join(lines)
 
 
@@ -151,12 +153,14 @@ def main():
         parts.append(const(f"{name}_values", [table[k] for k in keys]))
         parts.append(search(f"{name}_at", f"{name}_keys", len(keys), doc))
         parts.append(f"""# 'c' mapped by {name}, or 'c' itself when it has no mapping.
-pub.kit fn {name} [$c: u32] -> u32 {{
+pub.kit fn {name} [$c: u32] -> u32:
     let $p := {name}_at($c);
-    if $p at_least 1 and.then $p at_most array.length(${name}_keys) and.then ${name}_keys[pos: $p] equal_to $c
-        and.then $p at_most array.length(${name}_values) {{ return ${name}_values[pos: $p]; }}
-    return $c;
-}}
+    if $p >= 1 and.then $p <= arr.len(${name}_keys) and.then ${name}_keys[pos: $p] == $c
+        and.then $p <= arr.len(${name}_values):
+        ret ${name}_values[pos: $p];
+    ;if
+    ret $c;
+;fn {name}
 """)
 
     def seq(name, table, doc):
@@ -166,19 +170,21 @@ pub.kit fn {name} [$c: u32] -> u32 {{
             parts.append(const(f"{name}_{i + 1}", [table[k][i] if i < len(table[k]) else 0 for k in keys]))
         parts.append(search(f"{name}_at", f"{name}_keys", len(keys), doc))
         parts.append(f"""# Whether 'c' has a longer mapping in {name}.
-pub.kit fn {name}_has [$c: u32] -> bool {{
+pub.kit fn {name}_has [$c: u32] -> bool:
     let $p := {name}_at($c);
-    return $p at_least 1 and.then $p at_most array.length(${name}_keys) and.then ${name}_keys[pos: $p] equal_to $c;
-}}
+    ret $p >= 1 and.then $p <= arr.len(${name}_keys) and.then ${name}_keys[pos: $p] == $c;
+;fn {name}_has
 """)
         for i in range(3):
             parts.append(f"""# The code point number {i + 1} of 'c''s longer mapping in {name}, or 0 when there is none.
-pub.kit fn {name}_{i + 1}_of [$c: u32] -> u32 {{
+pub.kit fn {name}_{i + 1}_of [$c: u32] -> u32:
     let $p := {name}_at($c);
-    if $p at_least 1 and.then $p at_most array.length(${name}_keys) and.then ${name}_keys[pos: $p] equal_to $c
-        and.then $p at_most array.length(${name}_{i + 1}) {{ return ${name}_{i + 1}[pos: $p]; }}
-    return 0;
-}}
+    if $p >= 1 and.then $p <= arr.len(${name}_keys) and.then ${name}_keys[pos: $p] == $c
+        and.then $p <= arr.len(${name}_{i + 1}):
+        ret ${name}_{i + 1}[pos: $p];
+    ;if
+    ret 0;
+;fn {name}_{i + 1}_of
 """)
 
     def ranges(name, rs, doc):
@@ -186,10 +192,10 @@ pub.kit fn {name}_{i + 1}_of [$c: u32] -> u32 {{
         parts.append(const(f"{name}_hi", [b for a, b in rs]))
         parts.append(search(f"{name}_at", f"{name}_lo", len(rs), doc))
         parts.append(f"""# Whether 'c' is in {name}.
-pub.kit fn {name} [$c: u32] -> bool {{
+pub.kit fn {name} [$c: u32] -> bool:
     let $p := {name}_at($c);
-    return $p at_least 1 and.then $p at_most array.length(${name}_hi) and.then ${name}_hi[pos: $p] at_least $c;
-}}
+    ret $p >= 1 and.then $p <= arr.len(${name}_hi) and.then ${name}_hi[pos: $p] >= $c;
+;fn {name}
 """)
 
     pair("simple_upper", simple_up, "Unicode's simple uppercase: one code point for one.")

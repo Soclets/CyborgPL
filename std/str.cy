@@ -107,7 +107,7 @@ pub fn replace [lent $s: str.utf8, lent $from: str.utf8[min: 1 bytes], lent $to:
 # A position past the last unit fails out_of_range.
 pub coll.fn at:
     # The byte at $pos.
-    member at.byte [lent $s: str.utf8, let $pos: u64[min: 1]] -> u8 or fail[out_of_range]:
+    member at.byte [lent $s: str.utf8, $pos: u64[min: 1]] -> u8 or fail[out_of_range]:
         for $i, $b in str.each.byte(lend $s):
             if $i == $pos:
                 ret $b;
@@ -117,7 +117,7 @@ pub coll.fn at:
     ;member at.byte
 
     # The character (Unicode code point) at $pos.
-    member at.point [lent $s: str.utf8, let $pos: u64[min: 1]] -> char.%point or fail[out_of_range]:
+    member at.point [lent $s: str.utf8, $pos: u64[min: 1]] -> char.%point or fail[out_of_range]:
         for $i, $p in str.each.point(lend $s):
             if $i == $pos:
                 ret $p;
@@ -127,7 +127,7 @@ pub coll.fn at:
     ;member at.point
 
     # The grapheme (what a person counts as one character) at $pos.
-    member at.cluster [lent $s: str.utf8, let $pos: u64[min: 1]] -> char.%cluster or fail[out_of_range]:
+    member at.cluster [lent $s: str.utf8, $pos: u64[min: 1]] -> char.%cluster or fail[out_of_range]:
         for $i, $g in str.each.cluster(lend $s):
             if $i == $pos:
                 ret copy $g;
@@ -143,7 +143,7 @@ pub coll.fn at:
 pub coll.fn slice:
     # Bytes $from to $to, as bytes: an end may land inside a character, so making text of them is the
     # caller's `to.str.utf8(…) otherwise …` (owner, 2026-10-20: "(a)").
-    member slice.byte [lent $s: str.utf8, let $from: u64[min: 1], let $to: u64[min: 1]] -> ls[u8] or fail[out_of_range]:
+    member slice.byte [lent $s: str.utf8, $from: u64[min: 1], $to: u64[min: 1]] -> ls[u8] or fail[out_of_range]:
         if $to < $from or $to > str.bytes(lend $s):
             fail out_of_range;
         ;if
@@ -160,7 +160,7 @@ pub coll.fn slice:
     ;member slice.byte
 
     # Code points $from to $to.
-    member slice.point [lent $s: str.utf8, let $from: u64[min: 1], let $to: u64[min: 1]] -> str.utf8 or fail[out_of_range]:
+    member slice.point [lent $s: str.utf8, $from: u64[min: 1], $to: u64[min: 1]] -> str.utf8 or fail[out_of_range]:
         if $to < $from or $to > str.points(lend $s):
             fail out_of_range;
         ;if
@@ -180,7 +180,7 @@ pub coll.fn slice:
     ;member slice.point
 
     # Graphemes $from to $to.
-    member slice.cluster [lent $s: str.utf8, let $from: u64[min: 1], let $to: u64[min: 1]] -> str.utf8 or fail[out_of_range]:
+    member slice.cluster [lent $s: str.utf8, $from: u64[min: 1], $to: u64[min: 1]] -> str.utf8 or fail[out_of_range]:
         if $to < $from or $to > str.clusters(lend $s):
             fail out_of_range;
         ;if
@@ -237,7 +237,7 @@ pub coll.fn upper:
         ;version
         # The same, with $lang's own rules from SpecialCasing: in Turkish and Azerbaijani `i` is `İ`; in
         # Lithuanian a dot above after a soft-dotted letter (`i̇`) goes, the letter's own capital having none.
-        [lent $s: str.utf8, let $lang: my.casing] -> str.utf8:
+        [lent $s: str.utf8, $lang: my.casing] -> str.utf8:
             let $c := my.str.codes_of(lend $s);
             var $out: ls[u8] = [];
             for $i: u64 [from: 1, to: ls.len(lend $c), by: 1]:
@@ -291,7 +291,7 @@ pub coll.fn lower:
         # The same, with $lang's own rules from SpecialCasing: in Turkish and Azerbaijani `I` is `ı` and
         # `İ` is `i`; in Lithuanian `I`, `J` and `Į` keep a dot (`i̇`) when an accent above follows, and
         # `Ì`, `Í`, `Ĩ` are written with one.
-        [lent $s: str.utf8, let $lang: my.casing] -> str.utf8:
+        [lent $s: str.utf8, $lang: my.casing] -> str.utf8:
             let $c := my.str.codes_of(lend $s);
             var $out: ls[u8] = [];
             for $i: u64 [from: 1, to: ls.len(lend $c), by: 1]:
@@ -332,7 +332,7 @@ pub coll.fn lower:
 ;coll.fn lower
 
 # $x's full uppercase, after $out: SpecialCasing's longer mapping when it has one, else its simple one.
-fn append_full_upper [lent.mut $out: ls[u8], let $x: u32]:
+fn append_full_upper [lent.mut $out: ls[u8], $x: u32]:
     if my.case_tables.full_upper_has($x):
         my.str.append_point(lend.mut $out, my.case_tables.full_upper_1_of($x));
         let $second := my.case_tables.full_upper_2_of($x);
@@ -350,7 +350,7 @@ fn append_full_upper [lent.mut $out: ls[u8], let $x: u32]:
 
 # The full lowercase of the character at $i in $c, after $out, by the shared rules: a `Σ` is `ς` when it ends
 # a word, else SpecialCasing's longer mapping when there is one, else the simple one.
-fn append_full_lower [lent.mut $out: ls[u8], lent $c: ls[u32], let $i: u64[min: 1]]:
+fn append_full_lower [lent.mut $out: ls[u8], lent $c: ls[u32], $i: u64[min: 1]]:
     if $i > ls.len(lend $c):
         ret;
     ;if
@@ -385,7 +385,7 @@ fn codes_of [lent $s: str.utf8] -> ls[u32]:
 # character at $i in $c. A mark run is the combining marks after a letter: those of any class but 0.
 
 # Final_Sigma, before: a cased letter comes before $i, only case-ignorable ones between.
-fn cased_before [lent $c: ls[u32], let $i: u64[min: 1]] -> bool:
+fn cased_before [lent $c: ls[u32], $i: u64[min: 1]] -> bool:
     if $i > ls.len(lend $c):
         ret false;
     ;if
@@ -401,7 +401,7 @@ fn cased_before [lent $c: ls[u32], let $i: u64[min: 1]] -> bool:
 ;fn cased_before
 
 # Final_Sigma, after: a cased letter comes after $i, only case-ignorable ones between.
-fn cased_after [lent $c: ls[u32], let $i: u64[min: 1]] -> bool:
+fn cased_after [lent $c: ls[u32], $i: u64[min: 1]] -> bool:
     if $i >= ls.len(lend $c):
         ret false;
     ;if
@@ -418,7 +418,7 @@ fn cased_after [lent $c: ls[u32], let $i: u64[min: 1]] -> bool:
 
 # After_Soft_Dotted: a soft-dotted letter (`i`, `j`, `į`, …) comes before $i in the same mark run, no mark
 # above between.
-fn after_soft_dotted [lent $c: ls[u32], let $i: u64[min: 1]] -> bool:
+fn after_soft_dotted [lent $c: ls[u32], $i: u64[min: 1]] -> bool:
     if $i > ls.len(lend $c):
         ret false;
     ;if
@@ -435,7 +435,7 @@ fn after_soft_dotted [lent $c: ls[u32], let $i: u64[min: 1]] -> bool:
 ;fn after_soft_dotted
 
 # After_I: a capital `I` comes before $i in the same mark run, no mark above between.
-fn after_capital_i [lent $c: ls[u32], let $i: u64[min: 1]] -> bool:
+fn after_capital_i [lent $c: ls[u32], $i: u64[min: 1]] -> bool:
     if $i > ls.len(lend $c):
         ret false;
     ;if
@@ -452,7 +452,7 @@ fn after_capital_i [lent $c: ls[u32], let $i: u64[min: 1]] -> bool:
 ;fn after_capital_i
 
 # More_Above: a mark above comes after $i in the same mark run.
-fn more_above [lent $c: ls[u32], let $i: u64[min: 1]] -> bool:
+fn more_above [lent $c: ls[u32], $i: u64[min: 1]] -> bool:
     if $i >= ls.len(lend $c):
         ret false;
     ;if
@@ -469,7 +469,7 @@ fn more_above [lent $c: ls[u32], let $i: u64[min: 1]] -> bool:
 ;fn more_above
 
 # Before_Dot: a combining dot above (U+0307) comes after $i in the same mark run, no other mark above between.
-fn before_dot [lent $c: ls[u32], let $i: u64[min: 1]] -> bool:
+fn before_dot [lent $c: ls[u32], $i: u64[min: 1]] -> bool:
     if $i >= ls.len(lend $c):
         ret false;
     ;if
@@ -487,7 +487,7 @@ fn before_dot [lent $c: ls[u32], let $i: u64[min: 1]] -> bool:
 
 # The UTF-8 bytes of the character $c, after $out. Every $c here comes from Unicode's case tables, so it
 # is always a character; if it ever is not, std has a bug, and the program stops saying so.
-fn append_point [lent.mut $out: ls[u8], let $c: u32]:
+fn append_point [lent.mut $out: ls[u8], $c: u32]:
     let $ch := char.%point.from_code($c) ?? bug "a case table gave a code that is no character";
     let $t := to.str.utf8($ch);
     for $b in str.each.byte(lend $t):
@@ -505,7 +505,7 @@ fn bytes_of [lent $s: str.utf8] -> ls[u8]:
 ;fn bytes_of
 
 # Whether $part sits in $text with its first byte at $pos.
-fn sits_at [lent $text: ls[u8], lent $part: ls[u8], let $pos: u64[min: 1]] -> bool:
+fn sits_at [lent $text: ls[u8], lent $part: ls[u8], $pos: u64[min: 1]] -> bool:
     let $n := ls.len(lend $text);
     let $m := ls.len(lend $part);
     if $m > $n:
@@ -524,6 +524,6 @@ fn sits_at [lent $text: ls[u8], lent $part: ls[u8], let $pos: u64[min: 1]] -> bo
 
 # Bytes cut from UTF-8 text where characters start and end, back into text. They are always
 # UTF-8; if they ever are not, std has a bug, and the program stops saying so.
-fn text_of [let $bytes: ls[u8]] -> str.utf8:
+fn text_of [$bytes: ls[u8]] -> str.utf8:
     ret to.str.utf8(lend $bytes) ?? bug "text cut on a character's edge was not UTF-8";
 ;fn text_of
