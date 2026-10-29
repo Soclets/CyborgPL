@@ -1,1 +1,1 @@
-expected a quoted loop variable
+expected the loop's variable, `$i`, found `seq`

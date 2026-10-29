@@ -1029,7 +1029,7 @@ impl<'p> Interp<'p> {
                 if kind == SlotKind::Const { return rt(*line, format!("'{name}' is a const and cannot be assigned to")); }
                 if kind == SlotKind::Extern { return rt(*line, format!("`${name}` is C's `const`, `%extern.C let ${name}`, so it is only read; a C variable CyborgPL writes is `%extern.C var ${name}` (owner, 2026-10-27)")); }
                 if kind == SlotKind::ExternMut && self.nocheck_depth == 0 && self.marks_needed() { return rt(*line, format!("'{name}' is extern: writing C's variable is a no_check site: `no_check '{name}' = …;`")); }
-                if immut { return rt(*line, format!("'{name}' cannot be changed: it is `immut` (or a loop's counter or element, which belong to the loop)")); }
+                if immut { return rt(*line, format!("`${name}` cannot be changed: it is a `let`, or a loop's counter or element, which belong to the loop")); }
                 if kind == SlotKind::Lent { return rt(*line, format!("'{name}' is lent (shared); it cannot be assigned to — a `lent.mut` could")); }
                 self.stale(name, self.lookup(name).unwrap(), *line)?;
                 let (v, prov) = {

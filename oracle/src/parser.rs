@@ -3227,7 +3227,11 @@ impl Parser {
             Tok::Word(w) if w == "seq" || w == "para" => return self.err(format!("`{w}` comes first: `for {w} perm $x in …`")),
             _ => false,
         };
-        let mut name = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("expected a quoted loop variable, found {other}")) };
+        let mut name = match self.advance().tok {
+            Tok::Var(v) => v,
+            Tok::Word(w) if w == "let" || w == "variable" || w == "var" => return self.err("a loop's variable takes no `let` or `var`: it belongs to the loop, which sets it each trip (`for $i [from: 1, to: 9, by: 1]:`)"),
+            other => return self.err(format!("expected the loop's variable, `$i`, found {other}")),
+        };
         // `for 'i', 'x' in lend 'xs'` — the position first, then the item (owner, 2026-09-29)
         let mut index = None;
         if *self.peek() == Tok::Comma {
