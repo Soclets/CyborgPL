@@ -153,6 +153,16 @@ pub fn from_three(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
         if starts_line && t.tok == Tok::Semi && toks.get(i + 1).is_some_and(|x| x.line == t.line && matches!(x.tok, Tok::Word(_) | Tok::Mark)) {
             let kind = match tok(i + 1) { Tok::Word(w) => w.clone(), _ => String::new() };
             if matches!(kind.as_str(), "MAIN" | "no_check" | "NO_FUCKING_CHECKS") { out.push(like(Tok::Attention, t)); }
+            // an operator's closer repeats its name as written: `op !` closes `;op !`, never `;op not`, though both read as
+            // `not` inside (compiler claude's finding, 2026-10-29)
+            if kind == "op" {
+                let written = |k: usize| -> String { match toks.get(k) { Some(x) if x.mtm.as_ref().is_some_and(|(w, _)| w == "!") => "!".into(), Some(x) => shown(&x.tok), None => String::new() } };
+                if let Some(o) = (0..i).rev().find(|&k| is_word(k, "op") && toks.get(k + 1).is_some_and(|x| x.line == toks[k].line) && (k == 0 || toks[k - 1].line < toks[k].line || is_word(k - 1, "pub"))) {
+                    let (opened, closed) = (written(o + 1), written(i + 2));
+                    // only `!` and `not` read alike inside; any other difference is the block checker's to name
+                    if opened != closed && (opened == "!" || closed == "!") { return Err((t.line, t.col, format!("`;op {closed}` does not close the `op {opened}` that is open: write `;op {opened}` (owner, 2026-10-26)"))); }
+                }
+            }
             out.push(word("end", t));
             out.push(word("of", t));
             i += 1;

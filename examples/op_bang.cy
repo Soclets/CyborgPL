@@ -5,7 +5,7 @@
 # a over b: how many times b fits in a
 op ! [lent $a: i32, lent $b: i32] -> i32:
     ret $a div.floor $b;
-;op not
+;op !
 
 MAIN:
     std::print((17 ! 5), newln);
