@@ -2069,7 +2069,8 @@ fn check_blocks(toks: &[Token], closes: &[(String, bool, usize, usize)], arm_ban
     Ok(())
 }
 
-/// The handlers this file declares, by collection: only those are checked where they are used (another kit's are its own)
+/// The handlers this file declares, by collection, checked here where they are used; another kit's are checked by the parser,
+/// which has their arms
 fn jumping_known(toks: &[Token], coll: &str) -> bool {
     (0..toks.len().saturating_sub(3)).any(|i| matches!(&toks[i].tok, Tok::Word(c) if c == "coll") && toks[i + 1].tok == Tok::Dot && matches!(&toks[i + 2].tok, Tok::Word(h) if h == "handler") && matches!(&toks[i + 3].tok, Tok::Word(n) if n == coll))
 }
