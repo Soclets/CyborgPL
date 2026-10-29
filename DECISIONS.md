@@ -34,6 +34,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-29 — `bug "…";` stops the program on a bug the code found in itself; a `fn` may use it (owner: "sure", "yup"; not built)
+
+Compiler claude, converting kayo, found std's "bug stops" (where std finds a bug in itself it prints `std: a bug: …` to
+stderr and calls `std::exit(code: 101)`) make its pure functions `proc`s under 2026-10-27's rule, rounding among them, so
+a writer's `fn` that rounds would have to be a `proc`. Design claude: a bug stop is not an effect but an input with no
+answer, the "partial" of 2026-10-27's entry (design claude's wording there, the owner's "yes"; owner: "I don't think I
+definined that, tbh"), accurate in the maths sense if the stop is one statement of the language and not a hand-written
+print and exit. The owner: "sure, what is the syntax", then, offered `bug` (says what reaching the line means) or
+`unreachable` (Rust's, Zig's), `bug` recommended: "yup". So **`bug "message";`** is a statement, as `ret` and `fail` are,
+and a value that never arrives after `??` / `otherwise` (`to.str.utf8(lend $b) ?? bug "…"`); its message is a text
+literal. **When it runs it stops the program with exit 101**, printing `error[bug]`, where, and the message (2026-10-22's
+error form). **It is not an effect: a `fn` may use it.** **It is a check site**: Precog tries to prove it is never
+reached; proven, it costs nothing; not proven, the final build reports it as any unproven check. Design claude's
+readings, shown with it: exit 101 (std's code today, and Rust's), the message a literal. Not built.
+
 ### 2026-10-29 — A generic's placeholders are declared in their own `[ ]`, `fn total [<T>: Addable] [lent $xs: std::ls[<T>]]` (owner: "yes, record it"; built the same day, owner: "send, and implement")
 
 multifinity's Claude, on the bracket rule: `< >` is a third bracket kind the rule never mentions, generic parameters

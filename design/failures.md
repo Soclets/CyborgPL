@@ -97,6 +97,26 @@ one-line forms above say it once: `… otherwise fail bad_row[copy $row];`.
   (Claude caught the collision after the owner had said `or`; candidates
   were `else`, `catch`, `otherwise`, `onfail`; owner: `otherwise`).
 
+## A bug: `bug "…";` (owner, 2026-10-29; not built)
+
+A failure is for a caller to handle. A bug is not: it is code reaching a place its writer knows cannot be reached, so
+there is no one to hand it to. `bug "message";` stops the program there.
+
+```
+fn text_of [lent $b: str.utf8] -> str.utf8:
+    let $t := to.str.utf8(lend $b) ?? bug "text_of was handed bytes that are not UTF-8";
+    ret $t;
+;fn text_of
+```
+
+- A statement, as `ret` and `fail` are, and a value that never arrives after `??` / `otherwise`. The message is a text
+  literal.
+- When it runs: exit 101, and `error[bug]`, where, and the message on stderr (the error form of 2026-10-22).
+- Not an effect, so a `fn` may use it: an input it has no answer for makes a function partial, not impure (2026-10-27).
+  A hand-written `std::print` then `std::exit` are effects, which is why std needs this.
+- A check site: Precog tries to prove it is never reached. Proven, it costs nothing; not proven, the final build reports
+  it as any unproven check.
+
 ## The oracle
 
 Enforces all of it, and checks the caller's side *before* running the call,
