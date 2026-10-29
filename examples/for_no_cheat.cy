@@ -15,7 +15,7 @@ MAIN:
         change $acc to $acc + $i;
     ;for
     var $more: i64 = 0;
-    no_skip for seq $i: i64 [from: 1, to: 10, by: 1]:
+    no_skip for $i: i64 [from: 1, to: 10, by: 1]:
         change $more to $more + $i;
     ;for
     no_skip let $f := fib(20);

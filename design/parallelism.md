@@ -5,6 +5,24 @@
 Decided 2026-09-14. Concurrency (tasks that wait on the outside world —
 `concur`, channels, `pick`) is `concurrency.md`, decided 2026-09-22.
 
+## Marked: `for %para` (owner, 2026-10-29)
+
+Every limb is marked with `%` where it acts, MCPS too. So **a plain `for` always runs in order**, with MCPS or without,
+and **`for %para` is MCPS's loop**: run in parallel where Precog proves it safe and estimates it worth the cores (the two
+tests below), in order otherwise. A loop that prints, reads input or calls C stays in order under `%para` as before unless
+its C is `no_check`ed. **`seq` is gone**, a plain `for` already being in order; it is refused naming that. Until this
+date a plain `for` became parallel by itself once MCPS was listed (the sections below are that history, their rules now
+for `%para`): the one place a limb changed unmarked code, a `bin` total among what could come out differently.
+
+```
+for $line in lend $lines:            # in order, always
+    std::print($line, newln);
+;for
+for %para $x in lend.mut $pixels:     # MCPS: parallel where safe and worth it
+    change $x to shade($x);
+;for
+```
+
 ## Automatic
 
 The programmer writes `for`. the prover decides whether it runs in

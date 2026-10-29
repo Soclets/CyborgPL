@@ -17,7 +17,7 @@ MAIN:
         std::print("loop ", $n, newln);
     ;loop
     let $chars := [`a`, `é`, `🍎`];
-    for seq $c in lend $chars:
+    for $c in lend $chars:
         std::print.stored($c, newln);
     ;for
     std::exit(code: 3);

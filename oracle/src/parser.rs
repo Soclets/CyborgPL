@@ -3214,22 +3214,25 @@ impl Parser {
         if self.is_word("!c") { return self.err("`!c` is `no_cheat` now, in front of the loop: `no_cheat for $i in …` (owner, 2026-10-06, 2026-10-18)"); }
         // `no_cheat` goes in front of the `for`, as `no_check` does (owner, 2026-10-18: "(a)")
         if self.is_word("no_cheat") { return self.err(crate::spellings::message(crate::spellings::old("for no_cheat"))); }
-        let mut seq = false;
-        if self.is_word("seq") { self.advance(); seq = true; }
-        // `for para` forces a loop parallel, as `for seq` forces it in order (owner, 2026-09-30); the
-        // oracle runs every loop in order, one schedule of the design's, so it only reads the word
+        // a plain `for` runs in order, with MCPS or without; `for %para` is MCPS's loop, run in parallel where Precog proves
+        // it safe and worth the cores (owner, 2026-10-29: "(a)", every limb marked where it acts), so `seq` is gone. The
+        // oracle runs every loop in order, one schedule of the design's, so it only reads `para`
+        let seq = false;
+        if self.is_word("seq") { return self.err("a plain `for` runs in order, so `seq` is gone: drop it; `for %para` is MCPS's parallel loop (owner, 2026-10-29)"); }
         else if self.is_word("para") { self.advance(); }
-        if self.is_word("seq") || self.is_word("para") { return self.err("a `for` is `seq` or `para`, not both"); }
-        if self.is_word("no_cheat") || self.is_word("!c") { return self.err("`no_cheat` goes in front of the loop: `no_cheat for seq $i in …` (owner, 2026-10-18)"); }
+        if self.is_word("seq") || self.is_word("para") { return self.err("`for %para` says it once"); }
+        if self.is_word("no_cheat") || self.is_word("!c") { return self.err("`no_cheat` goes in front of the loop: `no_skip for $i in …` (owner, 2026-10-18)"); }
         let perm = match self.peek().clone() {
             Tok::Word(w) if w == "temp" => { self.advance(); false }
             Tok::Word(w) if w == "perm" => { self.advance(); true }
-            Tok::Word(w) if w == "seq" || w == "para" => return self.err(format!("`{w}` comes first: `for {w} perm $x in …`")),
+            Tok::Word(w) if w == "seq" => return self.err("a plain `for` runs in order, so `seq` is gone: drop it; `for %para` is MCPS's parallel loop (owner, 2026-10-29)"),
+            Tok::Word(w) if w == "para" => return self.err(format!("`{w}` comes first: `for %{w} perm $x in …`")),
             _ => false,
         };
         let mut name = match self.advance().tok {
             Tok::Var(v) => v,
             Tok::Word(w) if w == "let" || w == "variable" || w == "var" => return self.err("a loop's variable takes no `let` or `var`: it belongs to the loop, which sets it each trip (`for $i [from: 1, to: 9, by: 1]:`)"),
+            Tok::Word(w) if w == "seq" => return self.err("a plain `for` runs in order, so `seq` is gone: drop it; `for %para` is MCPS's parallel loop (owner, 2026-10-29)"),
             other => return self.err(format!("expected the loop's variable, `$i`, found {other}")),
         };
         // `for 'i', 'x' in lend 'xs'` — the position first, then the item (owner, 2026-09-29)

@@ -34,6 +34,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-29 — A plain `for` always runs in order; `for %para` is MCPS's parallel loop; `seq` is gone (owner: "(a)")
+
+Asked whether `for seq` should be written when it is a written-out default, the owner: "Actually, `for seq` ia a hard one,
+it depends if you have that limb", then "it runs para by default if safe, that's what MCPS does", then: "Look at the other
+limbs, they're all marked with `%` where they add stuff, but MCPS isn't, because safe unmarked loops can become para using
+MCPS, but always seq when MCPS isn't here". Design claude offered (a) MCPS acts only where marked, a plain `for` always in
+order and `for %para` run in parallel where Precog proves it safe and worth the cores, `seq` gone, recommended, or (b)
+MCPS recorded as the one limb that acts on unmarked code, its `CyJet.toml` listing the mark. The owner: "(a)". So **a
+plain `for` runs in order with MCPS or without, `for %para` is MCPS's (parallel where safe and worth it, in order
+otherwise), and `for seq` is refused, naming the plain `for`.** This narrows 2026-09-30's automatic parallel `for` to
+`%para`, which no longer only forces. Built: the oracle refuses `seq`; `examples/for_para.cy`, `loops.cy`,
+`for_no_cheat.cy` and three reject tests changed; `parallelism.md`, "Marked: `for %para`".
+
 ### 2026-10-29 — Bare `print` stays the shortest form of its values; formatting stays `print.format` (owner: "keep it")
 
 The owner: "Should we only make it mean format?" Design claude, by the redesign checklist: formatting is the more specific

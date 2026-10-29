@@ -1,1 +1,1 @@
-expected the loop's variable, `$i`, found `seq`
+a plain `for` runs in order, so `seq` is gone
