@@ -19,7 +19,7 @@
 
 module board:
     # The serial port is a PL011 at 0x0900_0000: a byte written to its data register goes out.
-    pub.kit proc write [let $b: u8]:
+    pub.kit proc write [$b: u8]:
         no_check inline.ASM with [$b -> x0, clobber x9]:
             mov x9, #0x09000000
             strb w0, [x9]
@@ -27,7 +27,7 @@ module board:
     ;proc write
 
     # Power off through PSCI's SYSTEM_OFF (0x8400_0008), over `hvc`; QEMU ends with it.
-    pub.kit proc off [let $code: u8]:
+    pub.kit proc off [$code: u8]:
         no_check inline.ASM with [$code -> x1, clobber x0]:
             movz x0, #0x0008
             movk x0, #0x8400, lsl #16
@@ -161,7 +161,7 @@ fn crc32 [] -> u32:
 # ---------------------------------------------------------------------------------------------------
 
 # Tenths of a degree as degrees: `-3.5`, `21.0`.
-proc show_tenths [let $t: day.tenths]:
+proc show_tenths [$t: day.tenths]:
     var $a = $t;
     if $t < 0:
         std::print("-");
@@ -171,14 +171,14 @@ proc show_tenths [let $t: day.tenths]:
 ;proc show_tenths
 
 # An hour of the day as a clock time, `07:00`.
-proc show_hour [let $h: day.hour]:
+proc show_hour [$h: day.hour]:
     if $h < 10:
         std::print("0");
     ;if
     std::print($h, ":00");
 ;proc show_hour
 
-proc show_digit [let $d: u32]:
+proc show_digit [$d: u32]:
     if $d < 10:
         std::print($d); ret;
     ;if
@@ -201,7 +201,7 @@ proc show_digit [let $d: u32]:
 ;proc show_digit
 
 # A 32-bit word in hex, its eight digits from the top: `0x0018_0803`.
-proc show_hex [let $x: u32]:
+proc show_hex [$x: u32]:
     std::print("0x");
     for $k [from: 1, to: 8, by: 1]:
         let $shift := to.u32(32 - 4 x $k);
@@ -222,7 +222,7 @@ union.tag Alarm:
     hot;
 ;union.tag Alarm
 
-fn alarm_for [let $t: temp] -> Alarm:
+fn alarm_for [$t: temp] -> Alarm:
     if $t > 250:
         ret Alarm.hot;
     ;if
@@ -232,7 +232,7 @@ fn alarm_for [let $t: temp] -> Alarm:
     ret Alarm.calm;
 ;fn alarm_for
 
-fn rank [let $a: Alarm] -> i32:
+fn rank [$a: Alarm] -> i32:
     let $r := match $a:
         case calm:
             is 0;
@@ -247,7 +247,7 @@ fn rank [let $a: Alarm] -> i32:
     ret $r;
 ;fn rank
 
-proc show_alarm [let $a: Alarm]:
+proc show_alarm [$a: Alarm]:
     match $a:
         case calm:
             std::print("calm");
@@ -278,7 +278,7 @@ sig Ordered [<T>]:
     op == [lent $a: <T>, lent $b: <T>] -> bool;
 ;sig Ordered
 
-fn larger [<T>: Number and Ordered] [let $a: <T>, let $b: <T>] -> <T>:
+fn larger [<T>: Number and Ordered] [$a: <T>, $b: <T>] -> <T>:
     if $a > $b:
         ret $a;
     ;if

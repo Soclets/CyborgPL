@@ -333,7 +333,7 @@ proc journey [lent $net: Network, lent $from: str.utf8, lent $to: str.utf8] -> J
 # Clock times: minutes since midnight of the departure day as "07:40", with "+1" for the next morning
 # ---------------------------------------------------------------------------------------------------
 
-fn clock [let $minutes: i32] -> str.utf8:
+fn clock [$minutes: i32] -> str.utf8:
     let $day := $minutes div.floor 1440;
     let $in_day := $minutes mod.floor 1440;
     let $text := std::format("{zeros, width: 2 cols}:{zeros, width: 2 cols}", $in_day div.floor 60, $in_day mod.floor 60);
@@ -366,7 +366,7 @@ proc Clock.next [lent.mut $c: Clock] -> optional[i32]:
 # Fares, in exact decimals
 # ---------------------------------------------------------------------------------------------------
 
-fn distance_fare [let $km: i32] -> %d64:
+fn distance_fare [$km: i32] -> %d64:
     if $km <= $near_km:
         ret $near_rate x to.%d64($km);
     ;if
@@ -389,7 +389,7 @@ fn supplement [lent $seat: Seat] -> %d64:
     ;match
 ;fn supplement
 
-fn discount [let $age: Age] -> i32[min: 0, max: 50]:
+fn discount [$age: Age] -> i32[min: 0, max: 50]:
     let $percent: i32[min: 0, max: 50] := match $age:
         case adult:
             is 0;
@@ -406,7 +406,7 @@ fn discount [let $age: Age] -> i32[min: 0, max: 50]:
 
 # The fare before rounding can hold more than two places (30% of 0.15 is 0.045): it is rounded to the
 # cent once, at the end, half to even, and said so.
-fn fare [let $km: i32, lent $seat: Seat, let $age: Age] -> %d64:
+fn fare [$km: i32, lent $seat: Seat, $age: Age] -> %d64:
     let $full := distance_fare($km) + supplement(lend $seat);
     let $off := to.%d64(discount($age));
     let $exact := $full - ($full x $off) div.near 100;
@@ -427,7 +427,7 @@ fn seat_name [lent $seat: Seat] -> str.utf8:
     ;match
 ;fn seat_name
 
-fn age_name [let $age: Age] -> str.utf8:
+fn age_name [$age: Age] -> str.utf8:
     match $age:
         case adult:
             ret "adult";
@@ -558,7 +558,7 @@ proc book [
 # whom it is explaining to. Its arms act as if written at the call, so `continue` moves on to the next
 # request there (owner, 2026-10-25).
 coll.handler booking_failed:
-    member booking_failed.explain [let $who: str.utf8]:
+    member booking_failed.explain [$who: str.utf8]:
         case unknown_station $name:
             std::print("  ", $who, ": no station called ", $name, " on this network", newln);
             continue;
@@ -578,7 +578,7 @@ coll.handler booking_failed:
     ;member booking_failed.explain
 ;coll.handler booking_failed
 
-proc show_booking [lent $b: Booking, let $age: Age]:
+proc show_booking [lent $b: Booking, $age: Age]:
     let $changes := std::ls.len(lend $b.journey.stops) - 2;
     std::print("  #", $b.ticket, " ", $b.traveller, " (", age_name($age), "), ", seat_name(lend $b.seat), newln);
     std::print("    ", std::str.join(lend $b.journey.stops, between: " → "), newln);
@@ -641,7 +641,7 @@ proc board [lent $net: Network, lent $from: str.utf8]:
 # worked out by its own task, which reports back over a channel
 # ---------------------------------------------------------------------------------------------------
 
-proc reached_by [lent $net: Network, lent $hub: str.utf8, let $deadline: i32] -> u64:
+proc reached_by [lent $net: Network, lent $hub: str.utf8, $deadline: i32] -> u64:
     let $best := quickest_from(lend $net, lend $hub);
     var $reached: std::ls[str.utf8] = std::ls.empty;
     for $e in std::map.pairs(lend $best):
@@ -678,7 +678,7 @@ proc compare_hubs [lent $net: Network]:
 # Looking things up: the stations whose names hold a given letter
 # ---------------------------------------------------------------------------------------------------
 
-fn stations_where [lent $net: Network, let $keep: fn[str.utf8] -> bool] -> std::ls[str.utf8]:
+fn stations_where [lent $net: Network, $keep: fn[str.utf8] -> bool] -> std::ls[str.utf8]:
     var $out: std::ls[str.utf8] = std::ls.empty;
     for $s in lend $net.stations:
         if $keep(copy $s):
@@ -692,7 +692,7 @@ proc show_letters [lent $net: Network]:
     std::print(newln, "stations by letter:", newln);
     let $letters := ["ö", "ü", "ó", "x"];
     for $part in lend $letters:
-        let $found := stations_where(lend $net, fn [let $s] with [lend $part] = std::str.contains(lend $s, part: lend $part));
+        let $found := stations_where(lend $net, fn [$s] with [lend $part] = std::str.contains(lend $s, part: lend $part));
         if std::ls.len(lend $found) == 0:
             std::print("  none with ", $part, newln);
         else:

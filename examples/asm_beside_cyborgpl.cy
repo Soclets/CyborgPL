@@ -5,7 +5,7 @@
 # oracle reads it but cannot run assembly, so it stops at the first block (`.oracle`).
 
 # a times b plus c, in one instruction
-proc mul_add_asm [let $a: i64, let $b: i64, let $c: i64] -> i64:
+proc mul_add_asm [$a: i64, $b: i64, $c: i64] -> i64:
     no_check inline.ASM with [$a -> x0, $b -> x1, $c -> x2, $r <- x0]:
         madd x0, x0, x1, x2
     ;inline.ASM
@@ -13,7 +13,7 @@ proc mul_add_asm [let $a: i64, let $b: i64, let $c: i64] -> i64:
 ;proc mul_add_asm
 
 # how many zero bits before the first 1, counting from the top
-proc leading_zeros_asm [let $n: u64] -> u64:
+proc leading_zeros_asm [$n: u64] -> u64:
     var $z: u64 = $n;
     no_check inline.ASM with [$z <-> x0]:
         clz x0, x0
@@ -21,7 +21,7 @@ proc leading_zeros_asm [let $n: u64] -> u64:
     ret $z;
 ;proc leading_zeros_asm
 
-fn leading_zeros_zag [let $n: u64] -> u64:
+fn leading_zeros_zag [$n: u64] -> u64:
     var $z: u64 = 0;
     var $mask: u64 = 9223372036854775808;   # the top bit
     while $mask != 0 and ($n and.bit $mask) == 0:

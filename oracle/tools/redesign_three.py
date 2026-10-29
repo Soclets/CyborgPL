@@ -38,6 +38,14 @@ def generic_lists(code):
     return GENERIC_DECL.sub(one, code)
 
 
+PARAM_LET = re.compile(r'([\[,]\s*)let\s+(?=\$|\.\.\.)')
+
+
+def drop_param_let(code):
+    """`fn add [let $a: i32, let $b: i32]` → `fn add [$a: i32, $b: i32]`; a statement's `let $x := …` stays."""
+    return PARAM_LET.sub(r'\1', code)
+
+
 def mask(src):
     """The source with every string, character, comment and inline block's code replaced by a placeholder, and the
     pieces taken out, in order."""
@@ -143,6 +151,8 @@ def convert(src):
         code = re.sub(r'(?<![\w$])' + pat + r'(?!\w)', rep, code)
     # a generic's placeholders are declared in their own `[ ]` (owner, 2026-10-29): `fn total <T: Addable>` → `fn total [<T>: Addable]`
     code = generic_lists(code)
+    # a name inside brackets is fixed unless it says `var` (owner, 2026-10-29: "(c)"): a parameter's `let` goes
+    code = drop_param_let(code)
     # a plain `for` runs in order, so `seq` is gone (owner, 2026-10-29); a plain loop stays plain: MCPS no longer makes it
     # parallel, and only `for %para` is
     code = re.sub(r'\bfor\s+seq\s+', 'for ', code)

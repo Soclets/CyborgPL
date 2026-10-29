@@ -1,4 +1,4 @@
-pub fn area [let $s: f64] -> f64:
+pub fn area [$s: f64] -> f64:
     ret $side x $s x $s;
 ;fn area
 pub.kit fn name [] -> str.utf8:

@@ -1,3 +1,3 @@
 MAIN:
-    let $f: fn[i32] -> bool := fn [let $s] -> bool = $s >= 60;
+    let $f: fn[i32] -> bool := fn [$s] -> bool = $s >= 60;
 ;MAIN

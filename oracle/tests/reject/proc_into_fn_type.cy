@@ -1,15 +1,15 @@
-fn keep_if [let $n: i32, let $test: fn[i32] -> bool] -> bool:
+fn keep_if [$n: i32, $test: fn[i32] -> bool] -> bool:
     ret $test($n);
 ;fn keep_if
 
-proc each [let $n: i32, let $act: proc[i32]]:
+proc each [$n: i32, $act: proc[i32]]:
     $act($n);
 ;proc each
 
 MAIN:
-    let $big: fn[i32] -> bool := fn [let $s] = $s >= 90;
-    let $say: proc[i32] := proc [let $s] = std::print($s, newln);
+    let $big: fn[i32] -> bool := fn [$s] = $s >= 90;
+    let $say: proc[i32] := proc [$s] = std::print($s, newln);
     std::print(keep_if(91, $say), newln);
     each(7, $say);
-    each(8, fn [let $s] = $s >= 1);
+    each(8, fn [$s] = $s >= 1);
 ;MAIN

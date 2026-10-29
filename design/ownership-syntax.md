@@ -107,7 +107,7 @@ a chain segment, `var.!mut.i32`), and the compiler then holds them to it:
 ```
 let $limit: i32 := 10;      # assigning to 'limit' later is an error
 var $counter = 0;             # a promise that it changes: refused if nothing does (2026-10-10)
-fn twice [let $n: i32] -> i32:
+fn twice [$n: i32] -> i32:
     …
 ;fn twice
 ```
@@ -141,7 +141,7 @@ fn count [lent $text: str.utf8] -> i32:
 proc edit  [lent.mut $text: str.utf8]:
     …
 ;proc edit         # may modify it
-fn keep  [let $text: str.utf8]:
+fn keep  [$text: str.utf8]:
     …
 ;fn keep                  # owns it
 ```

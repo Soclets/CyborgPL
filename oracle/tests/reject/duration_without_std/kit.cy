@@ -1,4 +1,4 @@
-fn f [let $v: duration]:
+fn f [$v: duration]:
 ;fn f
 MAIN:
 ;MAIN

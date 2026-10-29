@@ -2,7 +2,7 @@
 # calls need. The call is a `no_check` site, marked: the marker is the base's since IEG was
 # dissolved (owner, 2026-10-12), so it is written everywhere, as the `vouch` power is listed.
 
-%extern.C proc write [let $fd: i32, let $buf: ptr[u8], let $len: u64] -> i64;
+%extern.C proc write [$fd: i32, $buf: ptr[u8], $len: u64] -> i64;
 
 MAIN:
     let $text := "Hello, world!

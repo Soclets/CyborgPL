@@ -1,3 +1,3 @@
-%extern.c proc exit [let $code: i32];
+%extern.c proc exit [$code: i32];
 MAIN:
 ;MAIN

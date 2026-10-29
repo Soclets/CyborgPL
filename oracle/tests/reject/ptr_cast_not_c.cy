@@ -1,4 +1,4 @@
-%extern.C proc malloc [let $bytes: u64] -> ptr.mut[u8];
+%extern.C proc malloc [$bytes: u64] -> ptr.mut[u8];
 rec Plain:
     var x: i32;
 ;rec Plain

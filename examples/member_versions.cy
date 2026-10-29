@@ -2,10 +2,10 @@
 # … `;versions round.near`, each version its parameters and its body, the call picked by how many arguments it has.
 coll.fn round:
     versions round.near:
-        [let $x: f64] -> f64:
+        [$x: f64] -> f64:
             ret $x;
         ;version
-        [let $x: f64, let $places: i32] -> f64:
+        [$x: f64, $places: i32] -> f64:
             ret $x + to.f64($places);
         ;version
     ;versions round.near

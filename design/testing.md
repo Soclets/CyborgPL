@@ -1,7 +1,7 @@
 # Testing — `test fn` and `must` (owner, 2026-09-29)
 
 ```
-fn add [let $a: i32, let $b: i32] -> i32:
+fn add [$a: i32, $b: i32] -> i32:
     ret $a + $b;
 ;fn add
 

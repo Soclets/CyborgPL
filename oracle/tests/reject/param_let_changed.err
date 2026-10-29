@@ -1,1 +1,1 @@
-is a `let` parameter, which never changes, but something changes it: write `var $n`
+is a parameter without `var`, so it never changes, but something changes it: write `var $n`

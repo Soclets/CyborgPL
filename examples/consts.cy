@@ -7,7 +7,7 @@ const $greeting := "hello " concat "world";
 pub rec P:
     var x: i32;
 ;rec P
-pub fn area [let $r: f64] -> f64:
+pub fn area [$r: f64] -> f64:
     ret $pi x $r x $r;
 ;fn area
 MAIN:

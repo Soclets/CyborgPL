@@ -1,5 +1,5 @@
 # nothing converts by itself: an array into a list is said (owner, 2026-09-23)
-fn grow [let $xs: std::ls[i32]] -> u64:
+fn grow [$xs: std::ls[i32]] -> u64:
     ret std::ls.len(lend $xs);
 ;fn grow
 MAIN:

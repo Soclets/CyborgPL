@@ -1,9 +1,9 @@
 # An argument takes its parameter's type as its context, as a declaration's value does (owner,
 # 2026-09-29: a): show[0 minus.wrap 1] wraps at 8 bits, and list.append's value takes the element type.
-proc show [let $b: u8]:
+proc show [$b: u8]:
     std::print($b, newln);
 ;proc show
-fn wide [let $w: u32] -> u32:
+fn wide [$w: u32] -> u32:
     ret $w;
 ;fn wide
 MAIN:

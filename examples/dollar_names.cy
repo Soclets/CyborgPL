@@ -2,7 +2,7 @@
 # Even though, it requires a shift, it's easier to write"). Good practice: `$`, and quotes only for a name that needs
 # them. A call takes `( )`, a definition keeps `[ ]` (owner, 2026-10-22: "`( )` runs something; `[ ]` describes or
 # holds something").
-fn twice [let $n: i64] -> i64:
+fn twice [$n: i64] -> i64:
     ret $n x 2;
 ;fn twice
 

@@ -1,4 +1,4 @@
-fn f [let $a: i32, let ...$rest]:
+fn f [$a: i32, ...$rest]:
 ;fn f
 MAIN:
     f();

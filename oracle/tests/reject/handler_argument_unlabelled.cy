@@ -1,4 +1,4 @@
-fn half [let $n: i32] -> i32 or fail[odd, negative: i32]:
+fn half [$n: i32] -> i32 or fail[odd, negative: i32]:
     if $n < 0:
         fail negative[$n];
     ;if
@@ -9,7 +9,7 @@ fn half [let $n: i32] -> i32 or fail[odd, negative: i32]:
 ;fn half
 
 coll.handler half_failed:
-    member half_failed.or_default [let $default: i32, let $label: str.utf8]:
+    member half_failed.or_default [$default: i32, $label: str.utf8]:
         case odd:
             std::print($label, ": odd, using ", $default, newln); ret $default;
         ;case odd
@@ -19,7 +19,7 @@ coll.handler half_failed:
     ;member half_failed.or_default
 ;coll.handler half_failed
 
-fn half_or [let $n: i32, let $d: i32] -> i32:
+fn half_or [$n: i32, $d: i32] -> i32:
     let $h := half($n) otherwise half_failed.*or_default($d, "x");
     ret $h;
 ;fn half_or

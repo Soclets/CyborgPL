@@ -2,7 +2,7 @@
 # what it holds now, and a writer the program makes holds its own text, `std::print.writer(size: 4096 bytes)`, printed
 # into when a print's first argument is `lend.mut $out`, and flushed with `std::print.flush(lend.mut $out)`. A writer
 # that goes away still holding text is refused. A failed write stops the program, unless `otherwise` handles it.
-proc report [lent.mut $out: std::print.writer, let $name: str.utf8, let $total: i64]:
+proc report [lent.mut $out: std::print.writer, $name: str.utf8, $total: i64]:
     std::print(lend.mut $out, $name, ": ", $total, newln);
 ;proc report
 

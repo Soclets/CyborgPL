@@ -3,7 +3,7 @@
 # never shadowed, and it is seen only in its block. `let` holds a value worked out while running.
 const $base := 100;
 
-fn tries [let $n: i32] -> i32:
+fn tries [$n: i32] -> i32:
     const $extra := 2;
     ret $n + $extra;
 ;fn tries

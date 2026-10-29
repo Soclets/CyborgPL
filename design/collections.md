@@ -17,11 +17,11 @@ A collection writes a function and its dot narrowings (`cum`, `cum.quick`,
 
 ```
 pub coll.fn cum:
-    member cum [let $x: i32, let $step: i32] -> i32:
+    member cum [$x: i32, $step: i32] -> i32:
         ret $x + $step;
     ;member cum
     member cum.quick [$step = 2];
-    member cum.double [let $x: i32] -> i32:
+    member cum.double [$x: i32] -> i32:
         ret $x x 2;
     ;member cum.double
 ;coll.fn cum
@@ -57,7 +57,7 @@ A member may point at a function written elsewhere in the kit, so a kit's `kit.c
 
 ```
 pub coll.fn area:
-    member area [let $w: i64, let $h: i64] -> i64:
+    member area [$w: i64, $h: i64] -> i64:
         ret $w x $h;
     ;member area
     member area.square = shapes.square.area;           # body in shapes/square.cy
@@ -80,13 +80,13 @@ picked by how many arguments it has and their types. This is the only place over
 ```
 pub coll.fn round:
     versions round.near:
-        [let $x: f64] -> f64:
+        [$x: f64] -> f64:
             …
         ;version
-        [let $x: %d64] -> %d64:
+        [$x: %d64] -> %d64:
             …
         ;version
-        [let $x: f64, let $places: i32] -> f64:
+        [$x: f64, $places: i32] -> f64:
             …
         ;version
     ;versions round.near
@@ -116,7 +116,7 @@ A collection also says how its own function is called:
 pub coll.fn say:
     labels.in_order [$text as value, $times as count];
     defaults [$times = 1];
-    member say [let $n: i32, let $text: str.utf8, let $times: i32] -> str.utf8:
+    member say [$n: i32, $text: str.utf8, $times: i32] -> str.utf8:
         …
     ;member say
 ;coll.fn say
@@ -293,7 +293,7 @@ rec Line:
     var name: order.name;
     var count: quantity;
 ;rec Line
-fn apply_discount [let $amount: %d64, let $percent: order.discount] -> %d64:
+fn apply_discount [$amount: %d64, $percent: order.discount] -> %d64:
     …
 ;fn apply_discount
 ```

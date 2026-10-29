@@ -16,13 +16,13 @@ enforced; the oracle cannot link C, so it emulates `write`, `exit`,
 ## `extern.C` — a function whose body is somewhere else
 
 ```
-%extern.C proc write [let $fd: i32, let $buf: ptr[u8], let $len: u64] -> i64;
-%extern.C proc exit [let $code: i32];
-%extern.C proc printf [let $fmt: ptr[u8], let ...$args] -> i32;      # C's own varargs
+%extern.C proc write [$fd: i32, $buf: ptr[u8], $len: u64] -> i64;
+%extern.C proc exit [$code: i32];
+%extern.C proc printf [$fmt: ptr[u8], ...$args] -> i32;      # C's own varargs
 
 %extern.C:                                  # a library's worth at once
-    proc malloc [let $bytes: u64] -> ptr.mut[u8];
-    proc free [let $p: ptr.mut[u8]];
+    proc malloc [$bytes: u64] -> ptr.mut[u8];
+    proc free [$p: ptr.mut[u8]];
     $lib_version: i32;
     var $lib_verbose: i32;
 ;%extern.C
@@ -102,10 +102,10 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
 ## Callbacks — a Cyborg function C calls (decided 2026-09-21)
 
 ```
-%extern.C proc qsort [let $base: ptr.mut[i32], let $n: u64, let $size: u64,
+%extern.C proc qsort [$base: ptr.mut[i32], $n: u64, $size: u64,
                  let $cmp: fn[ptr[i32], ptr[i32]] -> i32];
 
-proc ascending [let $a: ptr[i32], let $b: ptr[i32]] -> i32:
+proc ascending [$a: ptr[i32], $b: ptr[i32]] -> i32:
     no_check ret ptr.read($a) - ptr.read($b);
 ;proc ascending
 no_check qsort(lend.mut $nums, 5, size.of[i32], ascending);
@@ -129,7 +129,7 @@ no_check qsort(lend.mut $nums, 5, size.of[i32], ascending);
 ## A ranged return — C's contract, checked at the door (decided 2026-09-22)
 
 ```
-%extern.C proc strlen [let $s: ptr[u8]] -> u64[min: 0, max: 1_000_000];
+%extern.C proc strlen [$s: ptr[u8]] -> u64[min: 0, max: 1_000_000];
 no_check let $n := strlen(lend $s) otherwise fail too_long;    # can fail out_of_range
 ```
 
@@ -219,7 +219,7 @@ refusing it, with plain fields checked by hand. A range on an `extern.C fn`
     b = 66;
     escape = 256;
 ;enum Key
-%extern.C proc IsKeyDown [let $key: Key] -> bool;
+%extern.C proc IsKeyDown [$key: Key] -> bool;
 ```
 
 A C enum is a number with names, and here it is a Cyborg enum laid out
@@ -356,7 +356,7 @@ A C string is bytes ending in a 0 byte; a `str.utf8` knows its own length. Two w
 `C.int` (owner: "Isn't it `str`?"):
 
 ```
-%extern.C proc puts [let $s: ptr[u8]] -> i32;
+%extern.C proc puts [$s: ptr[u8]] -> i32;
 let $name := %C.str.read($p)-
 otherwise:
     case not_utf8:
@@ -406,7 +406,7 @@ Both forms (owner: "What about both?"):
 incl.%C.system["stdio.h"];                                        # printf comes with C's `...`
 no_check printf(lend $fmt, 5, lend $name);                     # the open form: any extras, on your word
 
-%extern.C proc printf_count = %C.printf [let $format: ptr[u8], let ...$n: i32] -> i32;
+%extern.C proc printf_count = %C.printf [$format: ptr[u8], ...$n: i32] -> i32;
 no_check printf_count(lend $fmt, 5);                            # a fixed shape: its extras' types checked
 ```
 

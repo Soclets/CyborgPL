@@ -1,7 +1,7 @@
 # `...$xs` at a call: unpack a list into the variadic part (decided 2026-09-21).
 # Only where the list's length is known — a literal, a `std::ls[T][lo, hi]`, a bundle.
 
-fn sum [let ...$nums: i32] -> i32:
+fn sum [...$nums: i32] -> i32:
     var $total = 0;
     for $n in lend $nums:
         change $total to $total + $n;
@@ -21,7 +21,7 @@ proc shout [lent ...$parts]:
     show("loud", ...$parts);
 ;proc shout      # a bundle passed on: its count is known
 
-fn keep [let ...$names: str.utf8] -> u64:
+fn keep [...$names: str.utf8] -> u64:
     ret std::ls.len(lend $names);
 ;fn keep   # takes ownership of each
 

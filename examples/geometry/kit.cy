@@ -8,7 +8,7 @@ fn helper [] -> str.utf8:
 ;fn helper
 
 module report:
-    pub.kit proc line [let $label: str.utf8, let $v: f64]:
+    pub.kit proc line [$label: str.utf8, $v: f64]:
         std::print($label, ": ", $v, newln);
     ;proc line
 ;module report

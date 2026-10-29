@@ -23,7 +23,7 @@ generic's placeholders are declared in their own `[ ]`, and `< >` only marks a p
 ```
 fn total [<T>: Addable] [lent $xs: std::ls[<T>]] -> <T>:
 fn whole [<T>: any] [@x] [lent $xs: std::ls[<T>]] -> lent@x <T>:
-fn add [let $a: i32, let $b: i32] -> i32:
+fn add [$a: i32, $b: i32] -> i32:
 sig Addable [<T>]:
 rec Pair [<A>, <B>]:
 ```
@@ -36,7 +36,7 @@ below is the history of how the placeholders came to be declared up front.
 ## Spelling (revised 2026-10-02)
 
 ```
-fn max [<T>: Number] [let $a: <T>, let $b: <T>] -> <T>:
+fn max [<T>: Number] [$a: <T>, $b: <T>] -> <T>:
     …
 ;fn max           # announced after the name, with what it accepts
 fn first [<T>: any] [lent $xs: std::ls[<T>]] -> <T> or fail[empty]:

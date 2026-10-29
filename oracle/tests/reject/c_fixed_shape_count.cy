@@ -1,4 +1,4 @@
-%extern.C proc p_one = %C.printf [let $format: ptr[u8], let ...$n: i32] -> i32;
+%extern.C proc p_one = %C.printf [$format: ptr[u8], ...$n: i32] -> i32;
 
 MAIN:
     let $f := %C.str.make("%d %d");

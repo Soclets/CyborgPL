@@ -1,6 +1,6 @@
 # Every argument after the first says its role (owner, 2026-10-14): the first, the thing worked on, is bare;
 # each other starts with a word. The list is `spellings.cyr`'s `calls`.
-fn add [let $a: i32, let $b: i32] -> i32:
+fn add [$a: i32, $b: i32] -> i32:
     ret $a + $b;
 ;fn add
 

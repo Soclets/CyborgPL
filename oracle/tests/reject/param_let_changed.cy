@@ -1,4 +1,4 @@
-fn countdown [let $n: i32] -> i32:
+fn countdown [$n: i32] -> i32:
     change $n to $n - 1;
     ret $n;
 ;fn countdown

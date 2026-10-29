@@ -2,18 +2,18 @@
 # until the window is closed. Through CNC and C; kayo builds it, linking SDL3 (`brew install sdl3`). The oracle
 # cannot call real C libraries. In demos/, not examples/, since a test would open a window and wait: build and run
 # it with `kayo build --final demos/sdl_window -o build/sdl_window && build/sdl_window`.
-%extern.C proc SDL_Init [let $flags: u32] -> bool;
-%extern.C proc SDL_CreateWindow [let $title: ptr[u8], let $w: i32, let $h: i32, let $flags: u64] -> ptr.mut[u8];
-%extern.C proc SDL_CreateRenderer [let $window: ptr.mut[u8], let $name: ptr[u8]] -> ptr.mut[u8];
-%extern.C proc SDL_SetRenderScale [let $r: ptr.mut[u8], let $x: f32, let $y: f32] -> bool;
-%extern.C proc SDL_SetRenderDrawColor [let $r: ptr.mut[u8], let $red: u8, let $green: u8, let $blue: u8, let $alpha: u8] -> bool;
-%extern.C proc SDL_RenderClear [let $r: ptr.mut[u8]] -> bool;
-%extern.C proc SDL_RenderDebugText [let $r: ptr.mut[u8], let $x: f32, let $y: f32, let $text: ptr[u8]] -> bool;
-%extern.C proc SDL_RenderPresent [let $r: ptr.mut[u8]] -> bool;
-%extern.C proc SDL_PollEvent [let $event: ptr.mut[u8]] -> bool;
-%extern.C proc SDL_Delay [let $ms: u32];
-%extern.C proc SDL_DestroyRenderer [let $r: ptr.mut[u8]];
-%extern.C proc SDL_DestroyWindow [let $window: ptr.mut[u8]];
+%extern.C proc SDL_Init [$flags: u32] -> bool;
+%extern.C proc SDL_CreateWindow [$title: ptr[u8], $w: i32, $h: i32, $flags: u64] -> ptr.mut[u8];
+%extern.C proc SDL_CreateRenderer [$window: ptr.mut[u8], $name: ptr[u8]] -> ptr.mut[u8];
+%extern.C proc SDL_SetRenderScale [$r: ptr.mut[u8], $x: f32, $y: f32] -> bool;
+%extern.C proc SDL_SetRenderDrawColor [$r: ptr.mut[u8], $red: u8, $green: u8, $blue: u8, $alpha: u8] -> bool;
+%extern.C proc SDL_RenderClear [$r: ptr.mut[u8]] -> bool;
+%extern.C proc SDL_RenderDebugText [$r: ptr.mut[u8], $x: f32, $y: f32, $text: ptr[u8]] -> bool;
+%extern.C proc SDL_RenderPresent [$r: ptr.mut[u8]] -> bool;
+%extern.C proc SDL_PollEvent [$event: ptr.mut[u8]] -> bool;
+%extern.C proc SDL_Delay [$ms: u32];
+%extern.C proc SDL_DestroyRenderer [$r: ptr.mut[u8]];
+%extern.C proc SDL_DestroyWindow [$window: ptr.mut[u8]];
 %extern.C proc SDL_Quit [];
 
 MAIN:

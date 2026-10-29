@@ -2,8 +2,8 @@
 %layout.C enum Mode:
     emacs = 0;
 ;%layout.C enum Mode
-%extern.C proc malloc [let $bytes: u64] -> ptr.mut[Mode];
-proc f [let $p: ptr[Mode]] -> i32:
+%extern.C proc malloc [$bytes: u64] -> ptr.mut[Mode];
+proc f [$p: ptr[Mode]] -> i32:
     no_check let $m := ptr.read($p);
     ret 0;
 ;proc f

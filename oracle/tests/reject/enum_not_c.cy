@@ -3,6 +3,6 @@ union.tag K:
     a;
     b;
 ;union.tag K
-%extern.C proc f [let $k: K];
+%extern.C proc f [$k: K];
 MAIN:
 ;MAIN

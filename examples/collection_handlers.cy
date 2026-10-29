@@ -2,7 +2,7 @@
 # after `otherwise` today, one per way the call can fail, and `otherwise half_failed.as_zero` reads them
 # as if they were written at the call: an arm may `ret`, `break`, `continue` or `fail` from where it
 # is used, and a member that misses a way the call can fail is refused there.
-fn half [let $n: i32] -> i32 or fail[odd, negative: i32]:
+fn half [$n: i32] -> i32 or fail[odd, negative: i32]:
     if $n < 0:
         fail negative[$n];
     ;if
@@ -39,12 +39,12 @@ coll.handler half_failed:
     ;member half_failed.stop
 ;coll.handler half_failed
 
-proc half_or_zero [let $n: i32] -> i32:
+proc half_or_zero [$n: i32] -> i32:
     let $h := half($n) otherwise half_failed.*as_zero;
     ret $h;
 ;proc half_or_zero
 
-fn sum_of_halves [lent $xs: std::ls[i32], let $until_bad: bool] -> i32:
+fn sum_of_halves [lent $xs: std::ls[i32], $until_bad: bool] -> i32:
     var $sum = 0;
     for $x in lend $xs:
         if $until_bad:

@@ -11,7 +11,7 @@ fn free_slots [lent $l: Locker] -> i32:
     ret $capacity - std::ls.len(lend $l.items);
 ;fn free_slots
 
-proc stash [lent.mut $l: Locker, let $item: str.utf8] -> bool:
+proc stash [lent.mut $l: Locker, $item: str.utf8] -> bool:
     if free_slots(lend $l) == 0:
         ret false;
     ;if

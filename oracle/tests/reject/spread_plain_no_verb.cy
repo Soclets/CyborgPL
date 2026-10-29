@@ -1,4 +1,4 @@
-fn sum [let ...$n: i32] -> i32:
+fn sum [...$n: i32] -> i32:
     ret 0;
 ;fn sum
 MAIN:

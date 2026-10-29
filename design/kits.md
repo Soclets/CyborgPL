@@ -101,7 +101,7 @@ modules keep the strict rule — their names appear bare in type positions.
 ## `pub` and `const` (decided 2026-09-19)
 
 ```
-pub fn add [let $a: i32, let $b: i32] -> i32:
+pub fn add [$a: i32, $b: i32] -> i32:
     …
 ;fn add
 pub rec Locker:
@@ -244,7 +244,7 @@ refusal: nothing to disambiguate, for the reader or for the prover.
 
 ```
 # geometry/shapes/circle.cy
-pub.kit fn area [let $r: f64] -> f64:
+pub.kit fn area [$r: f64] -> f64:
     …
 ;fn area
 pub.kit rec Circle:

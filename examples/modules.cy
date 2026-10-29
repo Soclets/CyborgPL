@@ -8,20 +8,20 @@ module counter:
     pub rec Count:
         var n: i32;
     ;rec Count
-    pub fn bump [let $c: Count] -> Count:
+    pub fn bump [$c: Count] -> Count:
         ret Count[n = $c.n + step()];
     ;fn bump
     fn step [] -> i32:
         ret my.$scale;
     ;fn step      # private; reaches the root's const
     pub.kit module inner:
-        pub.kit fn twice [let $n: i32] -> i32:
+        pub.kit fn twice [$n: i32] -> i32:
             ret $n x 2;
         ;fn twice
     ;module inner
 ;module counter
 
-proc show [let $c: counter.Count]:
+proc show [$c: counter.Count]:
     std::print("count ", $c.n, newln);
 ;proc show
 

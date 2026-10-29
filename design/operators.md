@@ -348,7 +348,7 @@ op <+> [lent $a: Vec, lent $b: Vec] -> Vec:
 op dot [lent $a: Vec, lent $b: Vec] -> f64:
     ret $a.x x $b.x + $a.y x $b.y;
 ;op dot
-op **  [let $a: Vec, lent $b: f64] -> Vec:
+op **  [$a: Vec, lent $b: f64] -> Vec:
     … ret give $a;
 ;op **
 

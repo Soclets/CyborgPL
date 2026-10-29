@@ -1,4 +1,4 @@
-fn g [let $p: u8] -> u8:
+fn g [$p: u8] -> u8:
     if false:
         let shadow $p: bool := true;
         ret $p;

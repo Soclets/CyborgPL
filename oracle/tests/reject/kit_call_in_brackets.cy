@@ -1,4 +1,4 @@
-fn twice [let $n: i64] -> i64:
+fn twice [$n: i64] -> i64:
     ret $n x 2;
 ;fn twice
 MAIN:

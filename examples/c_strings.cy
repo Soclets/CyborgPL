@@ -2,9 +2,9 @@
 # failing `has_zero_byte` (a literal cannot); `C.str.read` reads one back, failing `not_utf8`. `= C.printf` gives C's
 # printf a name of ours: the open form takes any extras, a fixed shape exactly the ones it names. Every C call is
 # `no_check` (a fixed shape's extras are still type-checked). C's format text is bytes: no `\n` escape here.
-%extern.C proc c_printf = %C.printf [let $format: ptr[u8], let ...$args] -> i32;
-%extern.C proc printf_count = %C.printf [let $format: ptr[u8], let ...$n: i32] -> i32;
-%extern.C proc strlen [let $s: ptr[u8]] -> u64;
+%extern.C proc c_printf = %C.printf [$format: ptr[u8], ...$args] -> i32;
+%extern.C proc printf_count = %C.printf [$format: ptr[u8], ...$n: i32] -> i32;
+%extern.C proc strlen [$s: ptr[u8]] -> u64;
 
 MAIN:
     let $name := "Tankun";

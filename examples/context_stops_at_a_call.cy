@@ -1,6 +1,6 @@
 # The type a value is stored into reaches the arithmetic that makes it, but stops at a call:
 # what `g(…)` returns says nothing about the arithmetic in its arguments (2026-09-23).
-fn g [let $p: bool] -> u8:
+fn g [$p: bool] -> u8:
     ret 0;
 ;fn g
 MAIN:

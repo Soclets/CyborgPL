@@ -12,7 +12,7 @@ fn by_owner  [lent $a: Locker, lent $b: Locker] -> bool:
 ;fn by_owner
 
 # a function that takes a function: the type is the signature without the names
-fn first_by [lent $xs: std::ls[Locker], let $less: fn[lent Locker, lent Locker] -> bool] -> str.utf8:
+fn first_by [lent $xs: std::ls[Locker], $less: fn[lent Locker, lent Locker] -> bool] -> str.utf8:
     var $best = 1;
     for $i [from: 2, to: std::ls.len(lend $xs), by: 1]:
         if $less(lend $xs[pos: $i], lend $xs[pos: $best]):
@@ -23,7 +23,7 @@ fn first_by [lent $xs: std::ls[Locker], let $less: fn[lent Locker, lent Locker] 
     ret copy $winner.owner;
 ;fn first_by
 
-fn keep [lent $xs: std::ls[i32], let $test: fn[i32] -> bool] -> std::ls[i32]:
+fn keep [lent $xs: std::ls[i32], $test: fn[i32] -> bool] -> std::ls[i32]:
     var $out: std::ls[i32] = [];
     for $x in lend $xs:
         if $test($x):
@@ -43,12 +43,12 @@ MAIN:
 
     let $limit := 60;
     let $scores := [72, 40, 95, 55];
-    let $passing := keep(lend $scores, fn [let $s: i32] -> bool with [lend $limit]:
+    let $passing := keep(lend $scores, fn [$s: i32] -> bool with [lend $limit]:
         ret $s >= $limit;
     ;fn);
     std::print($passing, newln);
 
-    let $evens := keep(lend $scores, fn [let $s: i32] -> bool:
+    let $evens := keep(lend $scores, fn [$s: i32] -> bool:
         ret ($s mod.floor 2) == 0;
     ;fn);   # captures nothing
     std::print($evens, newln);

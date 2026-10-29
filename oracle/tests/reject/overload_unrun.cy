@@ -1,9 +1,9 @@
 coll.fn ov:
     versions ov.flip:
-        [let $x: i32] -> i32:
+        [$x: i32] -> i32:
             ret 1;
         ;version
-        [let $x: i64] -> i32:
+        [$x: i64] -> i32:
             ret 2;
         ;version
     ;versions ov.flip

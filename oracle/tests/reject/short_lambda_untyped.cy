@@ -1,3 +1,3 @@
 MAIN:
-    let $f := fn [let $s] = $s >= 60;
+    let $f := fn [$s] = $s >= 60;
 ;MAIN

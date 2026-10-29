@@ -63,7 +63,7 @@ it goes.
 
 ```
 let $n: i32[min: 0, max: 100] := …;
-fn draw [let $x: i32[min: 0, max: 1023], let $y: i32[min: 0, max: 767]]:
+fn draw [$x: i32[min: 0, max: 1023], $y: i32[min: 0, max: 767]]:
     …
 ;fn draw
 rec Percent:

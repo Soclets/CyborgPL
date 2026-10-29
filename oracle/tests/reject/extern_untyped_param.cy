@@ -1,3 +1,3 @@
-%extern.C proc f [let $a];
+%extern.C proc f [$a];
 MAIN:
 ;MAIN

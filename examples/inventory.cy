@@ -17,7 +17,7 @@ fn heaviest [var ...$items: Item] -> Item or fail[none]:
     ret give $best;
 ;fn heaviest
 
-fn kilos [let $grams: i32] -> i32 or fail[not_whole, out_of_range]:
+fn kilos [$grams: i32] -> i32 or fail[not_whole, out_of_range]:
     let $k: f64 := to.f64($grams) div.near 1000.0;
     ret to.i32($k)?;
 ;fn kilos

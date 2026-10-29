@@ -1,7 +1,7 @@
 # What the base was slimmed into (owner, 2026-10-07), each from the limb this kit lists: `brain16`
 # (AI), `i128` and the other widths (WSMW), `deci` (Money), Unicode text (`unicode`,
 # which took in UniTect and CAPS on 2026-10-12). Testing (TAS) and range types (ASP) are the base's again.
-fn Halve [let $n: %i128] -> %i128:
+fn Halve [$n: %i128] -> %i128:
     ret $n div.floor 2;
 ;fn Halve
 

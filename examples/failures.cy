@@ -4,7 +4,7 @@ rec Locker:
     var items: std::ls[str.utf8];
 ;rec Locker
 
-proc stash [lent.mut $l: Locker, let $item: str.utf8] -> bool or fail[full, bad_item: str.utf8]:
+proc stash [lent.mut $l: Locker, $item: str.utf8] -> bool or fail[full, bad_item: str.utf8]:
     if std::ls.len(lend $l.items) >= 2:
         fail full;
     ;if
@@ -15,14 +15,14 @@ proc stash [lent.mut $l: Locker, let $item: str.utf8] -> bool or fail[full, bad_
     ret true;
 ;proc stash
 
-fn parse_digit [let $t: str.utf8] -> i32 or fail[not_a_digit]:
+fn parse_digit [$t: str.utf8] -> i32 or fail[not_a_digit]:
     if $t == "7":
         ret 7;
     ;if
     fail not_a_digit;
 ;fn parse_digit
 
-fn double_digit [let $t: str.utf8] -> i32 or fail[not_a_digit]:
+fn double_digit [$t: str.utf8] -> i32 or fail[not_a_digit]:
     let $d := parse_digit(copy $t)?;      # pass it up
     ret $d x 2;
 ;fn double_digit

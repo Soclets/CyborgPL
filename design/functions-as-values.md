@@ -30,7 +30,7 @@ fn by_number [lent $a: Locker, lent $b: Locker] -> bool:
 ;fn by_number     # the definition
                 fn[lent Locker,      lent Locker]  -> bool           # its type
 
-proc sort [<T>: any] [lent.mut $xs: std::ls[<T>], let $less: fn[lent <T>, lent <T>] -> bool]:
+proc sort [<T>: any] [lent.mut $xs: std::ls[<T>], $less: fn[lent <T>, lent <T>] -> bool]:
     …
 ;proc sort
 ```
@@ -45,10 +45,10 @@ difference.
 
 ```
 let $limit := 60;
-let $passing := keep(lend $scores, fn [let $s: i32] -> bool with [lend $limit]:
+let $passing := keep(lend $scores, fn [$s: i32] -> bool with [lend $limit]:
     ret $s >= $limit;
 ;fn);
-let $evens   := keep(lend $scores, fn [let $s: i32] -> bool:
+let $evens   := keep(lend $scores, fn [$s: i32] -> bool:
     ret ($s mod.floor 2) == 0;
 ;fn);   # captures nothing
 ```
@@ -65,8 +65,8 @@ silently, which is where "why is this borrowed" bugs come from.
 ### The short form (owner, 2026-10-24: "(c)"; not built)
 
 ```
-let $passing := keep(lend $scores, fn [let $s] with [lend $limit] = $s >= $limit);
-let $evens   := keep(lend $scores, fn [let $s] = ($s mod.floor 2) == 0);
+let $passing := keep(lend $scores, fn [$s] with [lend $limit] = $s >= $limit);
+let $evens   := keep(lend $scores, fn [$s] = ($s mod.floor 2) == 0);
 ```
 
 One value after `=`, no `{ return …; }`; the parameters' types and the return type come from the `fn[…]` type of

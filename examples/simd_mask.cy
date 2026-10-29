@@ -1,7 +1,7 @@
 # `simd[bool, N]` is a type you can write (owner, 2026-09-27: a): a mask, one yes/no per
 # lane, as a vector comparison gives. It has as many lanes as the vectors it compares, and
 # `not`/`and`/`or` work lane by lane. A function can take one.
-fn count_on [let $m: simd[bool, count: 4]] -> bool:
+fn count_on [$m: simd[bool, count: 4]] -> bool:
     ret simd.all($m);
 ;fn count_on
 MAIN:

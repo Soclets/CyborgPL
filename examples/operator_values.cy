@@ -8,20 +8,20 @@ rec Vec:
 op dot [lent $a: Vec, lent $b: Vec] -> f64:
     ret $a.x x $b.x + $a.y x $b.y;
 ;op dot
-fn fold [lent $xs: std::ls[i32], let $start: i32, let $f: fn[i32, i32] -> i32] -> i32:
+fn fold [lent $xs: std::ls[i32], $start: i32, $f: fn[i32, i32] -> i32] -> i32:
     var $acc = $start;
     for $x in lend $xs:
         change $acc to $f($acc, $x);
     ;for
     ret $acc;
 ;fn fold
-fn apply1 [let $v: i32, let $f: fn[i32] -> i32] -> i32:
+fn apply1 [$v: i32, $f: fn[i32] -> i32] -> i32:
     ret $f($v);
 ;fn apply1
-fn test2 [let $a: i32, let $b: i32, let $f: fn[i32, i32] -> bool] -> bool:
+fn test2 [$a: i32, $b: i32, $f: fn[i32, i32] -> bool] -> bool:
     ret $f($a, $b);
 ;fn test2
-fn both [lent $a: Vec, lent $b: Vec, let $f: fn[lent Vec, lent Vec] -> f64] -> f64:
+fn both [lent $a: Vec, lent $b: Vec, $f: fn[lent Vec, lent Vec] -> f64] -> f64:
     ret $f(lend $a, lend $b);
 ;fn both
 MAIN:

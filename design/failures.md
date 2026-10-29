@@ -20,7 +20,7 @@ and may carry a payload of any type. The reasons are listed **inline, in the
 function's own signature** (owner: option 1, over a named reusable type):
 
 ```
-proc stash [lent.mut $l: Locker, let $item: str.utf8] -> bool or fail[full, bad_item: str.utf8]:
+proc stash [lent.mut $l: Locker, $item: str.utf8] -> bool or fail[full, bad_item: str.utf8]:
     if free_slots(lend $l) == 0:
         fail full;
     ;if

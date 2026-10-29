@@ -1,4 +1,4 @@
-fn big [let $a: i32] -> i32:
+fn big [$a: i32] -> i32:
     ret $a x $a;
 ;fn big
 MAIN:

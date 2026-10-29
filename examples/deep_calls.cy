@@ -1,6 +1,6 @@
 # A call nested 2000 deep in one expression runs (check claude, seed 32299: the oracle overflowed its
 # stack at 1000; kayo runs 2000). Robustness, not meaning.
-fn g [let $x: u32] -> u32:
+fn g [$x: u32] -> u32:
     ret $x;
 ;fn g
 

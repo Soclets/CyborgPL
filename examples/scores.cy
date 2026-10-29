@@ -1,9 +1,9 @@
 # Score handling: small functions, `if` / `else if`, and clamping a value into a range.
-fn is_even [let $n: i32] -> bool:
+fn is_even [$n: i32] -> bool:
     ret ($n mod.floor 2) == 0;
 ;fn is_even
 
-fn clamp [let $n: i32, let $low: i32, let $high: i32] -> i32:
+fn clamp [$n: i32, $low: i32, $high: i32] -> i32:
     if $n < $low:
         ret $low;
     else if $n > $high:

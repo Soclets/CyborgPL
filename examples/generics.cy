@@ -15,7 +15,7 @@ sig Ordered [<T>]:
     op == [lent $a: <T>, lent $b: <T>] -> bool;
 ;sig Ordered
 
-fn max [<T>: Number and Ordered] [let $a: <T>, let $b: <T>] -> <T>:
+fn max [<T>: Number and Ordered] [$a: <T>, $b: <T>] -> <T>:
     if $a > $b:
         ret give $a;
     ;if     # a <T> may be owned: generic code writes the verbs

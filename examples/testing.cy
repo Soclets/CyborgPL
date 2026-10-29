@@ -2,10 +2,10 @@
 # `must` states what must hold (a comparison shows both sides when it does not), `must.fail` that
 # something fails (`.not_a_number`: with that reason), `must.stop` that a check site fires. Two of
 # these fail on purpose. A normal run ignores the tests and runs MAIN.
-fn add [let $a: i32, let $b: i32] -> i32:
+fn add [$a: i32, $b: i32] -> i32:
     ret $a + $b;
 ;fn add
-fn wrong [let $a: i32, let $b: i32] -> i32:
+fn wrong [$a: i32, $b: i32] -> i32:
     ret $a + $b + 1;
 ;fn wrong
 test proc adds_up []:

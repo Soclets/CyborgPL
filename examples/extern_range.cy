@@ -1,5 +1,5 @@
 # A ranged extern return is a contract checked at the door (decided 2026-09-22): outside it, the call fails out_of_range.
-%extern.C proc strlen [let $s: ptr[u8]] -> u64[min: 0, max: 10];      # C promises at most 10; checked at the door
+%extern.C proc strlen [$s: ptr[u8]] -> u64[min: 0, max: 10];      # C promises at most 10; checked at the door
 
 MAIN:
     let $short := "hello";

@@ -1,6 +1,6 @@
 coll.fn say:
     labels [$a as first, $b as second];
-    member say [let $a: i32, let $b: i32] -> i32:
+    member say [$a: i32, $b: i32] -> i32:
         ret $a;
     ;member say
 ;coll.fn say

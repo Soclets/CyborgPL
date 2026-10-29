@@ -1,9 +1,9 @@
 coll.fn mx:
     versions mx:
-        [let $a: i32, let $b: i32] -> i32:
+        [$a: i32, $b: i32] -> i32:
             ret $a + $b;
         ;version
-        [let $a: i32, let $b: i64] -> i32:
+        [$a: i32, $b: i64] -> i32:
             ret $a - to.i32($b);
         ;version
     ;versions mx

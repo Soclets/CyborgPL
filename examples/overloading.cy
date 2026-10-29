@@ -2,10 +2,10 @@
 # written together in a `coll.fn` (owner: b), in a `versions` block that names them once (owner, 2026-10-21).
 coll.fn describe:
     versions describe:
-        [let $n: i64] -> str.utf8:
+        [$n: i64] -> str.utf8:
             ret "a whole number";
         ;version
-        [let $x: f64] -> str.utf8:
+        [$x: f64] -> str.utf8:
             ret "a binary float";
         ;version
         [lent $s: str.utf8] -> str.utf8:
@@ -16,16 +16,16 @@ coll.fn describe:
 
 coll.fn width:
     versions width:
-        [let $n: i16] -> str.utf8:
+        [$n: i16] -> str.utf8:
             ret "16 bits";
         ;version
-        [let $n: i64] -> str.utf8:
+        [$n: i64] -> str.utf8:
             ret "64 bits";
         ;version
-        [let $x: f32] -> str.utf8:
+        [$x: f32] -> str.utf8:
             ret "a f32";
         ;version
-        [let $x: f64] -> str.utf8:
+        [$x: f64] -> str.utf8:
             ret "a f64";
         ;version
     ;versions width
@@ -33,10 +33,10 @@ coll.fn width:
 
 coll.fn which:
     versions which:
-        [let $x: f32] -> str.utf8:
+        [$x: f32] -> str.utf8:
             ret "f32";
         ;version
-        [let $x: f64] -> str.utf8:
+        [$x: f64] -> str.utf8:
             ret "f64";
         ;version
     ;versions which
@@ -44,10 +44,10 @@ coll.fn which:
 
 coll.fn area:
     versions area.rect:
-        [let $side: i64] -> i64:
+        [$side: i64] -> i64:
             ret $side x $side;
         ;version
-        [let $w: i64, let $h: i64] -> i64:
+        [$w: i64, $h: i64] -> i64:
             ret $w x $h;
         ;version
     ;versions area.rect

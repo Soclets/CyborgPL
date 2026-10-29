@@ -47,7 +47,7 @@ fn describe [lent $i: Item] -> str.utf8:
     ;match
 ;fn describe
 
-fn keep [lent $xs: std::ls[Item], let $test: fn[lent Item] -> bool] -> std::ls[Item]:
+fn keep [lent $xs: std::ls[Item], $test: fn[lent Item] -> bool] -> std::ls[Item]:
     var $out: std::ls[Item] = [];
     for $x in lend $xs:
         if $test(lend $x):

@@ -5,7 +5,7 @@ union.tag Status:
     claimed: str.utf8;
     locked;
 ;union.tag Status
-fn label [let $s: Status] -> str.utf8:
+fn label [$s: Status] -> str.utf8:
     let $text := match $s:
         case empty:
             is "free";

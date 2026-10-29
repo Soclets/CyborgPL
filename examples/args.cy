@@ -2,7 +2,7 @@
 # take 'argc' and 'argv', the program's name first, each word NUL-ended, a null pointer after the last.
 # Reading them is C's world, so it is no_check; a friendly list will be written in CyborgPL on top.
 # examples/args.args holds the words the test passes: apples, 3, hello world.
-MAIN [let $argc: i32, let $argv: ptr[ptr[u8]]]:
+MAIN [$argc: i32, $argv: ptr[ptr[u8]]]:
     std::print.stored("argc = ", $argc, newln);
     var $i: i32 = 1;
     while $i < $argc:

@@ -17,14 +17,14 @@ set Whole:
     i64;
 ;set Whole
 
-fn bigger [<T>: Number and Ordered] [let $a: <T>, let $b: <T>] -> <T>:
+fn bigger [<T>: Number and Ordered] [$a: <T>, $b: <T>] -> <T>:
     if $b < $a:
         ret $a;
     ;if
     ret $b;
 ;fn bigger
 
-fn smaller [<T>: Whole and Ordered] [let $a: <T>, let $b: <T>] -> <T>:
+fn smaller [<T>: Whole and Ordered] [$a: <T>, $b: <T>] -> <T>:
     if $a < $b:
         ret $a;
     ;if

@@ -7,7 +7,7 @@
     b = 66;
     escape = 256;
 ;%layout.C enum Key
-fn on_key [let $code: i32] -> i32:
+fn on_key [$code: i32] -> i32:
     let $k := to.Key($code)-
     otherwise:
         case out_of_range:

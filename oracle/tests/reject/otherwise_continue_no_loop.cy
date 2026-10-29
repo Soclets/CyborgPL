@@ -1,4 +1,4 @@
-fn small [let $n: i32] -> i32 or fail[bad]:
+fn small [$n: i32] -> i32 or fail[bad]:
     if $n > 2:
         fail bad;
     ;if

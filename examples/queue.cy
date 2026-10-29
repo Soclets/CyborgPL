@@ -3,7 +3,7 @@
 rec Job:
     var name: str.utf8;
 ;rec Job
-proc run [let $job: Job]:
+proc run [$job: Job]:
     std::print("ran ", $job.name, newln);
 ;proc run
 MAIN:

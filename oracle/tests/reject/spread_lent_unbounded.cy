@@ -1,4 +1,4 @@
-fn sum [let ...$nums: i32] -> i32:
+fn sum [...$nums: i32] -> i32:
     ret 0;
 ;fn sum
 fn f [lent $xs: std::ls[i32]] -> i32:

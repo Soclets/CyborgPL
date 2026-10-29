@@ -34,6 +34,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-29 — A declaration on its own line says `let` or `var`; a name inside brackets or set by a construct is fixed unless it says `var` (owner: "(c)")
+
+Asked "Is `for` a documented exception of `let` & `var`?" (it was not: the oracle gave a loop's variable no word, no ruling
+saying so), the owner: "Or we make a rule, default almost everywhere? So, it wouldn't be an exception". Design claude
+offered (a) `let` gone everywhere, a bare name fixed, or (b) a rule by who sets a name; the owner, on (a)'s cost: "Bro,
+your (a) argument is outdated, that was when var decl is `'x': i32 = 1000;`" (2026-10-02's reason for `let`), then, shown
+`$x := 1000;`, "That reads weird, so maybe make the rule clearer, or make `let` an exception to that rule". Design claude
+offered (c), recommended: **a declaration on its own line says `let` or `var`; a name inside brackets or set by a
+construct (a parameter, an operand, a loop's variable, a case's data, a handler's payload) is fixed unless it says
+`var`.** The owner: "(c)". So `fn add [$a: i32, $b: i32]`, `fn countdown [var $n: i32]`, `let $start := $from;`, and `for $i`
+by the rule, not as an exception; changing a bare parameter is refused naming `var`, which keeps 2026-10-27's worry (a
+parameter changing unannounced) met. This replaces 2026-10-27's "an owned one without `let` or `var` is refused". Built:
+the oracle reads a bare parameter or operand as fixed; 263 files' parameter `let`s dropped, code only
+(`oracle/tools/param_let.py`, and `redesign_three.py` with it); `examples/bare_params.cy` replaces the reject tests
+`param_bare` and `op_operand_bare`; `design/functions.md`, "`let` and `var`". Still accepted, pending the owner: a
+parameter written `let $a` (whether a written-out default is refused everywhere is the next question).
+
 ### 2026-10-29 — A plain `for` always runs in order; `for %para` is MCPS's parallel loop; `seq` is gone (owner: "(a)")
 
 Asked whether `for seq` should be written when it is a written-out default, the owner: "Actually, `for seq` ia a hard one,

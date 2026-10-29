@@ -1,3 +1,3 @@
-%extern.C proc free [let $p: *mut u8];
+%extern.C proc free [$p: *mut u8];
 MAIN:
 ;MAIN

@@ -1,7 +1,7 @@
 fn look [lent $a: str.utf8] -> i32:
     ret 1;
 ;fn look
-fn apply [let $f: fn[str.utf8] -> i32] -> i32:
+fn apply [$f: fn[str.utf8] -> i32] -> i32:
     ret $f("x");
 ;fn apply
 MAIN:

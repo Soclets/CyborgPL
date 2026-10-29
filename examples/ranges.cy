@@ -3,7 +3,7 @@ rec Percent:
     var value: u8[min: 0, max: 100];
 ;rec Percent
 
-fn scale [let $p: Percent, let $total: i32[min: 0, max: 1000]] -> i32[min: 0, max: 1000]:
+fn scale [$p: Percent, $total: i32[min: 0, max: 1000]] -> i32[min: 0, max: 1000]:
     ret ($total x to.i32($p.value)) div.floor 100;
 ;fn scale
 

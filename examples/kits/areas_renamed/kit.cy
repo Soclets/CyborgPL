@@ -21,7 +21,7 @@ fn hidden [] -> i32:
 ;fn hidden
 
 pub module shapes:
-    pub fn square [let $s: i32] -> i32:
+    pub fn square [$s: i32] -> i32:
         ret $s x $s;
     ;fn square
 ;module shapes

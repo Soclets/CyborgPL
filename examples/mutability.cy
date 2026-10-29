@@ -1,5 +1,5 @@
 # `var` and `let` variables, and a `let` parameter.
-fn twice [let $n: i32] -> i32:
+fn twice [$n: i32] -> i32:
     ret $n x 2;
 ;fn twice
 

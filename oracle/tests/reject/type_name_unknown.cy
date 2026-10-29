@@ -1,4 +1,4 @@
-fn f [let $v: nosuchtype]:
+fn f [$v: nosuchtype]:
 ;fn f
 MAIN:
 ;MAIN

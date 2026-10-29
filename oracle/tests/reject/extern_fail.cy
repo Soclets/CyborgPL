@@ -1,3 +1,3 @@
-%extern.C proc f [let $a: i32] -> i32 or fail[x];
+%extern.C proc f [$a: i32] -> i32 or fail[x];
 MAIN:
 ;MAIN

@@ -9,7 +9,7 @@ rec P:
 ;rec P
 
 module paint:
-    pub fn name [let $c: my.Color] -> str.utf8:
+    pub fn name [$c: my.Color] -> str.utf8:
         match $c:
             case red:
                 ret "red";
@@ -19,7 +19,7 @@ module paint:
             ;case blue
         ;match
     ;fn name
-    pub fn twice [let $p: my.P] -> my.P:
+    pub fn twice [$p: my.P] -> my.P:
         ret my.P[x = $p.x x 2];
     ;fn twice
 ;module paint

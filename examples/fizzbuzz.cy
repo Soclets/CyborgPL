@@ -1,5 +1,5 @@
 # FizzBuzz.
-proc say [let $n: i32]:
+proc say [$n: i32]:
     let $by3 := ($n mod.floor 3) == 0;
     let $by5 := ($n mod.floor 5) == 0;
     if $by3 and $by5:

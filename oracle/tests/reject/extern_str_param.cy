@@ -1,3 +1,3 @@
-%extern.C proc f [let $a: str.utf8];
+%extern.C proc f [$a: str.utf8];
 MAIN:
 ;MAIN

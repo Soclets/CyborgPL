@@ -1,6 +1,6 @@
 # `bug "…";` (owner, 2026-10-29): the program found a bug in itself and stops, exit 101, `error[bug]` and the message on
 # stderr. Not an effect, so a `fn` may use it, as a statement or after `??` / `otherwise`.
-fn half [let $n: i32] -> i32:
+fn half [$n: i32] -> i32:
     if ($n mod.floor 2) != 0:
         bug "half was handed an odd number";
     ;if

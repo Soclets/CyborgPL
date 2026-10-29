@@ -12,10 +12,10 @@
 # check site (an infinity or a NaN), which the prover cannot rule out over N steps, so the arithmetic
 # is under `no_check`.
 incl.%C.system["stdio.h"];
-%extern.C proc exit [let $code: i32];
-%extern.C proc getenv [let $name: ptr[u8]] -> ptr[u8];
-%extern.C proc atoll [let $s: ptr[u8]] -> i64[min: 0, max: 1_000_000_000];
-%extern.C proc sqrt [let $x: f64] -> f64;
+%extern.C proc exit [$code: i32];
+%extern.C proc getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C proc atoll [$s: ptr[u8]] -> i64[min: 0, max: 1_000_000_000];
+%extern.C proc sqrt [$x: f64] -> f64;
 
 const $pi: f64 := 3.141592653589793;
 const $solar_mass: f64 := 4.0 x $pi x $pi;
@@ -33,7 +33,7 @@ rec Body:
 
 # N, from the text in the environment: missing when there is none, and out
 # of range when it is not a number this program takes.
-proc read_n [let $text: ptr[u8]] -> i64[min: 0, max: 1_000_000_000] or fail[missing, out_of_range]:
+proc read_n [$text: ptr[u8]] -> i64[min: 0, max: 1_000_000_000] or fail[missing, out_of_range]:
     if ptr.is_null($text):
         fail missing;
     ;if
@@ -41,7 +41,7 @@ proc read_n [let $text: ptr[u8]] -> i64[min: 0, max: 1_000_000_000] or fail[miss
     ret $n;
 ;proc read_n
 
-proc advance [lent.mut $bodies: std::ls[Body], let $dt: f64]:
+proc advance [lent.mut $bodies: std::ls[Body], $dt: f64]:
     let $n := std::ls.len(lend $bodies);
     for $i: u64 [from: 1, to: $n, by: 1]:
         for $j: u64 [from: $i + 1, to: $n, by: 1]:

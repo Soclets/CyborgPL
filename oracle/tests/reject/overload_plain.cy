@@ -1,7 +1,7 @@
-fn f [let $a: i64] -> i64:
+fn f [$a: i64] -> i64:
     ret 1;
 ;fn f
-fn f [let $b: f64] -> i64:
+fn f [$b: f64] -> i64:
     ret 2;
 ;fn f
 MAIN:

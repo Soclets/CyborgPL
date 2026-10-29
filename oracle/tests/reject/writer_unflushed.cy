@@ -1,4 +1,4 @@
-proc report [lent.mut $out: std::print.writer, let $name: str.utf8, let $total: i64]:
+proc report [lent.mut $out: std::print.writer, $name: str.utf8, $total: i64]:
     std::print(lend.mut $out, $name, ": ", $total, newln);
 ;proc report
 

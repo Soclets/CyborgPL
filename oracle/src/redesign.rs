@@ -2648,10 +2648,10 @@ fn lengthen(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     i += 1;
                     continue;
                 }
-                Tok::Var(v) if operands => return fault(format!("an operand says how it comes, as a function's parameter does: `lent ${v}`, `let ${v}` or `var ${v}` (owner, 2026-10-27)")),
-                Tok::Word(g) if operands && g == "give" => return fault("`give` on an operand is an old spelling: an operand that is its own says `let` (or `var`), as a function's parameter does (owner, 2026-10-27)".into()),
-                Tok::Var(v) => return fault(format!("a parameter says whether it changes: `let ${v}` or `var ${v}` (owner, 2026-10-27)")),
-                Tok::Ellipsis => return fault("a parameter says whether it changes: `let ...$values` or `var ...$values` (owner, 2026-10-27)".into()),
+                Tok::Word(g) if operands && g == "give" => return fault("`give` on an operand is an old spelling: an operand that is its own is written bare, or `var` if it changes, as a function's parameter is (owner, 2026-10-27, 2026-10-29)".into()),
+                // a name inside brackets is fixed unless it says `var` (owner, 2026-10-29: "(c)"): a bare parameter or
+                // operand is the `let` the rest of the front reads
+                Tok::Var(_) | Tok::Ellipsis => out.push(word_tok("let", t)),
                 _ => {}
             }
         }

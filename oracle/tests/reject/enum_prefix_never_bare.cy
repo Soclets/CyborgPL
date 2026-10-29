@@ -2,7 +2,7 @@ union.tag Mood:
     calm;
     loud;
 ;union.tag Mood
-fn say [let $m: Mood] -> i32:
+fn say [$m: Mood] -> i32:
     ret 1;
 ;fn say
 MAIN:

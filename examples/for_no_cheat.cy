@@ -2,7 +2,7 @@
 # replace it with its answer (here n(n+1)/2), drop it, or compute look-alike calls once; SIMD, cores and
 # inlining are still allowed. It goes in front of any statement or block, as `no_check` does, calls
 # included (owner, 2026-10-18: "(b)"), and in front of a `for`, never inside it (owner: "(a)").
-fn fib [let $n: i64[min: 0, max: 92]] -> i64:
+fn fib [$n: i64[min: 0, max: 92]] -> i64:
     if $n < 2:
         ret $n;
     ;if

@@ -1,5 +1,5 @@
 # Functions that take any number of arguments, typed or not.
-fn sum [let ...$nums] -> f64:
+fn sum [...$nums] -> f64:
     var $total: f64 = 0;
     for $n in lend $nums:
         change $total to $total + to.f64($n);
@@ -7,7 +7,7 @@ fn sum [let ...$nums] -> f64:
     ret $total;
 ;fn sum
 
-fn count_ints [let ...$nums: i32] -> u64:
+fn count_ints [...$nums: i32] -> u64:
     ret std::ls.len(lend $nums);
 ;fn count_ints
 

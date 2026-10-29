@@ -1,4 +1,4 @@
-fn one [let $a: i32] -> i32:
+fn one [$a: i32] -> i32:
     ret $a;
 ;fn one
 MAIN:

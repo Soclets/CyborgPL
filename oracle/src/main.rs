@@ -1097,7 +1097,7 @@ fn check_redeclared(prog: &ast::Program) -> Result<Option<String>, String> {
         // a parameter written `let` never changes (owner, 2026-10-27)
         for (k, p) in params.iter().enumerate() {
             if p.mutability == Some(Mutability::Immut) && w.muts.get(k).is_some_and(|m| m.2) {
-                return Err(format!("line {}: '{}' is a `let` parameter, which never changes, but something changes it: write `var '{}'` (owner, 2026-10-27)", fline, p.name, p.name));
+                return Err(format!("line {}: `${}` is a parameter without `var`, so it never changes, but something changes it: write `var ${}` (owner, 2026-10-27, 2026-10-29)", fline, p.name, p.name));
             }
         }
         if let Some(&(i, shadow)) = w.fixed.iter().find(|&&(i, _)| w.muts[i].2) {

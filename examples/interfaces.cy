@@ -29,7 +29,7 @@ Vec satisfies Ordered;        # optional: a claim the compiler checks
 Vec satisfies Printable;
 
 # a generic says what its blank accepts where it announces it (owner, 2026-10-02)
-fn max [<T>: Ordered] [let $a: <T>, let $b: <T>] -> <T>:
+fn max [<T>: Ordered] [$a: <T>, $b: <T>] -> <T>:
     if $b < $a:
         ret give $a;
     ;if     # a <T> may be owned, so generic code writes the verbs;

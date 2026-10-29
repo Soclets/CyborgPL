@@ -6,7 +6,7 @@ Decided 2026-09-14; spelling revised 2026-09-19 (`fn`, name-then-type
 parameters, `--> T`).
 
 ```
-fn add [let $a: i32, let $b: i32] -> i32:
+fn add [$a: i32, $b: i32] -> i32:
     ret $a + $b;
 ;fn add
 let $sum := add(10, 20);              # this Kit: bare
@@ -22,10 +22,10 @@ fn count [lent $text: str.utf8] -> i32:
 proc edit  [lent.mut $text: str.utf8]:
     …
 ;proc edit          # may modify it
-fn keep  [let $text: str.utf8]:
+fn keep  [$text: str.utf8]:
     …
 ;fn keep                   # owns it
-fn twice [let $n: i32] -> i32:
+fn twice [$n: i32] -> i32:
     …
 ;fn twice          # stated mutability
 ```
@@ -86,6 +86,29 @@ fn twice [let $n: i32] -> i32:
   `-->`, and **`<<` and `<<<`** of `<--`, and the both-ways binding's main spelling is **`<-->`**, with `<->`, `<<>>`, `<<<>>>`, `<---->`, `<--|-->`, `<-|->`, `<<|>>` and `<<<|>>>` (owner, 2026-10-06: "yea.", "`<<>>` too", "Two long arrows", "`b`"); an
   arrow cannot name a kit's operator. `examples/long_arrow.cy`,
   `examples/short_arrow.cy`, `examples/chevron_arrows.cy`.
+
+## `let` and `var` (owner, 2026-10-29: "(c)")
+
+**A declaration on its own line says `let` or `var`. A name inside brackets or set by a construct is fixed unless it
+says `var`.**
+
+```
+fn countdown [$from: i32, var $left: i32] -> i32:
+    let $start := $from;
+    var $count = 0;
+    for $i [from: 1, to: $start, by: 1]:
+        change $count to $count + 1;
+    ;for
+    ret $count;
+;fn countdown
+```
+
+- On its own line: a statement's `let $x := …` / `var $x = …`, a record's field (`let number: i32;`).
+- Inside brackets or set by a construct, bare means fixed and `var` says it changes: a parameter (`[$a: i32]`,
+  `[var $n: i32]`), an operator's operand, a lambda's, a member's and a `versions` entry's parameters; and with no word
+  at all, a loop's variable (`for $i`), a case's data (`case hot $level:`), a handler's payload. What is lent already says
+  it: `lent` / `lent.mut`, and `for $x in lend.mut $xs`.
+- Changing a fixed one is refused, naming `var`.
 
 ## `fn` and `proc` (owner, 2026-10-27; revised 2026-10-29)
 
@@ -172,7 +195,7 @@ depends on may have one too, run only when that kit is run itself
 "low-level shit, decided" — "we're at Rust, C, C++ level"):
 
 ```
-MAIN [let $argc: i32, let $argv: ptr[ptr[u8]]]:
+MAIN [$argc: i32, $argv: ptr[ptr[u8]]]:
     no_check let $first := ptr.read(ptr.at($argv, by: 1));     # the first word after the program's name
     …
 ;MAIN

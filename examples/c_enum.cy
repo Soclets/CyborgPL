@@ -7,9 +7,9 @@
     b = 66;
     escape = 256;
 ;%layout.C enum Key
-%extern.C proc IsKeyDown [let $key: Key] -> bool;
+%extern.C proc IsKeyDown [$key: Key] -> bool;
 
-fn name [let $k: Key] -> str.utf8:
+fn name [$k: Key] -> str.utf8:
     match $k:
         case a:
             ret "A";

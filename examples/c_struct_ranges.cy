@@ -5,7 +5,7 @@
     var w: i32[min: 0, max: 4096];
     var h: i32[min: 0, max: 4096];
 ;%layout.C rec Rect
-%extern.C proc DrawRect [let $r: Rect];
+%extern.C proc DrawRect [$r: Rect];
 MAIN:
     let $r := Rect[w = 640, h = 480];
     std::print($r.w, "x", $r.h, " ", size.of[Rect], newln);
