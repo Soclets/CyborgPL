@@ -306,6 +306,16 @@ One heading per section, a contents line at the top, in this order:
 
 Not built yet (the oracle builds nothing).
 
+## A formatter, in CyDT 1 (owner, 2026-10-29)
+
+A formatter rewrites a program's layout into one standard form (indentation, spaces around operators, where long lines
+break, blank lines) and never what it does, as Go's `gofmt` and Rust's `rustfmt` do. **CyDT 1 has one** (owner: "Btw,
+another on CyDT 1's list"). It is the one-spelling rule (a default is not written out, 2026-10-29) carried to layout, it
+writes the layout the compiler already checks (`;kind` closers, the line-end `-`, a long `otherwise` below its call's
+line), and, reading a program and printing it back, it can carry a future syntax change where the regex converters in
+`oracle/tools/` do today. Not designed yet: its command (design claude's suggestion, `kayo fmt`), indent width, line
+length, where lines break.
+
 ## Open
 
 - Synthia's own syntax for `Synthia.ttsr`, and how Synthia and kayo's package manager relate.

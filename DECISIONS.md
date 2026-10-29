@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-29 — CyDT 1 has a formatter (owner; not designed)
+
+Asked "What is a formatter, and would we eventually want one?" (one had never come up), design claude explained it
+(`gofmt`, `rustfmt`, `black`: a program's layout rewritten to one standard form, its meaning untouched) and recommended
+one eventually, not urgently: the one-spelling rule carried to layout, the compiler's layout checks written instead of
+only refused, and a syntax change carried by reading and printing rather than by regex converters. The owner: "Btw,
+another on CyDT 1's list". So **CyDT 1 has a formatter**, beside full C support (2026-10-24). Its command (design
+claude's suggestion, `kayo fmt`) and its layout (indent width, line length, where lines break) are not designed;
+`tooling.md`, "A formatter, in CyDT 1".
+
 ### 2026-10-29 — A default is not written out: `print.shortest`, `for temp` and a parameter's `let` are refused, naming the bare form (owner: "refuse")
 
 Found while choosing whether `[let $a]` stays beside `[$a]`: CyborgPL refused every old spelling but let a default be
