@@ -34,7 +34,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
-### 2026-10-29 — `bug "…";` stops the program on a bug the code found in itself; a `fn` may use it (owner: "sure", "yup"; not built)
+### 2026-10-29 — `bug "…";` stops the program on a bug the code found in itself; a `fn` may use it (owner: "sure", "yup"; built the same day)
 
 Compiler claude, converting kayo, found std's "bug stops" (where std finds a bug in itself it prints `std: a bug: …` to
 stderr and calls `std::exit(code: 101)`) make its pure functions `proc`s under 2026-10-27's rule, rounding among them, so
@@ -47,7 +47,10 @@ and a value that never arrives after `??` / `otherwise` (`to.str.utf8(lend $b) ?
 literal. **When it runs it stops the program with exit 101**, printing `error[bug]`, where, and the message (2026-10-22's
 error form). **It is not an effect: a `fn` may use it.** **It is a check site**: Precog tries to prove it is never
 reached; proven, it costs nothing; not proven, the final build reports it as any unproven check. Design claude's
-readings, shown with it: exit 101 (std's code today, and Rust's), the message a literal. Not built.
+readings, shown with it: exit 101 (std's code today, and Rust's), the message a literal. Built (owner: "Bro, just build
+it. I don't have to say "Go""): `bug` is a keyword; `examples/bug_stop.cy`, reject test `bug_not_literal`; the oracle prints
+`error[bug] at file:line: message` and does not try to prove the line unreached, that being Precog's, in kayo. From now on
+a ruling is built when made, unless the owner says to hold it (`redesign-checklist.md`, step 7).
 
 ### 2026-10-29 — A generic's placeholders are declared in their own `[ ]`, `fn total [<T>: Addable] [lent $xs: std::ls[<T>]]` (owner: "yes, record it"; built the same day, owner: "send, and implement")
 

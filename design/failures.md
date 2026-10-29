@@ -97,7 +97,7 @@ one-line forms above say it once: `… otherwise fail bad_row[copy $row];`.
   (Claude caught the collision after the owner had said `or`; candidates
   were `else`, `catch`, `otherwise`, `onfail`; owner: `otherwise`).
 
-## A bug: `bug "…";` (owner, 2026-10-29; not built)
+## A bug: `bug "…";` (owner, 2026-10-29; built the same day)
 
 A failure is for a caller to handle. A bug is not: it is code reaching a place its writer knows cannot be reached, so
 there is no one to hand it to. `bug "message";` stops the program there.

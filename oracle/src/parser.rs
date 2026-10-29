@@ -2759,6 +2759,16 @@ impl Parser {
                     if *self.peek() == Tok::Semi { self.advance(); }
                     Ok(Stmt::Whichever { arms, handler, line })
                 }
+                "bug" => {
+                    // `bug "…";` (owner, 2026-10-29): its message is a text literal
+                    self.advance();
+                    let msg = match self.advance().tok {
+                        Tok::Text(m, _) => m,
+                        _ => return self.err("`bug` says what went wrong, in a text literal: `bug \"a rounded bin's digits did not read back\";`"),
+                    };
+                    self.expect(Tok::Semi, "`;` after bug")?;
+                    Ok(Stmt::Bug { msg, line })
+                }
                 "fail" => {
                     // fail name; | fail name[payload];   (decided 2026-09-19)
                     self.advance();
@@ -3953,7 +3963,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
         self.advance();
         let h = match self.peek().clone() {
             Tok::Word(w) if w == "fail" && *self.peek_at(1) == Tok::Semi => { self.advance(); Handler::Propagate }
-            Tok::Word(w) if w == "fail" || w == "return" || w == "break" || w == "continue"
+            Tok::Word(w) if w == "fail" || w == "return" || w == "break" || w == "continue" || w == "bug"
                 || (w == "std" && *self.peek_at(1) == Tok::ColonColon && matches!(self.peek_at(2), Tok::Word(e) if e == "exit")) => {
                 // a leaving statement, `;` included; the outer statement's `;` is this one
                 let s = self.stmt()?;

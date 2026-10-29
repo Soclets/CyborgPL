@@ -363,6 +363,9 @@ pub enum Stmt {
     Block { body: Vec<Stmt>, line: usize },
     /// `fail name;` / `fail name[payload];` — leave the function with a failure (decided 2026-09-19)
     Fail { name: String, payload: Option<Bracket>, line: usize },
+    /// `bug "…";` — the program found a bug in itself and stops, exit 101; not an effect, so a `fn` may use it (owner,
+    /// 2026-10-29)
+    Bug { msg: String, line: usize },
     /// `asm { … } with [ 'v' -> reg, 'v' <- reg, 'v' <-> reg, clobber reg ];` (design/ffi.md, 2026-09-20)
     Asm { text: String, binds: Vec<AsmBind>, line: usize },
     /// `no_check inline.MSL threads $n { … } with [lend.mut $xs -> buffer(0), copy $k -> buffer(1)];` (owner, 2026-10-01,

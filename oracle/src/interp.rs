@@ -513,7 +513,7 @@ impl<'p> Interp<'p> {
                 S::Decl { line, .. } | S::LocalConst { line, .. } | S::Assign { line, .. } | S::AssignElem { line, .. } | S::AssignField { line, .. }
                 | S::If { line, .. } | S::Loop { line, .. } | S::While { line, .. } | S::For { line, .. } | S::Range { line, .. } | S::Break { line }
                 | S::Continue { line } | S::Return { line, .. } | S::Call { line, .. } | S::BuiltinStmt { line, .. } | S::Tier { line, .. }
-                | S::Block { line, .. } | S::Fail { line, .. } | S::Asm { line, .. } | S::Msl { line, .. } | S::Match { line, .. } | S::Gives { line, .. } | S::Must { line, .. }
+                | S::Block { line, .. } | S::Fail { line, .. } | S::Bug { line, .. } | S::Asm { line, .. } | S::Msl { line, .. } | S::Match { line, .. } | S::Gives { line, .. } | S::Must { line, .. }
                 | S::MustFail { line, .. } | S::MustStop { line, .. } | S::Concur { line, .. } | S::Whichever { line, .. } | S::MapFailStmt { line, .. }
                 | S::CallValue { line, .. } => *line,
             };
@@ -1509,6 +1509,13 @@ impl<'p> Interp<'p> {
                 }
                 let lines = text.lines().filter(|l| !l.trim().is_empty()).count();
                 rt(*line, format!("the oracle cannot run Metal ({lines} line(s), {n} thread(s), {} binding(s)); kayo compiles it with Apple's `metal`", binds.len()))
+            }
+            Stmt::Bug { msg, line } => {
+                use std::io::Write;
+                let _ = std::io::stdout().flush();
+                let file = crate::parser::CURRENT_FILE.with(|f| f.borrow().display().to_string());
+                eprintln!("error[bug] at {file}:{line}: {msg}");
+                Err(RuntimeError { line: *line, msg: String::new(), exit: Some(101), site: false, leave: None })
             }
             Stmt::Fail { name, payload, line } => {
                 let case = match self.fails.iter().find(|f| &f.name == name) { Some(f) => f.clone(), None => return rt(*line, format!("`{name}` is not a listed failure here")) };

@@ -23,5 +23,6 @@ Before the owner rules on a big redesign, design claude does these steps and sho
    table of spellings.
 6. **Outside read.** When multifinity offers one, their Claude reads the converted programs. It is their work, not a step
    design claude or the owner runs (owner: "the fresh Claude stuff is mulf's work, I don't know how to do those").
-7. **Build.** Only on the owner's go, and done only when `cargo test`, `oracle/tools/stale_prose.py` and the round trip
+7. **Build.** Right after the owner rules (owner, 2026-10-29: "Bro, just build it. I don't have to say "Go""), unless the
+   owner says to hold it; done only when `cargo test`, `oracle/tools/stale_prose.py` and the round trip
    (`oracle/tools/redesign_round_trip.py` on the pre-redesign examples) are all clean, or their failures are listed.
