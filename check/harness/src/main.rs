@@ -14,6 +14,7 @@ mod compare;
 mod engines;
 mod json;
 mod metal;
+mod three;
 mod tv;
 
 use check_gen::rng::Rng;
@@ -417,29 +418,13 @@ fn main() {
                 let p = generate(seed, &a.config());
                 let (f, g) = (dir.join("old.cy"), dir.join("new.cy"));
                 std::fs::write(&f, p.render()).unwrap();
-                let c = engines::run(std::process::Command::new(&new.oracle).arg("--redesign-show").arg(&f), &dir, &[], false, engines::RUN_LIMIT);
-                if c.code != Some(0) || c.stdout.is_empty() {
-                    unconverted += 1;
-                    println!("seed {seed}: the converter stopped: {}", c.stderr.lines().next().unwrap_or("").chars().take(160).collect::<String>());
-                    continue;
-                }
-                std::fs::write(&g, &c.stdout).unwrap();
-                // redesign three (2026-10-28): design claude's tools take redesign two
-                // there, then take the verbs off plain values (`plain_verbs.py` runs
-                // the debug oracle, `oracle/target/debug/oracle`)
-                let tools = repo().join("oracle/tools");
-                let mut stopped = None;
-                for tool in ["redesign_three.py", "plain_verbs.py"] {
-                    let t = engines::run(std::process::Command::new("python3").arg(tools.join(tool)).arg(&g), &dir, &[], false, engines::RUN_LIMIT);
-                    if t.code != Some(0) {
-                        stopped = Some(format!("{tool}: {}", t.stderr.lines().last().unwrap_or("").chars().take(160).collect::<String>()));
-                        break;
+                match three::convert(&p.render(), &dir.join("three")) {
+                    Ok(t) => std::fs::write(&g, t).unwrap(),
+                    Err(why) => {
+                        unconverted += 1;
+                        println!("seed {seed}: the converter stopped: {why}");
+                        continue;
                     }
-                }
-                if let Some(why) = stopped {
-                    unconverted += 1;
-                    println!("seed {seed}: the converter stopped: {why}");
-                    continue;
                 }
                 let (o, n) = (engines::oracle(&old, &f, &dir, &[]), engines::oracle(&new, &g, &dir, &[]));
                 let agree = match (&o, &n) {

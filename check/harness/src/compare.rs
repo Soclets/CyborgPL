@@ -82,6 +82,10 @@ pub fn check_program(tools: &Tools, p: &check_gen::ast::Program, dir: &Path, env
         }
         return v;
     }
+    let src = match in_three(&src, dir) {
+        Ok(s) => s,
+        Err(f) => return Verdict::Finding(f),
+    };
     std::fs::create_dir_all(dir).unwrap();
     let file = dir.join("prog.cy");
     std::fs::write(&file, &src).unwrap();
@@ -111,7 +115,24 @@ pub fn check_program(tools: &Tools, p: &check_gen::ast::Program, dir: &Path, env
     Verdict::Finding(Finding { kind, mode: Mode::Normal, sig: kind.to_string(), env, detail: d })
 }
 
+/// The program as the engines get it: in redesign three under `CHECK_THREE=1`
+/// (`three.rs`), a converter that stops being a finding of its own.
+fn in_three(src: &str, dir: &Path) -> Result<String, Finding> {
+    if !crate::three::on() {
+        return Ok(src.to_string());
+    }
+    crate::three::convert(src, &dir.join("three")).map_err(|why| {
+        let kind = "converter-stopped";
+        Finding { kind, mode: Mode::Normal, sig: format!("{kind}: {}", crate::normalise(&why)), env: vec![], detail: why }
+    })
+}
+
 pub fn check_modes(tools: &Tools, src: &str, dir: &Path, envs: &[Env], modes: &[Mode]) -> Verdict {
+    let src = match in_three(src, dir) {
+        Ok(s) => s,
+        Err(f) => return Verdict::Finding(f),
+    };
+    let src = src.as_str();
     std::fs::create_dir_all(dir).unwrap();
     let file = dir.join("prog.cy");
     std::fs::write(&file, src).unwrap();

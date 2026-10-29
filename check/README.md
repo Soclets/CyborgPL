@@ -32,9 +32,10 @@ program put into the redesign by `oracle --redesign-show` on this clone's oracle
 or both running to the end (lines and messages change, so not those). kayo reads only today's syntax until the owner's
 go, so the differential runs against the pinned oracle meanwhile (`CHECK_ORACLE`).
 Since redesign three (2026-10-28, oracle c9f4f01b) the converted program goes on through `oracle/tools/redesign_three.py`
-and `plain_verbs.py` (which runs `oracle/target/debug/oracle`: build it first). A program the new oracle refuses for an
-operation on a `<T>` with no `sig` in its bound (2550064a; the generics episode's `<T: any>` with `+`) is counted apart,
-as the writer's hand edit no converter can make. The pinned oracle still has the old address-reuse flake in written
+and `plain_verbs.py` (which runs `oracle/target/debug/oracle`: build it first), and the generics episode's `<T: any>`
+that adds gets the `Addable` sig it needs since 2550064a, the generator's hand edit (`harness/src/three.rs`).
+`CHECK_THREE=1` sends every program the comparison hands the engines the same way, so kayo reading only redesign three
+is compared before the generator writes it itself; a converter that stops is a `converter-stopped` finding. The pinned oracle still has the old address-reuse flake in written
 forms, so a seed like 208 or 282 may differ by a few bytes now and then; run it again before reading anything into it.
 
 **A chip with no operating system** (`aarch64-none`; oracle 29b59ddc): `check bare --cases N` generates programs
