@@ -1828,6 +1828,10 @@ fn blocks_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
         if t.tok == Tok::Attention {
             match toks.get(i + 1).map(|x| &x.tok) {
                 Some(Tok::Word(w)) if w == "MAIN" || w == "no_check" || w == "NO_FUCKING_CHECKS" => { i += 1; continue; }
+                // another kit's handler, `otherwise halves::half_failed.*or_default(…)`: its arms are in that kit, so the
+                // mark stays for the parser, which has them
+                Some(Tok::Word(_)) if out.len() >= 5 && out[out.len() - 1].tok == Tok::Dot && out[out.len() - 3].tok == Tok::ColonColon
+                    && matches!(&out[out.len() - 5].tok, Tok::Word(o) if o == "otherwise") => { out.push(t.clone()); i += 1; continue; }
                 Some(Tok::Word(_)) => { use_bangs.push((out.len(), t.line, t.col)); i += 1; continue; }
                 _ => return Err((t.line, t.col, "`!` goes on a word: `!MAIN`, `!no_check`, `!case`, `!end of`, or a handler that jumps".into())),
             }

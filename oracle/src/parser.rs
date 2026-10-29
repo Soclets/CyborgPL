@@ -3985,16 +3985,23 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
                 self.use_handler(member, &format!("{c}.{m}"))?
             }
             // `otherwise cum::cum_failed.flow_back(…)`: another kit's `pub coll.handler` (owner, 2026-10-23), through its path
-            Tok::Word(k) if *self.peek_at(1) == Tok::ColonColon && matches!(self.peek_at(2), Tok::Word(_)) && *self.peek_at(3) == Tok::Dot && matches!(self.peek_at(4), Tok::Word(_))
+            Tok::Word(k) if *self.peek_at(1) == Tok::ColonColon && matches!(self.peek_at(2), Tok::Word(_)) && *self.peek_at(3) == Tok::Dot
+                && (matches!(self.peek_at(4), Tok::Word(_)) || (*self.peek_at(4) == Tok::Attention && matches!(self.peek_at(5), Tok::Word(_))))
                 && { let Tok::Word(c) = self.peek_at(2).clone() else { unreachable!() }; PUB_HANDLERS.with(|h| h.borrow().iter().any(|(r, n, _, _)| *r == vec![format!("::{k}")] && *n == c)) } => {
-                let (Tok::Word(c), Tok::Word(m)) = (self.peek_at(2).clone(), self.peek_at(4).clone()) else { unreachable!() };
+                // `*` marks a handler that can jump, where it is used, another kit's as much as this one's (owner,
+                // 2026-10-27: "(b)"; compiler claude's finding, 2026-10-29)
+                let marked = *self.peek_at(4) == Tok::Attention;
+                let (Tok::Word(c), Tok::Word(m)) = (self.peek_at(2).clone(), self.peek_at(if marked { 5 } else { 4 }).clone()) else { unreachable!() };
                 let root = vec![format!("::{k}")];
                 let found = PUB_HANDLERS.with(|h| h.borrow().iter().find(|(r, n, mm, _)| *r == root && *n == c && *mm == m).map(|x| x.3.clone()));
                 let Some(member) = found else {
                     let has: Vec<String> = PUB_HANDLERS.with(|h| h.borrow().iter().filter(|(r, n, _, _)| *r == root && *n == c).map(|x| format!("`{}`", x.2)).collect());
                     return self.err(format!("`{k}::{c}` has no handler `{m}`; it has {}", has.join(", ")));
                 };
-                for _ in 0..5 { self.advance(); }
+                let jumps = member.block.iter().any(|t| matches!(&t.tok, Tok::Word(w) if matches!(w.as_str(), "ret" | "return" | "break" | "continue" | "fail")));
+                if jumps && !marked { return self.err(format!("`{k}::{c}.{m}` can jump from here, so its use wears `*`: `otherwise {k}::{c}.*{m}(…)` (owner, 2026-10-27)")); }
+                if marked && !jumps { return self.err(format!("`{k}::{c}.{m}` never jumps: `*` goes only on a handler that can (owner, 2026-10-27)")); }
+                for _ in 0..(if marked { 6 } else { 5 }) { self.advance(); }
                 self.use_handler(member, &format!("{k}::{c}.{m}"))?
             }
             Tok::Semi => return self.err("`otherwise` needs what to do: a value, `fail`, `return …`, or `{ arms }`"),
