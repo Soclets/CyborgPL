@@ -393,7 +393,8 @@ fn main() {
         "redesign" => {
             // the 2026-10-26/27 redesign (oracle b82572d1): each program, in today's
             // syntax, run by an oracle from before it, against the same program put
-            // into the redesign by `oracle --redesign-show` and run by this clone's
+            // into the redesign by `oracle --redesign-show` (and on to redesign three by
+            // `oracle/tools/redesign_three.py` and `plain_verbs.py`) and run by this clone's
             // oracle. The output must be the same and both must stop or both run to
             // the end (lines move and messages are reworded, so not those). A check
             // of the new reader and the converter together, while kayo reads only
@@ -406,7 +407,7 @@ fn main() {
             }
             let dir = work().join("redesign");
             std::fs::create_dir_all(&dir).unwrap();
-            let (mut same, mut differ, mut unconverted) = (0, 0, 0);
+            let (mut same, mut differ, mut unconverted, mut by_hand) = (0, 0, 0, 0);
             let short = |o: &engines::Oracle| match o {
                 engines::Oracle::Ran { out } => format!("ran, {} bytes out", out.len()),
                 engines::Oracle::Stopped { out, msg, .. } => format!("stopped ({}), {} bytes out", msg.chars().take(90).collect::<String>(), out.len()),
@@ -423,6 +424,23 @@ fn main() {
                     continue;
                 }
                 std::fs::write(&g, &c.stdout).unwrap();
+                // redesign three (2026-10-28): design claude's tools take redesign two
+                // there, then take the verbs off plain values (`plain_verbs.py` runs
+                // the debug oracle, `oracle/target/debug/oracle`)
+                let tools = repo().join("oracle/tools");
+                let mut stopped = None;
+                for tool in ["redesign_three.py", "plain_verbs.py"] {
+                    let t = engines::run(std::process::Command::new("python3").arg(tools.join(tool)).arg(&g), &dir, &[], false, engines::RUN_LIMIT);
+                    if t.code != Some(0) {
+                        stopped = Some(format!("{tool}: {}", t.stderr.lines().last().unwrap_or("").chars().take(160).collect::<String>()));
+                        break;
+                    }
+                }
+                if let Some(why) = stopped {
+                    unconverted += 1;
+                    println!("seed {seed}: the converter stopped: {why}");
+                    continue;
+                }
                 let (o, n) = (engines::oracle(&old, &f, &dir, &[]), engines::oracle(&new, &g, &dir, &[]));
                 let agree = match (&o, &n) {
                     (engines::Oracle::Ran { out: a }, engines::Oracle::Ran { out: b }) => a == b,
@@ -430,8 +448,14 @@ fn main() {
                     (engines::Oracle::Timeout, engines::Oracle::Timeout) => true,
                     _ => false,
                 };
+                // an operation on a `<T>` needs a `sig` in its bound since 2550064a, which
+                // no converter can write: the writer's hand edit, as the generics episode's
+                // `<T: any>` with `+`
+                let needs_sig = matches!(&n, engines::Oracle::Stopped { msg, .. } if msg.contains("comes from a `sig`"));
                 if agree {
                     same += 1;
+                } else if needs_sig {
+                    by_hand += 1;
                 } else {
                     differ += 1;
                     let keep = work().join("redesign").join(seed.to_string());
@@ -441,7 +465,7 @@ fn main() {
                     println!("seed {seed}: before the redesign {}; after it {}; files in {}", short(&o), short(&n), keep.display());
                 }
             }
-            println!("{} programs: {same} the same after the redesign, {differ} differ, {unconverted} the converter stopped on", same + differ + unconverted);
+            println!("{} programs: {same} the same after the redesign, {differ} differ, {unconverted} the converter stopped on, {by_hand} need a `sig` written by hand", same + differ + unconverted + by_hand);
         }
         "bare" => {
             // a chip with no OS: kayo's aarch64-none build booted in QEMU against
