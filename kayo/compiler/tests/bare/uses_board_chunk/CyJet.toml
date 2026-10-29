@@ -16,5 +16,5 @@ my targets:
 aarch64-none {
 layout = boards/virt.ld
 output = virt::serial.write_all
-exit = virt::power.off
+exit = virt::machine.off
 }

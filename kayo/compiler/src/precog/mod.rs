@@ -4360,7 +4360,7 @@ fn layer3(p: &Program, r: &SiteResult, facts: &Facts, portfolio: &smt::Portfolio
 fn check_fixes(d: crate::diag::Diagnostic, kind: &SiteKind, result_ty: Option<&Ty>, span: crate::source::Span, sources: &crate::source::SourceMap) -> crate::diag::Diagnostic {
     use crate::diag::Edit;
     let code = sources.get(span.file).slice(span).trim();
-    let simple = |t: &str| !t.is_empty() && !t.contains(['\n', ';', '{', '}']);
+    let simple = |t: &str| !t.is_empty() && !t.contains(['\n', ';', ':']);
     let guard = match kind {
         SiteKind::Bounds | SiteKind::Position => {
             // `$xs[pos: …]` wherever it stands in the code.
@@ -4374,7 +4374,7 @@ fn check_fixes(d: crate::diag::Diagnostic, kind: &SiteKind, result_ty: Option<&T
             if !named || !simple(at) || at.contains('[') {
                 return d;
             }
-            format!("if ({at} at_least 1) and ({at} at_most std::list.length(lend {list})) {{")
+            format!("if ({at} >= 1) and ({at} <= std::ls.len(lend {list})):")
         }
         // A `shr`'s count, under the type's width (a `shl`'s site asks of
         // the value too, which a guard on the count does not answer).
@@ -4385,24 +4385,24 @@ fn check_fixes(d: crate::diag::Diagnostic, kind: &SiteKind, result_ty: Option<&T
             if !simple(count) || count.contains(['(', '[', ' ']) {
                 return d;
             }
-            format!("if {count} < {} {{", bits & !crate::types::EXACT_FLAG)
+            format!("if {count} < {}:", bits & !crate::types::EXACT_FLAG)
         }
         // A duration taken past zero: the larger first.
         SiteKind::Narrow { to } if *to == Ty::Duration => {
-            let Some((a, b)) = code.split_once(" minus ").or_else(|| code.split_once(" - ")) else { return d };
+            let Some((a, b)) = code.split_once(" - ") else { return d };
             let (a, b) = (a.trim(), b.trim_end_matches(';').trim());
             if !simple(a) || !simple(b) || a.contains(['(', ' ', '=']) || b.contains(['(', ' ']) {
                 return d;
             }
-            format!("if {a} at_least {b} {{")
+            format!("if {a} >= {b}:")
         }
         // `let $x: i8 = 300;`: the narrowest type of its sign that holds it.
         SiteKind::Narrow { to } => {
             let Ty::Int(crate::types::IntW::Fixed { signed, .. }) = to.base() else { return d };
             let Some(colon) = code.find(": ") else { return d };
-            let Some(eq) = code.find(" = ") else { return d };
+            let Some(eq) = code.find(" := ") else { return d };
             let written = &code[colon + 2..eq];
-            let value = code[eq + 3..].trim_end_matches(';').trim().replace('_', "");
+            let value = code[eq + 4..].trim_end_matches(';').trim().replace('_', "");
             let Ok(n) = value.parse::<i128>() else { return d };
             if !written.chars().all(|c| c.is_ascii_alphanumeric()) {
                 return d;
@@ -4422,9 +4422,9 @@ fn check_fixes(d: crate::diag::Diagnostic, kind: &SiteKind, result_ty: Option<&T
             if !simple(divisor) || divisor.contains(['(', '[']) {
                 return d;
             }
-            format!("if {divisor} not_equal 0 {{")
+            format!("if {divisor} != 0:")
         }
         _ => return d,
     };
-    d.fix_edit(span, Edit::InsertLine, guard).fix_also(span, Edit::InsertLineAfter, "}")
+    d.fix_edit(span, Edit::InsertLine, guard).fix_also(span, Edit::InsertLineAfter, ";if")
 }

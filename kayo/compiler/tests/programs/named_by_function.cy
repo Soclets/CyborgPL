@@ -26,7 +26,7 @@ coll.fn block:
             ret $n;
         ;member
     ;for
-    #generated_3_lines_below
+    #generated_9_lines_below
     member block.kb [] -> i32:
         ret 1024;
     ;member block.kb

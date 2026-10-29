@@ -24,9 +24,9 @@ fn sign [let $q: f64] -> i32:
     ;if
     ret 0;
 ;fn sign
-fn + [let $q: f64] -> i32:
+fn plus_zero [let $q: f64] -> i32:
     ret sign($q);
-;fn +
+;fn plus_zero
 fn ieee [let $q: f64] -> i32:
     ret 2 x (1 - sign($q));
 ;fn ieee
@@ -35,24 +35,24 @@ MAIN:
     let $n := two();
     let $t := tiny();
     let $m: f64 := neg.ieee $z;
-    let $a := +($z x $n) + ieee($z times.ieee $n);
-    let $b := +(-$z) + ieee(neg.ieee $z);
-    let $c := +($t x (-$t)) + ieee($t times.ieee (-$t));
-    let $d := +($z div.near $n) + ieee($z div.near.ieee $n) + +($z div.ceil $n) + ieee($z div.ceil.ieee $n);
-    let $e := +($m + $m) + ieee($m plus.ieee $m) + +($m - $z) + ieee($m minus.ieee $z);
-    let $f := +(3.0 mod.floor (-3.0)) + +($n mod.floor $n) + ieee($m);
+    let $a := plus_zero($z x $n) + ieee($z times.ieee $n);
+    let $b := plus_zero(-$z) + ieee(neg.ieee $z);
+    let $c := plus_zero($t x (-$t)) + ieee($t times.ieee (-$t));
+    let $d := plus_zero($z div.near $n) + ieee($z div.near.ieee $n) + plus_zero($z div.ceil $n) + ieee($z div.ceil.ieee $n);
+    let $e := plus_zero($m + $m) + ieee($m plus.ieee $m) + plus_zero($m - $z) + ieee($m minus.ieee $z);
+    let $f := plus_zero(3.0 mod.floor (-3.0)) + plus_zero($n mod.floor $n) + ieee($m);
     let $bz: %bf16 := 0.0;
     let $bc: %bf16 := -3.0;
-    let $g := +(to.f64($bz x $bc)) + ieee(to.f64($bz times.ieee $bc)) + +(to.f64(-$bz)) + ieee(to.f64(neg.ieee $bz));
+    let $g := plus_zero(to.f64($bz x $bc)) + ieee(to.f64($bz times.ieee $bc)) + plus_zero(to.f64(-$bz)) + ieee(to.f64(neg.ieee $bz));
     let $w: f32 := to.f32($t x (-1.0));
     let $k: f32 := to.f32($m);
-    let $h := +(to.f64($w)) + ieee(to.f64($k)) + +(to.f64(to.%bf16($t x (-1.0))));
+    let $h := plus_zero(to.f64($w)) + ieee(to.f64($k)) + plus_zero(to.f64(to.%bf16($t x (-1.0))));
     let $vz: simd[f64, count: 2] := simd.fill(value: $z);
     let $vm: simd[f64, count: 2] := simd.fill(value: $m);
     let $vn: simd[f64, count: 2] := simd.fill(value: $n);
-    let $s := +(simd.max($vm)) + +(simd.min($vm)) + +(simd.sum($vm)) + +(simd.max($vz x $vn)) + +(simd.max($vz times.ieee $vn));
+    let $s := plus_zero(simd.max($vm)) + plus_zero(simd.min($vm)) + plus_zero(simd.sum($vm)) + plus_zero(simd.max($vz x $vn)) + plus_zero(simd.max($vz times.ieee $vn));
     let $r := three();
-    let $x := +((-$r) mod.trunc $r) + ieee((-$r) mod.trunc.ieee $r) + ieee($r mod.floor.ieee (-$r)) + +((-$t) std::pow 3) + ieee((-$t) std::pow.ieee 3) + ieee((-$t) std::pow.ieee 3);
-    let $lit := +(0.0 x (-2.0)) + ieee(0.0 times.ieee (-2.0)) + +(-0.0) + ieee(neg.ieee 0.0);
+    let $x := plus_zero((-$r) mod.trunc $r) + ieee((-$r) mod.trunc.ieee $r) + ieee($r mod.floor.ieee (-$r)) + plus_zero((-$t) std::pow 3) + ieee((-$t) std::pow.ieee 3) + ieee((-$t) std::pow.ieee 3);
+    let $lit := plus_zero(0.0 x (-2.0)) + ieee(0.0 times.ieee (-2.0)) + plus_zero(-0.0) + ieee(neg.ieee 0.0);
     no_check my.exit(to.i32($a + $b + $c + $d + $e + $f + $g + $h + $s + $x + $lit));
 ;MAIN

@@ -19,7 +19,7 @@ pub module serial:
     ;proc write_all
 ;module serial
 
-pub module std::pow:
+pub module machine:
     pub proc off [let $code: u8]:
         no_check inline.ASM with [$code -> x1, clobber x0]:
             movz x0, #0x0008
@@ -27,4 +27,4 @@ pub module std::pow:
             hvc #0
         ;inline.ASM
     ;proc off
-;module std::pow
+;module machine

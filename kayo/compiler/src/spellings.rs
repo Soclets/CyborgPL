@@ -227,7 +227,7 @@ pub fn retired(w: &str) -> Option<String> {
     if reading() {
         return None;
     }
-    let listed = get().retired.iter().any(|r| r == w) || matches!(w, "string" | "boolean" | "character");
+    let listed = get().retired.iter().any(|r| r == w) || matches!(w, "string" | "boolean" | "character" | "power" | "concatenate" | "newline");
     if !listed || w == "func" {
         return None;
     }

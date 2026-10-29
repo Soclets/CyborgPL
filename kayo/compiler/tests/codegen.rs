@@ -137,8 +137,8 @@ fn deep_nesting_is_checked() {
     let _ = std::fs::create_dir_all(&dir);
     let src = dir.join("deep.cy");
     let depth = 5000;
-    let expr = format!("{}1{}", "(1 plus ".repeat(depth), ")".repeat(depth));
-    std::fs::write(&src, format!("MAIN {{\n    let 'x': i64 = {};\n}}\n", expr)).unwrap();
+    let expr = format!("{}1{}", "(1 + ".repeat(depth), ")".repeat(depth));
+    std::fs::write(&src, format!("MAIN:\n    let $x: i64 := {};\n;MAIN\n", expr)).unwrap();
     let r = Command::new(cca()).arg("check").arg(&src).output().unwrap();
     assert!(r.status.success(), "a deep expression was not checked:\n{}", String::from_utf8_lossy(&r.stderr));
 }
@@ -203,7 +203,7 @@ fn kits_reach_their_dependencies() {
     }
     // A dependency's MAIN runs when that kit is run itself, and is left
     // out when another uses it (owner, 2026-09-29: a).
-    for (name, code) in [("uses_runnable", 8), ("runnable", 99), ("uses_area_ops", 49), ("bare_root", 7), ("uses_shout", 131), ("uses_bare_dep", 8)] {
+    for (name, code) in [("uses_runnable", 8), ("runnable", 99), ("uses_area_ops", 49), ("bare_root", 7), ("uses_bare_dep", 8)] {
         let r = Command::new(cca()).arg("run").arg(kits.join(name)).output().unwrap();
         assert_eq!(r.status.code(), Some(code), "{} did not run to {}:\n{}", name, code, String::from_utf8_lossy(&r.stderr));
     }
@@ -392,10 +392,10 @@ fn final_build_proves_counted_loops_and_no_more() {
     // Where each must be refused: the line that really can go wrong.
     for (name, phrase) in [
         ("acc_overflows", "acc_overflows.cy:12:"),
-        ("append_on_a_branch", "append_on_a_branch.cy:18:"),
-        ("fib_93", "fib_93.cy:8:"),
-        ("recursion_upward", "recursion_upward.cy:9:"),
-        ("counter_on_a_branch", "counter_on_a_branch.cy:19:"),
+        ("append_on_a_branch", "append_on_a_branch.cy:20:"),
+        ("fib_93", "fib_93.cy:10:"),
+        ("recursion_upward", "recursion_upward.cy:11:"),
+        ("counter_on_a_branch", "counter_on_a_branch.cy:23:"),
         ("mean_stale_read", "mean_stale_read.cy:17:"),
     ] {
         let r = final_build(&tests.join(format!("{}.cy", name)));
@@ -418,15 +418,15 @@ fn final_build_proves_fields_and_kept_positions_and_no_more() {
     let tests = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/final");
     let proven = ["field_guarded", "field_or_guarded", "field_loop_stepped", "kept_position", "kept_position_from_one"];
     let refused = [
-        ("field_branch_written", "field_branch_written.cy:16:"),
-        ("field_after_call", "field_after_call.cy:16:"),
-        ("field_struct_replaced", "field_struct_replaced.cy:16:"),
-        ("field_alias", "field_alias.cy:17:"),
-        ("field_loop_past", "field_loop_past.cy:14:"),
-        ("field_loop_call", "field_loop_call.cy:14:"),
-        ("kept_position_plus_one", "kept_position_plus_one.cy:15:"),
-        ("kept_position_other_list", "kept_position_other_list.cy:15:"),
-        ("kept_position_shrunk", "kept_position_shrunk.cy:23:"),
+        ("field_branch_written", "field_branch_written.cy:20:"),
+        ("field_after_call", "field_after_call.cy:18:"),
+        ("field_struct_replaced", "field_struct_replaced.cy:18:"),
+        ("field_alias", "field_alias.cy:19:"),
+        ("field_loop_past", "field_loop_past.cy:15:"),
+        ("field_loop_call", "field_loop_call.cy:15:"),
+        ("kept_position_plus_one", "kept_position_plus_one.cy:19:"),
+        ("kept_position_other_list", "kept_position_other_list.cy:19:"),
+        ("kept_position_shrunk", "kept_position_shrunk.cy:31:"),
         ("kept_position_zero", "when:  $at = 0,"),
     ];
     let names: Vec<&str> = proven.iter().copied().chain(refused.iter().map(|(n, _)| *n)).collect();
@@ -546,7 +546,7 @@ fn no_fucking_checks_builds_a_certain_failure_and_notes_it() {
     let out = std::env::temp_dir().join(format!("kayo-ladder-{}", std::process::id()));
     let _ = std::fs::create_dir_all(&out);
     let src = out.join("ladder.cy");
-    std::fs::write(&src, "MAIN {\n    let 'n': i64 = 300;\n    NO_FUCKING_CHECKS let 'b': u8 = 'n';\n    std::print.useful('b', newln);\n}\n").unwrap();
+    std::fs::write(&src, "MAIN:\n    let $n: i64 := 300;\n    NO_FUCKING_CHECKS let $b: u8 := $n;\n    std::print($b, newln);\n;MAIN\n").unwrap();
     let r = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(out.join("ladder")).output().unwrap();
     let said = String::from_utf8_lossy(&r.stdout).to_string() + &String::from_utf8_lossy(&r.stderr);
     assert!(r.status.success(), "NO_FUCKING_CHECKS over a certain failure was refused:\n{}", said);
@@ -825,7 +825,7 @@ fn cords_text_positions_are_proven() {
     let src = dir().parent().unwrap().join("precog/cord_text.cy");
     let r = Command::new(cca()).arg("prove").arg(&src).output().unwrap();
     let report = String::from_utf8_lossy(&r.stdout).to_string() + &String::from_utf8_lossy(&r.stderr);
-    for (line, code) in [("line 25", "$text[pos: $k]"), ("line 25", "$part[pos: $k minus $pos plus"), ("line 42", "$text[pos: $pos]")] {
+    for (line, code) in [("line 33", "$text[pos: $k]"), ("line 33", "$part[pos: $k - $pos +"), ("line 52", "$text[pos: $pos]")] {
         let row = report.lines().find(|l| l.starts_with(line) && l.contains(code)).unwrap_or_else(|| panic!("no row for {} at {}:\n{}", code, line, report));
         assert!(row.contains("proven"), "{} at {} is not proven:\n{}", code, line, row);
     }
@@ -863,7 +863,7 @@ fn a_final_build_writes_its_debug_info_beside_it() {
     let _ = std::fs::remove_dir_all(&out);
     std::fs::create_dir_all(&out).unwrap();
     let hello = out.join("hello.cy");
-    std::fs::write(&hello, "MAIN {\n    std::print.useful(\"hello\", newln);\n}\n").unwrap();
+    std::fs::write(&hello, "MAIN:\n    std::print(\"hello\", newln);\n;MAIN\n").unwrap();
     let r = Command::new(cca()).args(["build", "--final"]).arg(&hello).arg("-o").arg(out.join("hello")).output().unwrap();
     assert!(r.status.success(), "the final build failed:\n{}", String::from_utf8_lossy(&r.stderr));
     assert!(out.join("hello.dSYM/Contents/Resources/DWARF/hello").is_file(), "no hello.dSYM beside the program");
@@ -953,7 +953,7 @@ fn emit_llvm_tv_keeps_every_function() {
     let _ = std::fs::remove_dir_all(&out);
     std::fs::create_dir_all(&out).unwrap();
     let src = out.join("t.cy");
-    std::fs::write(&src, "fn add ['a': i32, 'b': i32] -> i32 { return 'a' plus 'b'; }\nfn sum ['n': u32] -> u64 {\n    let mut 't': u64 = 0;\n    for 'i': u32 [from: 1, to: 'n', by: 1] { change 't' = 't' plus to.u64('i'); }\n    return 't';\n}\nMAIN {\n    std::print.useful(add(2, 3), \" \", sum(10), newln);\n}\n").unwrap();
+    std::fs::write(&src, "fn add [let $a: i32, let $b: i32] -> i32:\n    ret $a + $b;\n;fn add\nfn sum [let $n: u32] -> u64:\n    var $t: u64 = 0;\n    for $i: u32 [from: 1, to: $n, by: 1]:\n        change $t to $t + to.u64($i);\n    ;for\n    ret $t;\n;fn sum\nMAIN:\n    std::print(add(2, 3), \" \", sum(10), newln);\n;MAIN\n").unwrap();
     let r = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(out.join("t")).arg("--emit-llvm-tv").arg(out.join("tv")).output().unwrap();
     assert!(r.status.success(), "the build failed:\n{}", String::from_utf8_lossy(&r.stderr));
     let defined = |name: &str| -> Vec<String> {

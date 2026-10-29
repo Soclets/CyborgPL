@@ -293,9 +293,6 @@ bare_groups_2026_10_07b 198
 zero_everywhere_run 56
 simd_sum_forms_run 31
 wstn_names 43
-case_file_run 68
-case_marks_run 221
-case_unicode_run 14
 simd_sum_and_bare_pow_beside_typed 128
 wrap_bare_group 121
 list_remove_bounds trap

@@ -8,7 +8,7 @@ set Number:
     i64;
 ;set Number
 
-fn total_of <T: Number> [lent $xs: std::ls[<T>]] -> <T>:
+fn total_of [<T>: Number] [lent $xs: std::ls[<T>]] -> <T>:
     var $sum: <T> = 0;
     for $x in lend $xs:
         change $sum to $sum + $x;

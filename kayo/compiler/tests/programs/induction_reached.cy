@@ -15,7 +15,7 @@ fn f [let $pr: i32[min: 0, max: 6], let $p1: u64] -> i64:
 ;fn f
 fn g [let $pr: i32[min: 0, max: 6], let $p1: u64] -> i64:
     if $pr == 0:
-        ret 100 mod.floor (negate to.i64($p1));
+        ret 100 mod.floor (-to.i64($p1));
     ;if
     ret g($pr - 1, ($p1 mod.floor 233) + 448);
 ;fn g

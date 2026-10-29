@@ -598,7 +598,7 @@ impl Checker {
 
     /// Whether `name` is a parameter of the function being checked.
     fn is_param(&self, ctx: &FnCtx, name: &str) -> bool {
-        self.instances.get(ctx.inst.0 as usize).is_some_and(|i| self.items.fns[i.key.fn_id.0 as usize].params.iter().any(|p| p.name == name))
+        self.instances.get(ctx.inst.0 as usize).and_then(|i| self.items.fns.get(i.key.fn_id.0 as usize)).is_some_and(|f| f.params.iter().any(|p| p.name == name))
     }
 
     fn check_place_use(&self, ctx: &FnCtx, id: hir::LocalId, use_: PlaceUse, span: Span, name: &str) -> Result<()> {

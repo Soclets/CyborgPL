@@ -97,15 +97,15 @@ fn a_full_width_unsigned_value_is_not_proven_safe() {
         // A `u32` straight from C, so every value the type holds is
         // possible — `to.u32[getpid[]]` would not do: Precog knows that
         // one is at most 2^31 - 1, and then `'x' + 1` really is safe.
-        "%extern.C fn getuid [] -> u32;\n\
-         fn bump ['x': u32] -> u32 {\n\
-         \x20   let 'y': u32 = 'x' plus 1;\n\
-         \x20   return 'y';\n\
-         }\n\
-         MAIN {\n\
-         \x20   no_check let 'u' := getuid();\n\
-         \x20   let 'r' := bump('u');\n\
-         }\n",
+        "%extern.C proc getuid [] -> u32;\n\
+         fn bump [let $x: u32] -> u32:\n\
+         \x20   let $y: u32 := $x + 1;\n\
+         \x20   ret $y;\n\
+         ;fn bump\n\
+         MAIN:\n\
+         \x20   no_check let $u := getuid();\n\
+         \x20   let $r := bump($u);\n\
+         ;MAIN\n",
     );
     let ns = notes(&p);
     assert!(
@@ -128,21 +128,29 @@ fn a_full_width_unsigned_value_is_not_proven_safe() {
 fn a_const_arrays_length_is_known_to_layer_3() {
     assert!(have_a_solver(), "no solver on this machine, so layer 3 cannot be tested at all");
     let p = build(
-        "%extern.C fn getuid [] -> u32;\n\
-         const 'keys': array[u32] = [65, 66, 67, 223, 913, 931];\n\
-         fn look ['c': u32] -> u32 {\n\
-         \x20   let 'n' := array.length('keys');\n\
-         \x20   let mut 'p': u64[max: 6] = 0;\n\
-         \x20   if 'p' + 4 at_most 'n' and.then 'keys'[pos: 'p' + 4] at_most 'c' { change 'p' = 'p' + 4; }\n\
-         \x20   if 'p' + 2 at_most 'n' and.then 'keys'[pos: 'p' + 2] at_most 'c' { change 'p' = 'p' + 2; }\n\
-         \x20   if 'p' + 1 at_most 'n' and.then 'keys'[pos: 'p' + 1] at_most 'c' { change 'p' = 'p' + 1; }\n\
-         \x20   if 'p' at_least 1 and.then 'keys'[pos: 'p'] equal_to 'c' { return 'p'; }\n\
-         \x20   return 0;\n\
-         }\n\
-         MAIN {\n\
-         \x20   no_check let 'u' := getuid();\n\
-         \x20   let 'r' := look('u');\n\
-         }\n",
+        "%extern.C proc getuid [] -> u32;\n\
+         const $keys: arr[u32] := [65, 66, 67, 223, 913, 931];\n\
+         fn look [let $c: u32] -> u32:\n\
+         \x20   let $n := arr.len($keys);\n\
+         \x20   var $p: u64[max: 6] = 0;\n\
+         \x20   if $p + 4 <= $n and.then $keys[pos: $p + 4] <= $c:\n\
+         \x20       change $p to $p + 4;\n\
+         \x20   ;if\n\
+         \x20   if $p + 2 <= $n and.then $keys[pos: $p + 2] <= $c:\n\
+         \x20       change $p to $p + 2;\n\
+         \x20   ;if\n\
+         \x20   if $p + 1 <= $n and.then $keys[pos: $p + 1] <= $c:\n\
+         \x20       change $p to $p + 1;\n\
+         \x20   ;if\n\
+         \x20   if $p >= 1 and.then $keys[pos: $p] == $c:\n\
+         \x20       ret $p;\n\
+         \x20   ;if\n\
+         \x20   ret 0;\n\
+         ;fn look\n\
+         MAIN:\n\
+         \x20   no_check let $u := getuid();\n\
+         \x20   let $r := look($u);\n\
+         ;MAIN\n",
     );
     let ns = notes(&p);
     assert!(
@@ -158,14 +166,14 @@ fn a_const_arrays_length_is_known_to_layer_3() {
 fn layer_3_proves_what_layer_2_can_only_guess_at() {
     assert!(have_a_solver(), "no solver on this machine, so layer 3 cannot be tested at all");
     let p = build(
-        "%extern.C fn getpid [] -> i32;\n\
-         MAIN {\n\
-         \x20   no_check let 'a': u8 = to.u8(getpid());\n\
-         \x20   no_check let 'b': u8 = to.u8(getpid());\n\
-         \x20   if 'a' < 'b' {\n\
-         \x20       let 'gap': u8 = 'b' minus 'a';\n\
-         \x20   }\n\
-         }\n",
+        "%extern.C proc getpid [] -> i32;\n\
+         MAIN:\n\
+         \x20   no_check let $a: u8 := to.u8(getpid());\n\
+         \x20   no_check let $b: u8 := to.u8(getpid());\n\
+         \x20   if $a < $b:\n\
+         \x20       let $gap: u8 := $b - $a;\n\
+         \x20   ;if\n\
+         ;MAIN\n",
     );
     let ns = notes(&p);
     assert!(
@@ -182,63 +190,63 @@ fn layer_3_proves_what_layer_2_can_only_guess_at() {
 /// query has to say what each type holds. A value derived from a call
 /// does not test that — the call's own type is what gets written down.
 const PROGRAMS: &[&str] = &[
-    "%extern.C fn getpid [] -> i32;\n\
-     fn a8 ['x': u8] -> u8 { let 'y': u8 = 'x' plus 1; return 'y'; }\n\
-     fn a16 ['x': u16] -> u16 { let 'y': u16 = 'x' plus 1; return 'y'; }\n\
-     fn a32 ['x': u32] -> u32 { let 'y': u32 = 'x' plus 1; return 'y'; }\n\
-     fn a64 ['x': u64] -> u64 { let 'y': u64 = 'x' plus 1; return 'y'; }\n\
-     fn b8 ['x': i8] -> i8 { let 'y': i8 = 'x' plus 1; return 'y'; }\n\
-     fn b64 ['x': i64] -> i64 { let 'y': i64 = 'x' plus 1; return 'y'; }\n\
-     MAIN {\n\
-     \x20   no_check let 'p' := getpid();\n\
-     \x20   no_check let 'u8': u8 = to.u8('p');\n\
-     \x20   no_check let 'u16': u16 = to.u16('p');\n\
-     \x20   no_check let 'u32': u32 = to.u32('p');\n\
-     \x20   no_check let 'u64': u64 = to.u64('p');\n\
-     \x20   no_check let 'i8': i8 = to.i8('p');\n\
-     \x20   no_check let 'i64': i64 = to.i64('p');\n\
-     \x20   let 'r1' := a8('u8');\n\
-     \x20   let 'r2' := a16('u16');\n\
-     \x20   let 'r3' := a32('u32');\n\
-     \x20   let 'r4' := a64('u64');\n\
-     \x20   let 'r5' := b8('i8');\n\
-     \x20   let 'r6' := b64('i64');\n\
-     }\n",
-    "%extern.C fn getpid [] -> i32;\n\
-     MAIN {\n\
-     \x20   no_check let 'a': u8 = to.u8(getpid());\n\
-     \x20   no_check let 'b': u16 = to.u16(getpid());\n\
-     \x20   no_check let 'c': u32 = to.u32(getpid());\n\
-     \x20   no_check let 'd': u64 = to.u64(getpid());\n\
-     \x20   let 'w': u8 = 'a' plus 1;\n\
-     \x20   let 'x': u16 = 'b' plus 1;\n\
-     \x20   let 'y': u32 = 'c' plus 1;\n\
-     \x20   let 'z': u64 = 'd' plus 1;\n\
-     }\n",
-    "%extern.C fn getpid [] -> i32;\n\
-     MAIN {\n\
-     \x20   no_check let 'a': i8 = to.i8(getpid());\n\
-     \x20   no_check let 'b': i16 = to.i16(getpid());\n\
-     \x20   no_check let 'c': i32 = getpid();\n\
-     \x20   no_check let 'd': i64 = to.i64(getpid());\n\
-     \x20   let 'w': i8 = 'a' minus 1;\n\
-     \x20   let 'x': i16 = 'b' times 2;\n\
-     \x20   let 'y': i32 = 'c' plus 'c';\n\
-     \x20   let 'z': i64 = 'd' plus 1;\n\
-     }\n",
-    "%extern.C fn getpid [] -> i32;\n\
-     MAIN {\n\
-     \x20   no_check let 'n': i32 = getpid();\n\
-     \x20   let 'r': i32[min: 1, max: 10] = 'n';\n\
-     \x20   let 'q': i32 = 100 div.floor 'n';\n\
-     \x20   let 'm': i32 = 100 mod.floor 'n';\n\
-     }\n",
-    "%extern.C fn getpid [] -> i32;\n\
-     MAIN {\n\
-     \x20   no_check let 'n': i32 = getpid();\n\
-     \x20   let mut 'total': i32 = 0;\n\
-     \x20   for 'i': i32 [from: 1, to: 10, by: 1] {\n\
-     \x20       change 'total' = 'total' plus 'i' plus 'n';\n\
-     \x20   }\n\
-     }\n",
+    "%extern.C proc getpid [] -> i32;\n\
+     fn a8 [let $x: u8] -> u8:\n    let $y: u8 := $x + 1;\n    ret $y;\n;fn a8\n\
+     fn a16 [let $x: u16] -> u16:\n    let $y: u16 := $x + 1;\n    ret $y;\n;fn a16\n\
+     fn a32 [let $x: u32] -> u32:\n    let $y: u32 := $x + 1;\n    ret $y;\n;fn a32\n\
+     fn a64 [let $x: u64] -> u64:\n    let $y: u64 := $x + 1;\n    ret $y;\n;fn a64\n\
+     fn b8 [let $x: i8] -> i8:\n    let $y: i8 := $x + 1;\n    ret $y;\n;fn b8\n\
+     fn b64 [let $x: i64] -> i64:\n    let $y: i64 := $x + 1;\n    ret $y;\n;fn b64\n\
+     MAIN:\n\
+     \x20   no_check let $p := getpid();\n\
+     \x20   no_check let $u8: u8 := to.u8($p);\n\
+     \x20   no_check let $u16: u16 := to.u16($p);\n\
+     \x20   no_check let $u32: u32 := to.u32($p);\n\
+     \x20   no_check let $u64: u64 := to.u64($p);\n\
+     \x20   no_check let $i8: i8 := to.i8($p);\n\
+     \x20   no_check let $i64: i64 := to.i64($p);\n\
+     \x20   let $r1 := a8($u8);\n\
+     \x20   let $r2 := a16($u16);\n\
+     \x20   let $r3 := a32($u32);\n\
+     \x20   let $r4 := a64($u64);\n\
+     \x20   let $r5 := b8($i8);\n\
+     \x20   let $r6 := b64($i64);\n\
+     ;MAIN\n",
+    "%extern.C proc getpid [] -> i32;\n\
+     MAIN:\n\
+     \x20   no_check let $a: u8 := to.u8(getpid());\n\
+     \x20   no_check let $b: u16 := to.u16(getpid());\n\
+     \x20   no_check let $c: u32 := to.u32(getpid());\n\
+     \x20   no_check let $d: u64 := to.u64(getpid());\n\
+     \x20   let $w: u8 := $a + 1;\n\
+     \x20   let $x: u16 := $b + 1;\n\
+     \x20   let $y: u32 := $c + 1;\n\
+     \x20   let $z: u64 := $d + 1;\n\
+     ;MAIN\n",
+    "%extern.C proc getpid [] -> i32;\n\
+     MAIN:\n\
+     \x20   no_check let $a: i8 := to.i8(getpid());\n\
+     \x20   no_check let $b: i16 := to.i16(getpid());\n\
+     \x20   no_check let $c: i32 := getpid();\n\
+     \x20   no_check let $d: i64 := to.i64(getpid());\n\
+     \x20   let $w: i8 := $a - 1;\n\
+     \x20   let $x: i16 := $b x 2;\n\
+     \x20   let $y: i32 := $c + $c;\n\
+     \x20   let $z: i64 := $d + 1;\n\
+     ;MAIN\n",
+    "%extern.C proc getpid [] -> i32;\n\
+     MAIN:\n\
+     \x20   no_check let $n: i32 := getpid();\n\
+     \x20   let $r: i32[min: 1, max: 10] := $n;\n\
+     \x20   let $q: i32 := 100 div.floor $n;\n\
+     \x20   let $m: i32 := 100 mod.floor $n;\n\
+     ;MAIN\n",
+    "%extern.C proc getpid [] -> i32;\n\
+     MAIN:\n\
+     \x20   no_check let $n: i32 := getpid();\n\
+     \x20   var $total: i32 = 0;\n\
+     \x20   for $i: i32 [from: 1, to: 10, by: 1]:\n\
+     \x20       change $total to $total + $i + $n;\n\
+     \x20   ;for\n\
+     ;MAIN\n",
 ];

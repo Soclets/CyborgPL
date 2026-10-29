@@ -1,10 +1,10 @@
 %extern.C proc exit [let $code: i32];
-fn produce [lent $out: %channel[std::ls[i32]][min: 0, max: 4], let $base: i32]:
+proc produce [lent $out: %channel[std::ls[i32]][min: 0, max: 4], let $base: i32]:
     for $i: i32 [from: 1, to: 50, by: 1]:
         let $batch: std::ls[i32] := [$base, $i];
         %channel.send(lend $out, value: give $batch);
     ;for
-;fn produce
+;proc produce
 MAIN:
     let $pipe: %channel[std::ls[i32]][min: 0, max: 4] := %channel.empty;
     let $quiet: %channel[i32] := %channel.empty;

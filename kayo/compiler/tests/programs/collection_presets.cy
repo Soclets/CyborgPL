@@ -29,7 +29,7 @@ coll.fn mix:
             ret $x + $n;
         ;member
     ;for
-    #generated_2_lines_below
+    #generated_6_lines_below
     member mix.plus_1 [let $x: i32] -> i32:
         ret $x + 1;
     ;member mix.plus_1

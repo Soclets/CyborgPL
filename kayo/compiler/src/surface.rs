@@ -53,6 +53,9 @@ struct Open {
     /// A `sig`'s first type line, and whether it lists an operation.
     types: Option<Span>,
     ops: bool,
+    /// The opening line, up to its `:`: a block opened inside a statement (a lambda in an `if`'s
+    /// condition) leaves the statement to go on after its closer.
+    head: Vec<Token>,
 }
 
 pub fn read(toks: Vec<Token>, src: &str) -> Result<Vec<Token>> {
@@ -242,7 +245,18 @@ impl<'a> Reader<'a> {
                 t.line_first = true;
                 self.out.push(t);
             }
-            let rest = line.split_off(k);
+            let mut rest = line.split_off(k);
+            // `;fn) == 3:`: the statement the block stood in goes on, and opens its own block.
+            if rest.last().is_some_and(|t| t.tok == Tok::Colon) && !open.head.is_empty() {
+                let colon = rest.pop().unwrap();
+                let kind = self.stack.last().map_or(Kind::Items, |o| o.kind);
+                let (closer, k2) = self.closer_of(&open.head, kind, false)?;
+                let words = self.words(rest, kind)?;
+                self.out.extend(words);
+                self.out.push(tok(Tok::LBrace, colon.span));
+                self.stack.push(Open { closer, at: open.head[0].span, kind: k2, with: Vec::new(), types: None, ops: false, head: Vec::new() });
+                return Ok(());
+            }
             if !rest.is_empty() {
                 let kind = self.stack.last().map_or(Kind::Items, |o| o.kind);
                 let words = self.words(rest, kind)?;
@@ -313,7 +327,10 @@ impl<'a> Reader<'a> {
             return Ok(());
         }
         let colon = line.pop().unwrap();
-        let (closer, kind) = self.closer_of(&line, in_kind)?;
+        // A `:` inside a call's brackets opens a block inside the statement: a lambda.
+        let depth = line.iter().fold(0i32, |d, t| match t.tok { Tok::LParen | Tok::LBracket => d + 1, Tok::RParen | Tok::RBracket => d - 1, _ => d });
+        let (closer, kind) = self.closer_of(&line, in_kind, depth > 0)?;
+        let line_head = if depth > 0 { line.clone() } else { Vec::new() };
         let first = line[0].span;
         // An inline block: its `with [ … ]` read after the code.
         if kind == Kind::Inline {
@@ -324,7 +341,7 @@ impl<'a> Reader<'a> {
             let head = self.words(line, in_kind)?;
             self.out.extend(head);
             let with = self.words(with, Kind::Body)?;
-            self.stack.push(Open { closer, at: first, kind, with, types: None, ops: false });
+            self.stack.push(Open { closer, at: first, kind, with, types: None, ops: false, head: Vec::new() });
             return Ok(());
         }
         // `block:` is a block alone, the parser's bare braces.
@@ -335,13 +352,18 @@ impl<'a> Reader<'a> {
         self.out.extend(words);
         self.out.push(tok(Tok::LBrace, colon.span));
         if !reopen {
-            self.stack.push(Open { closer, at: first, kind, with: Vec::new(), types: None, ops: false });
+            self.stack.push(Open { closer, at: first, kind, with: Vec::new(), types: None, ops: false, head: line_head });
         }
         Ok(())
     }
 
     /// What closes the block a line opens, and what its lines are.
-    fn closer_of(&self, line: &[Token], in_kind: Kind) -> Result<(String, Kind)> {
+    fn closer_of(&self, line: &[Token], in_kind: Kind, inner: bool) -> Result<(String, Kind)> {
+        if inner {
+            if let Some(c) = self.inner_closer(line) {
+                return Ok((c, Kind::Body));
+            }
+        }
         let mut i = 0;
         // Marks and words in front of the kind.
         loop {
@@ -662,7 +684,15 @@ impl<'a> Reader<'a> {
                 }
                 // `[<T>: Addable, <U>: any]`: a generic's placeholders in their own `[ ]` (owner,
                 // 2026-10-29), the parser's `<T: Addable, U: any>`.
-                Tok::LBracket if line.get(i + 1).is_some_and(|n| is_op(n, "<")) && line.get(i + 2).is_some_and(|n| matches!(n.tok, Tok::Word(_))) && line.get(i + 3).is_some_and(|n| is_op(n, ">")) => {
+                Tok::LBracket
+                    if line.get(i + 1).is_some_and(|n| is_op(n, "<"))
+                        && line.get(i + 2).is_some_and(|n| matches!(n.tok, Tok::Word(_)))
+                        && line.get(i + 3).is_some_and(|n| is_op(n, ">"))
+                        // Right after the name a declaration gives, never a type's own `[<T>]`.
+                        && out.len() >= 2
+                        && matches!(&out[out.len() - 1].tok, Tok::Word(_) | Tok::Op(_))
+                        && matches!(&out[out.len() - 2].tok, Tok::Word(k) if matches!(k.as_str(), "fn" | "struct" | "enum" | "interface" | "op")) =>
+                {
                     let mut depth = 0i32;
                     let mut j = i;
                     while j < n {
@@ -858,7 +888,9 @@ impl<'a> Reader<'a> {
                         _ => None,
                     };
                     // A case's own name, `lt;`, `case lt:`, is a name.
-                    let a_name = in_kind == Kind::Cases || (i == 1 && is_word(&line[0], "case")) || matches!(prev, Some(Tok::Word(ref k)) if k == "fn" || k == "proc" || k == "rec");
+                    // Only where an operator stands (design claude, 2026-10-29): a line's first word
+                    // (a case, a field) or the word a declaration or a pick names is a name.
+                    let a_name = in_kind == Kind::Cases || i == 0 || matches!(prev, Some(Tok::Word(ref k)) if matches!(k.as_str(), "case" | "module" | "fn" | "struct" | "enum" | "interface" | "member" | "let" | "var" | "immut" | "mut" | "const" | "coll" | "tag" | "shadow"));
                     if let (Some(new), false) = (new_spelling, a_name) {
                         if written == "negate" && narrowed {
                             return err(Diagnostic::error("`negate` is an old spelling: write `neg`: `neg.ieee $x` (owner, 2026-10-28)").named("old_spelling").at(t.span).fix_edit(t.span, Edit::Replace, "neg"));

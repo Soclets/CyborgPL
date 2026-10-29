@@ -60,12 +60,12 @@ MAIN:
         ret $s >= $limit;
     ;fn) == 3:
         change $got to $got + 8;
-    ;)
+    ;if
     if count_if(lend $scores, fn [let $s: i32] -> bool:
         ret ($s mod.floor 2) == 0;
     ;fn) == 2:
         change $got to $got + 16;
-    ;)
+    ;if
     let $g := fn [let $s: i32] -> bool with [lend $limit]:
         ret $s < $limit;
     ;fn;
