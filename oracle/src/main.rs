@@ -1522,7 +1522,8 @@ fn redesign_path(path: &Path, show: bool) -> Result<(), String> {
     // then redesign two's words (owner, 2026-10-27)
     // twice: the first writes `member`, which the second's parameter lists read
     let out = redesign::shorten(&out).and_then(|o| redesign::shorten(&o)).map_err(|m| format!("{}: redesign two: {m}", path.display()))?;
-    if show { print!("{out}"); return Ok(()); }
+    // without the analysis every function is guessed a `fn`: say so, shown or written
+    if show { if info.is_none() { eprintln!("{}: not analysed: read on its own it does not parse, so `fn` / `let` are guesses", path.display()); } print!("{out}"); return Ok(()); }
     let out = if concise { concise::encode(&out) } else { out };
     if out != raw {
         std::fs::write(path, &out).map_err(|e| format!("{}: {e}", path.display()))?;
