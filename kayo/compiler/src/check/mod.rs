@@ -829,11 +829,8 @@ impl Checker {
             params.push(id);
         }
         let block = self.block(&mut ctx, body)?;
-        // A `fn` has no effects and calls only `fn`s (owner, 2026-10-27). std's own read from the
-        // `KAYO_STD` copy (kayo/tools/std_copy.py), until std claude converts std/, are taken at
-        // the kind they say: its stops on its own bugs print and exit.
-        let std_copy = std::env::var_os("KAYO_STD").is_some() && self.items.nerve_cord.is_some_and(|c| self.items.kit_root(decl.module) == c);
-        if !decl.proc && !decl.test && decl.op.is_none() && !std_copy {
+        // A `fn` has no effects and calls only `fn`s (owner, 2026-10-27).
+        if !decl.proc && !decl.test && decl.op.is_none() {
             let mut w = effects::Walk { checker: self, locals: &ctx.locals, found: None };
             w.block(&block);
             if let Some(f) = w.found {

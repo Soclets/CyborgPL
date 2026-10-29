@@ -12,4 +12,3 @@ shop :: `std::input.line` is not available yet
 text :: `std::str.find.cluster` is not available yet
 case_mappings :: error[std_name_needs_path]
 whichever :: `std::time.after` is not available yet
-std_from_folder :: `{ }` is an old spelling

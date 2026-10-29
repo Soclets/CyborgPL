@@ -4067,15 +4067,15 @@ impl<'a> Parser<'a> {
             return self.fail_n("strict_word_missing", "a `for` says whether its variable outlives it: `for temp $i in …` or `for perm $i in …` — a `#strict` file writes it out");
         }
         if self.is_word("seq") || self.is_word("para") {
-            return self.fail_n("unexpected_text", "expected a quoted loop variable: `seq` or `para` goes first, then `temp` / `perm`, then the name — `for seq perm 'i' in …`");
+            return self.fail_n("unexpected_text", "expected the loop's variable, `$i`, found `seq`: `seq` or `para` goes first, then `temp` / `perm`, then the name — `for seq perm $i in …`");
         }
         let name = match self.peek().clone() {
             Tok::Name(n) => {
                 let span = self.bump().span;
                 QName { name: n, span }
             }
-            Tok::Word(w) => return self.fail_n("variable_name_form", format!("expected a quoted loop variable, found `{}`: `for '{}' in …`", w, w)).with_fix(self.span(), Edit::Insert, "$"),
-            other => return self.fail_n("unexpected_text", format!("expected a quoted loop variable, found {}", other.describe())),
+            Tok::Word(w) => return self.fail_n("variable_name_form", format!("expected the loop's variable, found `{}`: `for ${} in …`", w, w)).with_fix(self.span(), Edit::Insert, "$"),
+            other => return self.fail_n("unexpected_text", format!("expected the loop's variable, `$i`, found {}", other.describe())),
         };
         let ty = if self.eat(&Tok::Colon) { Some(self.type_()?) } else { None };
         // `for 'i', 'x' in …`: the position first, then the item, as in

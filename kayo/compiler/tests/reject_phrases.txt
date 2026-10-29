@@ -263,7 +263,7 @@ fnval_wrong_return [fnv:5785241876689f77] :: expected `apply`'s parameter 'f' (f
 fnval_wrong_shape [fnv:6250f1a435863168] :: expected `apply`'s parameter 'f' (fn[i32, i32] -> i32), found a `fn[i32] -> i32`
 fnval_wrong_verb [fnv:e7a82c8acfe26976] :: expected `apply`'s parameter 'f' (fn[str.utf8] -> i32), found a `fn[lent str.utf8] -> i32`
 for_bare_list [fnv:18b1a4df3e7b57c4] :: `for $i in lend $xs` looks at each element, `give $xs` consumes the list
-for_lend_element_change [fnv:be5f6615821c3f27] :: 'x' belongs to the loop and cannot be changed
+for_lend_element_change [fnv:02b1b71cf48363e9] :: `$x` belongs to the loop and cannot be changed
 for_lend_mut_length_then_element [fnv:bb81dd22690ea890] :: 'x' still borrows it `lent.mut`
 for_lend_mut_read_then_element [fnv:bb81dd22690ea890] :: 'x' still borrows it `lent.mut`
 for_list_typed [fnv:df6b9ecc22e597b6] :: each element's type is the list's
@@ -612,7 +612,7 @@ round_unknown_way [fnv:4b951c0ea841a459] :: is not a way to round
 rust_string [fnv:ffdc0506a249c7be] :: text is `str.utf8`
 rust_usize [fnv:6bb0e8d9e2e18eb7] :: as big as the machine
 send_lend [fnv:39b4c67c5c98f0f5] :: write `give` (it moves) or `copy` (a second one)
-seq_after_perm [fnv:2fa17448182bc9f0] :: `seq` or `para` goes first, then `temp` / `perm`, then the name
+seq_after_perm [fnv:a288e62e94f2a408] :: `seq` or `para` goes first, then `temp` / `perm`, then the name
 shadow [fnv:6f58e8bff03be94f] :: to shadow it deliberately write `shadow $x := …;`
 shadow_nothing [fnv:21615fa293366dc7] :: and none is visible here
 shadow_sealed [fnv:41a31805c19e5721] :: cannot be shadowed: it is `no_shadow`
@@ -995,3 +995,4 @@ three_times_word_old [fnv:27c90086f866714e] :: `times` is an old spelling: write
 three_x_bare_call [fnv:f1a25faa7388e5dc] :: a bare `x` is multiplication
 var_with_walrus [fnv:00958fea4d1ee7c6] :: a `var` starts with `=`, its starting value
 bug_not_literal [fnv:cbcce9be3885926a] :: `bug` says what went wrong, in a text literal
+for_let_variable [fnv:52f5539b41727c26] :: a loop's variable takes no `let` or `var`

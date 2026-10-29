@@ -612,7 +612,7 @@ impl Checker {
                 }
                 match local.kind {
                     LocalKind::Lent => return err(Diagnostic::error(format!("'{}' is lent (shared) and cannot be changed: it belongs to whoever lent it — `lent.mut` would allow it", name)).named("changed_through_lend").at(span).why_at(local.span, "lent here")),
-                    LocalKind::LoopVar | LocalKind::LoopLent => return err(Diagnostic::error(format!("'{}' belongs to the loop and cannot be changed: the header alone says what it is on every pass", name)).named(if local.kind == LocalKind::LoopLent || ctx.lent_elements.contains(&id) { "changed_through_lend" } else { "counter_changed" }).at(span).why_at(local.span, "the loop's variable")),
+                    LocalKind::LoopVar | LocalKind::LoopLent => return err(Diagnostic::error(format!("`${}` belongs to the loop and cannot be changed: the header alone says what it is on every pass", name)).named(if local.kind == LocalKind::LoopLent || ctx.lent_elements.contains(&id) { "changed_through_lend" } else { "counter_changed" }).at(span).why_at(local.span, "the loop's variable")),
                     _ => {}
                 }
             }

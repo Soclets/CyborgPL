@@ -465,9 +465,7 @@ use std::process::Command;
 fn examples_run_against_the_cyborgpl_std() {
     let synapse = PathBuf::from(env!("CARGO_BIN_EXE_kayo"));
     let text = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/examples_cyborgpl_std.txt")).unwrap();
-    // The std a lone file gets: `KAYO_STD`'s, a redesign-three copy until std claude converts std/
-    // (kayo/tools/std_copy.py), or the repository's.
-    let cord = std::env::var_os("KAYO_STD").map(PathBuf::from).unwrap_or_else(|| repo().join("std"));
+    let cord = repo().join("std");
     // The sweep to CyborgPL's names (2026-10-15): `cord/` becomes `std/`, std
     // claude's, after KAYO\n's part; until then there is no CyborgPL std to run.
     if !cord.join("CyJet.toml").is_file() {
@@ -510,13 +508,6 @@ fn demos_build() {
             continue;
         }
         let name = dir.file_name().unwrap().to_string_lossy().into_owned();
-        // A demo that lists the repository's std/ by its path waits for std claude's conversion of
-        // it while KAYO_STD stands in (kayo/tools/std_copy.py).
-        let manifest = std::fs::read_to_string(dir.join("CyJet.toml")).unwrap_or_default();
-        if std::env::var_os("KAYO_STD").is_some() && manifest.contains("path = ../../std") {
-            eprintln!("note: demo {} not built here: it lists the repository's std/, which std claude converts after kayo", name);
-            continue;
-        }
         let out = std::env::temp_dir().join(format!("kayo-demo-{}", name));
         let r = Command::new(&kayo).arg("build").arg(&dir).arg("-o").arg(&out).stdin(std::process::Stdio::null()).output().unwrap();
         let said = String::from_utf8_lossy(&r.stderr).into_owned();

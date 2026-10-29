@@ -1213,6 +1213,10 @@ impl<'a> Reader<'a> {
         let var = is_word(t, "var");
         let prev = if i > 0 { Some(&line[i - 1].tok) } else { None };
         let mut out = Vec::new();
+        // `for let $i`: a loop's variable is the loop's (design claude, 2026-10-29).
+        if matches!(prev, Some(Tok::Word(w)) if matches!(w.as_str(), "for" | "seq" | "para" | "temp" | "perm")) {
+            return refuse("declaration_form", format!("a loop's variable takes no `let` or `var`: `for $i …`, the loop giving it each value"), t.span);
+        }
         // A parameter, after `[` or `,`.
         if matches!(prev, Some(Tok::LBracket) | Some(Tok::Comma)) {
             if var {

@@ -3,4 +3,3 @@
 # edit from here. The test insists each of these still fails, so the day one is
 # fixed the suite says so and the line goes.
 case_mappings :: `to.casing` (withdrawn in my notes; asked) reads `casing` bare: `casing` is std's: write `std::casing`
-std_from_folder :: the repository's std/ itself, in the old syntax until std claude converts it after kayo's turn: `{ }` is an old spelling
