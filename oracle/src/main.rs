@@ -1510,7 +1510,10 @@ fn redesign_path(path: &Path, show: bool) -> Result<(), String> {
     let info = {
         let mut ptoks = toks.clone();
         case::rewrite(&mut ptoks, &[], &[]);
-        match parser::Parser::new(ptoks).program() {
+        parser::READING_OLD.with(|o| o.set(true));
+        let parsed = parser::Parser::new(ptoks).program();
+        parser::READING_OLD.with(|o| o.set(false));
+        match parsed {
             Ok(prog) => { let _ = check_redeclared(&prog); Some(redesign::analyse(&prog)) }
             Err(_) => None,
         }

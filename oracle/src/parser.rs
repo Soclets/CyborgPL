@@ -238,6 +238,8 @@ thread_local! {
     pub static KIT_BOUNDS: std::cell::RefCell<Vec<(Vec<String>, Vec<String>, String, Ty, bool)>> = std::cell::RefCell::new(Vec::new());
     /// `oracle --to-paren-calls`: read a call's old `[ ]` and record where it is, to be rewritten as `( )`
     pub static OLD_CALLS: std::cell::Cell<bool> = std::cell::Cell::new(false);
+    /// `oracle --redesign` reading an old program to learn what its functions do: what is gone since is still read
+    pub static READING_OLD: std::cell::Cell<bool> = std::cell::Cell::new(false);
     /// (file, character, the text it becomes), for `oracle --to-paren-calls`
     pub static REWRITES: std::cell::RefCell<Vec<(std::path::PathBuf, usize, usize, String)>> = std::cell::RefCell::new(Vec::new());
     /// The file being parsed, for TEMPLATES
@@ -3218,7 +3220,9 @@ impl Parser {
         // it safe and worth the cores (owner, 2026-10-29: "(a)", every limb marked where it acts), so `seq` is gone. The
         // oracle runs every loop in order, one schedule of the design's, so it only reads `para`
         let seq = false;
-        if self.is_word("seq") { return self.err("a plain `for` runs in order, so `seq` is gone: drop it; `for %para` is MCPS's parallel loop (owner, 2026-10-29)"); }
+        let old = READING_OLD.with(|o| o.get());
+        if self.is_word("seq") && old { self.advance(); }
+        else if self.is_word("seq") { return self.err("a plain `for` runs in order, so `seq` is gone: drop it; `for %para` is MCPS's parallel loop (owner, 2026-10-29)"); }
         else if self.is_word("para") { self.advance(); }
         if self.is_word("seq") || self.is_word("para") { return self.err("`for %para` says it once"); }
         if self.is_word("no_cheat") || self.is_word("!c") { return self.err("`no_cheat` goes in front of the loop: `no_skip for $i in …` (owner, 2026-10-18)"); }
