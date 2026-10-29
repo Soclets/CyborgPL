@@ -34,6 +34,11 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-29 — CyborgPL is abandoned (owner)
+
+The owner: "I'm moving on to to Radium, sorry. But you'll still be use when needed", then "post that CyborgPL is
+abandoned in that same comment sect". Posted on the issue thread where the line count went.
+
 ### 2026-10-29 — `Soclets/CyborgPL` is public (owner: "(a)")
 
 The owner, moving on to Radium: "you'll still be use when needed, but might aswell... Make the GH repo public."

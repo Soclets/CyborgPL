@@ -1,6 +1,7 @@
 # CyborgPL
 
-Design repository for **CyborgPL**, a new programming language. It was
+Design repository for **CyborgPL**, a new programming language. **ABANDONED 2026-10-29** (owner: "post that CyborgPL is
+abandoned"; the owner moved on to Radium, design claude "still be use when needed"). It was
 **CyborgPL v2** until 2026-10-08, then **Nerve**, then **Zag** (2026-10-14), and
 **CyborgPL again from 2026-10-15** (owner: "Yeah, I'm fucking sold on CyborgPL too");
 the notes, `DECISIONS.md` and old commits say "v2", "Nerve" or "Zag" for it. It is a
