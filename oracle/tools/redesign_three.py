@@ -158,7 +158,9 @@ def convert(src):
     # a name inside brackets is fixed unless it says `var` (owner, 2026-10-29: "(c)"): a parameter's `let` goes
     code = drop_param_let(code)
     # nor any other written-out default (owner, 2026-10-29: "refuse")
-    code = re.sub(r'std::print\.shortest(?=\.std(?:err|out)\b)', 'std::print', code)
+    code = re.sub(r'std::print\.shortest\b(?!\.auto_newl)', 'std::print', code)
+    # an operator `!` closes as written, `;op !` (owner, 2026-10-26), where redesign two read it `not`
+    if re.search(r'\bop !\s*\[', code): code = re.sub(r'(?m)^(\s*);op not\s*$', r'\1;op !', code)
     code = re.sub(r'std::print\.arrows\.shortest\b', 'std::print.arrows', code)
     code = re.sub(r'\bfor\s+((?:%para\s+)?)temp\s+', r'for \1', code)
     # a plain `for` runs in order, so `seq` is gone (owner, 2026-10-29); a plain loop stays plain: MCPS no longer makes it
