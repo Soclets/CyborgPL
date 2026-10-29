@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-29 — CyDT 1 has full VS Code support: the formatter, the Roblox Studio-style code picker, and the rest of the IDE list (owner; not designed)
+
+Right after the formatter went on CyDT 1's list, the owner: "Full VS Code support too: formatter, Roblox Studio-style
+dropdown code selector, etc". So **CyDT 1 has a VS Code extension** carrying the formatter, the code picker (2026-10-02's
+item 5, Roblox Studio's autocomplete popup: matching names, an icon per kind, a deprecated one crossed out, the chosen one's
+signature, description and documentation link) and the rest of 2026-10-02's IDE list ("etc": Quick Fix for a changed
+spelling, kit search, Solarized themes, highlighting, C and LLVM IR support, the two dino games). This settles 2026-10-02's
+open "whether it's custom, or VS Code extension" as VS Code. Design claude's reading, from that entry's note: most of it
+comes from a language server running kayo. Not designed. `tooling.md`, "The IDE".
+
 ### 2026-10-29 — CyDT 1 has a formatter (owner; not designed)
 
 Asked "What is a formatter, and would we eventually want one?" (one had never come up), design claude explained it

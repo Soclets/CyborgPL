@@ -164,9 +164,11 @@ Owner, 2026-09-14.
 
 ## The IDE — what it should have (owner, 2026-10-02)
 
-Whether it is its own program or a VS Code extension is open (owner:
-"whether it's custom, or VS Code extension"). The owner's list, in the
-owner's order:
+**CyDT 1 has full VS Code support** (owner, 2026-10-29: "Full VS Code support too: formatter, Roblox Studio-style
+dropdown code selector, etc"): a VS Code extension, so the 2026-10-02 question below, "whether it's custom, or VS Code
+extension", is settled as VS Code. It carries the formatter (`A formatter, in CyDT 1`, below), the code picker (5) and the
+rest of this list ("etc"). Until then it was open (owner: "whether it's custom, or VS Code extension"). The owner's list,
+in the owner's order:
 
 1. **Quick Fix** — "biggest one": "a way to fix your code instantly (not
    literally) from update breaking your code". When a new CyborgPL
