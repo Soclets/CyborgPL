@@ -478,7 +478,7 @@ fn encoder<'a>(p: &'a Program, f: usize, facts: &'a crate::precog::Facts, assume
         }
     }
     let borrows = shared_borrows(&p.functions[f]);
-    Enc { p, f, defs: Vec::new(), next: 0, truncated: false, reached: Vec::new(), inputs: Vec::new(), aliased, unexpressible: false, facts, borrows, entries: HashMap::new(), assume, counted, assumed: false, reach: Vec::new(), points: Vec::new(), operands: Vec::new(), entry_fields: HashMap::new(), field_places: HashMap::new(), unroll, goal, head_keys: Vec::new(), start_terms: Vec::new(), recorded: Vec::new(), invariants: invariants.to_vec() }
+    Enc { p, f, defs: Vec::new(), next: 0, truncated: false, reached: Vec::new(), inputs: Vec::new(), aliased, unexpressible: false, facts, borrows, entries: HashMap::new(), assume, counted, assumed: false, reach: Vec::new(), points: Vec::new(), operands: Vec::new(), entry_fields: HashMap::new(), field_places: HashMap::new(), unroll, goal, head_keys: Vec::new(), start_terms: Vec::new(), recorded: Vec::new(), invariants: invariants.to_vec(), sorts: HashMap::new(), cuts: HashMap::new(), arrivals: Vec::new() }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -586,6 +586,13 @@ struct Enc<'a> {
     /// Invariants confirmed for loops of this function, assumed at their
     /// heads wherever a head stands for later trips.
     invariants: Vec<Invariant>,
+    /// Each bit-vector symbol's width, and whether the value it stands for
+    /// is read signed: what the integer clauses need to read it as a number.
+    sorts: HashMap<String, (u32, bool)>,
+    /// For `Goal::Cut`: the heads that are cut points, what each one's
+    /// invariant is about, and every arrival at one (head, guard, terms).
+    cuts: HashMap<usize, Vec<HeadKey>>,
+    arrivals: Vec<(usize, String, Vec<String>)>,
 }
 
 /// What a walk of the flow graph is for. A site's question starts at the
@@ -598,6 +605,10 @@ enum Goal {
     Entry(usize),
     Trip(usize),
     FromHead(usize),
+    /// One walk of a function's clauses with every loop head on the way to
+    /// the site a cut point: from the entry (`usize::MAX`) or from one
+    /// head, to every head it reaches next and to the site.
+    Cut(usize),
 }
 
 /// One value a loop invariant is about: a whole-number local the loop
@@ -661,6 +672,7 @@ impl<'a> Enc<'a> {
         let sym = format!("{}{}", prefix, self.next);
         self.next += 1;
         self.defs.push(format!("(declare-fun {} () (_ BitVec {}))", sym, bits));
+        self.sorts.insert(sym.clone(), (bits, signed));
         // Two inputs that would read the same are told apart, or the
         // counterexample would name one thing twice.
         let same = self.inputs.iter().filter(|i| i.show == show || i.show.starts_with(&format!("{} (", show))).count();
@@ -673,6 +685,7 @@ impl<'a> Enc<'a> {
         let name = format!("v{}", self.next);
         self.next += 1;
         self.defs.push(format!("(define-fun {} () (_ BitVec {}) {})", name, bits, body));
+        self.sorts.insert(name.clone(), (bits, signed));
         Val { term: name, bits, signed }
     }
 
@@ -690,6 +703,7 @@ impl<'a> Enc<'a> {
         let sel = format!("sel{}", self.next);
         self.next += 1;
         self.defs.push(format!("(declare-fun {} () (_ BitVec 16))", sel));
+        self.sorts.insert(sel.clone(), (16, false));
         (0..n).map(|k| self.define_bool(&format!("(and {} (= {} (_ bv{} 16)))", guard, sel, k))).collect()
     }
 
@@ -821,8 +835,12 @@ impl<'a> Enc<'a> {
         match self.goal {
             Goal::Site => {}
             Goal::Entry(h) => self.head_keys = self.keys_of_loop(h),
-            Goal::Trip(h) | Goal::FromHead(h) => {
-                self.head_keys = self.keys_of_loop(h);
+            Goal::Cut(h) if h == usize::MAX => {}
+            Goal::Trip(h) | Goal::FromHead(h) | Goal::Cut(h) => {
+                self.head_keys = match self.goal {
+                    Goal::Cut(_) => self.cuts.get(&h).cloned().unwrap_or_default(),
+                    _ => self.keys_of_loop(h),
+                };
                 start = h;
                 // Any state the head can be in: each value the invariant is
                 // about unknown, the parameters' fields as they are at this
@@ -864,6 +882,13 @@ impl<'a> Enc<'a> {
                 f.blocks.iter().enumerate().filter(|(i, bb)| !body.contains(i) && crate::mir::verify::successors(&bb.term).iter().any(|t| t.0 as usize == h)).map(|(i, _)| i).collect()
             }
             Goal::Trip(h) => back.iter().filter(|(_, hd)| *hd == h).map(|(from, _)| *from).collect(),
+            Goal::Cut(_) => f
+                .blocks
+                .iter()
+                .enumerate()
+                .filter(|(_, bb)| bb.stmts.iter().any(|st| matches!(st.kind, StmtKind::Site(id) if id == site)) || crate::mir::verify::successors(&bb.term).iter().any(|t| self.cuts.contains_key(&(t.0 as usize))))
+                .map(|(i, _)| i)
+                .collect(),
         };
         let mut preds: HashMap<usize, Vec<usize>> = HashMap::new();
         for (i, bb) in f.blocks.iter().enumerate() {
@@ -874,7 +899,7 @@ impl<'a> Enc<'a> {
         let mut stack: Vec<usize> = to_site.iter().copied().collect();
         while let Some(n) = stack.pop() {
             for &pb in preds.get(&n).into_iter().flatten() {
-                if matches!(self.goal, Goal::Entry(h) if h == pb) {
+                if matches!(self.goal, Goal::Entry(h) if h == pb) || matches!(self.goal, Goal::Cut(_)) && self.cuts.contains_key(&pb) {
                     continue;
                 }
                 if to_site.insert(pb) {
@@ -1043,6 +1068,15 @@ impl<'a> Enc<'a> {
                     StmtKind::Assign { place, rvalue } => {
                         let v = self.rvalue(rvalue, &env);
                         self.assign(&mut env, place, v);
+                        // A list written out holds as many as it lists. Only
+                        // in the joint walks, which were measured with it;
+                        // layer 3's own questions stay as they were.
+                        if let (Goal::Cut(_), Rvalue::MakeList(items)) = (self.goal, rvalue) {
+                            if place.proj.is_empty() && !self.aliased.contains(&place.local) {
+                                let n = self.define(64, &bv(items.len() as i128, 64), false);
+                                env.insert(Key::Len(place.local, format!("{:?}{:?}", Vec::<Proj>::new(), Op::ListLength)), n);
+                            }
+                        }
                     }
                     StmtKind::Op { dest, op, args } => {
                         let v = match op {
@@ -1185,6 +1219,12 @@ impl<'a> Enc<'a> {
                     Goal::Trip(h) if ti == h && is_back => {
                         let terms = this.key_terms(&mut e, false);
                         this.recorded.push((g, terms));
+                        return;
+                    }
+                    Goal::Cut(_) if this.cuts.contains_key(&ti) => {
+                        let keys = this.cuts[&ti].clone();
+                        let terms = this.terms_of(&mut e, &keys, false);
+                        this.arrivals.push((ti, g, terms));
                         return;
                     }
                     _ => {}
@@ -1726,6 +1766,18 @@ impl<'a> Enc<'a> {
             written_in(block, &mut written);
             for st in &block.stmts {
                 mentioned.extend(crate::mir::channels::stmt_reads(st));
+                // A list the loop appends to or removes from: its length,
+                // as the walk keeps it across the change.
+                // (Integer clauses only: the bit-vector path stays as it was
+                // measured, 2026-10-29.)
+                if let (true, StmtKind::Op { op: Op::ListAppend | Op::ListRemove, args, .. }) = (spacer_integers(), &st.kind) {
+                    if let Some(p) = args.first().and_then(|a| a.place()).filter(|p| p.proj.is_empty() && !self.aliased.contains(&p.local)) {
+                        let k = Key::Len(p.local, format!("{:?}{:?}", Vec::<Proj>::new(), Op::ListLength));
+                        if !lens.contains(&k) {
+                            lens.push(k);
+                        }
+                    }
+                }
                 if let StmtKind::Op { op: op @ (Op::ListLength | Op::ArrayLength | Op::MapLength | Op::StrBytes | Op::StrPoints | Op::StrGraphemes), args, .. } = &st.kind {
                     if let Some(k) = self.len_key(op, args) {
                         if !lens.contains(&k) {
@@ -2449,24 +2501,34 @@ pub fn spacer(p: &Program, f: usize, site: SiteId, facts: &crate::precog::Facts,
     if from.build(site).is_none() || from.reached.is_empty() || from.unexpressible {
         return Spacer::Unasked("the site could not be asked about from the loop's head".into());
     }
-    let sorts: Vec<String> = keys.iter().map(|k| format!("(_ BitVec {})", k.bits)).collect();
+    let integers = spacer_integers();
+    let sorts: Vec<String> = keys.iter().map(|k| if integers { "Int".to_string() } else { format!("(_ BitVec {})", k.bits) }).collect();
     let mut text = String::new();
     let _ = writeln!(text, "; CyborgPL — Precog's Horn clauses for one loop, {}", describe_site(p, f, site));
     let _ = writeln!(text, "(set-option :rlimit {})", spacer_rlimit());
     let _ = writeln!(text, "(set-logic HORN)");
+    // Spacer's global guidance (`KAYO_SPACER_GLOBAL`, for measuring): it
+    // generalises across a loop's bounds where it would count up to them.
+    if std::env::var("KAYO_SPACER_GLOBAL").is_ok() {
+        let _ = writeln!(text, "(set-option :fp.spacer.global true)");
+    }
     let _ = writeln!(text, "(declare-fun Inv ({}) Bool)", sorts.join(" "));
-    let (vars, conj) = horn_parts(&entry.defs);
-    for (g, terms) in &entry.recorded {
-        text.push_str(&horn_rule(&vars, &conj, &[g.clone()], &format!("(Inv {})", terms.join(" "))));
+    if integers {
+        int_clauses(&mut text, &keys, &entry, &trip, &from);
+    } else {
+        let (vars, conj) = horn_parts(&entry.defs);
+        for (g, terms) in &entry.recorded {
+            text.push_str(&horn_rule(&vars, &conj, &[g.clone()], &format!("(Inv {})", terms.join(" "))));
+        }
+        let (vars, conj) = horn_parts(&trip.defs);
+        let at_head = format!("(Inv {})", trip.start_terms.join(" "));
+        for (g, terms) in &trip.recorded {
+            text.push_str(&horn_rule(&vars, &conj, &[at_head.clone(), g.clone()], &format!("(Inv {})", terms.join(" "))));
+        }
+        let (vars, conj) = horn_parts(&from.defs);
+        let bad = format!("(or false {})", from.reached.join(" "));
+        text.push_str(&horn_rule(&vars, &conj, &[format!("(Inv {})", from.start_terms.join(" ")), bad], "false"));
     }
-    let (vars, conj) = horn_parts(&trip.defs);
-    let at_head = format!("(Inv {})", trip.start_terms.join(" "));
-    for (g, terms) in &trip.recorded {
-        text.push_str(&horn_rule(&vars, &conj, &[at_head.clone(), g.clone()], &format!("(Inv {})", terms.join(" "))));
-    }
-    let (vars, conj) = horn_parts(&from.defs);
-    let bad = format!("(or false {})", from.reached.join(" "));
-    text.push_str(&horn_rule(&vars, &conj, &[format!("(Inv {})", from.start_terms.join(" ")), bad], "false"));
     let _ = writeln!(text, "(check-sat)\n(get-model)\n(get-info :reason-unknown)");
     if text.len() > QUERY_CAP {
         return Spacer::Unasked(format!("its clauses came out too big to ask ({} MB)", text.len() / 1_000_000));
@@ -2488,6 +2550,30 @@ pub fn spacer(p: &Program, f: usize, site: SiteId, facts: &crate::precog::Facts,
         return Spacer::Unasked("Spacer's invariant could not be read".into());
     }
     let shown = show_invariant(p, f, &keys, &body);
+    // An integer invariant is read back into bit-vectors, and confirmed
+    // there like any other.
+    let (params, body) = if integers {
+        let names: Vec<String> = match crate::precog::ints::parse(&params) {
+            Some(crate::precog::ints::Sx::List(ps)) => ps.iter().filter_map(|p| match p {
+                crate::precog::ints::Sx::List(pair) => match pair.first() {
+                    Some(crate::precog::ints::Sx::Atom(n)) => Some(n.clone()),
+                    _ => None,
+                },
+                _ => None,
+            }).collect(),
+            _ => Vec::new(),
+        };
+        if names.len() != keys.len() {
+            return Spacer::NotConfirmed { shown, why: "its parameters could not be read".into() };
+        }
+        let typed: Vec<(String, u32, bool)> = names.iter().zip(&keys).map(|(n, k)| (n.clone(), k.bits, k.signed)).collect();
+        let Some(bits) = crate::precog::ints::parse(&body).and_then(|b| crate::precog::ints::to_bits(&b, &typed)) else {
+            return Spacer::NotConfirmed { shown, why: "it could not be read back into bit-vectors".into() };
+        };
+        (format!("({})", typed.iter().map(|(n, b, _)| format!("({} (_ BitVec {}))", n, b)).collect::<Vec<_>>().join(" ")), bits)
+    } else {
+        (params, body)
+    };
     let inv = Invariant { head, keys, params, body, shown: shown.clone() };
     // Confirmed: on every way in, and kept by every way round.
     let header = format!("(set-option :rlimit {})\n(set-logic QF_BV)\n", RLIMIT);
@@ -2505,6 +2591,185 @@ pub fn spacer(p: &Program, f: usize, site: SiteId, facts: &crate::precog::Facts,
         }
     }
     Spacer::Confirmed(inv)
+}
+
+/// Every loop on the way to the site as one system of Horn clauses (owner,
+/// 2026-10-29, measured beside one loop at a time; `KAYO_SPACER_JOINT`,
+/// over the integers): each loop head a cut point with its own invariant,
+/// one walk from the entry and one from each head to the next heads and to
+/// the site. Spacer then finds the invariants together, as a site after
+/// three loops needs (the first one's length, kept by the second, bounding
+/// the third). Every invariant is confirmed in bit-vectors by Z3 and CVC5
+/// together: each walk, starting from its head's invariant, keeps every
+/// head's it arrives at, and the entry's walk gives them.
+pub fn spacer_joint(p: &Program, f: usize, site: SiteId, facts: &crate::precog::Facts, heads: &[usize], portfolio: &Portfolio) -> Result<Vec<Invariant>, Spacer> {
+    use crate::precog::ints;
+    let Some(z3) = portfolio.members.iter().find(|s| s.name == "Z3") else { return Err(Spacer::Unasked("Z3 is not here".into())) };
+    if !portfolio.is_complete() {
+        return Err(Spacer::Unasked("only one solver is here, and an invariant is confirmed by both".into()));
+    }
+    if heads.is_empty() || heads.contains(&0) {
+        return Err(Spacer::Unasked("the ways into the loops could not all be put into words".into()));
+    }
+    let probe = encoder(p, f, facts, true, false, 0, Goal::Site, &[]);
+    let cuts: HashMap<usize, Vec<HeadKey>> = heads.iter().map(|h| (*h, probe.keys_of_loop(*h))).collect();
+    // The walks: from the entry, then from each head.
+    let mut walks = Vec::new();
+    for start in std::iter::once(usize::MAX).chain(heads.iter().copied()) {
+        let mut e = encoder(p, f, facts, true, false, 0, Goal::Cut(start), &[]);
+        e.cuts = cuts.clone();
+        if e.build(site).is_none() || e.truncated || e.unexpressible {
+            return Err(Spacer::Unasked("a walk between the loops could not be put into words".into()));
+        }
+        walks.push((start, e));
+    }
+    if walks.iter().all(|(_, e)| e.reached.is_empty()) {
+        return Err(Spacer::Unasked("the site could not be asked about from the loops".into()));
+    }
+    let mut text = String::new();
+    let _ = writeln!(text, "; CyborgPL — Precog's Horn clauses for every loop on the way, {}", describe_site(p, f, site));
+    let _ = writeln!(text, "(set-option :rlimit {})", spacer_rlimit());
+    let _ = writeln!(text, "(set-logic HORN)");
+    if std::env::var("KAYO_SPACER_GLOBAL").is_ok() {
+        let _ = writeln!(text, "(set-option :fp.spacer.global true)");
+    }
+    for h in heads {
+        let _ = writeln!(text, "(declare-fun Inv{} ({}) Bool)", h, cuts[h].iter().map(|_| "Int").collect::<Vec<_>>().join(" "));
+    }
+    let read = |s: &str| ints::parse(s).unwrap_or(ints::Sx::Atom("true".into()));
+    for (start, e) in &walks {
+        let (mut vars, conj, mut tr) = ints::part(&e.defs, &e.sorts);
+        let args = |tr: &mut ints::Ints, terms: &[String], keys: &[HeadKey]| -> String {
+            terms.iter().zip(keys).map(|(t, k)| tr.number(&read(t), k.signed).unwrap_or_else(|| tr.fresh_int())).collect::<Vec<_>>().join(" ")
+        };
+        let from = if *start == usize::MAX { None } else { Some(format!("(Inv{} {})", start, args(&mut tr, &e.start_terms, &cuts[start]))) };
+        let mut rules = Vec::new();
+        for (to, g, terms) in &e.arrivals {
+            let g = tr.boolean(&read(g)).unwrap_or_else(|| "true".into());
+            let a = args(&mut tr, terms, &cuts[to]);
+            rules.push((from.iter().cloned().chain([g]).collect::<Vec<_>>(), format!("(Inv{} {})", to, a)));
+        }
+        if !e.reached.is_empty() {
+            let bad: Vec<String> = e.reached.iter().filter_map(|r| tr.boolean(&read(r))).collect();
+            rules.push((from.iter().cloned().chain([format!("(or false {})", bad.join(" "))]).collect(), "false".into()));
+        }
+        vars.extend(tr.unknowns.drain(..));
+        for (extra, head) in rules {
+            text.push_str(&horn_rule(&vars, &conj, &extra, &head));
+        }
+    }
+    let _ = writeln!(text, "(check-sat)\n(get-model)\n(get-info :reason-unknown)");
+    if text.len() > QUERY_CAP {
+        return Err(Spacer::Unasked(format!("its clauses came out too big to ask ({} MB)", text.len() / 1_000_000)));
+    }
+    let out = run_raw(z3, &text);
+    match out.lines().map(str::trim).find(|l| matches!(*l, "sat" | "unsat" | "unknown")) {
+        Some("sat") => {}
+        Some("unsat") => return Err(Spacer::Refuted),
+        Some("unknown") if out.contains("resource") || out.contains("canceled") => return Err(Spacer::Budget),
+        _ => return Err(Spacer::Unasked(format!("Spacer did not say: {}", out.lines().last().unwrap_or("").trim()))),
+    }
+    // Each head's invariant, read back into bit-vectors.
+    let mut invs = Vec::new();
+    let mut shown_all = Vec::new();
+    for h in heads {
+        let keys = cuts[h].clone();
+        let tag = format!("(define-fun Inv{} (", h);
+        let Some(at) = out.find(&tag) else { return Err(Spacer::Unasked("Spacer gave no invariant".into())) };
+        let b = out.as_bytes();
+        let Some((params, i)) = read_sexp(b, at + tag.len() - 1) else { return Err(Spacer::Unasked("Spacer's invariant could not be read".into())) };
+        let Some((_, i)) = read_sexp(b, i) else { return Err(Spacer::Unasked("Spacer's invariant could not be read".into())) };
+        let Some((body, _)) = read_sexp(b, i) else { return Err(Spacer::Unasked("Spacer's invariant could not be read".into())) };
+        let shown = show_invariant(p, f, &keys, &body);
+        shown_all.push(format!("line-{} loop: {}", h, shown));
+        let names: Vec<String> = match ints::parse(&params) {
+            Some(ints::Sx::List(ps)) => ps.iter().filter_map(|p| match p {
+                ints::Sx::List(pair) => match pair.first() {
+                    Some(ints::Sx::Atom(n)) => Some(n.clone()),
+                    _ => None,
+                },
+                _ => None,
+            }).collect(),
+            _ => Vec::new(),
+        };
+        let typed: Vec<(String, u32, bool)> = names.iter().zip(&keys).map(|(n, k)| (n.clone(), k.bits, k.signed)).collect();
+        let bits = if names.len() == keys.len() { ints::parse(&body).and_then(|bd| ints::to_bits(&bd, &typed)) } else { None };
+        let Some(bits) = bits else { return Err(Spacer::NotConfirmed { shown, why: "it could not be read back into bit-vectors".into() }) };
+        let params = format!("({})", typed.iter().map(|(n, b, _)| format!("({} (_ BitVec {}))", n, b)).collect::<Vec<_>>().join(" "));
+        invs.push(Invariant { head: *h, keys, params, body: bits, shown });
+    }
+    // Confirmed in bit-vectors, walk by walk, every invariant at once.
+    let defines: String = invs.iter().map(|i| i.define() + "\n").collect();
+    for (start, e) in &walks {
+        if e.arrivals.is_empty() {
+            continue;
+        }
+        let mut q = format!("(set-option :rlimit {})\n(set-logic QF_BV)\n{}\n{}", RLIMIT, e.defs.join("\n"), defines);
+        if *start != usize::MAX {
+            let _ = writeln!(q, "(assert (inv{} {}))", start, e.start_terms.join(" "));
+        }
+        let ways: Vec<String> = e.arrivals.iter().map(|(to, g, t)| format!("(and {} (not (inv{} {})))", g, to, t.join(" "))).collect();
+        let _ = writeln!(q, "(assert (or false {}))\n(check-sat)", ways.join(" "));
+        let (_, each) = portfolio.ask(&Query { text: q, assumptions: String::new(), truncated: false, assumed: false, reach: String::new(), inputs: Vec::new(), points: Vec::new() });
+        if !each.iter().all(|(_, a)| *a == Answer::Unsat) {
+            let said: Vec<String> = each.iter().map(|(n, a)| format!("{} {}", n, match a { Answer::Unsat => "confirmed it", Answer::Sat(_) => "found it false", Answer::Unknown => "could not say" })).collect();
+            let what = if *start == usize::MAX { "the walk from the entry".to_string() } else { format!("the walk from the loop at block {}", start) };
+            return Err(Spacer::NotConfirmed { shown: shown_all.join("; "), why: format!("on {}: {}", what, said.join(", ")) });
+        }
+    }
+    Ok(invs)
+}
+
+/// The joint system is asked when `KAYO_SPACER_JOINT` is set (with
+/// `KAYO_SPACER_INTEGERS`).
+pub fn spacer_joint_on() -> bool {
+    std::env::var("KAYO_SPACER_JOINT").is_ok() && spacer_integers()
+}
+
+/// Spacer searches over the integers instead of bit-vectors when
+/// `KAYO_SPACER_INTEGERS` is set (owner, 2026-10-29: "Test out number 2
+/// first"); bit-vectors stay the default until the owner decides.
+pub fn spacer_integers() -> bool {
+    std::env::var("KAYO_SPACER_INTEGERS").is_ok()
+}
+
+/// The three parts of a loop's clauses over the integers (`ints.rs`).
+fn int_clauses(text: &mut String, keys: &[HeadKey], entry: &Enc, trip: &Enc, from: &Enc) {
+    use crate::precog::ints;
+    let read = |s: &str| ints::parse(s).unwrap_or(ints::Sx::Atom("true".into()));
+    // Each part: its lines as conjuncts, then what arrives at the head (or
+    // the bad value), each term read as the key's number.
+    let args = |tr: &mut ints::Ints, terms: &[String]| -> String {
+        terms.iter().zip(keys).map(|(t, k)| tr.number(&read(t), k.signed).unwrap_or_else(|| tr.fresh_int())).collect::<Vec<_>>().join(" ")
+    };
+    let (mut vars, conj, mut tr) = ints::part(&entry.defs, &entry.sorts);
+    let mut rules = Vec::new();
+    for (g, terms) in &entry.recorded {
+        let g = tr.boolean(&read(g)).unwrap_or_else(|| "true".into());
+        let a = args(&mut tr, terms);
+        rules.push((vec![g], format!("(Inv {})", a)));
+    }
+    vars.extend(tr.unknowns.drain(..));
+    for (extra, head) in rules {
+        text.push_str(&horn_rule(&vars, &conj, &extra, &head));
+    }
+    let (mut vars, conj, mut tr) = ints::part(&trip.defs, &trip.sorts);
+    let at_head = format!("(Inv {})", args(&mut tr, &trip.start_terms));
+    let mut rules = Vec::new();
+    for (g, terms) in &trip.recorded {
+        let g = tr.boolean(&read(g)).unwrap_or_else(|| "true".into());
+        let a = args(&mut tr, terms);
+        rules.push((vec![at_head.clone(), g], format!("(Inv {})", a)));
+    }
+    vars.extend(tr.unknowns.drain(..));
+    for (extra, head) in rules {
+        text.push_str(&horn_rule(&vars, &conj, &extra, &head));
+    }
+    let (mut vars, conj, mut tr) = ints::part(&from.defs, &from.sorts);
+    let at_head = format!("(Inv {})", args(&mut tr, &from.start_terms));
+    let bad: Vec<String> = from.reached.iter().filter_map(|r| tr.boolean(&read(r))).collect();
+    vars.extend(tr.unknowns.drain(..));
+    text.push_str(&horn_rule(&vars, &conj, &[at_head, format!("(or false {})", bad.join(" "))], "false"));
 }
 
 /// A query's lines as one Horn clause body: each value it declares or

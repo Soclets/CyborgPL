@@ -20,6 +20,7 @@
 pub mod paged;
 pub mod report;
 pub mod smt;
+pub(crate) mod ints;
 
 use std::collections::HashMap;
 
@@ -4305,12 +4306,31 @@ fn layer3(p: &Program, r: &SiteResult, facts: &Facts, portfolio: &smt::Portfolio
     }
     let mut records = Vec::new();
     let mut invariants = Vec::new();
-    for head in smt::loops_before(p, r.function, r.site) {
-        let outcome = smt::spacer(p, r.function, r.site, facts, head, portfolio);
-        if let smt::Spacer::Confirmed(inv) = &outcome {
-            invariants.push(inv.clone());
+    let heads = smt::loops_before(p, r.function, r.site);
+    if smt::spacer_joint_on() {
+        // Every loop on the way as one system (measured beside one loop at
+        // a time): each head gets the system's outcome.
+        match smt::spacer_joint(p, r.function, r.site, facts, &heads, portfolio) {
+            Ok(invs) => {
+                for inv in invs {
+                    records.push(SpacerRecord { function: r.function, site: r.site, head: inv.head, outcome: smt::Spacer::Confirmed(inv.clone()), proved: false });
+                    invariants.push(inv);
+                }
+            }
+            Err(outcome) => {
+                for head in heads.iter().copied().take(1) {
+                    records.push(SpacerRecord { function: r.function, site: r.site, head, outcome: outcome.clone(), proved: false });
+                }
+            }
         }
-        records.push(SpacerRecord { function: r.function, site: r.site, head, outcome, proved: false });
+    } else {
+        for head in heads {
+            let outcome = smt::spacer(p, r.function, r.site, facts, head, portfolio);
+            if let smt::Spacer::Confirmed(inv) = &outcome {
+                invariants.push(inv.clone());
+            }
+            records.push(SpacerRecord { function: r.function, site: r.site, head, outcome, proved: false });
+        }
     }
     if invariants.is_empty() {
         return (out, records);

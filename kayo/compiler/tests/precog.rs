@@ -221,6 +221,40 @@ fn spacer_finds_the_invariant_no_shape_says_and_never_a_false_one() {
     assert!(!bad.starts_with("proven"), "the division is 0 on every run, and it was proven: {}", bad);
 }
 
+/// Spacer's measured modes (owner, 2026-10-29: integer clauses, confirmed
+/// in bit-vectors), run as a build would run them, through their switches:
+/// each must prove what its measurement says, and none may prove a site
+/// that fails on every run.
+#[test]
+fn spacers_integer_modes_prove_what_they_measured_and_nothing_false() {
+    assert!(have_a_solver(), "no solver on this machine, so layer 3 cannot be tested at all");
+    let repo = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let good = repo.join("kayo/tools/spacer_probe/two_counters.cy");
+    let src = std::fs::read_to_string(&good).unwrap();
+    let dir = std::env::temp_dir().join("cca-precog-tests");
+    let _ = std::fs::create_dir_all(&dir);
+    let bad = dir.join("two_counters_apart.cy");
+    std::fs::write(&bad, src.replace("var $j: i32 = 0;", "var $j: i32 = -1;")).unwrap();
+    let build = |path: &std::path::Path, env: &[(&str, &str)]| -> String {
+        let mut cmd = std::process::Command::new(env!("CARGO_BIN_EXE_kayo"));
+        cmd.arg("build").arg(path).arg("-o").arg(dir.join("spacer_modes")).env_remove("KAYO_NO_SPACER").env_remove("KAYO_STD");
+        for (k, v) in env {
+            cmd.env(k, v);
+        }
+        let out = cmd.output().unwrap();
+        String::from_utf8_lossy(&out.stderr).to_string() + &String::from_utf8_lossy(&out.stdout)
+    };
+    let joint = [("KAYO_SPACER_INTEGERS", "1"), ("KAYO_SPACER_JOINT", "1"), ("KAYO_SPACER_GLOBAL", "1")];
+    let said = build(&good, &joint);
+    assert!(said.contains("11 sites: 11 proven"), "joint integer clauses prove both of two_counters' loop sites:\n{}", said);
+    let said = build(&good, &[("KAYO_SPACER_INTEGERS", "1")]);
+    assert!(said.contains("11 sites: 10 proven"), "one loop at a time over the integers proves the division only:\n{}", said);
+    for env in [&joint[..], &[("KAYO_SPACER_INTEGERS", "1")][..]] {
+        let said = build(&bad, env);
+        assert!(said.contains("1 checked at run time") && !said.contains("0 checked"), "the division is 0 on every run, and it was proven:\n{}", said);
+    }
+}
+
 /// Programs whose sites are worth putting to a solver: every width, both
 /// signs, a range, a length, a loop.
 ///
