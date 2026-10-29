@@ -45,7 +45,7 @@ pub fn convert(text: &str, dir: &Path) -> Result<String, String> {
     Ok(with_sigs(&three))
 }
 
-/// The generics episode's `<T: any>` adds with `+`, which since 2550064a comes
+/// The generics episode's `[<T>: any]` (e0ff1255) adds with `+`, which since 2550064a comes
 /// only from a `sig` in the bound: such a function is bound by `Addable`, as
 /// examples/generic_literal.cy writes it. The generator's own hand edit, which
 /// no converter can make.
@@ -56,12 +56,12 @@ pub fn with_sigs(text: &str) -> String {
     let mut i = 0;
     while i < lines.len() {
         let l = lines[i];
-        if let Some(name) = l.strip_prefix("fn ").and_then(|r| r.split_whitespace().next()).filter(|_| l.contains("<T: any>")) {
+        if let Some(name) = l.strip_prefix("fn ").and_then(|r| r.split_whitespace().next()).filter(|_| l.contains("[<T>: any]")) {
             let close = format!(";fn {name}");
             let end = (i..lines.len()).find(|&k| lines[k].trim() == close).unwrap_or(i);
             if lines[i + 1..end].iter().any(|b| b.contains(" + ")) {
                 needed = true;
-                out.push_str(&l.replace("<T: any>", "<T: Addable>"));
+                out.push_str(&l.replace("[<T>: any]", "[<T>: Addable]"));
                 out.push('\n');
                 i += 1;
                 continue;
@@ -76,7 +76,7 @@ pub fn with_sigs(text: &str) -> String {
     }
     // after the `use` lines, which go first
     let head: usize = out.lines().take_while(|l| l.starts_with("use ") || l.starts_with('#') || l.trim().is_empty()).map(|l| l.len() + 1).sum();
-    format!("{}sig Addable <T>:\n    op + [lent $a: <T>, lent $b: <T>] -> <T>;\n;sig Addable\n\n{}", &out[..head], &out[head..])
+    format!("{}sig Addable [<T>]:\n    op + [lent $a: <T>, lent $b: <T>] -> <T>;\n;sig Addable\n\n{}", &out[..head], &out[head..])
 }
 
 #[cfg(test)]
@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn addable_where_a_generic_adds() {
-        let s = "use std::ls as ls;\nfn g1 <T: any> [lent $xs: std::ls[<T>]] -> <T>:\n    change $s to $s + $x;\n;fn g1\nfn g2 <T: any> [let $x: <T>] -> <T>:\n    ret $x;\n;fn g2\n";
-        assert_eq!(with_sigs(s), "use std::ls as ls;\nsig Addable <T>:\n    op + [lent $a: <T>, lent $b: <T>] -> <T>;\n;sig Addable\n\nfn g1 <T: Addable> [lent $xs: std::ls[<T>]] -> <T>:\n    change $s to $s + $x;\n;fn g1\nfn g2 <T: any> [let $x: <T>] -> <T>:\n    ret $x;\n;fn g2\n");
+        let s = "use std::ls as ls;\nfn g1 [<T>: any] [lent $xs: std::ls[<T>]] -> <T>:\n    change $s to $s + $x;\n;fn g1\nfn g2 [<T>: any] [let $x: <T>] -> <T>:\n    ret $x;\n;fn g2\n";
+        assert_eq!(with_sigs(s), "use std::ls as ls;\nsig Addable [<T>]:\n    op + [lent $a: <T>, lent $b: <T>] -> <T>;\n;sig Addable\n\nfn g1 [<T>: Addable] [lent $xs: std::ls[<T>]] -> <T>:\n    change $s to $s + $x;\n;fn g1\nfn g2 [<T>: any] [let $x: <T>] -> <T>:\n    ret $x;\n;fn g2\n");
     }
 }
