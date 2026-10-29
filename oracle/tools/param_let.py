@@ -17,9 +17,18 @@ spec.loader.exec_module(ps)
 
 
 def code_line(line):
+    # a parameter's `let` at the start of a continued line is decided on the whole line, its strings and quoted names
+    # blanked, so a name like `$'x"y'` cannot hide a declaration's `=` (compiler claude, 2026-10-29)
+    spans = ps.code_spans(line)
+    masked, last = "", 0
+    for a, b in spans:
+        masked += "x" * (a - last) + line[a:b]; last = b
+    masked += "x" * (len(line) - last)
+    m = r3.PARAM_LINE_LET.match(masked)
+    if m: line = line[:m.end(1)] + line[m.end():]
     new, last = "", 0
     for a, b in ps.code_spans(line):
-        new += line[last:a] + r3.drop_param_let(line[a:b]); last = b
+        new += line[last:a] + r3.PARAM_LET.sub(r'\1', line[a:b]); last = b
     return new + line[last:]
 
 

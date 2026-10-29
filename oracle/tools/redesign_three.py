@@ -41,8 +41,9 @@ def generic_lists(code):
 PARAM_LET = re.compile(r'([\[,]\s*)let\s+(?=\$|\.\.\.)')
 
 
-# a parameter on a line of its own in a long list: `    let $minutes: i32,` (no `=`, no `;`)
-PARAM_LINE_LET = re.compile(r'^(\s*)let\s+(?=(?:\$|\.\.\.)[^=;]*$)', re.M)
+# a parameter on a line of its own in a long list: `    let $minutes: i32,` or `    let $cmp: proc[…] -> i32];` (no `=`:
+# a declaration always has one, `:=` or `=`)
+PARAM_LINE_LET = re.compile(r'^(\s*)let\s+(?=(?:\$|\.\.\.)[^=]*$)', re.M)
 
 
 def drop_param_let(code):

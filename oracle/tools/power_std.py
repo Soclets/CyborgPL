@@ -14,6 +14,9 @@ def code_spans(line):
             spans.append((start, i)); j = i + 1
             while j < n and line[j] != '"': j += 2 if line[j] == "\\" else 1
             i = start = j + 1; continue
+        if c == "'" and i > 0 and line[i - 1] == "$":
+            # a quoted name, `$'x"y'`: its characters are the name's, never a string's or a comment's
+            j = line.find("'", i + 1); i = (j + 1) if j > 0 else n; continue
         if c == "`":
             spans.append((start, i)); j = line.find("`", i + 1); i = start = (j + 1 if j > 0 else n); continue
         if c == "#":
