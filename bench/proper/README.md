@@ -37,10 +37,12 @@ would. Results: [`RESULTS.md`](RESULTS.md).
 | **Python** | `multiprocessing.Pool`, a worker per core | list comprehension, built-in `sum` | `bytearray`, slice assignment, `count` |
 | **Julia** | a `Threads.@spawn` task per thread (`-t auto`) | a comprehension, `sum` | `Vector{Bool}`, range assignment |
 | **LuaJIT** | one plain loop (no threads come with it) | an FFI `int32_t` array of known size | an FFI byte array |
-| **CyborgPL** | `for` loops; CCA splits them across every core itself when Precog proves it safe | `for` | `for` |
+| **CyborgPL** | `for %para` loops (MCPS), split across every core where Precog proves it safe; `%spawn.task` for fib | `for` | `for` |
 
-CyborgPL's versions are the ones in `bench/`: its proper practice is the plain `for`,
-and its compiler does the rest. Unlike `bench/`, nothing sets `CYBORG_THREADS` here.
+CyborgPL's proper versions are the ones in `bench/`: its proper practice is the plain `for`, which runs on one thread;
+since 2026-10-29 a plain `for` never goes parallel by itself (owner: every limb marked where it acts), so the parallel
+versions say `for %para`. Results before that date (`RESULTS.md`, 2026-10-15) were taken when a plain `for` could already
+run on every core. Unlike `bench/`, nothing sets `CYBORG_THREADS` here.
 
 ## Running it
 
