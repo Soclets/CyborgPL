@@ -307,13 +307,13 @@ impl Checker {
     fn undeclared<T>(&self, ctx: &FnCtx, n: &ast::QName) -> Result<T> {
         if let Some(outer) = &ctx.captured_outer {
             if outer.iter().any(|(name, ..)| *name == n.name) {
-                return Err(ctx.not_declared(Diagnostic::error(format!("'{}' is not declared inside this function: it sees nothing of the surrounding scope unless `with [lend ${}]` (or `copy` / `give`) says so", n.name, n.name)).named("not_declared").at(n.span), &n.name, n.span));
+                return Err(ctx.not_declared(Diagnostic::error(format!("`${}` is not declared inside this function: it sees nothing of the surrounding scope unless `with [lend ${}]` (or `copy` / `give`) says so", n.name, n.name)).named("not_declared").at(n.span), &n.name, n.span));
             }
         }
         if ctx.is_task {
             return Err(ctx.not_declared(Diagnostic::error(format!("'{}' is not declared inside this task: a task takes what it needs through `with [lend ${}]` (or `copy` / `give`)", n.name, n.name)).named("not_declared").at(n.span), &n.name, n.span));
         }
-        Err(ctx.not_declared(Diagnostic::error(format!("'{}' is not declared", n.name)).named("not_declared").at(n.span), &n.name, n.span))
+        Err(ctx.not_declared(Diagnostic::error(format!("`${}` is not declared", n.name)).named("not_declared").at(n.span), &n.name, n.span))
     }
 
     fn const_type(&mut self, id: hir::ConstId, span: Span) -> Result<Ty> {
@@ -2847,7 +2847,9 @@ impl Checker {
                     return err(d);
                 }
                 if path.segs.len() == 1 && path.kit.is_none() && args.iter().any(|a| matches!(a, AArg::Named(..))) && e.sentence.starts_with("there is no") {
-                    return err(Diagnostic::error(format!("there is no struct named `{}` here", path.head())).named("unknown_struct").at(path.span).fix_close(path.span, path.head(), self.items.structs.iter().map(|s| s.name.as_str())));
+                    // Every name is exact (owner, 2026-10-27): its case twin is asked about.
+                    let twin = self.items.structs.iter().find(|s| s.name != path.head() && s.name.to_lowercase() == path.head().to_lowercase()).map(|s| format!("; did you mean `{}`?", s.name)).unwrap_or_default();
+                    return err(Diagnostic::error(format!("there is no rec named `{}` here{}", path.head(), twin)).named("unknown_struct").at(path.span).fix_close(path.span, path.head(), self.items.structs.iter().map(|s| s.name.as_str())));
                 }
                 return Err(e);
             }
@@ -3863,7 +3865,7 @@ impl Checker {
         let mut inst_caps = Vec::new();
         for c in &lit.captures {
             let Some(outer) = ctx.lookup(&c.name.name) else {
-                return Err(ctx.not_declared(Diagnostic::error(format!("'{}' is not declared", c.name.name)).named("not_declared").at(c.name.span), &c.name.name, c.name.span));
+                return Err(ctx.not_declared(Diagnostic::error(format!("`${}` is not declared", c.name.name)).named("not_declared").at(c.name.span), &c.name.name, c.name.span));
             };
             let ty = self.resolve(&ctx.locals[outer.0 as usize].ty);
             if lit.params.iter().any(|p| p.name.name == c.name.name) {

@@ -798,7 +798,8 @@ impl Diagnostic {
         }
         // The sentence stays, last, until the message's fix is written
         // (owner, 2026-10-24: (c)); it is in the docs under the name too.
-        if SENTENCE_LINE && written == 0 && (!self.outside || self.keep_about) {
+        // `KAYO_SHOW_ABOUT` shows the sentence a written fix stands in for (reviewing kayo's words).
+        if SENTENCE_LINE && (written == 0 || std::env::var_os("KAYO_SHOW_ABOUT").is_some()) && (!self.outside || self.keep_about) {
             let _ = writeln!(out, "about: {}", self.sentence);
         }
         out

@@ -13,21 +13,21 @@
 # it for a reason that is not a rule, and the line says which.
 
 
-ai_missing [fnv:a79e4fb1a3690d0b] :: `%brain16` is AI's
+ai_missing [fnv:a79e4fb1a3690d0b] :: `%bf16` is AI's
 and_does_not_guard [fnv:73a43ee7964ee933] :: the position can be past the end
 append_as_value [fnv:962f0b75bc91959f] :: it changes the list in place
-append_to_array [fnv:5b0ab95e546066e1] :: declare it a `list` to append
-append_without_mut [fnv:ed12d99652ef7144] :: `list.append` changes the collection, so it takes `lend.mut`, not `lend`
+append_to_array [fnv:5b0ab95e546066e1] :: declare it a `ls` to append
+append_without_mut [fnv:ed12d99652ef7144] :: `ls.append` changes the collection, so it takes `lend.mut`, not `lend`
 append_wrong_type [fnv:5d724d7f0bf1eafb] :: there is no implicit conversion between numeric families
-argument_word_missing [fnv:2e1171584bd52351] :: each argument after the first says what it is: `list.append(lend.mut $xs, value: 2)`
+argument_word_missing [fnv:2e1171584bd52351] :: each argument after the first says what it is: `ls.append(lend.mut $xs, value: 2)`
 argument_word_wrong [fnv:f677f27c744514a2] :: each argument after the first says what it is: `map.get(lend $m, key: "ann")`
 arith_overflow [fnv:dfe8e3158415ab96] :: the value can be outside what an `i32` holds
-array_into_list [fnv:fd7150cb07b4b796] :: is a `list[i32]`, and 'f' is an `array[i32]`
-array_slice_is_list [fnv:25040c8ec84b53a4] :: the declared type is an `array` and this is a `list`
-asm_bare_word [fnv:e899c7f54b468354] :: is `inline.ASM { … }`
+array_into_list [fnv:fd7150cb07b4b796] :: is a `ls[i32]`, and 'f' is an `arr[i32]`
+array_slice_is_list [fnv:25040c8ec84b53a4] :: the declared type is an `arr` and this is a `ls`
+asm_bare_word [fnv:e899c7f54b468354] :: an inline block is `inline.ASM
 asm_in_word [fnv:8f17864520850285] :: the arrow is the direction
 asm_lend [fnv:5a896b6b4ce67e10] :: !by-design CCA compiles inline.ASM with a lend bound to a register and hands it to the assembler (it prints Hello, world!); the oracle refuses it because an interpreter cannot run assembly
-asm_lend_mut_immut [fnv:42a25efbdcea0b41] :: is `immut`, so `lend.mut $buf`
+asm_lend_mut_immut [fnv:bae4c1c6470fdd0a] :: is `let`, so `lend.mut $buf`
 asm_lend_out [fnv:5a7f5f03e1b890b3] :: a lend goes into a register only
 asm_long_arrows [fnv:4b6fbabf0d368c63] :: !by-design CCA compiles inline.ASM, its bindings written with the long arrows, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_long_both [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<-->`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
@@ -37,13 +37,13 @@ asm_s_lowercase [fnv:3684b810cb4d2028] :: an inline language's name is in capita
 asm_signatar_unmarked [fnv:98a39490f4c80db0] :: an inline block is a no_check site
 asm_strings [fnv:c9b7ee31e6eab60e] :: not a list of strings
 asm_top_level [fnv:f8444caf9620e916] :: goes inside a body
-asm_unknown_var [fnv:652fb6ee6f955c44] :: 'zzz' is not declared
+asm_unknown_var [fnv:652fb6ee6f955c44] :: `$zzz` is not declared
 asm_without_nocheck [fnv:b05717fcb97887c8] :: no_check site
 asp_retired [fnv:6febee99a0bc41a5] :: ASP is retired: since 2026-10-08 it is part of the base; take it out of `my limbs:`
 assign_counter [fnv:e6ba851195255f72] :: belongs to the loop and cannot be changed
-assign_elem_immut [fnv:3fec8bc09c3281b1] :: cannot be changed: it is `immut`
+assign_elem_immut [fnv:b3d8bb75d2330b0c] :: `$xs` is a `let`, which never changes, but something changes it: write `var $xs`
 assign_elem_past_end [fnv:7914d123bba99015] :: the position can be past the end
-assign_immut [fnv:2276edc1d8291184] :: cannot be changed: it is `immut`
+assign_immut [fnv:592cf12935a895b0] :: `$x` is a `let`, which never changes, but something changes it: write `var $x`
 assign_needs_change [fnv:c3c41a25f2c45283] :: changing a variable says so: `change $x = …;`
 assign_to_lent [fnv:6538114fa50ad28c] :: it belongs to whoever lent it
 assign_with_colon [fnv:a19ee1e93ed328a3] :: is already declared in this scope
@@ -51,7 +51,7 @@ bad_comment_form [fnv:5c98b85a3c9b9136] :: `#` to the end of the line, `#wl` the
 bad_comment_suffix [fnv:5c98b85a3c9b9136] :: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down
 bare_char [fnv:b78f2a1f98dce47b] :: `char` is never bare: say the unit
 bare_int [fnv:ef16210764d8ed79] :: the typed form is always fully explicit
-bare_list_type [fnv:2c25ad3c0db0aeaa] :: `list` takes exactly one type parameter, the element type: `list[i32]`
+bare_list_type [fnv:2c25ad3c0db0aeaa] :: `ls` takes exactly one type parameter, the element type: `ls[i32]`
 bare_never_without_path [fnv:b853aa5f020aa949] :: `formal` is `greet`'s: another kit's names take its path (owner, 2026-10-22), so write `greet::formal(…)`
 bare_owned_assign [fnv:a4a8ad33036213f9] :: give $s
 bare_struct_from_position [fnv:dad2041d7955f650] :: give $prs[pos: 1]
@@ -64,30 +64,30 @@ bin_infinity [fnv:5042776272302d97] :: can go past the largest bin (it would be 
 bin_into_untyped_int_list [fnv:30ead708e7bb9609] :: there is no implicit conversion between numeric families
 bin_nan [fnv:da5fa56ba74549ff] :: nothing can be divided by zero
 bin_to_int_unhandled [fnv:9a7b298faef586b6] :: `to.i32` can fail (not_whole, out_of_range)
-bit_ampersand [fnv:aad0fdf19e4e92bd] :: `$a & $b` is an old spelling: write `$a and $b`
+bit_ampersand [fnv:8fb2388fff834cf5] :: `$a & $b` is an old spelling: write `$a and $b`
 bit_mixed_needs_parens [fnv:d936cef674e6c908] :: a bitwise operator has no precedence
 bit_not_untyped [fnv:6f6393d70a590740] :: `not.bit` needs a width, and nothing here gives one
 bit_on_bin [fnv:a3920de02aa7e4cd] :: `xor` works on integers, and this is a `bin`
 bit_shl_overflow [fnv:c5fefa909a258208] :: the shift can move bits out of the type
 bit_shl_too_far [fnv:ec9fe2cc1e68af45] :: the shift can move bits out of the type
 bitwise_operand_too_wide [fnv:c738adc69f532540] :: the value can be outside what a `u32` holds
-borrow_after_append [fnv:edbe062db4b885e9] :: 's' cannot be changed here: 'r' still borrows it and is used on line 7
+borrow_after_append [fnv:ba0dd86ee56f8f6f] :: 's' cannot be changed here
 borrow_after_change [fnv:ff276a932d706c72] :: 's' cannot be changed here: 'r' still borrows it and is used on line 6
 borrow_after_give [fnv:37eec041911a30e1] :: 's' cannot be given away here: 'r' still borrows it and is used on line 6
 borrow_chain_through_local [fnv:0b277a9492cf82e4] :: 'o2' cannot be given away here: 's' still borrows it and is used on line 24
 borrow_choice_needs_group [fnv:59319ee234dad26a] :: `longer` hands back a borrow and borrows more than one input: say which with a group, `fn longer [@x] [lent @x $a: …, lent $b: …] -> lent @x …`
-borrow_ungrouped_may_return [fnv:ed533803bcb93efa] :: 't' cannot be given away here: 'r' still borrows it and is used on line 13
+borrow_ungrouped_may_return [fnv:8b207754c2f3dd4b] :: 't' cannot be given away here
 borrow_untaken_branch [fnv:dc66446cd05dbc61] :: 't' cannot be changed here: 'q' still borrows it and is used on line 8
-bound_append_over [fnv:45ac8044559242cb] :: this can take it outside the bound its type gives it (`list[i32][max: 3]`)
+bound_append_over [fnv:45ac8044559242cb] :: this can take it outside the bound its type gives it (`ls[i32][max: 3]`)
 bound_backwards [fnv:0657eb87a916e1c7] :: the low bound is at most the high one
 bound_max_as_value [fnv:9c484b42a2770889] :: `min` and `max` label a bound now; a side left out is the type's own limit
 bound_old_spelling [fnv:91bc2e242903bb9b] :: a bound says which it is: `i32[min: 0, max: 100]`
-bound_on_array [fnv:d5be1883ea268628] :: an `array` has one length, already known
-bound_too_short [fnv:9806ce6df3c3ab28] :: this can take it outside the bound its type gives it (`list[i32][min: 3, max: 5]`)
-brain_into_bin [fnv:55f6457d890e98fd] :: is a brain16, not f32
+bound_on_array [fnv:d5be1883ea268628] :: an `arr` has one length, already known
+bound_too_short [fnv:9806ce6df3c3ab28] :: this can take it outside the bound its type gives it (`ls[i32][min: 3, max: 5]`)
+brain_into_bin [fnv:55f6457d890e98fd] :: the declared type is an `f32` and this value is a %brain16, not f32
 brain_mixed_bin [fnv:f96220f94a68d5be] :: the brain float is a family of its own
 brain_overflow [fnv:6c45f1780f2082f5] :: past the largest brain16
-brain_width [fnv:cb0eafd0d23ec5ff] :: `%brain16` only
+brain_width [fnv:cb0eafd0d23ec5ff] :: `%bf16` only
 bytes_to_ascii [fnv:3b82fac2d984055d] :: only `to.str.utf8` reads bytes as text
 bytes_to_text_needs_otherwise [fnv:b62e90d146e74936] :: `to.str.utf8` can fail (not_utf8)
 c_enum_data [fnv:792b602bfc2bed61] :: of the C enum `K` carries no data
@@ -112,7 +112,7 @@ c_struct_range_out [fnv:990ba4d984492736] :: the value can be outside what an `i
 c_type_needs_cnc [fnv:4f19fa4f760201b4] :: `%C.int` is CNC's, and this kit's CyJet.toml does not list the limb CNC
 c_type_unknown [fnv:100c43f929842da7] :: `%C.integer` is not one of C's machine-sized types
 c_var_c_enum [fnv:a4ee21bbf8d87688] :: a C variable cannot be `Mode`
-call_main [fnv:b4fc56b21cf49ce6] :: it is the program's one block
+call_main [fnv:b4fc56b21cf49ce6] :: bare `MAIN` is the program's block and cannot be nested or called
 call_without_bracket [fnv:95f7d3dbcf9bab3c] :: a call needs `(…)`
 callback_c_enum [fnv:ba1492734bc49737] :: a callback's parameter cannot be `Key`
 callback_fails [fnv:35748b82590d3e88] :: the `%extern.C fn f` parameter 'cb' is not C-shaped
@@ -120,22 +120,15 @@ callback_lent_param [fnv:acc6e686bfb5348a] :: the `%extern.C fn f` parameter 'cb
 callback_str_param [fnv:fc8e6737a324ce6d] :: the `%extern.C fn f` parameter 'cb' is not C-shaped
 callback_with_capture [fnv:857b4698d5db52ac] :: C has nowhere to keep them
 callback_wrong_shape [fnv:6250f1a435863168] :: `qsort`'s parameter 'cmp' wants a function taking 2 argument(s); got a function taking 1 argument(s)
-caps_missing [fnv:ae0e7ff10740e178] :: a `case` mark is unicode's
-case_bad_kind [fnv:1784123126ebe5b3] :: `op` is not a kind a `case` mark covers: `fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var` (a module is marked on itself)
-case_differ_only [fnv:f6ddde3346dac008] :: `Area` and `area` (line 2 of case_differ_only.cy) differ only in case, and `area` is `case.any`: they would be one name
-case_disagree [fnv:2e64febe632c3277] :: `fn Area` is marked both `case.any` (line 1 of case_disagree.cy) and `case.exact` (line 2 of case_disagree.cy): marks that disagree are an error (owner, 2026-10-06)
-case_file_not_first [fnv:d2bc60ae9c5750c7] :: a file's `case` mark is at its top, before anything else; a block module takes `case.any module name { … }`
-case_kinds_in_module [fnv:026455ceafbbafa5] :: a `case` mark on kinds (`case.any [fn, struct];`) covers the whole kit, so it is written in `kit.cy`
-case_old_spelling [fnv:24c1c00fd0f09897] :: `case.insensitive` is an old spelling: write `case.any`
-case_pub_after [fnv:11f985d8ef005006] :: `pub` comes first: `pub case.any fn …`
-case_sensitive_default [fnv:ba2f044e0441b6e0] :: there is no item `area` in the root (`kit.cy`)
+case_old_spelling [fnv:b10238fb4c0245b8] :: `case.insensitive` is gone: every name is exact
+case_sensitive_default [fnv:bf09000c063af7b0] :: there is no item `area` in the root (`kit.cy`)
 case_value_needs_is [fnv:381bbe93e82606db] :: a case says its value with `is`: `a { is …; }`
 chained_cmp [fnv:fb46d9317941f47c] :: comparisons do not chain
 char_to_number [fnv:f0322c3a10514c25] :: `to.i32(`7`)` could mean 55 (its code) or 7 (its digit)
 check_bare [fnv:413f5a3fb67ec940] :: `check` goes in front of a statement
 check_fails [fnv:be678e17da79103a] :: the position can be past the end
 check_in_value [fnv:e7e32bc71274232c] :: if half a statement needs it, split the statement
-check_nocheck [fnv:fd645963528e9ebf] :: `check` and `nocheck` cannot both cover it
+check_nocheck [fnv:fd645963528e9ebf] :: `check` and `no_check` cannot both cover it
 check_on_fn [fnv:a3d84a1688d9bcbd] :: the tiers are never global
 check_on_fn_in_body [fnv:e371561a00ed503f] :: a function's safety is the sum of its statements
 cnc_not_listed [fnv:f979234b5618fa3b] :: `incl.%C` is CNC's, and this kit's CyJet.toml does not list the limb CNC
@@ -156,14 +149,14 @@ collection_preset_no_main [fnv:22a7543a7381b537] :: a preset fills the main func
 collection_preset_unknown [fnv:175c636485763a06] :: 'nope' is not one of `c`'s parameters
 collection_template_unnamed [fnv:87469e40dd99c652] :: a template names what it makes first
 comma_grouping [fnv:05b8c86a9cd8fe27] :: `,` is not a digit separator
-compound_change_old [fnv:18ec38bf4d770aff] :: `+=` is an old spelling: write `change $x = $x + …;`
-concur_fail_unhandled [fnv:cbccfc56a451bded] :: this `%concur` can fail (bad), so it needs an `otherwise` saying what happens when it does
-concur_return [fnv:d6776a53deac7dcb] :: `return` cannot leave it
+compound_change_old [fnv:e7e2b4788babcd35] :: `+=` is an old spelling: write `change $x to $x + …;`; a change is spelled out
+concur_fail_unhandled [fnv:cbccfc56a451bded] :: this `%spawn.task` can fail (bad), so it needs an `otherwise` saying what happens when it does
+concur_return [fnv:d6776a53deac7dcb] :: `ret` cannot leave it
 const_assign [fnv:2abf94f737eafc08] :: it is a value known at compile time
 const_bare_name [fnv:5424489e57e123bf] :: a const is named like a variable: `const $max
 const_effect_value [fnv:1221654939803659] :: `std::exit` has an effect, so it cannot make one
-const_from_variable [fnv:652fb6ee6f955c44] :: 'y' is not declared
-const_mut [fnv:9f30cb564f340919] :: neither `mut` nor `immut`
+const_from_variable [fnv:652fb6ee6f955c44] :: `$y` is not declared
+const_mut [fnv:256bea0cfcb19c23] :: `mut` is an old spelling: write `var` / `lend.mut`
 const_shadow [fnv:e1b51c069042fda4] :: 'max' is a const and cannot be shadowed
 const_verb [fnv:d48a3137f8878e3c] :: it is a value known at compile time
 construct_quoted_field [fnv:7597065160c99b01] :: `x = …`, not `$x = …`
@@ -172,7 +165,7 @@ count_commas [fnv:f3266c888da5601b] :: a `for` with several words takes `[ ]` an
 deci_family_mix [fnv:08ea65ffe19d9d06] :: between a deci and another number family
 deci_fractional_power [fnv:bb5918d5dddef02d] :: exponent is an integer or a whole literal
 deci_from_bin_bare [fnv:24a8031c925aa8d8] :: say which value
-deci_from_wide_result [fnv:ce73fa3c49facf64] :: `to.%d64` can fail (too_many_digits)
+deci_from_wide_result [fnv:bb3737bef5725d4d] :: `to.%d64` can fail (too_many_digits)
 deci_int_needs_otherwise [fnv:d07bc7b3701143a5] :: can fail (too_many_digits)
 deci_literal_digits [fnv:587606eda69518c9] :: has 9 digits; d32 holds 7
 deci_narrow_needs_otherwise [fnv:d07bc7b3701143a5] :: can fail (too_many_digits)
@@ -197,14 +190,14 @@ else_if_bare [fnv:38697b0b1183ad5e] :: `else.if` became `else if`: two bare word
 empty_array [fnv:8e009c1193ae6fd2] :: an array is fixed at the size it was made with
 empty_int [fnv:46819038938fd6c9] :: `[]` is an empty list, but the declared type is an `i32`
 empty_quotes [fnv:2bda5f71e81ee00e] :: `""` is an old spelling: write `str.empty`
-empty_walrus [fnv:7a096e3b41300cf6] :: write `list.empty` (the prover picks the element type from what is appended later), or give it a type
-enum_bare_owned [fnv:a4a8ad33036213f9] :: give $s
+empty_walrus [fnv:7a096e3b41300cf6] :: `[]` says nothing about what 'xs' holds, and nothing on the left says "list"
+enum_bare_owned [fnv:2cb240aebfa7e5e9] :: give $s
 enum_bind_without_data [fnv:85d1b2a55dade2b9] :: `a` carries nothing, so there is no value to name 'x'
 enum_data_missing [fnv:88b68ba6c0db1eb5] :: write `S.a(…)` with the value
 enum_data_to_text [fnv:7e06b56a8f8949ce] :: a `Status` is not text: its case `claimed` carries data
 enum_data_unexpected [fnv:9ab7d8b2b03a72b6] :: `S.a` carries nothing; write it bare
 enum_data_wrong_type [fnv:4677956c07e22357] :: `a`'s data is an `i32` and this value is text: convert it first
-enum_in_body [fnv:9b3a6a83cc747ff7] :: an `enum` sits at the top level of a file or a module, not inside a body
+enum_in_body [fnv:9b3a6a83cc747ff7] :: a `union.tag` sits at the top level of a file or a module, not inside a body
 enum_match_missing_case [fnv:b42f70eab9e1b344] :: every case of `S` must have an arm
 enum_match_on_int [fnv:f255111305f0853e] :: `match` takes an enum value, and this is an `integer`: use `if`
 enum_match_unknown_case [fnv:912ccf29227a6e3c] :: `S` has no case `z`: its cases are a, b
@@ -215,13 +208,13 @@ enum_number_not_c [fnv:0904fe493cf9cff7] :: only a `%layout.C enum` has numbers
 enum_plain_case_to_text [fnv:0cb6696c30a5f896] :: a `Status` is not text: its case `claimed` carries data
 enum_quoted_case [fnv:c6233fb8356caa36] :: a case's name is bare
 enum_unknown_case [fnv:297e3ae595f8a01e] :: `S` has no case `zz`: its cases are a, b
-eq_in_value [fnv:8bd4b76183bb4396] :: equality is `equal_to`
+eq_in_value [fnv:8bd4b76183bb4396] :: equality is `==`
 eq_without_type [fnv:b34002b1a60ea4e5] :: changing a variable says so
 exact_into_bin [fnv:5b84c614a3bd1fec] :: cannot hold it exactly
 exactly_text [fnv:6198506425e0eda2] :: `exactly` is followed by a number
 exit_range [fnv:01ad7c4ef64eac3b] :: !pending `std::exit` is a stub until std exists; its `u8` argument gets no narrowing site yet
 extern_block_line_private [fnv:1db24bc0518461c4] :: is private to module `text`
-extern_block_unclosed [fnv:ca752e2459d18446] :: is its `}` missing
+extern_block_unclosed [fnv:ca752e2459d18446] :: this `%extern.C` is never closed: it ends at a line `;%extern.C`
 extern_fail [fnv:258154190b2df28e] :: an `extern fn` cannot `fail`: C has no failures
 extern_lent_param [fnv:b7762a1e487d808d] :: ptr[T]` and hand it a lend at the call
 extern_lowercase_c [fnv:13e4bd3b5f70abf7] :: C is written capitalized here
@@ -237,7 +230,7 @@ extern_with_body [fnv:5f5a8b37640106ae] :: an `extern fn` has no body: `f`'s bod
 extern_with_value [fnv:0e76e80fcde2593f] :: C owns it; write only its type
 extern_without_nocheck [fnv:b05717fcb97887c8] :: no_check site
 extern_write_checked [fnv:5aebd8ba09b7843e] :: writing C's variable 'a' is a no_check site
-extern_write_readonly [fnv:7cecff9be0233900] :: …` says C's variable may be written
+extern_write_readonly [fnv:77162ae13b517954] :: …` says C's variable may be written
 fail_arm_falls_through [fnv:0128c6a13e88b457] :: must give the call's value (`{ 0 }`) or leave
 fail_arm_missing [fnv:0d8968bfe13e437e] :: every reason needs an arm
 fail_arm_unknown [fnv:966c45cc418112c6] :: this call never fails with `z`: it fails with `a`
@@ -248,7 +241,7 @@ fail_no_list [fnv:57cd3eb8a3ffa049] :: its signature has no `fail[…]`
 fail_not_listed [fnv:c5ee76c688706bfd] :: its signature says fail[oops]
 fail_or_keyword_collision [fnv:65aeb77203450837] :: `f` can fail (a): say what happens
 fail_otherwise_alone [fnv:372a37a4f5b11cb7] :: `let $x := f() otherwise 0;`
-fail_otherwise_empty [fnv:1a46eb3395cc974a] :: a value, `return …`, `fail`, `break`, `continue`, or `{ reason { … } … }` arms
+fail_otherwise_empty [fnv:1a46eb3395cc974a] :: `otherwise` needs what to do
 fail_otherwise_on_safe [fnv:da3b3f11872f9179] :: `f` cannot fail; drop the `otherwise`
 fail_payload_missing [fnv:4028eeeae43379a3] :: `why` carries a `str.utf8`, and `fail why` needs it: `fail why[…]`
 fail_payload_unexpected [fnv:85d1b2a55dade2b9] :: write `fail why;` with no value
@@ -256,14 +249,14 @@ fail_payload_wrong_type [fnv:4677956c07e22357] :: the failure's payload is an `i
 fail_propagate_unlisted [fnv:f6414896eca05a40] :: its signature says fail[b]
 fail_quoted_name [fnv:a24dda5e1530d482] :: a failure's name is bare
 fail_unhandled [fnv:65aeb77203450837] :: `f` can fail (oops): say what happens
-fill_needs_count [fnv:35cdce0ac9d54353] :: the count says `count`: `list.fill(value: 0, count: 10)`
-fill_needs_value [fnv:499d0b448bc098ef] :: the value says `value`: `list.fill(value: 0, count: 10)`
+fill_needs_count [fnv:35cdce0ac9d54353] :: the count says `count`: `ls.fill(value: 0, count: 10)`
+fill_needs_value [fnv:499d0b448bc098ef] :: the value says `value`: `ls.fill(value: 0, count: 10)`
 fill_negative [fnv:4596c7fcd5b0d0ef] :: a count is 0 or more
 fnval_call_not_function [fnv:aebd5e80ae2bdfd7] :: 'n' is an `integer`, not a function
 fnval_capture_without_verb [fnv:6651c83f112f16d2] :: say how 'limit' comes in
 fnval_give_captured_used [fnv:144c19a252fdb2b8] :: was given away and no longer owns anything
 fnval_op_as_value [fnv:62b0125508bce133] :: an operator sits between two values
-fnval_silent_capture [fnv:b296dee211a9f22b] :: it sees nothing of the surrounding scope unless `with [lend $limit]` (or `copy` / `give`) says so
+fnval_silent_capture [fnv:2f2d5225e336e3a1] :: it sees nothing of the surrounding scope unless `with [lend $limit]` (or `copy` / `give`) says so
 fnval_type_with_names [fnv:3c0e576199d23fb9] :: no parameter names
 fnval_unknown_name [fnv:30b76508228be70e] :: a bare name is the function as a value, and none by that name is declared in the root (`kit.cy`)
 fnval_wrong_return [fnv:5785241876689f77] :: expected `apply`'s parameter 'f' (fn[i32] -> i32), found a `fn[i32] -> bool`
@@ -275,8 +268,8 @@ for_lend_mut_length_then_element [fnv:bb81dd22690ea890] :: 'x' still borrows it 
 for_lend_mut_read_then_element [fnv:bb81dd22690ea890] :: 'x' still borrows it `lent.mut`
 for_list_typed [fnv:df6b9ecc22e597b6] :: each element's type is the list's
 for_loop_chain [fnv:443eefc427c541ef] :: `loop.temp.for` / `loop.range` became `for`
-for_no_cheat_inside [fnv:0016dc8bc54aae3c] :: `for no_cheat` is an old spelling: write `no_cheat for`
-for_no_cheat_order [fnv:7311d036f904b2ec] :: `no_cheat` goes in front of the loop
+for_no_cheat_inside [fnv:2387d68246f8f7f8] :: `for no_cheat` is an old spelling
+for_no_cheat_order [fnv:7311d036f904b2ec] :: `no_skip` goes in front of the loop
 for_no_next [fnv:ce601e91e7d21e30] :: which has no `fn Point.next`: `for` walks a list, or an iterator
 for_position_range [fnv:207789db02876035] :: a counting loop's counter already is the position
 for_seq_and_para [fnv:7936e43d22d1f2db] :: `seq` or `para`, not both
@@ -290,8 +283,8 @@ generic_inconsistent [fnv:81336ef057ec73fd] :: `<T>` is filled by an earlier arg
 generic_inst_mismatch [fnv:4677956c07e22357] :: expected a value of the declared type (Box[i32]), found a `Box[str]`
 generic_no_bound [fnv:ea71e74c4327a5eb] :: says what it accepts
 generic_no_space_arrow [fnv:436cf28ab247e3e5] :: put a space after `->` (`-> <T>`)
-generic_old_form [fnv:933f3f4e3a90c52c] :: what `<T>` accepts goes inside the brackets: `<T: any>`
-generic_op_overlap [fnv:193e3502e3959484] :: `~=` for i32 and the generic `~=` both cover i32
+generic_old_form [fnv:0e1904c159bc4fc4] :: what `<T>` accepts goes inside its list: `[<T>: any]`
+generic_op_overlap [fnv:e5e3f556e573bb23] :: `~=` for i32 and the generic `~=` both cover i32
 generic_quoted_var [fnv:00d462dc38c9d0b4] :: a type variable's name is bare: `<T>`, not `<'T'>`
 generic_size_of [fnv:cf20c2fa7cc04da7] :: `size.of` takes a concrete type
 generic_to_c [fnv:89768fbb7f2f8a1a] :: a blank `<T>` cannot appear here
@@ -302,9 +295,9 @@ give_to_lent_param [fnv:a3589766a127e65e] :: it is `lent`, so the caller writes 
 give_twice [fnv:553f0d0b814e2e86] :: was already given away, so there is nothing left to give
 gives_renamed [fnv:2eabd18c6643101e] :: `gives` is an old spelling: write `is`
 grapheme_from_code [fnv:094cc6a08b067653] :: `char.%point.from_code(…)` or `char.byte.from_code(…)`
-grapheme_ok_point_bad [fnv:adacdff75cb7ecad] :: it is 2 code points, so it fits `char.%grapheme`, not `char.%point`
+grapheme_ok_point_bad [fnv:adacdff75cb7ecad] :: `é` is not one code point
 ieee_on_int [fnv:0558ea36e12221de] :: `div.ceil.ieee` keeps a -0, which only a bin or brain16 has
-ieee_on_mod [fnv:2473cab7e2c3596a] :: `.ieee` goes on an operator that can make a -0, `plus`, `minus`, `times`, `pow`, a `div.X`, `mod.floor`, `mod.ceil` or `mod.trunc`; `mod.near` has no `.ieee` form
+ieee_on_mod [fnv:c3cfd26a5a89fa11] :: `.ieee` goes on an operator that can make a -0, `+`, `-`, `x`, `std::pow`, a `div.X`, `mod.floor`, `
 ieg_retired [fnv:29021e6dcb12c71e] :: IEG is retired: since 2026-10-12 it is part of the base
 iface_bound_on_own_t [fnv:f270907c7555b421] :: accepts nothing in particular
 iface_empty [fnv:f5b372b2009be52e] :: list at least one `fn` or `op` signature
@@ -328,7 +321,7 @@ incl_utf16_no_order [fnv:a38c86203af03e08] :: `incl.str.%utf16` says its byte or
 incl_utf16_odd_length [fnv:e5a4010bd620fdec] :: is 3 bytes, not a whole number of 2-byte units
 incl_utf32_wrong_order [fnv:f0029112c7b2f2ce] :: is not valid str.utf32 text in that byte order
 incl_utf8_no_order [fnv:d692fc595199f040] :: `str.utf8` has no byte order
-increment_old [fnv:6918d3ba4b8fae47] :: `++` is an old spelling: write `concat` / `change
+increment_old [fnv:b979504ca08d767b] :: `++` is an old spelling: write `concat` / `change
 index_needs_pos [fnv:3ab7cc951a369ebc] :: a read says it is a position: `$xs[pos: 2]`
 index_needs_pos_change [fnv:650d4d4a7664cff6] :: an index says it is a position: `$xs[pos: 2]`
 index_past_end [fnv:7914d123bba99015] :: the position can be past the end
@@ -341,8 +334,8 @@ int8_overflow [fnv:f3ca204f7f52069f] :: the value can be outside what an `i8` ho
 int_into_bin_var [fnv:bb249fe14c123783] :: there is no implicit conversion between numeric families
 int_with_params [fnv:cd6cedbd18d65cb2] :: `i32` takes no type parameters; a bracket after it is a range
 iterator_given_away [fnv:4d1554c3deb74f7c] :: 'c' was given away
-join_outside_bracket [fnv:3e405bccbb9115b4] :: join text with `concat`
-join_outside_bracket_newline [fnv:3e405bccbb9115b4] :: join text with `concat`
+join_outside_bracket [fnv:2e6d1be044be03d2] :: join text with `concat`
+join_outside_bracket_newline [fnv:5d5ec696115b2c0a] :: join text with `concat`
 keyword_fn_bare [fnv:6db39b67a64f5e13] :: a function named with one is reached only through a path
 kit_bad_id [fnv:f04176e7cf7d5fef] :: `id` is 64 hex digits
 kit_dep_names_word [fnv:0b506fcc6615acba] :: a kit's block names no word for code
@@ -365,7 +358,7 @@ lend_width_mismatch [fnv:ec3345969ad6a916] :: a lend hands over the value where 
 length_bare [fnv:ded20ba6d2fbabe5] :: lend $xs
 length_is_uint64 [fnv:a1cf892ccc6fd793] :: the value can be outside what a `u64` holds
 lent_mut_passed_bare [fnv:30c75fff1d4ed186] :: `add1` may modify 'out' — pass `lend.mut $out`
-let_chain [fnv:4d7d73671053951c] :: `let` is a word of its own
+let_chain [fnv:e6bbf38340442551] :: `let` is a word of its own
 let_missing [fnv:ccd63909d593c858] :: a declaration starts with `let`
 let_over_name_unrun [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an enclosing scope
 let_over_param_uncalled [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an enclosing scope
@@ -373,31 +366,31 @@ let_top_level [fnv:53be71ba4bab946c] :: a kit-level value is a `const`
 level_bare [fnv:4f04c4a80920e0e4] :: say how a chain of this level reads
 level_bit_op [fnv:8d3148a71e0946dc] :: has no precedence in the language
 level_no_comma [fnv:99137202b69c0bcc] :: items in braces are separated by `,`
-level_old_spelling [fnv:6fce767960c4e55b] :: level 2 { plus, minus } left_first
+level_old_spelling [fnv:0914d748e8ae75c2] :: `level.when_chained` is an old spelling: write `level 2 [+, -] left_first;`
 level_refused_chain [fnv:4d8b77dbb9ca92d4] :: this level does not chain
 level_two_numbers [fnv:c78764fe74dbd903] :: two levels numbered 1
 level_wrong_chain [fnv:3cd9a30c0479a385] :: its level must say `left_first`
 lifetime_glued [fnv:56103fcd967d54ea] :: a space before the group: `lent @
-lifetime_group_given [fnv:d0ed618004b47c50] :: 't' cannot be given away here: 'r' still borrows it and is used on line 8
+lifetime_group_given [fnv:a20d2479cc70f4ed] :: 't' cannot be given away here
 lifetime_local [fnv:03efc4b350c90153] :: which dies when it returns
 lifetime_local_uncalled [fnv:142125242d0b6c4e] :: hands back a borrow of 'loc', which dies when it returns
 lifetime_unannounced [fnv:a45d01df7619f11b] :: `@x` was never announced
 lifetime_unsaid [fnv:aa05f2b37ee52d7a] :: returns a borrow, so its signature must say so
 lifetime_wrong_group [fnv:b39bbc2e457836dc] :: `wrong` returns a borrow of 'b', which is not in @x
 limb_root_old [fnv:e4faaa5b2378ab56] :: the root of this kit is `my.` since 2026-10-06, no longer `limb.`
-list_dot_type [fnv:e3dedab2278effd3] :: `list[i32]`, not `list.i32` (a dot picks a fixed variant, brackets supply a type)
+list_dot_type [fnv:e3dedab2278effd3] :: the element type goes in brackets
 list_fill_too_big [fnv:3d8952f31183c332] :: the value can be outside what an `i8` holds
-list_into_array [fnv:25040c8ec84b53a4] :: the declared type is an `array` and this is a `list`
+list_into_array [fnv:25040c8ec84b53a4] :: the declared type is an `arr` and this is a `ls`
 list_mixed_types [fnv:4677956c07e22357] :: the list's element type is an `integer` and this value is text: convert it first
 list_to_text [fnv:0534c45cc9322638] :: a list is not text
-list_two_params [fnv:2c25ad3c0db0aeaa] :: `list` takes exactly one type parameter, the element type: `list[i32]`
+list_two_params [fnv:2c25ad3c0db0aeaa] :: `ls` takes exactly one type parameter, the element type: `ls[i32]`
 local_const_changed [fnv:a00cb535ae190c57] :: 'r' is a const and cannot be assigned to
 local_const_changed_unrun [fnv:a00cb535ae190c57] :: 'r' is a const and cannot be assigned to
 local_const_from_variable [fnv:b9010530f45efa68] :: a const's value must be known at compile time; 'n' is a variable
-local_const_out_of_block [fnv:5c93bad6458ad0aa] :: 'r' is not declared
+local_const_out_of_block [fnv:2ddecf7d2a3782e8] :: `$r` is not declared
 local_const_shadowed [fnv:977cd1fe25a3944f] :: 'r' is a const and cannot be shadowed
-loop_list_changed [fnv:03a098de8f149bca] :: the loop on line 4 of loop_list_changed.cy is still going through it
-lte_retired [fnv:d3273b1a4ee04243] :: `<==` is not an operator; less-or-equal is `at_most`
+loop_list_changed [fnv:e334418c8f0261d0] :: the loop on line 4 of loop_list_changed.cy is still going through it
+lte_retired [fnv:810169629dd1cc15] :: `<==` is not an operator; less-or-equal is `<=`
 main_args_one [fnv:a01f160c881421a0] :: `,` and the second parameter
 main_args_type [fnv:429f0f2d47fbaeb4] :: is C's `argc`, whose type is `i32`
 main_as_func [fnv:9197d3a11bb5db66] :: error[main_form]
@@ -426,7 +419,7 @@ map_to_text [fnv:a985b1bfd8ca8afa] :: a map is not text
 map_unordered_walk [fnv:5169287ec337a31d] :: `map.keys` needs a `map` or `map.ordered`
 map_value_out_of_range [fnv:64f42b6dfd646256] :: the value can be outside what an `i32[min: 0, max: 10]` holds
 match_value_unused [fnv:02489215508528d6] :: gives a value, but this `match` is not used as one
-missing_return_type_value [fnv:b6b32cd3a621d22b] :: every path must `return` a value (or `fail`)
+missing_return_type_value [fnv:b6b32cd3a621d22b] :: every path must `ret` a value (or `fail`)
 mix_families [fnv:bb249fe14c123783] :: there is no implicit conversion between numeric families
 mod_bare [fnv:142b817e3a94675b] :: say how `mod` rounds
 mod_beside_cmp [fnv:c019255d74965b33] :: mathematics has no settled reading for `mod.floor` beside another operator
@@ -436,9 +429,9 @@ mod_trunc_beside [fnv:9d0efe113095066a] :: parenthesise
 mod_wrap [fnv:be9f9597514259ce] :: `mod` never overflows
 module_bare_name_from_root [fnv:0936952b4389389e] :: there is no item `f` in the root (`kit.cy`)
 module_in_body [fnv:ff095bdb85c4c377] :: a `module` sits at the top level of a file, not inside a body
-module_include_line [fnv:e6545bf351dc2847] :: a file module is found by its file name, and `module a { … }` is a block
+module_include_line [fnv:e6545bf351dc2847] :: there is no include line: a file module is found by its file name, and `module a
 module_main_inside [fnv:ff7321078df83975] :: `MAIN` lives at the root of the kit (`kit.cy`), not in a module
-module_mod_keyword [fnv:6d4cb506dcd6ef18] :: `mod` is the remainder operator; a module is `module name { … }`
+module_mod_keyword [fnv:6d4cb506dcd6ef18] :: `mod` is the remainder operator; a module is `module name: …`
 module_private_const [fnv:f537c2f7d773d954] :: add `pub` (other kits too) or `pub.kit` (this kit) where it is declared
 module_private_fn [fnv:f537c2f7d773d954] :: it is visible there and in the modules nested inside it
 module_private_nested [fnv:d04f26a4f52170cd] :: it is visible there and in the modules nested inside it
@@ -447,44 +440,44 @@ module_relative_from_inside [fnv:427be5d564d39335] :: there is no item `g` in mo
 module_twice [fnv:590a2387e4587ab6] :: a module of that name is already declared
 module_type_clash [fnv:9a463632e47ae022] :: a module and a type cannot share a name
 module_uppercase [fnv:f6e5aa143a6e5454] :: module names are lowercase ASCII letters, digits and `_`, starting with a letter (lowercase only, so the name
-money_missing [fnv:46c5fb863b4df529] :: `%d64` is Money's
+money_missing [fnv:ee93a7d8fbcde3a2] :: `%d64` is Money's
 must_fail_not_a_call [fnv:9484e22cead68df6] :: takes something that can fail
 must_outside_test [fnv:ed4eca753ea7258a] :: `must` belongs in a `test fn`
-mut_after_name [fnv:28b25637b1aadc1c] :: goes before the name
-mut_changed_only_by_shadow [fnv:0328a401ef015859] :: 'x' is `mut`, but nothing changes it
-mut_never_changed [fnv:fcfb6c057425e599] :: 'total' is `mut`, but nothing changes it
-mut_never_changed_unused_generic [fnv:79e50e733f2b5bd7] :: 'x' is `mut`, but nothing changes it
+mut_after_name [fnv:256bea0cfcb19c23] :: `mut` is an old spelling: write `var` / `lend.mut`
+mut_changed_only_by_shadow [fnv:6c2b45f348aee2c6] :: 'x' is a `var`, but nothing changes it
+mut_never_changed [fnv:c3fb00a9d6df3986] :: 'total' is a `var`, but nothing changes it
+mut_never_changed_unused_generic [fnv:1662ea4c5234b45c] :: 'x' is a `var`, but nothing changes it
 my_alone [fnv:8b049ab55a911000] :: `my` is followed by `.` and the root item it reaches: `my.helper(…)`
 name_bad_escape [fnv:f46ee4bfa6c1f30a] :: in a quoted name, `\` comes before
 name_double_space [fnv:cbf72cdcb589c7a0] :: a quoted name's spaces come one at a time, between words
-neg_word_old [fnv:5ffcc4c67615fa7e] :: `neg` is an old spelling: write `negate`
-negate_ieee_on_int [fnv:f4a405032ba084b4] :: `negate.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none: write `-$x`
+neg_word_old [fnv:19da861cdc93470e] :: `negate` is an old spelling: write `neg`: `neg.ieee $x`
+negate_ieee_on_int [fnv:7b21c87185e1281e] :: `neg.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none
 negative_exponent [fnv:3f25e158191599f2] :: a negative exponent on integers would produce a fraction
 neuron_word_old [fnv:80ffff166656de74] :: `neuron` is an old spelling: write `kit` (owner, 2026-10-15)
 no_bin128 [fnv:b8b54de37eaef710] :: there is no `%f128`
-no_cheat_before_check [fnv:ece7acadc792ca4d] :: `check` comes first: the check word always comes before `no_cheat`
-no_cheat_beside_tier [fnv:d9795463df3250d5] :: `no_check` comes first, the stronger word: `no_check no_cheat …`
-no_cheat_in_value [fnv:89e6a22b4d2f89ee] :: `no_cheat` goes in front of a statement, not inside a value
-no_cheat_old [fnv:fc0169759787cd18] :: `!c` is `no_cheat` now
+no_cheat_before_check [fnv:ece7acadc792ca4d] :: `check` comes first: the check word always comes before `no_skip`
+no_cheat_beside_tier [fnv:d9795463df3250d5] :: `no_check` comes first, the stronger word: `no_check no_skip …`
+no_cheat_in_value [fnv:89e6a22b4d2f89ee] :: `no_skip` goes in front of a statement, not inside a value
+no_cheat_old [fnv:fc0169759787cd18] :: `!c` is `no_skip` now
 no_checks_lied [fnv:0bec22d994061742] :: !by-design CCA builds it and emits a note naming `NO_FUCKING_CHECKS`, which is the rule for a vouch that fails every run (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
-no_mcps_concur [fnv:85f83276fc15bc2c] :: `%concur` is MCPS's
+no_mcps_concur [fnv:85f83276fc15bc2c] :: `%spawn.task` is MCPS's
 no_mcps_para [fnv:41a9c81b08b155d6] :: `for %para` is MCPS's
-no_precedence [fnv:c019255d74965b33] :: mathematics has no settled reading here (`6 div.floor 2 times 3`)
-no_std_list [fnv:9722ce7973a65431] :: a growing list (`list`) is std's
+no_precedence [fnv:c019255d74965b33] :: `div.floor` next to `x`: mathematics has no settled reading here (`6 div.floor 2 x 3`)
+no_std_list [fnv:9722ce7973a65431] :: a growing list (`ls`) is std's
 no_std_map [fnv:948ea297c44df56a] :: a map (`map`) is std's
 no_std_print [fnv:63984011840f2bbe] :: `std::print` is std's
 no_std_text [fnv:75f33ba2cee9cf5b] :: a text operation (`str.…`) is std's
 no_zero_value [fnv:84b2ff3a065836c5] :: there is no implicit zero
 nocheck_lied [fnv:5e774167b538b020] :: this `no_check` covers something that fails every time it runs
 not_cmp [fnv:c019255d74965b33] :: mathematics has no settled reading
-not_glued [fnv:c28918446ec995f1] :: `!` is not an operator since 2026-10-07: a value's not is `not $
+not_glued [fnv:c28918446ec995f1] :: `!` is an old spelling: write `not`
 number_next_to_text [fnv:7bc354939d76583e] :: join text with `concat`, separate values with `,`
 number_to_char [fnv:12ef8394243841eb] :: `char.%point.from_code(…) otherwise …` builds one from a code
-old_auto_newline [fnv:3557516c4c015da6] :: `auto_newline` is an old spelling: write `auto_newln`
+old_auto_newline [fnv:c183b5eec29f1ee4] :: `print.shortest.auto_newln` is an old spelling
 old_backslash_n [fnv:d7a6d3312369f1b8] :: `\n` is an old spelling: write `newln`
-old_bang_cheat [fnv:8e0f85183eb6fdcb] :: `!cheat` is an old spelling: write `no_cheat`
-old_bang_check [fnv:a0138db0859142d5] :: `!check` is an old spelling: write `no_check`
-old_bang_mut [fnv:84b6146b48e828b9] :: `!mut` is an old spelling: write `immut`
+old_bang_cheat [fnv:d035d187082966fb] :: `!cheat` is an old spelling: write `no_skip`
+old_bang_check [fnv:a0138db0859142d5] :: `!` is gone
+old_bang_mut [fnv:d66674cd93828c1c] :: `!mut` is an old spelling: write `let`
 old_bang_not [fnv:8a10fba72a0c2f1a] :: `!` is an old spelling: write `not`
 old_bang_shadow [fnv:7c66670daa4752d3] :: `!$` is an old spelling: write `no_shadow`
 old_build_name [fnv:49c76d041f262d53] :: `build.cplr` has the old name: rename it to `build.cy`
@@ -492,72 +485,69 @@ old_cord_path [fnv:3252c49415482eea] :: `cord` is an old spelling: write `std` (
 old_ending_cpls [fnv:4a8288a45725c0aa] :: `helper.cpls` has the old name: rename it to `helper.cy`
 old_ending_nrv [fnv:72fc26ba5873a0c2] :: `helper.nrv` has the old name: rename it to `helper.cy`
 old_ending_zg [fnv:008d2259fa4e1021] :: `helper.zg` has the old name: rename it to `helper.cy`
-old_ge [fnv:3c2099159bf1fd6a] :: `>/==` is an old spelling: write `at_least`
+old_ge [fnv:9182d8d4d2173ff0] :: `>/==` is an old spelling: write `>=`
 old_inline_assembly [fnv:c077e953beb2d9ef] :: `inline.Assembly` is an old spelling: write `inline.ASM`
 old_inline_s [fnv:36fd7bec575e37a8] :: `inline.S` is an old spelling: write `inline.ASM`
-old_le [fnv:1955b6f224223830] :: `</==` is an old spelling: write `at_most`
+old_le [fnv:bc599880c7dd65b0] :: `</==` is an old spelling: write `<=`
 old_long_arrow [fnv:e6d19b625f1236c7] :: `-->` is an old spelling: write `->`
 old_manifest_kinesin [fnv:ec175496041c63aa] :: `Kinesin.nrp` has the old name: rename it to `CyJet.toml`
 old_manifest_name [fnv:6ca2862776978bf9] :: `CCA.cplr` has the old name: rename it to `CyJet.toml`
 old_manifest_ricochet [fnv:261441f1b5dcf584] :: `Ricochet.zv` has the old name: rename it to `CyJet.toml`
-old_ne [fnv:89de9a5280038433] :: `!==` is an old spelling: write `not_equal`
+old_ne [fnv:5c0b0d98ba251e55] :: `!==` is an old spelling: write `!=`
 old_nocheck [fnv:1c0978e44051946b] :: `nocheck` is an old spelling: write `no_check`
 old_root_neuron [fnv:be61c2daabc5717b] :: `neuron.nrv` has the old name: rename it to `kit.cy`
-old_rust_name [fnv:182c4002003ff0e4] :: `int32` is an old spelling: write `i32`
+old_rust_name [fnv:15fd14166d8ab105] :: `int32` is an old spelling: write `i32`
 old_shadow_eq [fnv:821c7310b64f781a] :: `$` starts a variable's name: `$total`
 old_shadow_walrus [fnv:821c7310b64f781a] :: `$` starts a variable's name: `$total`
 old_std_i [fnv:5c9b5d02ea5eac10] :: `%not_std.int24` is an old spelling: write `%not_std.i24`
 old_two_long_arrows [fnv:472bf2fa455f76eb] :: `<---->` is an old spelling: write `<->`
 on_bare [fnv:5498c2f32cd9b7fa] :: `on` is narrowed: `on.target …`
-on_else_if [fnv:48319131dc22b511] :: an `on` chain goes on with `else on.…` or ends with `else { }`
+on_else_if [fnv:48319131dc22b511] :: an `on` chain goes on with `else on.…` or ends with `else:`; an `if` goes inside a branch
 on_machine_top_level [fnv:b86c139ea15f48e6] :: `on.machine` chooses when running, so it goes inside a body
 on_target_half [fnv:cd13379047ebb6c8] :: `aarch64` is a chip; a whole target is chip-os
 on_target_os_version [fnv:c6206898ad46136d] :: an OS minimum (`on.target.os macos 15`) is not built
 on_target_unknown_chip [fnv:7417416629ca9575] :: `arm64` is not a chip `on.target.chip` knows
 one_ended_below [fnv:ff787ebf51ccc2aa] :: the value can be outside what an `i8[min: 1]` holds
-op_amp_undeclared [fnv:aad0fdf19e4e92bd] :: `$a & $b` is an old spelling: write `$a and $b`
 op_bang_undeclared [fnv:86d806aeb202da87] :: `!` is not an operator here; not is `not`
-op_builtin_for_int [fnv:32696bdc53fd9faa] :: a struct or enum may define `op plus` for itself, `i32` may not
+op_builtin_for_int [fnv:32696bdc53fd9faa] :: `+` is the language's operator, and it is never changed for the language's own types
 op_builtin_for_struct_ok_then_misuse [fnv:8cd6b76c300bff74] :: expected a value of the operand (V), found an `integer`
 op_called_as_fn [fnv:205c076f0bd07158] :: `$a dot $b`, never `dot(…)`
 op_chevron_reserved [fnv:71bbd54de1a8e769] :: `>>` is an old spelling: write `->`
 op_div_bare [fnv:d40c9ab3e6d5809c] :: say how `div` rounds
 op_give_needs_give [fnv:237f30b75540f3b3] :: takes 'a' by value: write `give $u`
-op_lent_word [fnv:771913f827ed9a38] :: T` takes it by value
 op_next_to_plus [fnv:9d0efe113095066a] :: a custom operator has no precedence
 op_no_precedence [fnv:9d0efe113095066a] :: a custom operator has no precedence
 op_no_return_type [fnv:afe154068b1dbc9d] :: is required on an operator
 op_path_wrong_kit [fnv:187048be1e4f36d9] :: the kit `runnable` has no operator `mean`
 op_pipe_undeclared [fnv:3e1e33f26aad5836] :: a bitwise or is `or.bit`
-op_redefine_builtin [fnv:32696bdc53fd9faa] :: a struct or enum may define `op plus` for itself, `i32` may not
+op_redefine_builtin [fnv:32696bdc53fd9faa] :: `+` is the language's operator, and it is never changed for the language's own types
 op_redefine_word [fnv:32696bdc53fd9faa] :: a struct or enum may define `op mod` for itself, `i32` may not
-op_run_no_space [fnv:fc83d9208bcfbb43] :: an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`
-op_same_types_twice [fnv:52110c077b433821] :: `<+>` is defined twice for A, A
-op_symbol_decl [fnv:d4fb46741564fbf3] :: `%` is an old spelling: write `mod.trunc`
+op_run_no_space [fnv:fc83d9208bcfbb43] :: an operator between two values is one the language owns (`+`, `x`, `mod.floor`, …) or one declared with `op`
+op_same_types_twice [fnv:5f11e4bd265cf8e3] :: `<+>` is defined twice for A, A
+op_symbol_decl [fnv:099c6551aa7d71cb] :: `%` is an old spelling: write `mod.trunc`
 op_three_operands [fnv:88d3d9d2c04c25a1] :: an operator takes exactly two operands; `<+>` is declared with 3
 op_value_and_then [fnv:a093a0ddfbdcf82d] :: cannot skip anything
 op_value_minus [fnv:c7639dd8d2554ca7] :: negation as a value is `op neg`
 op_value_untyped [fnv:f5fb837892a1661a] :: alone does not say which
-op_word_undefined [fnv:b1acc1385341e3b7] :: an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`
+op_word_undefined [fnv:b1acc1385341e3b7] :: an operator between two values is one the language owns (`+`, `x`, `mod.floor`, …) or one declared with `op`
 optional_taken [fnv:36e85e806de22b47] :: `optional` is the base's
 other_kit [fnv:9a3101a002654daf] :: no kit with the prefix `math`
 overflow_lands [fnv:e7f2c4f688502231] :: the value can be outside what an `i8` holds
 overflow_past_64_bits [fnv:3fe9bf00838316b2] :: goes past 64 bits in between
 owning_function_bare [fnv:a8b589ea7248e723] :: is an owned `fn[] -> u64`: say what happens to it
 param_lent_chain [fnv:1b310f9423971d5e] :: `lent` (looks at it) or `lent.mut` (may modify it)
-param_type_first [fnv:3a5e01bd7a977ab9] :: a parameter is written name first, then its type: `$a: i32`
-param_var [fnv:565659dbb62e1df1] :: an owning parameter is bare
-plus_ieee_on_int [fnv:cf2096d03cb58e67] :: `plus.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none: write `plus`
+param_type_first [fnv:3a5e01bd7a977ab9] :: a parameter is written name first, then its type: `let $a: i32`
+param_var [fnv:df579503dc768e67] :: `variable` is an old spelling: write `var`
+plus_ieee_on_int [fnv:c6295c761414e774] :: `plus.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none
 plusplus_needs_conversion [fnv:a6e724baccce5e1b] :: `concat` joins text, and its right side is an `integer`: convert it first
 plusplus_numbers [fnv:4cdcad9affc5f4d9] :: `concat` joins text, and its left side is an `integer`: convert it first
-pow_symbol_old [fnv:e060878365751b20] :: `**` is an old spelling: write `xx`
+pow_symbol_old [fnv:0670650f85a9f984] :: `**` is an old spelling: write `std::pow`; power is std's
 power_denied [fnv:40cc656495bc6452] :: this kit calls C (`write`), which this program denies (`my denied powers:`: `c_calls.functions`)
 power_deny_for [fnv:b37efe31805baa2c] :: `shapes` defines the operator `mean` on built-in types, which this program denies
 power_except_in_powers [fnv:e5d6f87ee8a5b31c] :: `except` belongs to `my denied powers:`
 power_listed_too_narrow [fnv:230e2928cd405e42] :: does not list `c_calls`
 power_not_listed [fnv:10560d224ecff475] :: this kit calls C (`write`), and its CyJet.toml does not list `c_calls`: add `c_calls {` / `}` under its `my powers:`
 precedence_bare [fnv:2c52bed853d4921b] :: say which way the levels count
-print_bare [fnv:7587d85df41ba149] :: say which form
 print_format_backslash_percent [fnv:ad50ed3dcd7f1187] :: `\%` is not an escape
 print_format_extra_arg [fnv:40f9185c6f51c2e6] :: fewer holes than values
 print_format_hole_zero [fnv:d041555e923d0b74] :: holes count from `{1}`
@@ -567,9 +557,9 @@ print_format_mixed [fnv:dee02034a539ce5c] :: mixes `{}` with numbered holes
 print_format_nonliteral [fnv:146ba22f5015b1e0] :: that is a no_check site
 print_format_type [fnv:68e54257a01e89be] :: does not apply to a str
 print_format_unused_numbered [fnv:0c9676228756aeee] :: value 1 is never used
-print_stored_weird_order [fnv:6a37cab2993bdfdf] :: `.weird` comes first
+print_stored_weird_order [fnv:6a37cab2993bdfdf] :: `.arrows` comes first, the strongest modifier first
 print_weird_brackets [fnv:5c46b85e34e5d282] :: with arrows, not
-print_weird_order [fnv:6a37cab2993bdfdf] :: `.weird` comes first
+print_weird_order [fnv:6a37cab2993bdfdf] :: `.arrows` comes first, the strongest modifier first
 printf_renamed [fnv:1732984806b6cbb0] :: is spelled std::print.format.stdout now
 printu_renamed [fnv:a2613067643c96b3] :: is spelled std::print.useful.stdout now
 ptr_bad_op [fnv:456eec83964b4a42] :: a pointer has `read`, `write`, `at`, `is_null`
@@ -584,9 +574,9 @@ ptr_read_null_lied [fnv:4d31d6e728a30b8b] :: !by-design a `nocheck` read through
 ptr_read_past_end_lied [fnv:bf3aa6ad6940e787] :: !by-design a `nocheck` read past what C allocated; nothing at compile time can know that, and `nocheck` says so — the oracle catches it only by running it
 ptr_read_without_nocheck [fnv:b05717fcb97887c8] :: no_check site
 ptr_write_readonly [fnv:9e0b87326584f59b] :: this pointer is read-only
-pub_in_body [fnv:f825901e8ec3da8a] :: `pub` goes at the top level, on a `fn`, `struct`, `enum` or `const`
+pub_in_body [fnv:f825901e8ec3da8a] :: `pub` goes at the top level, on a `fn`, `rec`, `union.tag` or `const`
 pub_let [fnv:db37187357d70c69] :: is a `const`, not a variable
-pub_limb_old_spelling [fnv:95849f1ba91f7acd] :: `pub.limb` is an old spelling: write `pub.kit`
+pub_limb_old_spelling [fnv:ccfe48670ccd5a0c] :: `pub.limb` is an old spelling: write `pub.kit`
 pub_main [fnv:71b5050bf3081fb0] :: it is the program's block, not something another kit can reach
 pub_narrowing_bad [fnv:a97d696cbedd855e] :: the only narrowing of `pub` is `pub.kit` (this kit only); plain `pub` is other kits too
 quoted_func_name [fnv:ae3cce4260d5cad9] :: `fn add […]`, not `fn 'add'`
@@ -608,15 +598,15 @@ range_reassign_out [fnv:5cead859b497b7eb] :: the value can be outside what an `i
 range_to_c [fnv:89768fbb7f2f8a1a] :: 'a' is written as the plain `i32`
 raw_too_wide [fnv:b039ad4017a54f51] :: the value can be outside what an `i8` holds
 raw_too_wide_return [fnv:dca067977a0b1514] :: the value can be outside what a `u16` holds
-remove_needs_pos [fnv:cdf9f62bdde3ebf0] :: the position says `pos`: `list.remove(lend.mut $xs, pos: 2)`
+remove_needs_pos [fnv:cdf9f62bdde3ebf0] :: the position says `pos`: `ls.remove(lend.mut $xs, pos: 2)`
 return_group_through_call [fnv:0d648b1bc81e861d] :: returns a borrow of 'c', which is not in @x
-return_in_main [fnv:3c8cbdc32042028c] :: `MAIN` is a block, not a function: it has no `return`
+return_in_main [fnv:3c8cbdc32042028c] :: `MAIN` is a block, not a function: it has no `ret`
 return_needs_type [fnv:5df849ae3cc6c1a8] :: `three` returns a value, so it says its type: `-> i32`
 return_shadowed_name_unrun [fnv:98aec65f16404361] :: expected a value of the return type (u8), found a `bool`
 return_type_colon [fnv:4625ff34871debaa] :: the return type is `-> i32`, not `: i32`
 return_type_on_fn [fnv:031126c3980e54ca] :: the return type goes after the parameters
 return_wrong_kind_unrun [fnv:451ee0e578e3d32a] :: expected a value of the return type (u8), found a `bool`
-round_bare [fnv:1d67ae49e21fa621] :: `std::round` is an old spelling: write `round.near($x)` / `round.half_up($x)`
+round_bare [fnv:82c09e861011c0c7] :: `std::round` is an old spelling: write `round.near($x)` / `round.half_up($x)`
 round_floor_old [fnv:88e7c8e2e70cd254] :: `std::floor` is an old spelling: write `round.floor($x)`
 round_unknown_way [fnv:4b951c0ea841a459] :: is not a way to round
 rust_string [fnv:ffdc0506a249c7be] :: text is `str.utf8`
@@ -626,9 +616,9 @@ seq_after_perm [fnv:2fa17448182bc9f0] :: `seq` or `para` goes first, then `temp`
 shadow [fnv:6f58e8bff03be94f] :: to shadow it deliberately write `shadow $x := …;`
 shadow_nothing [fnv:21615fa293366dc7] :: and none is visible here
 shadow_sealed [fnv:41a31805c19e5721] :: cannot be shadowed: it is `no_shadow`
-shadow_with_let [fnv:ceac8ecd67e05d31] :: `shadow` takes `let`'s place: `shadow $x := …;`
+shadow_with_let [fnv:888ecc3fdccb2b56] :: a shadow says whether it changes, as every declaration does
 shift_count_huge [fnv:ec9fe2cc1e68af45] :: the shift count can be outside 0 to the width - 1
-shift_operand_too_wide [fnv:24c561a8a502823e] :: `minus` can leave what the type holds
+shift_operand_too_wide [fnv:24c561a8a502823e] :: `-` can leave what the type holds
 shift_widthless_in_conversion [fnv:507523dacedbfa20] :: `shr` needs a width, and nothing here gives one
 shift_widthless_in_count [fnv:930616cd7fca155e] :: `shr` needs a width, and nothing here gives one
 shift_widthless_in_print [fnv:507523dacedbfa20] :: `shr` needs a width, and nothing here gives one
@@ -640,7 +630,7 @@ simd_bad_element [fnv:6d4c89bc3637c80b] :: a `simd` holds plain numbers or bools
 simd_count_bare [fnv:e7af2d427fd9d7f7] :: `simd[T, N]` is an old spelling: write `simd[T, count: N]`
 simd_fill_needs_value [fnv:3e694ebb613634c8] :: the value says `value`: `simd.fill(value: 0)`
 simd_fill_shift_past_lane [fnv:abc84e96d5549b25] :: the shift count can be outside 0 to the width - 1
-simd_lane_step [fnv:c15cca638a78786e] :: `plus` can leave what the type holds
+simd_lane_step [fnv:3c47f5da0d19e336] :: `+` can leave what the type holds
 simd_lane_write_range [fnv:b4f9f50732c31370] :: the position can be past the end
 simd_load_past_end [fnv:00802e6e1064a8bf] :: the 16 lanes can run past the end
 simd_mask_lanes [fnv:51d1f37b90e986ac] :: a mask has as many lanes as the vectors it compares
@@ -651,10 +641,10 @@ simd_some_past_end [fnv:d61a5c2bc9a6904f] :: the items for 4 lanes can run past 
 simd_std_lane [fnv:5ea45cd90b3704c8] :: a vector's lanes are a standard width
 simd_sum_lane_past [fnv:7f466b171e79b37d] :: the value can be outside what an `i32` holds
 simd_wrong_shape [fnv:813bb50692db0740] :: this target has no `simd[u8, count: 64]`: its vector register holds 16 lanes
-single_quote_char [fnv:857025279acbd88a] :: 'a' is not declared
-size_of_alone [fnv:1c30f4b3569e6800] :: `size` is a keyword: a type's size is `size.of[i32]` (`.of` after `size`)
+single_quote_char [fnv:857025279acbd88a] :: `$a` is not declared
+size_of_alone [fnv:1c30f4b3569e6800] :: expected `.of` after `size`: a type's size is `size.of[i32]`
 slice_needs_pos [fnv:cb2b6861532e5f7f] :: a slice starts `from: pos …`
-slice_old_spelling [fnv:2459aa07b56a0674] :: a slice says where it runs: `list.slice(lend $xs, from: pos 2, to: pos 4)`
+slice_old_spelling [fnv:2459aa07b56a0674] :: a slice says where it runs
 slice_past_end [fnv:9addc01545809a6f] :: the slice can run outside the list
 spread_lent_no_verb [fnv:4aeae176b5f51db7] :: `...` with no verb lends each element
 spread_lent_unbounded [fnv:c06c4e8a33a43f63] :: a call's shape is fixed per call
@@ -675,12 +665,12 @@ step_zero [fnv:55c8afa1959f5058] :: the counter must move
 str_at_needs_pos [fnv:d1436c4e57a207ba] :: a position says `pos`: `std::str.at.point(lend $s, pos: 3)`
 str_at_position_zero [fnv:20197bc5af7360e7] :: 0 is no position: a position is `u64[min: 1]`
 str_at_position_zero_running [fnv:9439f04ede5c0ed7] :: 0 is no position
-str_at_unhandled [fnv:211b54cbdeaa8bbc] :: `std::str.at.grapheme` can fail (out_of_range): say what happens
+str_at_unhandled [fnv:211b54cbdeaa8bbc] :: `std::str.at.cluster` can fail (out_of_range): say what happens
 str_contains_copy [fnv:08533467a2f3cd93] :: `lent`, so the caller writes `lend`, not `copy`
-str_each_no_unit [fnv:907197bb8f8f64c1] :: `str.each.grapheme(…)`, `.point`, or `.byte`
-str_for_bare [fnv:9ff91050c5cd382f] :: `str.each.grapheme(lend $s)`, `.point`, or `.byte`
+str_each_no_unit [fnv:907197bb8f8f64c1] :: `str.each.cluster(…)`, `.point`, or `.byte`
+str_for_bare [fnv:9ff91050c5cd382f] :: `str.each.cluster(lend $s)`, `.point`, or `.byte`
 str_index [fnv:91ca5dc332f4c315] :: it would not say which unit
-str_length [fnv:b29f67be465dcbe6] :: `str.bytes`, `str.points` or `str.graphemes`
+str_length [fnv:b29f67be465dcbe6] :: `str.bytes`, `str.points` or `str.clusters`
 str_less_than [fnv:96614208fa90f73f] :: byte order is never what anyone means, and a collation rule is std's
 str_slice_byte_text_fallback [fnv:d65e300374a2de3a] :: expected a value of the fallback value (list[u8]), found a `str`
 str_split_empty [fnv:67635ac17613965c] :: outside the bound its type gives it (`str.utf8[min: 1 bytes]`)
@@ -688,50 +678,50 @@ strict_gone [fnv:70e4490d609cdd7e] :: `#strict` is gone
 strike_word_old [fnv:4a3c4f88880a3f14] :: `strike` is an old spelling: write `kit` (owner, 2026-10-16)
 struct_bare_owned_field [fnv:d926d44479584ac8] :: say what happens to it
 struct_bound_unkept [fnv:91778bbd2a224911] :: needs `<T>: Number`
-struct_field_no_colon [fnv:1b310f9423971d5e] :: a field's type follows its name after `:`
-struct_field_unbracketed [fnv:3a5e01bd7a977ab9] :: a field is written name first, then its type: `x: i32`
+struct_field_no_colon [fnv:cb7accb879c6d5bc] :: a field's type follows its name after `:`
+struct_field_unbracketed [fnv:3a5e01bd7a977ab9] :: a field is written name first, then its type: `var x: i32`
 struct_field_walrus [fnv:009d28a4f96e3205] :: the blueprint fixed the types
 struct_give_field_kills [fnv:144c19a252fdb2b8] :: was given away and no longer owns anything
-struct_immut_chain [fnv:e46e498118fabc2a] :: `immut` goes before the field's name
-struct_immut_field_write [fnv:f7ba9b5ffa5f1947] :: `id` is an `immut` field of `P` and cannot be written
-struct_keyword_field [fnv:d10a27914bc3ae70] :: `return` is a keyword and cannot name a field
+struct_immut_chain [fnv:5b63875aeb34bf31] :: `immut` is an old spelling: write `let`; a `let` never changes
+struct_immut_field_write [fnv:f7ba9b5ffa5f1947] :: `id` is a `let` field of P; it cannot be changed: make it `var id: …;`
+struct_keyword_field [fnv:d10a27914bc3ae70] :: `ret` is a keyword and cannot name a field
 struct_missing_field [fnv:81a9a1f64a8049f6] :: every field must be given
-struct_named_rust_alias [fnv:49149c69843c9080] :: `i32` is one of the language's number types, so it cannot name a struct
+struct_named_rust_alias [fnv:952974f2b22ea8d9] :: `i32` is one of the language's number types, so it cannot name a rec
 struct_no_comma [fnv:99137202b69c0bcc] :: items in braces are separated by `,`
 struct_quoted_field [fnv:7597065160c99b01] :: a field's name is bare
-struct_semicolon_field [fnv:3b257eb63d7b8bb9] :: fields are not statements
+struct_semicolon_field [fnv:eed899c5701e3fbd] :: fields and cases end with `;`, not `,`
 struct_to_text [fnv:eb005d494bc23a16] :: a `Point` is not text
-struct_undeclared [fnv:2d477e42508272da] :: there is no struct named `Nope` here
+struct_undeclared [fnv:2d477e42508272da] :: there is no rec named `Nope` here
 struct_unknown_field [fnv:7f2b848787e41330] :: `P` has no field `z`: its fields are x
-struct_var_in_field [fnv:dfa77d3a540c2949] :: a struct always owns its fields
+struct_var_in_field [fnv:9b13894f9a492a38] :: every field says whether it changes: `let x: …;` or `var x: …;`
 struct_write_through_lent [fnv:a2d4141c48d32f8c] :: it belongs to whoever lent it
 struct_wrong_field_type [fnv:4677956c07e22357] :: field `x` is an `i32` and this value is text: convert it first
-sym_and_old [fnv:aad0fdf19e4e92bd] :: `$a & $b` is an old spelling: write `$a and $b`
-sym_and_then_old [fnv:3af83ae11752acea] :: `&&` is an old spelling: write `and.then`
-sym_at_least_old [fnv:3eb23d0c2315e9cc] :: `>=` is an old spelling: write `at_least`
-sym_at_most_old [fnv:ead823222c059aa6] :: `<=` is an old spelling: write `at_most`
-sym_div_old [fnv:c4a185f2d2927f00] :: `/` is an old spelling: write `div.trunc` / `div.floor`
-sym_equal_old [fnv:f58bc24be2952052] :: `==` is an old spelling: write `equal_to`
+sym_and_old [fnv:8678ec7aa17bc0a0] :: `&&` is an old spelling: write `and.then`
+sym_and_then_old [fnv:8678ec7aa17bc0a0] :: `&&` is an old spelling: write `and.then`
+sym_at_least_old [fnv:f57aaa31dafae82e] :: `at_least` is an old spelling: write `>=`
+sym_at_most_old [fnv:4ab59f0dfa9b9cbc] :: `at_most` is an old spelling: write `<=`
+sym_div_old [fnv:8bd0485aad0cfd2c] :: `/` is an old spelling: write `div.trunc` / `div.floor`
+sym_equal_old [fnv:dcb6c39f723d7592] :: `eq` is an old spelling: write `==`; redesign three
 sym_exact_old [fnv:218c31192efb45fe] :: `*19.99` is an old spelling: write `exactly 19.99`
-sym_lend_mut_old [fnv:ea9fcd5e2efbe215] :: `&mut` is an old spelling: write `lend.mut` / `lent.mut`
+sym_lend_mut_old [fnv:63fb89537ccafd46] :: `&mut` is an old spelling: write `lend.mut` / `lent.mut`
 sym_lend_old [fnv:b19cc3359d08bdb9] :: `&` is an old spelling: write `lend` / `lent`
-sym_mod_old [fnv:d4fb46741564fbf3] :: `%` is an old spelling: write `mod.trunc`
-sym_not_equal_old [fnv:0b012311a436766c] :: `!=` is an old spelling: write `not_equal`
-sym_or_else_old [fnv:9edae38a32c1bce4] :: `||` is an old spelling: write `or.else`
-sym_ptr_const_old [fnv:ae6eb104ef326825] :: `*const` is an old spelling: write `ptr[T]`
-sym_ptr_mut_old [fnv:c4e7554878c9ad18] :: `*mut` is an old spelling: write `ptr.mut[T]`
-sym_ptr_read_old [fnv:cff160f7c74148d9] :: `*$p` is an old spelling: write `ptr.read($p)`
-sym_ptr_write_old [fnv:b6536c42cdbce138] :: `change *$p =` is an old spelling: write `ptr.write($p, value: v)`
+sym_mod_old [fnv:099c6551aa7d71cb] :: `%` is an old spelling: write `mod.trunc`
+sym_not_equal_old [fnv:03dab74d9f3329d8] :: `not_eq` is an old spelling: write `!=`; redesign three
+sym_or_else_old [fnv:afad91d43f34086a] :: `||` is an old spelling: write `or.else`
+sym_ptr_const_old [fnv:7433d4058b9ee94c] :: `*const` is an old spelling: write `ptr[T]`
+sym_ptr_mut_old [fnv:85d7cf0c288cc449] :: `*mut` is an old spelling: write `ptr.mut[T]`
+sym_ptr_read_old [fnv:9870980793eebe89] :: `*$p` is an old spelling: write `ptr.read($p)`
+sym_ptr_write_old [fnv:8ca2278397f2a7f6] :: `change *$p =` is an old spelling: write `ptr.write($p, value: v)`
 take_unhandled [fnv:0a69f5303bdb8818] :: `%channel.take` can fail (closed): say what happens
-temp_after_loop [fnv:652fb6ee6f955c44] :: 'i' is not declared
+temp_after_loop [fnv:652fb6ee6f955c44] :: `$i` is not declared
 temp_after_name [fnv:64d751df57cc16a6] :: `temp` goes before the name
 test_fn_called [fnv:7c28a2fd52cda7d7] :: is a `test fn`: `kayo test` runs it
 test_fn_params [fnv:e6c6894b85ea10f6] :: takes no parameters
-text_bound_graphemes [fnv:a6dcaaa62d158116] :: this can take it outside the bound its type gives it (`str.utf8[min: 1, max: 2 %graphemes]`)
+text_bound_graphemes [fnv:a6dcaaa62d158116] :: this can take it outside the bound its type gives it (`str.utf8[min: 1, max: 2 clusters]`)
 text_bound_no_unit [fnv:9c1acad0abdaf1b0] :: a text's length bound must say which unit it counts
 text_bound_over [fnv:ab895cf7a7c48b5d] :: this can take it outside the bound its type gives it (`str.utf8[max: 20 bytes]`)
 text_to_char_unhandled [fnv:04c58d3d4a6fac63] :: `to.char.%point` can fail (not_one_char): say what happens
-times_symbol_old [fnv:6a716019f051f498] :: `*` is an old spelling: write `x`
+times_symbol_old [fnv:4ec6dc2d3587a9f7] :: `*` is an old spelling: write `x`
 to_array_bare [fnv:edaa77f80a93e8a4] :: converting bare 'l' would copy it without saying so
 to_ascii_needs_otherwise [fnv:44581da139b15bb0] :: `to.str.ascii` can fail (not_ascii)
 to_bits_bin [fnv:c018fb9e467c5ade] :: `.bits` is for whole-number types
@@ -748,43 +738,43 @@ to_without_dot [fnv:8da39602590be550] :: `to.i32(…)`, `to.str.utf8(…)`
 true_as_func [fnv:ac07fff1cfb751e2] :: bare `true` is the boolean, so `true(…)` is no call
 truthiness [fnv:4ba41cbcf10ca2e1] :: there is no truthiness
 two_bare_numbers [fnv:7bc354939d76583e] :: join text with `concat`, separate values with `,`
-two_points_as_point [fnv:b2efd7393835f156] :: it is 2 code points, so it fits `char.%grapheme`, not `char.%point`
+two_points_as_point [fnv:b2efd7393835f156] :: `ab` is not one code point
 type_before_name [fnv:5dc41176090cdaf6] :: a type goes after the name
 type_name_unknown [fnv:89a5ec489926ad73] :: there is no item `nosuchtype`
-typed_literal_bin_as_deci [fnv:33a1cc7a955d070d] :: write `exactly 0.1: %d64`
+typed_literal_bin_as_deci [fnv:48620f3daa9935a3] :: write `exactly 0.1: %d64`
 typed_literal_too_big [fnv:dca4973fb3a55948] :: `300: u8` does not fit: u8 holds 0 to 255
 typed_literal_variable [fnv:f09a4404ab447ac6] :: only a literal takes a type with `:` here
 types_two_prefixes [fnv:a01733d380e5e9a7] :: expected a value of the declared type (areas::Circle), found a `shapes::Circle`
 uint_negative [fnv:01ad7c4ef64eac3b] :: the value can be outside what a `u8` holds
-unitect_missing [fnv:87d5f79ffcb7aeaf] :: `char.%grapheme` is unicode's
-unknown_std [fnv:46c62b9861ef3858] :: `std::println` does not exist
+unitect_missing [fnv:87d5f79ffcb7aeaf] :: `char.%cluster` is unicode's
+unknown_std [fnv:46c62b9861ef3858] :: `std::shout` does not exist
 use_after_give [fnv:7b0240d30516a476] :: was given away and no longer owns anything
-useful_after_type [fnv:ae93401642474d13] :: `.useful` follows the verb: `to.useful.d64(…)`
-useful_to_int [fnv:a30aee9b51a7b709] :: `to.useful` makes text or a deci
-var_keyword [fnv:aa699dd452726953] :: `var` is gone
+useful_after_type [fnv:808a6ac5f8a4f068] :: `.shortest` follows the verb: `to.shortest.%d64(…)`
+useful_to_int [fnv:a30aee9b51a7b709] :: `to.shortest` makes text or a deci
+var_keyword [fnv:df579503dc768e67] :: `variable` is an old spelling: write `var`
 variadic_ellipsis_after_name [fnv:a6d51e15cd0b1ed9] :: the dots go before the name
 variadic_not_last [fnv:e0b808d1821a4725] :: the rest of the arguments go to it
 variadic_too_few [fnv:9b911531dc4f9325] :: `f` takes at least 1 argument, and 0 were given
 variadic_typed_mismatch [fnv:4677956c07e22357] :: `f`'s parameter 'nums' is an `i32` and this value is text: convert it first
 vouch_not_listed [fnv:9cab12389b9cab85] :: this kit vouches with `no_check`, and its CyJet.toml does not list `vouch`
 vouch_not_listed_no_checks [fnv:d045ea030a5d3918] :: this kit vouches with `NO_FUCKING_CHECKS`, and its CyJet.toml does not list `vouch`
-walrus_with_type [fnv:5af2a4fecf1666a4] :: `:=` means the prover chooses the type, so it takes no type; with a type written, use `=`
+walrus_with_type [fnv:a64f5f4967567672] :: a `let` is defined with `:=`: `let $x := 5;` (`=` starts a `var`)
 whichever_unhandled [fnv:86bb5570c3022d11] :: `%whichever` can fail (closed) when every channel is closed, so it needs an `otherwise`
-while_keyword [fnv:eb07551a9069b239] :: `while $x < 3 { … }`
+while_keyword [fnv:eb07551a9069b239] :: `loop.while` became `while`: `while $x < 3: …`
 wide_does_not_fit [fnv:f3de824f7f63562f] :: the value can be outside what an `i64` holds
 wide_past_in_between [fnv:663f85c9ec3ce93b] :: goes past 256 bits in between
 wide_shl_overflow [fnv:24fd0c3c5fbfa228] :: the shift can move bits out of the type
-wl_removes_code [fnv:652fb6ee6f955c44] :: 'b' is not declared
+wl_removes_code [fnv:652fb6ee6f955c44] :: `$b` is not declared
 word_op_two_kits [fnv:336891dcfa99baf6] :: `mean` could be any of `areas::mean`, `shapes::mean`: write the path
-wrap_amp_form [fnv:b1acc1385341e3b7] :: wrapping arithmetic is `plus.wrap`, `minus.wrap`, `times.wrap`, `pow.wrap`
+wrap_amp_form [fnv:b1acc1385341e3b7] :: `&+` is not an operator here
 wrap_into_bool [fnv:c689ac7fee6b711f] :: expected a value of the declared type (bool), found a whole number
 wrap_mixed_sizes [fnv:dd1fcdf5cf26e2d7] :: wraps at one size, and this mixes i8 and i16
 wrap_old [fnv:89c8098afbbe3355] :: `+~` is an old spelling: write `plus.wrap`
 wrap_on_bin [fnv:d32b1f0f7f28f0e1] :: it only knows a declared integer width
-wrap_percent_form [fnv:b1acc1385341e3b7] :: wrapping arithmetic is `plus.wrap`, `minus.wrap`, `times.wrap`, `pow.wrap`
+wrap_percent_form [fnv:b1acc1385341e3b7] :: `+%` is not an operator here
 wrap_untyped_left [fnv:1dd0601c6eead672] :: `plus.wrap` needs a width, and nothing here gives one
 wrong_arg_count [fnv:eb88fab86c650ec3] :: `one` takes 1 argument, and 2 were given
-wsmw_missing [fnv:50ac577375295335] :: `%i128` is WSMW's
+wsmw_missing [fnv:76e57adedcdb4bd8] :: `%i128` is WSMW's
 wsmw_not_std_missing [fnv:41fd1e10f93eae22] :: a `not_std.` width is WSMW's
 wstn_emoji_fn [fnv:05b489393a3281fd] :: is not an English name: the base's names are English letters, digits and `_`
 wstn_now_broca [fnv:dd674dabbd23d215] :: WSTN is part of unicode since 2026-10-12: list `unicode` instead
@@ -793,8 +783,8 @@ table_bytes_negative [fnv:4799d10599c99d18] :: `table_bytes` is a whole number o
 table_bytes_not_fn [fnv:6d6af225e959b337] :: `table_bytes` goes in front of a `fn`
 coll_member_short_name [fnv:2e2233858d06600a] :: a member writes the collection's name in front: `greet.hi`
 coll_pointer_missing [fnv:f12e812a5c20b960] :: names no function
-collection_old_word [fnv:c622aae12d578b33] :: `collection.` is an old spelling: write `coll.fn` / `coll.handler`
-coll_handler_short_name [fnv:8853fb27f165af7f] :: a member writes the collection's name in front: `h.as_zero { … }`
+collection_old_word [fnv:b98fd1b14bdfbfe4] :: `collection` is an old spelling: write `coll`
+coll_handler_short_name [fnv:8853fb27f165af7f] :: a member writes the collection's name in front: `h.as_zero: …`
 bits_outside_layout [fnv:5b213e0b1b7a50b0] :: it is for a `%layout.C` struct's fields
 bits_too_wide [fnv:caa015a423cd19b7] :: a `u8` bit-field is 1 to 8 bits, not 9
 bits_write_too_big [fnv:2e2ab858533613a8] :: 8 does not fit
@@ -818,9 +808,9 @@ overload_lit [fnv:3421916dcaa15ca1] :: versions of `f` could take this call
 overload_unrun [fnv:8aa3fe4489498f62] :: could take this call
 version_call_variable_not_run [fnv:504a6c5ec80b8902] :: versions of `mx` could take this call
 typed_deci_too_many_digits [fnv:dfdeb146ae482e46] :: has 8 digits
-type_name_old [fnv:182c4002003ff0e4] :: `int32` is an old spelling: write `i32`
+type_name_old [fnv:15fd14166d8ab105] :: `int32` is an old spelling: write `i32`
 bare_int_old [fnv:1e938cf45f36560a] :: `int` is an old spelling: the types are `i`, `u`, `f`, `d`
-base_word_old [fnv:0b6f894dc73e5ec0] :: `binary` is an old spelling: write `bin`
+base_word_old [fnv:18481d9b764b5092] :: `binary` is an old spelling: write `bin`
 label_needs_colon [fnv:77bbc294192686b2] :: inside `[ ]` a word takes `:` before its value
 decimals_old [fnv:5c7cf826ba353522] :: `decimals` is an old spelling: write `places:`
 enum_prefix_never_bare [fnv:0951debb1909d46b] :: no function `calm`
@@ -846,26 +836,26 @@ labels_required [fnv:4084f01f40100b31] :: needs `value:`
 labels_unknown [fnv:ad39abe0d191dbfe] :: has no label `colour:`
 labels_unlabelled_after [fnv:458b5913830e2e7f] :: an argument without a label comes before the labelled ones
 versions_outside_block [fnv:0819643a458cdfe0] :: versions of one function go in a block
-concise_decoded_error [fnv:59465a5d682ce947] :: decoded line 2 of concise_decoded_error.cy (concise)
+concise_decoded_error [fnv:f4491afdbcf4d855] :: decoded line 2 of concise_decoded_error.cy (concise)
 concise_short_group [fnv:c86659c0a2e00cd9] :: `0100001` is 7 digits; each group is 8, one byte
 concise_plain_braces [fnv:690dca9d89033985] :: a concise file is only `0`, `1`, spaces and line breaks
 bare_marks_gone [fnv:54d9fc27d8dfa456] :: the `bare.` marks are gone (owner, 2026-10-22)
 kit_name_needs_path [fnv:db529f7b2400ed9e] :: another kit's names take its path (owner, 2026-10-22), so write `greet::hello(…)`
 std_duration_needs_path [fnv:c1ae91c283a7ee42] :: `duration` is std's: write `std::duration`
-std_list_needs_path [fnv:d9b8e94e63365ee6] :: `list` is std's: write `std::list`
-std_name_needs_path [fnv:d490df935be12fea] :: `print.useful` is std's: write `std::print.useful`
-use_name_taken [fnv:dcfd0f6794a69d4e] :: `say` is this file's name for `std::print.useful`
+std_list_needs_path [fnv:d9b8e94e63365ee6] :: `ls` is std's: write `std::ls`
+std_name_needs_path [fnv:9b9d7df536c0ac09] :: `print` is std's: write `std::print`
+use_name_taken [fnv:c5b7f6ad27290b4a] :: `say` is this file's name for `std::print`
 use_needs_as [fnv:f116abd9d3bfd802] :: `use` says the name after `as`
 use_not_at_top [fnv:1ad096234058360a] :: a `use` line goes at the top of the file
 use_own_kit [fnv:1c4e4cb9b427240e] :: `use` names another kit's path
 cyr_manifest_old [fnv:e13a4582867da53a] :: `CyJet.cyr` has the old name: rename it to `CyJet.toml`
 toml_block_unclosed [fnv:e5f060601bf8fc85] :: the block `aarch64-macos` is never closed with `}`
 toml_comments [fnv:6077c9983e8efef7] :: `my friends:` is not a section
-toml_limb_name [fnv:2b6763bf27b6ec26] :: this id is the limb `cnc`'s, so its block is `cnc { … }`, not `mcps`
+toml_limb_name [fnv:2b6763bf27b6ec26] :: this id is the limb `cnc`'s
 toml_quotes [fnv:770c7aa4fbc65663] :: a value has no quotes: `name = x`
 toml_unknown_section [fnv:39d543a0f6705af5] :: `my friends:` is not a section of `CyJet.toml`
 toml_version_word [fnv:ca5a616268516e9c] :: it is `ver`, never `version`, in every section
-call_in_brackets [fnv:2eb21c0b0da26052] :: a call takes `( )`: `std::print.useful(…)`
+call_in_brackets [fnv:bcb3705b50cfc23e] :: a call takes `( )`: `std::print(…)`
 definition_in_parens [fnv:518b754ee0cee96c] :: a definition keeps its parameters in `[ ]`
 dollar_alone [fnv:4ecaa11006a8d93a] :: `$` starts a variable's name
 kit_call_in_brackets [fnv:6601c68f056642b6] :: a call takes `( )`: `twice(…)`
@@ -874,15 +864,15 @@ struct_in_parens [fnv:47d13a384b89c940] :: `( )` is a call's; building a struct 
 channel_empty_untyped [fnv:f7cc3a461cb8657a] :: `%channel.empty` takes its type from the declaration
 channel_type_as_value [fnv:c888deb2c44d7d5c] :: a channel is made as a list or a map is: `let $ch: %channel[i32] = %channel.empty;`
 exit_bare [fnv:6defa2b51b26fa0d] :: only the thing worked on goes bare; this argument says what it is: `exit(code: 3)`
-fill_in_brackets [fnv:78221fca69c0410d] :: a call takes `( )`: `std::list.fill(…)`
+fill_in_brackets [fnv:78221fca69c0410d] :: a call takes `( )`: `std::ls.fill(…)`
 generic_literal_not_fitting [fnv:45393259853918f2] :: the declared type is an `i32` and this value is a `bin`
 handler_argument_missing [fnv:f62f77e62697c697] :: `half_failed.or_default` takes `label:`
 handler_argument_unknown [fnv:7fd1f3dd8f2681b6] :: `half_failed.or_default` has no parameter `code`
 handler_argument_unlabelled [fnv:b5cd7de1743f2b1c] :: a handler's argument says its parameter
-duration_seconds_old [fnv:79a4719d8d0bd066] :: `seconds` is an old spelling: write `5 secs`
+duration_seconds_old [fnv:f5b22b24e58a2209] :: `seconds` is an old spelling: write `5 secs`
 wait_bare [fnv:ac5e58c7bab9421b] :: only the thing worked on goes bare; this argument says what it is: `time.wait(for: 5 secs)`
 print_into_not_writer [fnv:2d5a0f74063fe512] :: a print never changes what it prints, so `lend.mut $n` names a writer to print into
-print_otherwise_wrong_reason [fnv:e031e0cd0705b620] :: never fails with `closed`
+print_otherwise_wrong_reason [fnv:00c13e10b22096ce] :: never fails with `closed`
 writer_size_unit [fnv:1b9d61434f660919] :: a writer's size says its unit: `size: 4096 bytes`
 writer_unflushed [fnv:60b7c7a39f4199a0] :: goes away still holding text: `std::print.flush(lend.mut $out);` before its block ends
 short_lambda_return_type [fnv:1129f5c2f12a209c] :: a short lambda takes its return type from where it goes
@@ -935,17 +925,72 @@ coll_kind_unknown_bound [fnv:d7632e2724b8ef24] :: error[collection_kind_unsaid]
 my_alone_type [fnv:a0a11b258c384cfb] :: error[my_needs_path]
 bound_my_out [fnv:09bd6d13a699464b] :: error[bound_not_kept]
 bound_module_private [fnv:e53d2df9ac4a1b3b] :: error[not_public]
-mark_missing [fnv:29d974920d9ed4de] :: error[limb_mark_missing]
-mark_missing_after_base [fnv:8d34404784bea54b] :: error[limb_mark_missing]
-mark_on_base [fnv:d07d4f5f6515223f] :: error[limb_mark_misplaced]
+mark_missing [fnv:8f55f2bffccd8b28] :: error[limb_mark_missing]
+mark_missing_after_base [fnv:8f55f2bffccd8b28] :: error[limb_mark_missing]
+mark_on_base [fnv:b28fa76f5f15997b] :: error[limb_mark_misplaced]
 mark_on_kit_path [fnv:f09aa6013dbaab7b] :: error[limb_mark_misplaced]
 mark_twice_one_limb [fnv:2780e9752c53c9bc] :: error[limb_mark_misplaced]
 percent_glued_old [fnv:a6eb1ccacd1ced5e] :: error[old_spelling]
 percent_spaced_is_mod [fnv:db4d3c1464ddf611] :: error[old_spelling]
-percent_type_symbol_old [fnv:1f36b4c8bb912f7a] :: error[old_spelling]
+percent_type_symbol_old [fnv:0189d875f6957dc9] :: error[old_spelling]
 
 main_fn_called_bare [fnv:f1c8a5d71d1fa783] :: error[keyword_name_bare]
 target_layout_with_os [fnv:bdb4919177fb990d] :: error[manifest_field_misplaced]
 break_no_loop [fnv:838f50afa6de6f96] :: `break` outside a loop
 otherwise_continue_no_loop [fnv:f045d94cd6dc5212] :: `continue` outside a loop
 handler_continue_no_loop [fnv:110718aee352dc13] :: can `break` or `continue`, so it is used only inside a loop
+bang_is_not [fnv:d637993183696892] :: `!` is not an operator since 2026-10-07: a value's not is `not $b`
+caret_meant_xor [fnv:96573d08ed569359] :: `^` is not an operator: power is `std::pow`, XOR is `xor`
+case_mark_gone [fnv:d01089ab5ca07011] :: `case.any` is gone: every name is exact
+case_twin_type [fnv:6e3186ef216c0cd5] :: there is no rec named `line` here; did you mean `Line`?
+case_twin_var [fnv:aad3e248714d5fa5] :: `$Total` is not declared; did you mean `$total`? Every name is exact
+change_with_equals [fnv:f2ad48b993958d02] :: a change is `change $x to 6;`
+coll_fn_member_effect [fnv:91a870d7b835d2cf] :: the member `loud` is in a `coll.fn`, which has no effects, but it prints (`std::print`)
+conversion_bare_text [fnv:4bf673d66039bd05] :: `to.i32` only looks at `$t`: pass `lend $t`
+dash_not_before_block [fnv:72a8442fffe8ff2e] :: a line-end `-` joins a line to the block's opening line below it (`…(lend $row)-` / `otherwise:`)
+elem_field_let [fnv:234d3b39acf0273c] :: `vx` is a `let` field of B; it cannot be changed: make it `var vx: …;`
+else_after_end [fnv:47dc59e9a8e246bb] :: an `else` continues its `if`: no `;if` before it; `;if` comes once, after the last branch
+extern_var_bare [fnv:3bc344e6b59d4591] :: a C variable says whether it can change
+fn_calls_proc_value [fnv:382e590295a2f7ce] :: `each` is a `fn`, so it calls only `fn`s, but $act holds a `proc[…]`
+fn_channel_send [fnv:50440dafea0c28cb] :: `put` is a `fn`, which has no effects, but it uses a channel: make it a `proc`
+generic_angle_list [fnv:58fdfdbbf7d4988e] :: a generic's placeholders are declared in their own `[ ]`, before the parameters
+index_unlabelled [fnv:011329be1a4ac448] :: a read says it is a position: `$xs[pos: 2]`
+interface_old [fnv:7eb3c02d47d17696] :: `interface` is an old spelling
+kit_handler_jump_unmarked [fnv:6c1c8396da66fc30] :: `halves::half_failed.or_default` can `ret`, `break` or `continue`, so its use says so
+lambda_effect_fn [fnv:b1e2227fb8a15e92] :: a `fn [ … ]` lambda has no effects, but this one prints (`std::print`)
+layout_c_close [fnv:5e4ad76e8f386197] :: `;rec Rect` does not close the `%layout.C rec Rect` that is open
+less_than_old [fnv:c9019b1950a9c7b5] :: `less_than` is an old spelling: write `<`
+level_no_semicolon [fnv:d647b3ef73a678a7] :: a level's line ends with `;`: `level 2 [+, -] left_first;`
+main_param_var [fnv:e3199188d9292c62] :: MAIN's parameters are C's and never change: `let $argc: i32`
+mark_missing_deep [fnv:8f55f2bffccd8b28] :: `%d64` is the Money limb's, so it is marked: `to.shortest.%d64`
+not_std_old [fnv:4d2d7b892c3871ad] :: `int.sign.%not_std.24` is an old spelling: write `%not_std.i24`
+not_std_unmarked [fnv:7d59065065751575] :: `not_std` is the WSMW limb's, so it is marked: `%not_std.i24`
+old_word_as_operator [fnv:bfbae4d7ba5aaed4] :: `lt` is an old spelling: write `<`; redesign three
+op_closer_as_written [fnv:90c1c47675946ce0] :: `;op not` does not close the `op !` that is open: write `;op !`
+op_operand_bare [fnv:e32dcd19940a6e11] :: an operand says how it comes
+op_operand_give [fnv:66be7a3eee3cb5e9] :: `give` on an operand is an old spelling
+param_bare [fnv:d75712f2f1e2a9dd] :: a parameter says whether it changes: `let $a` or `var $a`
+param_let_changed [fnv:21c0844779d673e3] :: `$n` is a `let` parameter, which never changes, but something changes it: write `var $n`
+println_old [fnv:f45993f433441c57] :: `std::println` is an old spelling
+println_stored_old [fnv:5683986a9803326d] :: `std::println.stored` is an old spelling
+proc_into_fn_type [fnv:a4fba89e4cefcbef] :: expected fn[i32] -> bool: this value is a `proc`, which a `fn[…]` cannot hold
+set_gives_no_ops [fnv:5ad6b45ea1c66a58] :: `>` on a `<T>` comes from a `sig` in its bound listing `op >`
+set_with_operation [fnv:2a5108751e78f584] :: a `set` lists types only; operations go in a `sig`
+shift_left_c [fnv:b655c989ddaae318] :: `<<` is an old spelling: write `<-` / `shl`
+sig_mixed [fnv:f01bcaea957dc5a3] :: a `sig` lists operations only; put its types in a `set`
+sig_of_types [fnv:1c62581f70ff9a55] :: a list of types only is a `set`: `set Number:`
+std_plus_is_base [fnv:b4c08b8145a6d4f5] :: `std::plus` is the base's, not std's: write it without `std::`
+ternary_c [fnv:cdc0fa50f2600595] :: `? :` is not CyborgPL: `?` means "otherwise fail", after a call that can fail
+three_bang_old [fnv:8e357d25db4696dd] :: `!` is gone
+three_compound_change_old [fnv:e7e2b4788babcd35] :: `+=` is an old spelling: write `change $x to $x + …;`; a change is spelled out
+three_concat_symbol_old [fnv:04fa431a4bf0d538] :: `++` is an old spelling: write `concat` / `change $i to $i + 1;`
+three_end_of_old [fnv:b004502bc0afc787] :: `end of if` is an old spelling: write `;if`
+three_long_number_old [fnv:c63460a3654a63c1] :: `int.sign.32` is an old spelling: write `i32`
+three_neg_word_old [fnv:ab4df7e502806ee8] :: `neg` is an old spelling: write `-5`; redesign three
+three_plain_union_verb [fnv:68555a053afe245c] :: `copy` on 'a': 'a' is a plain enum and owns nothing (its cases hold no data), so it copies by itself
+three_plus_word_old [fnv:f7753a3b4ba9ad8f] :: `plus` is an old spelling: write `+`; redesign three
+three_print_auto_newline_old [fnv:0c01102fe87c06df] :: `print.shortest.auto_newline` is an old spelling
+three_star_not_times [fnv:309ade135b429416] :: `*` is an old spelling: write `x`; multiplication is `x` (redesign three)
+three_times_word_old [fnv:27c90086f866714e] :: `times` is an old spelling: write `x`; redesign three
+three_x_bare_call [fnv:f1a25faa7388e5dc] :: a bare `x` is multiplication
+var_with_walrus [fnv:00958fea4d1ee7c6] :: a `var` starts with `=`, its starting value

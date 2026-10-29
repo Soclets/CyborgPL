@@ -416,7 +416,7 @@ impl<'a> Lexer<'a> {
         (0..line.len().saturating_sub(2)).any(|k| {
             matches!(&line[k].tok, Tok::Word(w) if w == "inline")
                 && line[k + 1].tok == Tok::Dot
-                && matches!(&line[k + 2].tok, Tok::Word(w) if matches!(w.as_str(), "ASM" | "LL" | "MSL" | "Assembly" | "S" | "LLVM" | "Metal_Shading_Language"))
+                && matches!(&line[k + 2].tok, Tok::Word(_))
         })
     }
 

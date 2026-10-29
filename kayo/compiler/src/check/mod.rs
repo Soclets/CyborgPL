@@ -646,7 +646,7 @@ impl Checker {
         let mut unkept: Vec<(&crate::source::Span, &String)> = self.mut_seen.iter().filter(|(_, (_, ok))| !ok).map(|(s, (n, _))| (s, n)).collect();
         unkept.sort_by_key(|(s, _)| (s.file.0, s.start));
         if let Some((span, name)) = unkept.first() {
-            return err(Diagnostic::error(format!("'{}' is `mut`, but nothing changes it: drop `mut`, or change it (`mut` is a promise that it changes, as `immut` is that it does not)", name)).named("mut_never_changed").at(**span).fix_edit(**span, crate::diag::Edit::Swap(vec!["mut ".into()]), ""));
+            return err(Diagnostic::error(format!("'{}' is a `var`, but nothing changes it: make it a `let`, or change it (`var` is a promise that it changes, as `let` is that it does not; owner, 2026-10-27)", name)).named("mut_never_changed").at(**span));
         }
         // "Only a bare literal with no context has no width" (`operators.md`).
         for (t, span, what) in std::mem::take(&mut self.widths_pending) {

@@ -676,7 +676,7 @@ impl Checker {
                         ast::AsmBinding::Clobber(r) => clobbers.push(r.name.clone()),
                         ast::AsmBinding::Lend { name, mutable, reg } => {
                             let Some(id) = ctx.lookup(&name.name) else {
-                                return Err(ctx.not_declared(Diagnostic::error(format!("'{}' is not declared", name.name)).named("not_declared").at(name.span), &name.name, name.span));
+                                return Err(ctx.not_declared(Diagnostic::error(format!("`${}` is not declared", name.name)).named("not_declared").at(name.span), &name.name, name.span));
                             };
                             if *mutable {
                                 let local = &ctx.locals[id.0 as usize];
@@ -702,7 +702,7 @@ impl Checker {
                             match dir {
                                 ast::AsmDir::In => {
                                     let Some(id) = ctx.lookup(&name.name) else {
-                                        return Err(ctx.not_declared(Diagnostic::error(format!("'{}' is not declared", name.name)).named("not_declared").at(name.span), &name.name, name.span));
+                                        return Err(ctx.not_declared(Diagnostic::error(format!("`${}` is not declared", name.name)).named("not_declared").at(name.span), &name.name, name.span));
                                     };
                                     ins.push((id, reg.name.clone()));
                                 }
@@ -713,7 +713,7 @@ impl Checker {
                                 }
                                 ast::AsmDir::InOut => {
                                     let Some(id) = ctx.lookup(&name.name) else {
-                                        return Err(ctx.not_declared(Diagnostic::error(format!("'{}' is not declared", name.name)).named("not_declared").at(name.span), &name.name, name.span));
+                                        return Err(ctx.not_declared(Diagnostic::error(format!("`${}` is not declared", name.name)).named("not_declared").at(name.span), &name.name, name.span));
                                     };
                                     ins.push((id, reg.name.clone()));
                                     outs.push((id, reg.name.clone()));
@@ -1120,7 +1120,7 @@ impl Checker {
         let mut inner_locals: Vec<(String, ast::Verb, Ty, LocalId)> = Vec::new();
         for c in captures {
             let Some(outer) = ctx.lookup(&c.name.name) else {
-                return Err(ctx.not_declared(Diagnostic::error(format!("'{}' is not declared", c.name.name)).named("not_declared").at(c.name.span), &c.name.name, c.name.span));
+                return Err(ctx.not_declared(Diagnostic::error(format!("`${}` is not declared", c.name.name)).named("not_declared").at(c.name.span), &c.name.name, c.name.span));
             };
             if detached && matches!(c.verb, ast::Verb::Lend | ast::Verb::LendMut) {
                 return err(Diagnostic::error(format!("a detached task may not lend: no scope protects it, so '{}' could be gone while the task still looks at it — `give` or `copy` it", c.name.name)).named("mcps::detached_lend").at(c.span));

@@ -59,6 +59,30 @@ struct Open {
 }
 
 pub fn read(toks: Vec<Token>, src: &str) -> Result<Vec<Token>> {
+    // The old spellings any token says by itself come first, as the oracle reads them: in
+    // `let $x: u8 = binary 1010;`, `binary`.
+    for i in 0..toks.len() {
+        if matches!(toks[i].tok, Tok::Op(ref o) if o == "!=" || o == "<=" || o == ">=" || o == "==") {
+            continue;
+        }
+        // `!MAIN`: the pass says the mark is gone.
+        if toks[i].line_first && matches!(toks[i].tok, Tok::Op(ref o) if o == "!") {
+            continue;
+        }
+        // `$'total due'`: one name.
+        if toks[i].tok == Tok::Dollar && toks.get(i + 1).is_some_and(|n| matches!(n.tok, Tok::Name(_)) && n.span.start == toks[i].span.end) {
+            continue;
+        }
+        if let Some(msg) = crate::parser::old_spelling(&toks, i) {
+            let mut d = Diagnostic::error(msg).named(if toks[i].tok == Tok::Dollar { "variable_name_form" } else { "old_spelling" }).at(toks[i].span);
+            for fix in crate::parser::old_spelling_fixes(&toks, i) {
+                for (k, (span, write)) in fix.into_iter().enumerate() {
+                    d = if k == 0 { d.fix_edit(span, Edit::Replace, write) } else { d.fix_also(span, Edit::Replace, write) };
+                }
+            }
+            return err(d);
+        }
+    }
     let mut r = Reader { src, toks, out: Vec::new(), stack: Vec::new() };
     r.run()?;
     Ok(r.out)
@@ -133,7 +157,8 @@ impl<'a> Reader<'a> {
             let t = self.toks[i].clone();
             if t.tok == Tok::Eof {
                 if let Some(open) = self.stack.last() {
-                    return refuse("unclosed_block", format!("this `{}` is never closed: it ends at a line `;{}`", open.closer, open.closer), open.at);
+                    let end = Span::new(t.span.file, t.span.end as usize, t.span.end as usize);
+                    return err(Diagnostic::error(format!("this `{}` is never closed: it ends at a line `;{}`", open.closer, open.closer)).named("unclosed_block").at(open.at).fix_edit(end, Edit::Append, format!(";{}", open.closer)));
                 }
                 self.out.push(t);
                 break;
@@ -233,7 +258,10 @@ impl<'a> Reader<'a> {
                     return refuse("interface_form", msg, at);
                 }
             }
-            if said != open.closer && open.kind != Kind::Unknown {
+            let same = |a: &str, b: &str| a == b || a.replace("modulo", "mod").replace("divide", "div") == b.replace("modulo", "mod").replace("divide", "div");
+            // An inline block whose language the parser refuses closes with any `;inline…`.
+            let inline_any = open.kind == Kind::Inline && said.starts_with("inline") && !matches!(open.closer.as_str(), "inline.ASM" | "inline.%MSL");
+            if !same(&said, &open.closer) && open.kind != Kind::Unknown && !inline_any {
                 let d = Diagnostic::error(format!("`;{}` does not close the `{}` that is open: write `;{}`", said, open.closer, open.closer)).named("closer_mismatch").at(at).why_at(open.at, format!("the `{}` opens here", open.closer));
                 return err(d.fix_edit(line[1].span.to(line[k - 1].span), Edit::Replace, open.closer.clone()));
             }
@@ -293,8 +321,16 @@ impl<'a> Reader<'a> {
             }
         }
         // A field or a case ends with `;` (owner, 2026-10-27).
-        if matches!(in_kind, Kind::Rec | Kind::Cases) && line.last().is_some_and(|t| t.tok == Tok::Comma) {
-            return refuse("braces_need_commas", "fields and cases end with `;`, not `,` (owner, 2026-10-27)", line.last().unwrap().span);
+        if matches!(in_kind, Kind::Rec | Kind::Cases) {
+            let mut depth = 0i32;
+            for t in &line {
+                match t.tok {
+                    Tok::LBracket | Tok::LParen => depth += 1,
+                    Tok::RBracket | Tok::RParen => depth -= 1,
+                    Tok::Comma if depth == 0 => return refuse("braces_need_commas", "fields and cases end with `;`, not `,` (owner, 2026-10-27)", t.span),
+                    _ => {}
+                }
+            }
         }
         if let Some(k) = (0..line.len().saturating_sub(3)).find(|&k| line[k].marked && is_word(&line[k], "extern") && line[k + 1].tok == Tok::Dot && is_word(&line[k + 2], "C") && matches!(line[k + 3].tok, Tok::Name(_))) {
             let n = &line[k + 3];
@@ -304,7 +340,8 @@ impl<'a> Reader<'a> {
             return err(Diagnostic::error(format!("a C variable says whether it can change: `let ${}: …;` (C's `const`, read only) or `var ${}: …;` (owner, 2026-10-27)", n, n)).named("declaration_form").at(line[0].span).fix_edit(line[0].span, Edit::Insert, "let "));
         }
         // A precedence level's line ends with `;` (owner, 2026-10-27).
-        if is_word(&line[0], "level") && self.stack.last().is_some_and(|o| o.closer.starts_with("precedence")) && line.last().is_some_and(|t| t.tok != Tok::Semi) {
+        let chained = line.iter().any(|t| is_word(t, "left_first") || is_word(t, "right_first") || is_word(t, "refused"));
+        if is_word(&line[0], "level") && chained && line.get(1).is_some_and(|t| t.tok != Tok::Dot) && self.stack.last().is_some_and(|o| o.closer.starts_with("precedence")) && line.last().is_some_and(|t| t.tok != Tok::Semi) {
             let at = line.last().unwrap().span;
             return err(Diagnostic::error("a level's line ends with `;`: `level 2 [+, -] left_first;`").named("unexpected_text").at(at).fix_edit(Span::new(at.file, at.end as usize, at.end as usize), Edit::Insert, ";"));
         }
@@ -448,6 +485,8 @@ impl<'a> Reader<'a> {
             }
             "module" | "versions" => (with_name(&w, 1), Kind::Items),
             "coll" if !rest.get(1).is_some_and(|t| t.tok == Tok::Dot) => ("coll".into(), Kind::Unknown),
+            // `coll.fn "cum":`: the parser says a name is bare.
+            "coll" if rest.iter().any(|t| matches!(t.tok, Tok::Str(_))) => ("coll".into(), Kind::Unknown),
             "coll" => {
                 let (c, n) = dotted(0);
                 let kind = if c.ends_with(".bounded") || c.ends_with(".handler") { Kind::Items } else { Kind::Items };
@@ -517,6 +556,8 @@ impl<'a> Reader<'a> {
                 }
                 _ => None,
             };
+            // An operator spelled the old way (`op >>`) is the parser's to refuse first.
+            let head = head.filter(|c| !(*c == Ctx::Op && line.get(k + 1).is_some_and(|o| crate::spellings::old_word(self.text(o.span), None).is_some())));
             if let Some(ctx) = head {
                 // A function type's brackets, `fn[i32]`, hold types: glued to `fn`.
                 let glued = line.get(k + 1).is_some_and(|b| b.tok == Tok::LBracket && b.span.start == t.span.end) && ctx == Ctx::Fn;
@@ -781,6 +822,17 @@ impl<'a> Reader<'a> {
                 Tok::Word(w) if after_dot || w == "cluster" || w == "clusters" || w == "bf16" => {
                     let before = if out.len() >= 2 { out[out.len() - 2].tok.clone() } else { Tok::Eof };
                     let w = w.clone();
+                    // `std::println` was tried and dropped (owner, 2026-10-28).
+                    if w == "println" && matches!(prev, Some(Tok::ColonColon)) {
+                        let narrowed = line.get(i + 1).is_some_and(|d| d.tok == Tok::Dot) && line.get(i + 2).is_some_and(|w| matches!(w.tok, Tok::Word(_)));
+                        let (said, write) = if narrowed {
+                            let n = self.text(line[i + 2].span).to_string();
+                            (format!("std::println.{}", n), format!("std::print.{}(…, newln)", n))
+                        } else {
+                            ("std::println".to_string(), "std::print(…, newln)".to_string())
+                        };
+                        return err(Diagnostic::error(format!("`{}` is an old spelling: write `{}`; a line ends with `newln`, in every printing form (owner, 2026-10-28)", said, write)).named("old_spelling").at(t.span));
+                    }
                     // The base's operators take no `std::` (owner, 2026-10-28: "`plus` isn't even `std`").
                     if matches!(prev, Some(Tok::ColonColon)) && matches!(before, Tok::Word(ref k) if k == "std") && matches!(w.as_str(), "plus" | "minus" | "times" | "div" | "mod" | "concat" | "and" | "or" | "not" | "xor") {
                         return err(Diagnostic::error(format!("`std::{}` is the base's, not std's: write it without `std::`", w)).named("std_name_needs_path").at(out[out.len() - 2].span.to(t.span)));
@@ -824,7 +876,8 @@ impl<'a> Reader<'a> {
                     // The retired words, wherever they stand (`spellings.cyr`); in a bound's brackets
                     // a word is the bound's (`%C.str[max: 6 bytes, include zero]`).
                     let in_brackets = line[..i].iter().filter(|x| x.tok == Tok::LBracket).count() > line[..i].iter().filter(|x| x.tok == Tok::RBracket).count();
-                    if let (Some(said), false) = (crate::spellings::retired(&written), in_brackets) {
+                    let glued_after_op = i > 0 && matches!(line[i - 1].tok, Tok::Op(_)) && line[i - 1].span.end == t.span.start;
+                    if let (Some(said), false) = (crate::spellings::retired(&written), (in_brackets && written == "include") || glued_after_op) {
                         return err(Diagnostic::error(said).named("old_spelling").at(t.span));
                     }
                     // The case marks are gone (owner, 2026-10-27): every name is exact.
@@ -925,6 +978,14 @@ impl<'a> Reader<'a> {
                             out.push(f);
                             i += 1;
                             continue;
+                        }
+                        // `shadow let $x`: a shadow says whether it changes (redesign two).
+                        "shadow" if i == 0 && line.get(1).is_some_and(|n| is_word(n, "let") || is_word(n, "var")) => {
+                            let k = self.text(line[1].span).to_string();
+                            return err(Diagnostic::error("a shadow says whether it changes, as every declaration does: `let shadow $x := …;` or `var shadow $x = …;` (owner, 2026-10-27)").named("shadow_form").at(t.span.to(line[1].span)).fix_edit(t.span.to(line[1].span), Edit::Replace, format!("{} shadow", k)));
+                        }
+                        "shadow" if i == 0 => {
+                            return err(Diagnostic::error("a shadow says whether it changes, as every declaration does: `let shadow $x := …;` or `var shadow $x = …;` (owner, 2026-10-27)").named("shadow_form").at(t.span).fix_edit(t.span, Edit::Replace, "let shadow"));
                         }
                         "no_skip" => {
                             let mut r = word("no_cheat", t.span);
@@ -1232,8 +1293,17 @@ impl<'a> Reader<'a> {
             j += 1;
         }
         let Some(eq) = line.get(j).filter(|e| e.tok != Tok::Semi) else {
-            return refuse("declaration_form", format!("there is no implicit zero: a declaration gives its value, `{} $x: i32 {} 0;`", if var { "var" } else { "let" }, if var { "=" } else { ":=" }), t.span);
+            return refuse("no_starting_value", format!("there is no implicit zero: a declaration gives its value, `{} $x: i32 {} 0;`", if var { "var" } else { "let" }, if var { "=" } else { ":=" }), t.span);
         };
+        // An old word in the value is said first, as the oracle reads a line (`= binary 1010`).
+        for (q, v) in line.iter().enumerate().skip(j) {
+            let after_dot = q > 0 && matches!(line[q - 1].tok, Tok::Dot | Tok::ColonColon);
+            if let (Tok::Word(_), false) = (&v.tok, after_dot) {
+                if let Some(said) = crate::spellings::retired(self.text(v.span)) {
+                    return err(Diagnostic::error(said).named("old_spelling").at(v.span));
+                }
+            }
+        }
         let walrus = eq.tok == Tok::Walrus;
         let equals = is_op(eq, "=");
         if var && walrus {
@@ -1366,11 +1436,36 @@ pub fn in_message(sentence: &str) -> String {
     if !sentence.contains('`') {
         return sentence.to_string();
     }
-    sentence.split('`').enumerate().map(|(n, part)| if n % 2 == 1 { code(part) } else { part.to_string() }).collect::<Vec<_>>().join("`")
+    let parts: Vec<&str> = sentence.split('`').collect();
+    let out = parts
+        .iter()
+        .enumerate()
+        .map(|(n, part)| {
+            // The old spelling a refusal quotes stays as written: "`mut` is an old spelling".
+            let next = parts.get(n + 1).copied().unwrap_or("");
+            let quoted = [" is an old spelling", " is gone", " is not an operator", " became", " was ", " is the language's own spelling", "` is an old"].iter().any(|w| next.starts_with(w));
+            // CyJet.toml keeps its braces.
+            let manifest = sentence.contains("CyJet") || sentence.contains("my limbs") || sentence.contains("my kits") || sentence.contains("this id");
+            if n % 2 == 1 && !quoted {
+                if manifest { code_words(part) } else { code(part) }
+            } else {
+                part.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("`");
+    out.replace("an `union.tag`", "a `union.tag`").replace("An `union.tag`", "A `union.tag`")
 }
 
 /// One piece of code, in redesign three's spellings.
 pub fn code(text: &str) -> String {
+    let s = code_words(text);
+    // A block in braces, `{ … }`, is `:` and its closer now.
+    s.replace(" { … }", ": …").replace(" {…}", ": …").replace("{ … }", ": …").replace(" { }", ":")
+}
+
+/// One piece of code's words in redesign three's spellings, its braces kept.
+pub fn code_words(text: &str) -> String {
     // Words and the rest, each kept with what stood before it.
     let b = text.as_bytes();
     let mut pieces: Vec<String> = Vec::new();
@@ -1425,6 +1520,7 @@ pub fn code(text: &str) -> String {
             "graphemes" => Some("clusters".into()),
             "brain16" => Some("bf16".into()),
             "concur" => Some("spawn.task".into()),
+            "pow" if !path_before => Some("std::pow".into()),
             "no_cheat" => Some("no_skip".into()),
             "nocheck" => Some("no_check".into()),
             "auto_newln" => Some("auto_newline".into()),
@@ -1447,7 +1543,5 @@ pub fn code(text: &str) -> String {
         }
         k += 1;
     }
-    let s = out.concat();
-    // A block in braces, `{ … }`, is `:` and its closer now.
-    s.replace(" { … }", ": …").replace(" {…}", ": …").replace("{ … }", ": …").replace(" { }", ":")
+    out.concat()
 }

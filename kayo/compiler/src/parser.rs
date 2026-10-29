@@ -284,7 +284,7 @@ fn plain_words(ws: &[String]) -> Vec<String> {
 /// the old spelling covers and each spelling that replaces it, where a
 /// spelling is a word or a symbol to put in its place (one with a shape
 /// around it, `ptr.read(…)`, is told, not written).
-fn old_spelling_fixes(toks: &[Token], i: usize) -> Vec<Vec<(Span, String)>> {
+pub(crate) fn old_spelling_fixes(toks: &[Token], i: usize) -> Vec<Vec<(Span, String)>> {
     let writes = |o: &crate::spellings::Old| plain_words(&o.write);
     let span = |from: usize, to: usize| toks[from].span.to(toks[to].span);
     let next = |n: usize| toks.get(i + n).map(|t| &t.tok);
@@ -316,12 +316,12 @@ fn old_spelling_fixes(toks: &[Token], i: usize) -> Vec<Vec<(Span, String)>> {
         // `$i += 2;`: `change $i = $i + 2;`.
         (Tok::Op(o), _) if (o == "+=" || o == "-=") && i > 0 && matches!(toks[i - 1].tok, Tok::Name(_)) && (i < 2 || matches!(toks[i - 2].tok, Tok::Semi | Tok::LBrace | Tok::RBrace)) => {
             let Tok::Name(n) = &toks[i - 1].tok else { unreachable!() };
-            return vec![vec![(span(i - 1, i), format!("change {} = {} {}", named(n), named(n), &o[..1]))]];
+            return vec![vec![(span(i - 1, i), format!("change {} to {} {}", named(n), named(n), &o[..1]))]];
         }
         // `$i++;` changes the variable: `change $i = $i plus 1;`.
         (Tok::Op(o), Some(Tok::Semi)) if (o == "++" || o == "--") && i > 0 && matches!(toks[i - 1].tok, Tok::Name(_)) => {
             let Tok::Name(n) = &toks[i - 1].tok else { unreachable!() };
-            return vec![vec![(span(i - 1, i), format!("change {} = {} {} 1", named(n), named(n), if o == "++" { "plus" } else { "minus" }))]];
+            return vec![vec![(span(i - 1, i), format!("change {} to {} {} 1", named(n), named(n), if o == "++" { "+" } else { "-" }))]];
         }
         _ => {}
     }
@@ -403,7 +403,7 @@ fn old_spelling_fixes(toks: &[Token], i: usize) -> Vec<Vec<(Span, String)>> {
     ws.into_iter().map(|w| vec![(at, w)]).collect()
 }
 
-fn old_spelling(toks: &[Token], i: usize) -> Option<String> {
+pub(crate) fn old_spelling(toks: &[Token], i: usize) -> Option<String> {
     let old = |w: &str, m: &str| Some(format!("`{}` is an old spelling: write `{}`", w, m));
     // A word the table lists says it with the ruling's date, as the
     // oracle does.
@@ -1795,11 +1795,7 @@ impl<'a> Parser<'a> {
             loop {
                 let name = self.ident("the generic's name")?;
                 if self.is_op(">") && matches!(self.peek_at(1), Tok::Colon) {
-                    let refused = self.fail_at_n(name.span, "old_spelling", format!("what `<{n}>` accepts goes inside the brackets: `<{n}: any>`", n = name.name));
-                    // `<T>: any` read as `<T: any>`: the `>` moves past what it accepts.
-                    if let Tok::Word(bound) = self.peek_at(2).clone() {
-                        return refused.with_fix(self.span().to(self.span_at(2)), Edit::Replace, format!(": {}>", bound));
-                    }
+                    let refused = self.fail_at_n(name.span, "old_spelling", format!("what `<{n}>` accepts goes inside its list: `[<{n}>: any]` (owner, 2026-10-29)", n = name.name));
                     return refused;
                 }
                 if !self.eat(&Tok::Colon) {
@@ -2792,9 +2788,9 @@ impl<'a> Parser<'a> {
             }
             Tok::Word(w) if w == "mut" || w == "immut" => {}
             Tok::Word(w) if is_primitive_head(&w) || (!is_keyword(&w) && matches!(self.peek_at(1), Tok::Name(_))) => {
-                let refused = self.fail_n("parameter_form", "a parameter is written name first, then its type: `$a: i32`");
+                let refused = self.fail_n("parameter_form", "a parameter is written name first, then its type: `let $a: i32`");
                 if let Tok::Name(n) = self.peek_at(1).clone() {
-                    return refused.with_fix(self.span().to(self.span_at(1)), Edit::Replace, format!("{}: {}", name_written(&n), w));
+                    return refused.with_fix(self.span().to(self.span_at(1)), Edit::Replace, format!("let {}: {}", name_written(&n), w));
                 }
                 return refused;
             }
@@ -2872,7 +2868,7 @@ impl<'a> Parser<'a> {
     fn struct_decl(&mut self, layout_c: bool) -> Result<StructDecl> {
         let name = self.ident("the struct's name")?;
         if crate::resolve::number_type(&name.name) {
-            return self.fail_at_n(name.span, "name_reserved", format!("`{}` is one of the language's number types, so it cannot name a struct", name.name));
+            return self.fail_at_n(name.span, "name_reserved", format!("`{}` is one of the language's number types, so it cannot name a rec", name.name));
         }
         let announce = self.announce(&name.name, "struct")?;
         if !announce.groups.is_empty() {
@@ -2912,7 +2908,7 @@ impl<'a> Parser<'a> {
                     }
                     if !matches!(self.peek_at(1), Tok::Colon) {
                         if let Tok::Name(n) = self.peek_at(1).clone() {
-                            return self.fail_n("field_form", format!("a field is written name first, then its type: `{}: {}`", n, w)).with_fix(self.span().to(self.span_at(1)), Edit::Replace, format!("{}: {}", n, w));
+                            return self.fail_n("field_form", format!("a field is written name first, then its type: `var {}: {}`", n, w)).with_fix(self.span().to(self.span_at(1)), Edit::Replace, format!("var {}: {}", n, w));
                         }
                         let at = self.span();
                         let refused = self.fail_n("field_form", format!("a field's type follows its name after `:` — `{}: i32`", w));
@@ -4492,7 +4488,7 @@ impl<'a> Parser<'a> {
 
     fn otherwise_rest(&mut self) -> Result<Otherwise> {
         match self.peek().clone() {
-            Tok::Semi | Tok::RBrace | Tok::Eof => self.fail_n("otherwise_empty", "`otherwise` needs what to do: a value, `return …`, `fail`, `break`, `continue`, or `{ reason { … } … }` arms"),
+            Tok::Semi | Tok::RBrace | Tok::Eof => self.fail_n("otherwise_empty", "`otherwise` needs what to do: a value, `ret …`, `fail`, `break`, `continue`, or an arm per reason below it, `otherwise:` / `case reason:`"),
             Tok::Word(w) if w == "fail" => {
                 let span = self.span();
                 self.bump();

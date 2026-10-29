@@ -27,7 +27,8 @@ def fnv(path: Path) -> str:
 def tests():
     out = {}
     for p in REJECT.iterdir():
-        if p.suffix == ".cy" or p.is_dir():
+        # A folder is a test when it holds CyborgPL (`incl_assets/` holds files a test reads).
+        if p.suffix == ".cy" or (p.is_dir() and any(c.suffix in (".cy", ".cyr", ".nrv", ".nrp") for c in p.iterdir())):
             name = p.stem if p.suffix == ".cy" else p.name
             out[name] = REJECT / f"{name}.err"
     return out

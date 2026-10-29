@@ -55,7 +55,7 @@ impl Checker {
         for b in bindings {
             let name = &b.name.name;
             let Some(id) = ctx.lookup(name) else {
-                return Err(ctx.not_declared(Diagnostic::error(format!("'{}' is not declared", name)).named("not_declared").at(b.name.span), name, b.name.span));
+                return Err(ctx.not_declared(Diagnostic::error(format!("`${}` is not declared", name)).named("not_declared").at(b.name.span), name, b.name.span));
             };
             if let Some((_, first)) = slots.iter().find(|(s, _)| *s == b.slot) {
                 return err(Diagnostic::error(format!("`buffer({})` is bound twice, to ${} and ${}: each slot takes one value", b.slot, first, name)).named("metal::slot_bound_twice").at(b.span));
