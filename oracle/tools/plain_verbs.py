@@ -18,7 +18,8 @@ ORACLE = max((p for p in (os.path.join(os.path.dirname(__file__), '..', 'target'
               if os.path.exists(p)), key=os.path.getmtime, default=os.path.join(os.path.dirname(__file__), '..', 'target', 'debug', 'oracle'))
 MSG = re.compile(r"^(.*?): line (\d+)(?::\d+)?: '([^']+)'((?:\.\w+)*) is a plain \w+ and owns nothing")
 # a conversion that only reads an owned value (owner, 2026-10-28: a conversion is a call like any other)
-LEND = re.compile(r"^(.*?): line (\d+)(?::\d+)?: `(to\.[^`]+)` only looks at `\$([\w.]+)`: pass `lend")
+# the name is `$x`, or `'l26!'` for one that needs quotes, written `$'l26!'` in the code (check claude, 2026-10-29)
+LEND = re.compile(r"^(.*?): line (\d+)(?::\d+)?: `(to\.[^`]+)` only looks at `(\$[\w.]+|'[^']+')`: pass `lend")
 
 
 def fix(target):
@@ -37,13 +38,14 @@ def fix(target):
             before = lines[line - 1]
             # the message drops a limb's mark (`to.char.point` for `to.char.%point`) and the code may bound the target
             # (`to.i32[min: 0, max: 100]`): find any conversion whose input is this name
-            after = re.sub(r'(\bto\.[\w.%]+(?:\[[^\]]*\])?\()(\s*)\$' + re.escape(name) + r'(?![\w.])', lambda x: x.group(1) + x.group(2) + 'lend $' + name, before, count=1)
+            written = name if name.startswith('$') else '$' + name
+            after = re.sub(r'(\bto\.[\w.%]+(?:\[[^\]]*\])?\()(\s*)' + re.escape(written) + r'(?![\w.])', lambda x: x.group(1) + x.group(2) + 'lend ' + written, before, count=1)
             if after == before:
-                print(f'{path}:{line}: could not find {conv}(${name}', file=sys.stderr)
+                print(f'{path}:{line}: could not find {conv}({written}', file=sys.stderr)
                 return
             lines[line - 1] = after
             open(path, 'w').write('\n'.join(lines))
-            print(f'{path}:{line}: {conv} lends ${name}')
+            print(f'{path}:{line}: {conv} lends {written}')
             continue
         if not m:
             return
