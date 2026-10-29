@@ -38,9 +38,11 @@ def programs():
     return found
 
 
-def build(path, spacer, rlimit=None):
+def build(path, spacer, rlimit=None, extra=None):
     env = dict(os.environ, KAYO_SPACER_LOG="1")
-    env.pop("KAYO_SPACER_RLIMIT", None)
+    for k in ("KAYO_SPACER_RLIMIT", "KAYO_SPACER_INTEGERS", "KAYO_SPACER_GLOBAL", "KAYO_SPACER_JOINT"):
+        env.pop(k, None)
+    env.update(extra or {})
     if rlimit:
         env["KAYO_SPACER_RLIMIT"] = str(rlimit)
     env.pop("KAYO_NO_SPACER", None)

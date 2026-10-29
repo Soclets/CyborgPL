@@ -88,3 +88,40 @@ programs, because nearly everything left unproven can really fail. Where it runs
 the hand probe above showed for 64-bit loops. Even the lock-step test program's `$j + 1` (two counters moving
 together) spent the budget. The other way, clauses in integers with the guess confirmed in bit-vectors, is not built
 or measured.
+
+## Integer clauses, confirmed in bit-vectors (owner, 2026-10-29: "Test out number 2 first")
+
+`measure_modes.py` made these figures; `MODES.md` has every program, question and invariant. The programs are the 22
+above plus `two_counters.cy` (kept here). Each was built three times per mode, one build at a time; times are medians.
+The budget is `rlimit` 10,000,000 in every mode.
+
+The modes:
+- **bits**: today's default, unchanged. All 22 programs gave the first measurement's sites and logs exactly.
+- **integers** (`KAYO_SPACER_INTEGERS=1`): one loop at a time, as bits does, but over the integers. Each value is read
+  as a number, signed or unsigned as the encoder made it, with its type's bounds stated as facts on the values the
+  clauses know nothing about. Bit operations and shifts are unknowns. Spacer's invariant is read back into 192-bit
+  arithmetic and confirmed by Z3 and CVC5 as before.
+- **joint** (`+ KAYO_SPACER_JOINT=1`): every loop on the way to the site as one system, each loop head a cut point
+  with its own invariant. In these walks only, a list written out (`[]`) has its length known.
+- **+gg** (`KAYO_SPACER_GLOBAL=1`): Spacer's global guidance (`fp.spacer.global`).
+
+| mode | unproven (23 programs) | Precog, s | whole builds, s | questions | spent the budget |
+|---|---:|---:|---:|---:|---:|
+| off | 42 | 28.36 | 30.02 | 0 | 0 |
+| bits | 40 | 40.45 | 42.08 | 54 | 7 |
+| integers | 40 | 34.63 | 36.30 | 54 | 6 |
+| integers+gg | 39 | 38.04 | 39.71 | 54 | 5 |
+| joint | 40 | 36.57 | 38.22 | 36 | 6 |
+| joint+gg | 38 | 153.38 | 155.04 | 38 | 2 (+2 that crashed Z3) |
+| bits+gg | 40 | 40.61 | 42.25 | 54 | 7 |
+
+- **Beyond bits**, only joint+gg proves more in the 22 programs: msl_whole_pages' `$wrong + 1`, with all three loops'
+  invariants confirmed. It and integers+gg also prove `two_counters`' `$j + 1`.
+- **Integers alone**, one loop at a time, prove the same sites as bits, in less time (par_lent_param: 3.61 s against
+  9.29 s).
+- **No integer invariant failed** the bit-vector confirmation.
+- **Global guidance crashes Z3 5.1.0 here.** On gradebook's sum, Spacer's global generalizer reaches an internal
+  assertion (`spacer_global_generalizer.cpp:337`, "UNEXPECTED CODE WAS REACHED") after 70 s or more of running past
+  its `rlimit`. kayo reads that as "Spacer did not say", so nothing is proven by it, but the build took 109 to 119 s
+  instead of 3. That is where joint+gg's 153 s total comes from; without gradebook it is 36.0 s.
+- **The same every time:** in every mode, every program's three builds gave the same sites and the same log.

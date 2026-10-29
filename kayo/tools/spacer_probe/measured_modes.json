@@ -1,0 +1,3489 @@
+{
+ "examples/args.cy": {
+  "off": {
+   "sites": 6,
+   "unproven": [
+    "examples/args.cy:18:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    5.53,
+    5.5,
+    5.62
+   ],
+   "total": [
+    5.6,
+    5.56,
+    5.68
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 6,
+   "unproven": [
+    "examples/args.cy:18:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    5.68,
+    5.94,
+    5.65
+   ],
+   "total": [
+    5.74,
+    5.99,
+    5.7
+   ],
+   "log": [
+    "site line 18 (in MAIN), loop at line 8: found a way through its clauses to the bad value",
+    "site line 18 (in MAIN), loop at line 14: not asked: a trip round the loop could not be put into words"
+   ]
+  },
+  "integers": {
+   "sites": 6,
+   "unproven": [
+    "examples/args.cy:18:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    5.58,
+    5.76,
+    5.75
+   ],
+   "total": [
+    5.63,
+    5.82,
+    5.81
+   ],
+   "log": [
+    "site line 18 (in MAIN), loop at line 8: found a way through its clauses to the bad value",
+    "site line 18 (in MAIN), loop at line 14: not asked: a trip round the loop could not be put into words"
+   ]
+  },
+  "integers+gg": {
+   "sites": 6,
+   "unproven": [
+    "examples/args.cy:18:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    5.72,
+    5.71,
+    5.79
+   ],
+   "total": [
+    5.78,
+    5.77,
+    5.85
+   ],
+   "log": [
+    "site line 18 (in MAIN), loop at line 8: found a way through its clauses to the bad value",
+    "site line 18 (in MAIN), loop at line 14: not asked: a trip round the loop could not be put into words"
+   ]
+  },
+  "joint": {
+   "sites": 6,
+   "unproven": [
+    "examples/args.cy:18:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    7.45,
+    7.31,
+    7.47
+   ],
+   "total": [
+    7.51,
+    7.37,
+    7.53
+   ],
+   "log": [
+    "site line 18 (in MAIN), loop at line 8: spent its step budget"
+   ]
+  },
+  "joint+gg": {
+   "sites": 6,
+   "unproven": [
+    "examples/args.cy:18:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    8.19,
+    8.15,
+    8.22
+   ],
+   "total": [
+    8.25,
+    8.21,
+    8.28
+   ],
+   "log": [
+    "site line 18 (in MAIN), loop at line 8: spent its step budget"
+   ]
+  },
+  "bits+gg": {
+   "sites": 6,
+   "unproven": [
+    "examples/args.cy:18:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    5.52,
+    5.53,
+    5.54
+   ],
+   "total": [
+    5.58,
+    5.59,
+    5.6
+   ],
+   "log": [
+    "site line 18 (in MAIN), loop at line 8: found a way through its clauses to the bad value",
+    "site line 18 (in MAIN), loop at line 14: not asked: a trip round the loop could not be put into words"
+   ]
+  }
+ },
+ "examples/gradebook.cy": {
+  "off": {
+   "sites": 17,
+   "unproven": [
+    "examples/gradebook.cy:15:26",
+    "examples/gradebook.cy:15:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.78,
+    1.77,
+    1.81
+   ],
+   "total": [
+    1.85,
+    1.84,
+    1.88
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 17,
+   "unproven": [
+    "examples/gradebook.cy:15:26",
+    "examples/gradebook.cy:15:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.81,
+    2.78,
+    2.75
+   ],
+   "total": [
+    2.88,
+    2.85,
+    2.81
+   ],
+   "log": [
+    "site line 15 (in average), loop at line 14: spent its step budget",
+    "site line 15 (in average), loop at line 14: spent its step budget"
+   ]
+  },
+  "integers": {
+   "sites": 17,
+   "unproven": [
+    "examples/gradebook.cy:15:26",
+    "examples/gradebook.cy:15:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    3.32,
+    3.33,
+    3.35
+   ],
+   "total": [
+    3.38,
+    3.4,
+    3.42
+   ],
+   "log": [
+    "site line 15 (in average), loop at line 14: spent its step budget",
+    "site line 15 (in average), loop at line 14: spent its step budget"
+   ]
+  },
+  "integers+gg": {
+   "sites": 17,
+   "unproven": [
+    "examples/gradebook.cy:15:26",
+    "examples/gradebook.cy:15:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    4.55,
+    4.77,
+    4.88
+   ],
+   "total": [
+    4.62,
+    4.84,
+    4.95
+   ],
+   "log": [
+    "site line 15 (in average), loop at line 14: spent its step budget",
+    "site line 15 (in average), loop at line 14: spent its step budget"
+   ]
+  },
+  "joint": {
+   "sites": 17,
+   "unproven": [
+    "examples/gradebook.cy:15:26",
+    "examples/gradebook.cy:15:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    3.95,
+    4.18,
+    3.87
+   ],
+   "total": [
+    4.02,
+    4.26,
+    3.95
+   ],
+   "log": [
+    "site line 15 (in average), loop at line 14: spent its step budget",
+    "site line 15 (in average), loop at line 14: spent its step budget"
+   ]
+  },
+  "joint+gg": {
+   "sites": 17,
+   "unproven": [
+    "examples/gradebook.cy:15:26",
+    "examples/gradebook.cy:15:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    119.06,
+    117.37,
+    109.0
+   ],
+   "total": [
+    119.13,
+    117.44,
+    109.07
+   ],
+   "log": [
+    "site line 15 (in average), loop at line 14: not asked: Spacer did not say: ",
+    "site line 15 (in average), loop at line 14: not asked: Spacer did not say: "
+   ]
+  },
+  "bits+gg": {
+   "sites": 17,
+   "unproven": [
+    "examples/gradebook.cy:15:26",
+    "examples/gradebook.cy:15:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.71,
+    2.7,
+    2.73
+   ],
+   "total": [
+    2.78,
+    2.77,
+    2.8
+   ],
+   "log": [
+    "site line 15 (in average), loop at line 14: spent its step budget",
+    "site line 15 (in average), loop at line 14: spent its step budget"
+   ]
+  }
+ },
+ "examples/list_page_aligned.cy": {
+  "off": {
+   "sites": 11,
+   "unproven": [
+    "examples/list_page_aligned.cy:8:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.8035,
+    0.8099,
+    0.8172999999999999
+   ],
+   "total": [
+    0.8637,
+    0.8697999999999999,
+    0.8772000000000001
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 11,
+   "unproven": [
+    "examples/list_page_aligned.cy:8:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.9218,
+    0.9178999999999999,
+    0.9364
+   ],
+   "total": [
+    0.9831,
+    0.9783999999999999,
+    0.9967999999999999
+   ],
+   "log": [
+    "site line 8 (in total), loop at line 7: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers": {
+   "sites": 11,
+   "unproven": [
+    "examples/list_page_aligned.cy:8:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.8521,
+    0.8174,
+    0.8242999999999999
+   ],
+   "total": [
+    0.9126000000000001,
+    0.8783,
+    0.8854
+   ],
+   "log": [
+    "site line 8 (in total), loop at line 7: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers+gg": {
+   "sites": 11,
+   "unproven": [
+    "examples/list_page_aligned.cy:8:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.8176,
+    0.8194,
+    0.824
+   ],
+   "total": [
+    0.8779,
+    0.8811,
+    0.8845
+   ],
+   "log": [
+    "site line 8 (in total), loop at line 7: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint": {
+   "sites": 11,
+   "unproven": [
+    "examples/list_page_aligned.cy:8:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.8242999999999999,
+    0.8214,
+    0.8197000000000001
+   ],
+   "total": [
+    0.885,
+    0.8824,
+    0.8799
+   ],
+   "log": [
+    "site line 8 (in total), loop at line 7: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint+gg": {
+   "sites": 11,
+   "unproven": [
+    "examples/list_page_aligned.cy:8:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.8175,
+    0.8257000000000001,
+    0.8146
+   ],
+   "total": [
+    0.8787,
+    0.8871,
+    0.8757999999999999
+   ],
+   "log": [
+    "site line 8 (in total), loop at line 7: found a way through its clauses to the bad value"
+   ]
+  },
+  "bits+gg": {
+   "sites": 11,
+   "unproven": [
+    "examples/list_page_aligned.cy:8:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.9369,
+    0.9349,
+    0.9332
+   ],
+   "total": [
+    0.9975,
+    0.9954,
+    0.9937
+   ],
+   "log": [
+    "site line 8 (in total), loop at line 7: found a way through its clauses to the bad value"
+   ]
+  }
+ },
+ "kayo/compiler/tests/programs/channels_handoff.cy": {
+  "off": {
+   "sites": 11,
+   "unproven": [
+    "kayo/compiler/tests/programs/channels_handoff.cy:17:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.15230000000000002,
+    0.153,
+    0.15369999999999998
+   ],
+   "total": [
+    0.20980000000000001,
+    0.2105,
+    0.2125
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 11,
+   "unproven": [
+    "kayo/compiler/tests/programs/channels_handoff.cy:17:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.1674,
+    0.1675,
+    0.1667
+   ],
+   "total": [
+    0.22569999999999998,
+    0.22519999999999998,
+    0.22419999999999998
+   ],
+   "log": [
+    "site line 17 (in MAIN), loop at line 15: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers": {
+   "sites": 11,
+   "unproven": [
+    "kayo/compiler/tests/programs/channels_handoff.cy:17:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.1623,
+    0.1646,
+    0.1623
+   ],
+   "total": [
+    0.22030000000000002,
+    0.2228,
+    0.221
+   ],
+   "log": [
+    "site line 17 (in MAIN), loop at line 15: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers+gg": {
+   "sites": 11,
+   "unproven": [
+    "kayo/compiler/tests/programs/channels_handoff.cy:17:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.1631,
+    0.1641,
+    0.1623
+   ],
+   "total": [
+    0.2204,
+    0.2216,
+    0.2228
+   ],
+   "log": [
+    "site line 17 (in MAIN), loop at line 15: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint": {
+   "sites": 11,
+   "unproven": [
+    "kayo/compiler/tests/programs/channels_handoff.cy:17:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.1618,
+    0.16369999999999998,
+    0.1635
+   ],
+   "total": [
+    0.22,
+    0.2211,
+    0.2214
+   ],
+   "log": [
+    "site line 17 (in MAIN), loop at line 15: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint+gg": {
+   "sites": 11,
+   "unproven": [
+    "kayo/compiler/tests/programs/channels_handoff.cy:17:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.16319999999999998,
+    0.1628,
+    0.162
+   ],
+   "total": [
+    0.2206,
+    0.22169999999999998,
+    0.22
+   ],
+   "log": [
+    "site line 17 (in MAIN), loop at line 15: found a way through its clauses to the bad value"
+   ]
+  },
+  "bits+gg": {
+   "sites": 11,
+   "unproven": [
+    "kayo/compiler/tests/programs/channels_handoff.cy:17:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.1674,
+    0.169,
+    0.1683
+   ],
+   "total": [
+    0.2248,
+    0.22719999999999999,
+    0.2258
+   ],
+   "log": [
+    "site line 17 (in MAIN), loop at line 15: found a way through its clauses to the bad value"
+   ]
+  }
+ },
+ "kayo/compiler/tests/programs/channels_whichever.cy": {
+  "off": {
+   "sites": 30,
+   "unproven": [
+    "kayo/compiler/tests/programs/channels_whichever.cy:12:22",
+    "kayo/compiler/tests/programs/channels_whichever.cy:15:22",
+    "kayo/compiler/tests/programs/channels_whichever.cy:26:47",
+    "kayo/compiler/tests/programs/channels_whichever.cy:26:17",
+    "kayo/compiler/tests/programs/channels_whichever.cy:29:17"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.5412,
+    0.5288999999999999,
+    0.5397000000000001
+   ],
+   "total": [
+    0.6037,
+    0.5911000000000001,
+    0.5997
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 30,
+   "unproven": [
+    "kayo/compiler/tests/programs/channels_whichever.cy:12:22",
+    "kayo/compiler/tests/programs/channels_whichever.cy:15:22",
+    "kayo/compiler/tests/programs/channels_whichever.cy:26:47",
+    "kayo/compiler/tests/programs/channels_whichever.cy:26:17",
+    "kayo/compiler/tests/programs/channels_whichever.cy:29:17"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.7292000000000001,
+    0.733,
+    0.7317
+   ],
+   "total": [
+    0.7892,
+    0.7938,
+    0.792
+   ],
+   "log": [
+    "site line 26 (in MAIN), loop at line 23: found a way through its clauses to the bad value",
+    "site line 26 (in MAIN), loop at line 23: found a way through its clauses to the bad value",
+    "site line 29 (in MAIN), loop at line 23: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers": {
+   "sites": 30,
+   "unproven": [
+    "kayo/compiler/tests/programs/channels_whichever.cy:12:22",
+    "kayo/compiler/tests/programs/channels_whichever.cy:15:22",
+    "kayo/compiler/tests/programs/channels_whichever.cy:26:47",
+    "kayo/compiler/tests/programs/channels_whichever.cy:26:17",
+    "kayo/compiler/tests/programs/channels_whichever.cy:29:17"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.5624,
+    0.5575,
+    0.5557000000000001
+   ],
+   "total": [
+    0.6243,
+    0.6172000000000001,
+    0.6157
+   ],
+   "log": [
+    "site line 26 (in MAIN), loop at line 23: found a way through its clauses to the bad value",
+    "site line 26 (in MAIN), loop at line 23: found a way through its clauses to the bad value",
+    "site line 29 (in MAIN), loop at line 23: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers+gg": {
+   "sites": 30,
+   "unproven": [
+    "kayo/compiler/tests/programs/channels_whichever.cy:12:22",
+    "kayo/compiler/tests/programs/channels_whichever.cy:15:22",
+    "kayo/compiler/tests/programs/channels_whichever.cy:26:47",
+    "kayo/compiler/tests/programs/channels_whichever.cy:26:17",
+    "kayo/compiler/tests/programs/channels_whichever.cy:29:17"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.5535,
+    0.5577000000000001,
+    0.5604
+   ],
+   "total": [
+    0.6151,
+    0.6175,
+    0.62
+   ],
+   "log": [
+    "site line 26 (in MAIN), loop at line 23: found a way through its clauses to the bad value",
+    "site line 26 (in MAIN), loop at line 23: found a way through its clauses to the bad value",
+    "site line 29 (in MAIN), loop at line 23: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint": {
+   "sites": 30,
+   "unproven": [
+    "kayo/compiler/tests/programs/channels_whichever.cy:12:22",
+    "kayo/compiler/tests/programs/channels_whichever.cy:15:22",
+    "kayo/compiler/tests/programs/channels_whichever.cy:26:47",
+    "kayo/compiler/tests/programs/channels_whichever.cy:26:17",
+    "kayo/compiler/tests/programs/channels_whichever.cy:29:17"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.5587000000000001,
+    0.5544,
+    0.5552999999999999
+   ],
+   "total": [
+    0.6191,
+    0.6145,
+    0.6164
+   ],
+   "log": [
+    "site line 26 (in MAIN), loop at line 23: found a way through its clauses to the bad value",
+    "site line 26 (in MAIN), loop at line 23: found a way through its clauses to the bad value",
+    "site line 29 (in MAIN), loop at line 23: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint+gg": {
+   "sites": 30,
+   "unproven": [
+    "kayo/compiler/tests/programs/channels_whichever.cy:12:22",
+    "kayo/compiler/tests/programs/channels_whichever.cy:15:22",
+    "kayo/compiler/tests/programs/channels_whichever.cy:26:47",
+    "kayo/compiler/tests/programs/channels_whichever.cy:26:17",
+    "kayo/compiler/tests/programs/channels_whichever.cy:29:17"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.5651,
+    0.559,
+    0.5571
+   ],
+   "total": [
+    0.6247,
+    0.6191,
+    0.6167999999999999
+   ],
+   "log": [
+    "site line 26 (in MAIN), loop at line 23: found a way through its clauses to the bad value",
+    "site line 26 (in MAIN), loop at line 23: found a way through its clauses to the bad value",
+    "site line 29 (in MAIN), loop at line 23: found a way through its clauses to the bad value"
+   ]
+  },
+  "bits+gg": {
+   "sites": 30,
+   "unproven": [
+    "kayo/compiler/tests/programs/channels_whichever.cy:12:22",
+    "kayo/compiler/tests/programs/channels_whichever.cy:15:22",
+    "kayo/compiler/tests/programs/channels_whichever.cy:26:47",
+    "kayo/compiler/tests/programs/channels_whichever.cy:26:17",
+    "kayo/compiler/tests/programs/channels_whichever.cy:29:17"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.764,
+    0.7762,
+    0.7659
+   ],
+   "total": [
+    0.8261000000000001,
+    0.8368,
+    0.8266
+   ],
+   "log": [
+    "site line 26 (in MAIN), loop at line 23: found a way through its clauses to the bad value",
+    "site line 26 (in MAIN), loop at line 23: found a way through its clauses to the bad value",
+    "site line 29 (in MAIN), loop at line 23: found a way through its clauses to the bad value"
+   ]
+  }
+ },
+ "kayo/compiler/tests/programs/incl_bytes_change.cy": {
+  "off": {
+   "sites": 22,
+   "unproven": [
+    "kayo/compiler/tests/programs/incl_bytes_change.cy:22:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.16240000000000002,
+    0.16,
+    0.1625
+   ],
+   "total": [
+    0.21880000000000002,
+    0.21530000000000002,
+    0.21780000000000002
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 22,
+   "unproven": [
+    "kayo/compiler/tests/programs/incl_bytes_change.cy:22:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.1756,
+    0.1742,
+    0.1741
+   ],
+   "total": [
+    0.2312,
+    0.2297,
+    0.2302
+   ],
+   "log": [
+    "site line 22 (in MAIN), loop at line 20: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers": {
+   "sites": 22,
+   "unproven": [
+    "kayo/compiler/tests/programs/incl_bytes_change.cy:22:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.1697,
+    0.1713,
+    0.1692
+   ],
+   "total": [
+    0.2251,
+    0.2271,
+    0.2256
+   ],
+   "log": [
+    "site line 22 (in MAIN), loop at line 20: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers+gg": {
+   "sites": 22,
+   "unproven": [
+    "kayo/compiler/tests/programs/incl_bytes_change.cy:22:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.1711,
+    0.1696,
+    0.1707
+   ],
+   "total": [
+    0.2273,
+    0.2251,
+    0.22619999999999998
+   ],
+   "log": [
+    "site line 22 (in MAIN), loop at line 20: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint": {
+   "sites": 22,
+   "unproven": [
+    "kayo/compiler/tests/programs/incl_bytes_change.cy:22:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.17,
+    0.1694,
+    0.1691
+   ],
+   "total": [
+    0.2263,
+    0.2255,
+    0.22590000000000002
+   ],
+   "log": [
+    "site line 22 (in MAIN), loop at line 20: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint+gg": {
+   "sites": 22,
+   "unproven": [
+    "kayo/compiler/tests/programs/incl_bytes_change.cy:22:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.1701,
+    0.1694,
+    0.1707
+   ],
+   "total": [
+    0.2263,
+    0.22490000000000002,
+    0.2275
+   ],
+   "log": [
+    "site line 22 (in MAIN), loop at line 20: found a way through its clauses to the bad value"
+   ]
+  },
+  "bits+gg": {
+   "sites": 22,
+   "unproven": [
+    "kayo/compiler/tests/programs/incl_bytes_change.cy:22:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.1757,
+    0.1779,
+    0.1748
+   ],
+   "total": [
+    0.2322,
+    0.2346,
+    0.2308
+   ],
+   "log": [
+    "site line 22 (in MAIN), loop at line 20: found a way through its clauses to the bad value"
+   ]
+  }
+ },
+ "kayo/compiler/tests/programs/iterator_owned.cy": {
+  "off": {
+   "sites": 15,
+   "unproven": [
+    "kayo/compiler/tests/programs/iterator_owned.cy:13:5",
+    "kayo/compiler/tests/programs/iterator_owned.cy:23:35",
+    "kayo/compiler/tests/programs/iterator_owned.cy:23:9",
+    "kayo/compiler/tests/programs/iterator_owned.cy:27:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.33,
+    1.31,
+    1.31
+   ],
+   "total": [
+    1.38,
+    1.37,
+    1.37
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 15,
+   "unproven": [
+    "kayo/compiler/tests/programs/iterator_owned.cy:13:5",
+    "kayo/compiler/tests/programs/iterator_owned.cy:23:35",
+    "kayo/compiler/tests/programs/iterator_owned.cy:23:9",
+    "kayo/compiler/tests/programs/iterator_owned.cy:27:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.34,
+    1.36,
+    1.34
+   ],
+   "total": [
+    1.4,
+    1.42,
+    1.4
+   ],
+   "log": [
+    "site line 23 (in MAIN), loop at line 22: found a way through its clauses to the bad value",
+    "site line 23 (in MAIN), loop at line 22: found a way through its clauses to the bad value",
+    "site line 27 (in MAIN), loop at line 22: found a way through its clauses to the bad value",
+    "site line 27 (in MAIN), loop at line 26: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers": {
+   "sites": 15,
+   "unproven": [
+    "kayo/compiler/tests/programs/iterator_owned.cy:13:5",
+    "kayo/compiler/tests/programs/iterator_owned.cy:23:35",
+    "kayo/compiler/tests/programs/iterator_owned.cy:23:9",
+    "kayo/compiler/tests/programs/iterator_owned.cy:27:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.33,
+    1.32,
+    1.32
+   ],
+   "total": [
+    1.39,
+    1.38,
+    1.38
+   ],
+   "log": [
+    "site line 23 (in MAIN), loop at line 22: found a way through its clauses to the bad value",
+    "site line 23 (in MAIN), loop at line 22: found a way through its clauses to the bad value",
+    "site line 27 (in MAIN), loop at line 22: found a way through its clauses to the bad value",
+    "site line 27 (in MAIN), loop at line 26: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers+gg": {
+   "sites": 15,
+   "unproven": [
+    "kayo/compiler/tests/programs/iterator_owned.cy:13:5",
+    "kayo/compiler/tests/programs/iterator_owned.cy:23:35",
+    "kayo/compiler/tests/programs/iterator_owned.cy:23:9",
+    "kayo/compiler/tests/programs/iterator_owned.cy:27:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.32,
+    1.34,
+    1.33
+   ],
+   "total": [
+    1.38,
+    1.4,
+    1.39
+   ],
+   "log": [
+    "site line 23 (in MAIN), loop at line 22: found a way through its clauses to the bad value",
+    "site line 23 (in MAIN), loop at line 22: found a way through its clauses to the bad value",
+    "site line 27 (in MAIN), loop at line 22: found a way through its clauses to the bad value",
+    "site line 27 (in MAIN), loop at line 26: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint": {
+   "sites": 15,
+   "unproven": [
+    "kayo/compiler/tests/programs/iterator_owned.cy:13:5",
+    "kayo/compiler/tests/programs/iterator_owned.cy:23:35",
+    "kayo/compiler/tests/programs/iterator_owned.cy:23:9",
+    "kayo/compiler/tests/programs/iterator_owned.cy:27:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.33,
+    1.32,
+    1.32
+   ],
+   "total": [
+    1.38,
+    1.38,
+    1.38
+   ],
+   "log": [
+    "site line 23 (in MAIN), loop at line 22: found a way through its clauses to the bad value",
+    "site line 23 (in MAIN), loop at line 22: found a way through its clauses to the bad value",
+    "site line 27 (in MAIN), loop at line 22: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint+gg": {
+   "sites": 15,
+   "unproven": [
+    "kayo/compiler/tests/programs/iterator_owned.cy:13:5",
+    "kayo/compiler/tests/programs/iterator_owned.cy:23:35",
+    "kayo/compiler/tests/programs/iterator_owned.cy:23:9",
+    "kayo/compiler/tests/programs/iterator_owned.cy:27:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.35,
+    1.32,
+    1.33
+   ],
+   "total": [
+    1.41,
+    1.38,
+    1.39
+   ],
+   "log": [
+    "site line 23 (in MAIN), loop at line 22: found a way through its clauses to the bad value",
+    "site line 23 (in MAIN), loop at line 22: found a way through its clauses to the bad value",
+    "site line 27 (in MAIN), loop at line 22: found a way through its clauses to the bad value"
+   ]
+  },
+  "bits+gg": {
+   "sites": 15,
+   "unproven": [
+    "kayo/compiler/tests/programs/iterator_owned.cy:13:5",
+    "kayo/compiler/tests/programs/iterator_owned.cy:23:35",
+    "kayo/compiler/tests/programs/iterator_owned.cy:23:9",
+    "kayo/compiler/tests/programs/iterator_owned.cy:27:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.36,
+    1.35,
+    1.35
+   ],
+   "total": [
+    1.42,
+    1.41,
+    1.41
+   ],
+   "log": [
+    "site line 23 (in MAIN), loop at line 22: found a way through its clauses to the bad value",
+    "site line 23 (in MAIN), loop at line 22: found a way through its clauses to the bad value",
+    "site line 27 (in MAIN), loop at line 22: found a way through its clauses to the bad value",
+    "site line 27 (in MAIN), loop at line 26: found a way through its clauses to the bad value"
+   ]
+  }
+ },
+ "kayo/compiler/tests/programs/iterator_walk.cy": {
+  "off": {
+   "sites": 20,
+   "unproven": [
+    "kayo/compiler/tests/programs/iterator_walk.cy:14:5",
+    "kayo/compiler/tests/programs/iterator_walk.cy:23:5",
+    "kayo/compiler/tests/programs/iterator_walk.cy:42:9",
+    "kayo/compiler/tests/programs/iterator_walk.cy:45:9",
+    "kayo/compiler/tests/programs/iterator_walk.cy:53:5"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.06,
+    2.07,
+    2.11
+   ],
+   "total": [
+    2.12,
+    2.13,
+    2.17
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 20,
+   "unproven": [
+    "kayo/compiler/tests/programs/iterator_walk.cy:14:5",
+    "kayo/compiler/tests/programs/iterator_walk.cy:23:5",
+    "kayo/compiler/tests/programs/iterator_walk.cy:42:9",
+    "kayo/compiler/tests/programs/iterator_walk.cy:45:9",
+    "kayo/compiler/tests/programs/iterator_walk.cy:53:5"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.1,
+    2.11,
+    2.13
+   ],
+   "total": [
+    2.16,
+    2.17,
+    2.18
+   ],
+   "log": [
+    "site line 42 (in MAIN), loop at line 38: found a way through its clauses to the bad value",
+    "site line 45 (in MAIN), loop at line 38: found a way through its clauses to the bad value",
+    "site line 45 (in MAIN), loop at line 44: found a way through its clauses to the bad value",
+    "site line 53 (in MAIN), loop at line 38: found a way through its clauses to the bad value",
+    "site line 53 (in MAIN), loop at line 44: found a way through its clauses to the bad value",
+    "site line 53 (in MAIN), loop at line 48: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers": {
+   "sites": 20,
+   "unproven": [
+    "kayo/compiler/tests/programs/iterator_walk.cy:14:5",
+    "kayo/compiler/tests/programs/iterator_walk.cy:23:5",
+    "kayo/compiler/tests/programs/iterator_walk.cy:42:9",
+    "kayo/compiler/tests/programs/iterator_walk.cy:45:9",
+    "kayo/compiler/tests/programs/iterator_walk.cy:53:5"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.1,
+    2.11,
+    2.11
+   ],
+   "total": [
+    2.16,
+    2.17,
+    2.17
+   ],
+   "log": [
+    "site line 42 (in MAIN), loop at line 38: found a way through its clauses to the bad value",
+    "site line 45 (in MAIN), loop at line 38: found a way through its clauses to the bad value",
+    "site line 45 (in MAIN), loop at line 44: found a way through its clauses to the bad value",
+    "site line 53 (in MAIN), loop at line 38: found a way through its clauses to the bad value",
+    "site line 53 (in MAIN), loop at line 44: found a way through its clauses to the bad value",
+    "site line 53 (in MAIN), loop at line 48: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers+gg": {
+   "sites": 20,
+   "unproven": [
+    "kayo/compiler/tests/programs/iterator_walk.cy:14:5",
+    "kayo/compiler/tests/programs/iterator_walk.cy:23:5",
+    "kayo/compiler/tests/programs/iterator_walk.cy:42:9",
+    "kayo/compiler/tests/programs/iterator_walk.cy:45:9",
+    "kayo/compiler/tests/programs/iterator_walk.cy:53:5"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.09,
+    2.08,
+    2.11
+   ],
+   "total": [
+    2.15,
+    2.14,
+    2.17
+   ],
+   "log": [
+    "site line 42 (in MAIN), loop at line 38: found a way through its clauses to the bad value",
+    "site line 45 (in MAIN), loop at line 38: found a way through its clauses to the bad value",
+    "site line 45 (in MAIN), loop at line 44: found a way through its clauses to the bad value",
+    "site line 53 (in MAIN), loop at line 38: found a way through its clauses to the bad value",
+    "site line 53 (in MAIN), loop at line 44: found a way through its clauses to the bad value",
+    "site line 53 (in MAIN), loop at line 48: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint": {
+   "sites": 20,
+   "unproven": [
+    "kayo/compiler/tests/programs/iterator_walk.cy:14:5",
+    "kayo/compiler/tests/programs/iterator_walk.cy:23:5",
+    "kayo/compiler/tests/programs/iterator_walk.cy:42:9",
+    "kayo/compiler/tests/programs/iterator_walk.cy:45:9",
+    "kayo/compiler/tests/programs/iterator_walk.cy:53:5"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.09,
+    2.07,
+    2.08
+   ],
+   "total": [
+    2.15,
+    2.13,
+    2.14
+   ],
+   "log": [
+    "site line 42 (in MAIN), loop at line 38: found a way through its clauses to the bad value",
+    "site line 45 (in MAIN), loop at line 38: found a way through its clauses to the bad value",
+    "site line 53 (in MAIN), loop at line 38: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint+gg": {
+   "sites": 20,
+   "unproven": [
+    "kayo/compiler/tests/programs/iterator_walk.cy:14:5",
+    "kayo/compiler/tests/programs/iterator_walk.cy:23:5",
+    "kayo/compiler/tests/programs/iterator_walk.cy:42:9",
+    "kayo/compiler/tests/programs/iterator_walk.cy:45:9",
+    "kayo/compiler/tests/programs/iterator_walk.cy:53:5"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.1,
+    2.09,
+    2.09
+   ],
+   "total": [
+    2.16,
+    2.15,
+    2.15
+   ],
+   "log": [
+    "site line 42 (in MAIN), loop at line 38: found a way through its clauses to the bad value",
+    "site line 45 (in MAIN), loop at line 38: found a way through its clauses to the bad value",
+    "site line 53 (in MAIN), loop at line 38: found a way through its clauses to the bad value"
+   ]
+  },
+  "bits+gg": {
+   "sites": 20,
+   "unproven": [
+    "kayo/compiler/tests/programs/iterator_walk.cy:14:5",
+    "kayo/compiler/tests/programs/iterator_walk.cy:23:5",
+    "kayo/compiler/tests/programs/iterator_walk.cy:42:9",
+    "kayo/compiler/tests/programs/iterator_walk.cy:45:9",
+    "kayo/compiler/tests/programs/iterator_walk.cy:53:5"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.12,
+    2.11,
+    2.12
+   ],
+   "total": [
+    2.18,
+    2.17,
+    2.17
+   ],
+   "log": [
+    "site line 42 (in MAIN), loop at line 38: found a way through its clauses to the bad value",
+    "site line 45 (in MAIN), loop at line 38: found a way through its clauses to the bad value",
+    "site line 45 (in MAIN), loop at line 44: found a way through its clauses to the bad value",
+    "site line 53 (in MAIN), loop at line 38: found a way through its clauses to the bad value",
+    "site line 53 (in MAIN), loop at line 44: found a way through its clauses to the bad value",
+    "site line 53 (in MAIN), loop at line 48: found a way through its clauses to the bad value"
+   ]
+  }
+ },
+ "kayo/compiler/tests/programs/lend_mut_through.cy": {
+  "off": {
+   "sites": 9,
+   "unproven": [
+    "kayo/compiler/tests/programs/lend_mut_through.cy:11:19"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.0501,
+    0.0485,
+    0.0493
+   ],
+   "total": [
+    0.10540000000000001,
+    0.1047,
+    0.10479999999999999
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 9,
+   "unproven": [
+    "kayo/compiler/tests/programs/lend_mut_through.cy:11:19"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.1019,
+    0.1033,
+    0.1044
+   ],
+   "total": [
+    0.15730000000000002,
+    0.159,
+    0.1598
+   ],
+   "log": [
+    "site line 11 (in MAIN), loop at line 8: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers": {
+   "sites": 9,
+   "unproven": [
+    "kayo/compiler/tests/programs/lend_mut_through.cy:11:19"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.066,
+    0.0686,
+    0.0679
+   ],
+   "total": [
+    0.121,
+    0.1254,
+    0.1225
+   ],
+   "log": [
+    "site line 11 (in MAIN), loop at line 8: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers+gg": {
+   "sites": 9,
+   "unproven": [
+    "kayo/compiler/tests/programs/lend_mut_through.cy:11:19"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.0675,
+    0.0679,
+    0.0675
+   ],
+   "total": [
+    0.1222,
+    0.12409999999999999,
+    0.1225
+   ],
+   "log": [
+    "site line 11 (in MAIN), loop at line 8: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint": {
+   "sites": 9,
+   "unproven": [
+    "kayo/compiler/tests/programs/lend_mut_through.cy:11:19"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.0673,
+    0.06709999999999999,
+    0.0674
+   ],
+   "total": [
+    0.12229999999999999,
+    0.122,
+    0.12229999999999999
+   ],
+   "log": [
+    "site line 11 (in MAIN), loop at line 8: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint+gg": {
+   "sites": 9,
+   "unproven": [
+    "kayo/compiler/tests/programs/lend_mut_through.cy:11:19"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.0689,
+    0.0687,
+    0.0695
+   ],
+   "total": [
+    0.1248,
+    0.12359999999999999,
+    0.1245
+   ],
+   "log": [
+    "site line 11 (in MAIN), loop at line 8: found a way through its clauses to the bad value"
+   ]
+  },
+  "bits+gg": {
+   "sites": 9,
+   "unproven": [
+    "kayo/compiler/tests/programs/lend_mut_through.cy:11:19"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.103,
+    0.1022,
+    0.1021
+   ],
+   "total": [
+    0.15880000000000002,
+    0.15719999999999998,
+    0.1576
+   ],
+   "log": [
+    "site line 11 (in MAIN), loop at line 8: found a way through its clauses to the bad value"
+   ]
+  }
+ },
+ "kayo/compiler/tests/programs/map_get_owned_copy.cy": {
+  "off": {
+   "sites": 32,
+   "unproven": [
+    "kayo/compiler/tests/programs/map_get_owned_copy.cy:23:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.5722999999999999,
+    0.5728,
+    0.5722
+   ],
+   "total": [
+    0.6435,
+    0.6456000000000001,
+    0.6435
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 32,
+   "unproven": [
+    "kayo/compiler/tests/programs/map_get_owned_copy.cy:23:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.6627000000000001,
+    0.6557999999999999,
+    0.6562
+   ],
+   "total": [
+    0.7351,
+    0.7273,
+    0.7276
+   ],
+   "log": [
+    "site line 23 (in MAIN), loop at line 11: found a way through its clauses to the bad value",
+    "site line 23 (in MAIN), loop at line 15: found a way through its clauses to the bad value",
+    "site line 23 (in MAIN), loop at line 16: not asked: a trip round the loop could not be put into words"
+   ]
+  },
+  "integers": {
+   "sites": 32,
+   "unproven": [
+    "kayo/compiler/tests/programs/map_get_owned_copy.cy:23:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.6127999999999999,
+    0.6164,
+    0.6103
+   ],
+   "total": [
+    0.684,
+    0.6886,
+    0.6831
+   ],
+   "log": [
+    "site line 23 (in MAIN), loop at line 11: found a way through its clauses to the bad value",
+    "site line 23 (in MAIN), loop at line 15: found a way through its clauses to the bad value",
+    "site line 23 (in MAIN), loop at line 16: not asked: a trip round the loop could not be put into words"
+   ]
+  },
+  "integers+gg": {
+   "sites": 32,
+   "unproven": [
+    "kayo/compiler/tests/programs/map_get_owned_copy.cy:23:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.6123999999999999,
+    0.6177999999999999,
+    0.6121
+   ],
+   "total": [
+    0.6838,
+    0.6894,
+    0.684
+   ],
+   "log": [
+    "site line 23 (in MAIN), loop at line 11: found a way through its clauses to the bad value",
+    "site line 23 (in MAIN), loop at line 15: found a way through its clauses to the bad value",
+    "site line 23 (in MAIN), loop at line 16: not asked: a trip round the loop could not be put into words"
+   ]
+  },
+  "joint": {
+   "sites": 32,
+   "unproven": [
+    "kayo/compiler/tests/programs/map_get_owned_copy.cy:23:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.5967,
+    0.5955,
+    0.5989
+   ],
+   "total": [
+    0.6698999999999999,
+    0.6678,
+    0.6707000000000001
+   ],
+   "log": [
+    "site line 23 (in MAIN), loop at line 11: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint+gg": {
+   "sites": 32,
+   "unproven": [
+    "kayo/compiler/tests/programs/map_get_owned_copy.cy:23:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.5981000000000001,
+    0.6012000000000001,
+    0.5975
+   ],
+   "total": [
+    0.6717000000000001,
+    0.6738,
+    0.6715
+   ],
+   "log": [
+    "site line 23 (in MAIN), loop at line 11: found a way through its clauses to the bad value"
+   ]
+  },
+  "bits+gg": {
+   "sites": 32,
+   "unproven": [
+    "kayo/compiler/tests/programs/map_get_owned_copy.cy:23:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.66,
+    0.6531,
+    0.66
+   ],
+   "total": [
+    0.7333999999999999,
+    0.725,
+    0.7327
+   ],
+   "log": [
+    "site line 23 (in MAIN), loop at line 11: found a way through its clauses to the bad value",
+    "site line 23 (in MAIN), loop at line 15: found a way through its clauses to the bad value",
+    "site line 23 (in MAIN), loop at line 16: not asked: a trip round the loop could not be put into words"
+   ]
+  }
+ },
+ "kayo/compiler/tests/programs/map_walk.cy": {
+  "off": {
+   "sites": 17,
+   "unproven": [
+    "kayo/compiler/tests/programs/map_walk.cy:10:9",
+    "kayo/compiler/tests/programs/map_walk.cy:14:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.43,
+    2.41,
+    2.42
+   ],
+   "total": [
+    2.49,
+    2.47,
+    2.48
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 17,
+   "unproven": [
+    "kayo/compiler/tests/programs/map_walk.cy:10:9",
+    "kayo/compiler/tests/programs/map_walk.cy:14:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.49,
+    2.49,
+    2.49
+   ],
+   "total": [
+    2.55,
+    2.55,
+    2.56
+   ],
+   "log": [
+    "site line 10 (in MAIN), loop at line 9: found a way through its clauses to the bad value",
+    "site line 14 (in MAIN), loop at line 9: found a way through its clauses to the bad value",
+    "site line 14 (in MAIN), loop at line 13: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers": {
+   "sites": 17,
+   "unproven": [
+    "kayo/compiler/tests/programs/map_walk.cy:10:9",
+    "kayo/compiler/tests/programs/map_walk.cy:14:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.44,
+    2.48,
+    2.44
+   ],
+   "total": [
+    2.5,
+    2.54,
+    2.51
+   ],
+   "log": [
+    "site line 10 (in MAIN), loop at line 9: found a way through its clauses to the bad value",
+    "site line 14 (in MAIN), loop at line 9: found a way through its clauses to the bad value",
+    "site line 14 (in MAIN), loop at line 13: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers+gg": {
+   "sites": 17,
+   "unproven": [
+    "kayo/compiler/tests/programs/map_walk.cy:10:9",
+    "kayo/compiler/tests/programs/map_walk.cy:14:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.44,
+    2.43,
+    2.43
+   ],
+   "total": [
+    2.5,
+    2.5,
+    2.49
+   ],
+   "log": [
+    "site line 10 (in MAIN), loop at line 9: found a way through its clauses to the bad value",
+    "site line 14 (in MAIN), loop at line 9: found a way through its clauses to the bad value",
+    "site line 14 (in MAIN), loop at line 13: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint": {
+   "sites": 17,
+   "unproven": [
+    "kayo/compiler/tests/programs/map_walk.cy:10:9",
+    "kayo/compiler/tests/programs/map_walk.cy:14:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.44,
+    2.45,
+    2.47
+   ],
+   "total": [
+    2.5,
+    2.51,
+    2.53
+   ],
+   "log": [
+    "site line 10 (in MAIN), loop at line 9: found a way through its clauses to the bad value",
+    "site line 14 (in MAIN), loop at line 9: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint+gg": {
+   "sites": 17,
+   "unproven": [
+    "kayo/compiler/tests/programs/map_walk.cy:10:9",
+    "kayo/compiler/tests/programs/map_walk.cy:14:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.49,
+    2.56,
+    2.6
+   ],
+   "total": [
+    2.55,
+    2.62,
+    2.67
+   ],
+   "log": [
+    "site line 10 (in MAIN), loop at line 9: found a way through its clauses to the bad value",
+    "site line 14 (in MAIN), loop at line 9: found a way through its clauses to the bad value"
+   ]
+  },
+  "bits+gg": {
+   "sites": 17,
+   "unproven": [
+    "kayo/compiler/tests/programs/map_walk.cy:10:9",
+    "kayo/compiler/tests/programs/map_walk.cy:14:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.63,
+    2.62,
+    2.61
+   ],
+   "total": [
+    2.69,
+    2.68,
+    2.67
+   ],
+   "log": [
+    "site line 10 (in MAIN), loop at line 9: found a way through its clauses to the bad value",
+    "site line 14 (in MAIN), loop at line 9: found a way through its clauses to the bad value",
+    "site line 14 (in MAIN), loop at line 13: found a way through its clauses to the bad value"
+   ]
+  }
+ },
+ "kayo/compiler/tests/programs/msl_narrowed_cross.cy": {
+  "off": {
+   "sites": 25,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_narrowed_cross.cy:13:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.16,
+    1.16,
+    1.17
+   ],
+   "total": [
+    1.29,
+    1.29,
+    1.31
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 25,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_narrowed_cross.cy:13:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.29,
+    1.28,
+    1.28
+   ],
+   "total": [
+    1.42,
+    1.41,
+    1.41
+   ],
+   "log": [
+    "site line 13 (in total), loop at line 12: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers": {
+   "sites": 25,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_narrowed_cross.cy:13:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.17,
+    1.18,
+    1.17
+   ],
+   "total": [
+    1.31,
+    1.31,
+    1.3
+   ],
+   "log": [
+    "site line 13 (in total), loop at line 12: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers+gg": {
+   "sites": 25,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_narrowed_cross.cy:13:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.17,
+    1.18,
+    1.19
+   ],
+   "total": [
+    1.3,
+    1.32,
+    1.32
+   ],
+   "log": [
+    "site line 13 (in total), loop at line 12: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint": {
+   "sites": 25,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_narrowed_cross.cy:13:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.19,
+    1.17,
+    1.19
+   ],
+   "total": [
+    1.32,
+    1.3,
+    1.32
+   ],
+   "log": [
+    "site line 13 (in total), loop at line 12: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint+gg": {
+   "sites": 25,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_narrowed_cross.cy:13:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.18,
+    1.18,
+    1.25
+   ],
+   "total": [
+    1.31,
+    1.32,
+    1.38
+   ],
+   "log": [
+    "site line 13 (in total), loop at line 12: found a way through its clauses to the bad value"
+   ]
+  },
+  "bits+gg": {
+   "sites": 25,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_narrowed_cross.cy:13:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.3,
+    1.29,
+    1.29
+   ],
+   "total": [
+    1.43,
+    1.43,
+    1.42
+   ],
+   "log": [
+    "site line 13 (in total), loop at line 12: found a way through its clauses to the bad value"
+   ]
+  }
+ },
+ "kayo/compiler/tests/programs/msl_page_aligned.cy": {
+  "off": {
+   "sites": 21,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_page_aligned.cy:21:9",
+    "kayo/compiler/tests/programs/msl_page_aligned.cy:25:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.82,
+    1.8,
+    1.8
+   ],
+   "total": [
+    1.98,
+    1.96,
+    1.96
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 21,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_page_aligned.cy:21:9",
+    "kayo/compiler/tests/programs/msl_page_aligned.cy:25:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.02,
+    2.04,
+    2.02
+   ],
+   "total": [
+    2.18,
+    2.2,
+    2.18
+   ],
+   "log": [
+    "site line 21 (in MAIN), loop at line 20: found a way through its clauses to the bad value",
+    "site line 25 (in MAIN), loop at line 20: found a way through its clauses to the bad value",
+    "site line 25 (in MAIN), loop at line 24: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers": {
+   "sites": 21,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_page_aligned.cy:21:9",
+    "kayo/compiler/tests/programs/msl_page_aligned.cy:25:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.85,
+    1.9,
+    1.9
+   ],
+   "total": [
+    2.02,
+    2.08,
+    2.08
+   ],
+   "log": [
+    "site line 21 (in MAIN), loop at line 20: found a way through its clauses to the bad value",
+    "site line 25 (in MAIN), loop at line 20: found a way through its clauses to the bad value",
+    "site line 25 (in MAIN), loop at line 24: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers+gg": {
+   "sites": 21,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_page_aligned.cy:21:9",
+    "kayo/compiler/tests/programs/msl_page_aligned.cy:25:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.87,
+    1.87,
+    1.84
+   ],
+   "total": [
+    2.04,
+    2.04,
+    2.01
+   ],
+   "log": [
+    "site line 21 (in MAIN), loop at line 20: found a way through its clauses to the bad value",
+    "site line 25 (in MAIN), loop at line 20: found a way through its clauses to the bad value",
+    "site line 25 (in MAIN), loop at line 24: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint": {
+   "sites": 21,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_page_aligned.cy:21:9",
+    "kayo/compiler/tests/programs/msl_page_aligned.cy:25:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.87,
+    1.89,
+    1.88
+   ],
+   "total": [
+    2.03,
+    2.05,
+    2.05
+   ],
+   "log": [
+    "site line 21 (in MAIN), loop at line 20: found a way through its clauses to the bad value",
+    "site line 25 (in MAIN), loop at line 20: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint+gg": {
+   "sites": 21,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_page_aligned.cy:21:9",
+    "kayo/compiler/tests/programs/msl_page_aligned.cy:25:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.91,
+    1.88,
+    1.86
+   ],
+   "total": [
+    2.07,
+    2.05,
+    2.02
+   ],
+   "log": [
+    "site line 21 (in MAIN), loop at line 20: found a way through its clauses to the bad value",
+    "site line 25 (in MAIN), loop at line 20: found a way through its clauses to the bad value"
+   ]
+  },
+  "bits+gg": {
+   "sites": 21,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_page_aligned.cy:21:9",
+    "kayo/compiler/tests/programs/msl_page_aligned.cy:25:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.12,
+    2.11,
+    2.15
+   ],
+   "total": [
+    2.29,
+    2.28,
+    2.33
+   ],
+   "log": [
+    "site line 21 (in MAIN), loop at line 20: found a way through its clauses to the bad value",
+    "site line 25 (in MAIN), loop at line 20: found a way through its clauses to the bad value",
+    "site line 25 (in MAIN), loop at line 24: found a way through its clauses to the bad value"
+   ]
+  }
+ },
+ "kayo/compiler/tests/programs/msl_whole_pages.cy": {
+  "off": {
+   "sites": 15,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_whole_pages.cy:20:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.09,
+    1.06,
+    1.06
+   ],
+   "total": [
+    1.26,
+    1.19,
+    1.21
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 15,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_whole_pages.cy:20:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.97,
+    2.84,
+    2.85
+   ],
+   "total": [
+    3.1,
+    2.97,
+    2.98
+   ],
+   "log": [
+    "site line 20 (in MAIN), loop at line 6: spent its step budget",
+    "site line 20 (in MAIN), loop at line 10: found a way through its clauses to the bad value",
+    "site line 20 (in MAIN), loop at line 18: spent its step budget"
+   ]
+  },
+  "integers": {
+   "sites": 15,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_whole_pages.cy:20:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    3.13,
+    3.1,
+    3.14
+   ],
+   "total": [
+    3.26,
+    3.23,
+    3.27
+   ],
+   "log": [
+    "site line 20 (in MAIN), loop at line 6: spent its step budget",
+    "site line 20 (in MAIN), loop at line 10: found a way through its clauses to the bad value",
+    "site line 20 (in MAIN), loop at line 18: spent its step budget"
+   ]
+  },
+  "integers+gg": {
+   "sites": 15,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_whole_pages.cy:20:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    4.24,
+    4.26,
+    4.29
+   ],
+   "total": [
+    4.37,
+    4.4,
+    4.42
+   ],
+   "log": [
+    "site line 20 (in MAIN), loop at line 6: spent its step budget",
+    "site line 20 (in MAIN), loop at line 10: found a way through its clauses to the bad value",
+    "site line 20 (in MAIN), loop at line 18: spent its step budget"
+   ]
+  },
+  "joint": {
+   "sites": 15,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_whole_pages.cy:20:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.67,
+    2.68,
+    2.65
+   ],
+   "total": [
+    2.8,
+    2.81,
+    2.78
+   ],
+   "log": [
+    "site line 20 (in MAIN), loop at line 6: spent its step budget"
+   ]
+  },
+  "joint+gg": {
+   "sites": 15,
+   "unproven": [],
+   "same_every_run": true,
+   "precog": [
+    4.32,
+    4.4,
+    4.36
+   ],
+   "total": [
+    4.45,
+    4.53,
+    4.5
+   ],
+   "log": [
+    "site line 20 (in MAIN), loop at line 6: confirmed: (let ((a!1 (or (not (<= (+ len($xs) _7) 9223372036854775806)) (not (<= $i 16383)) (not (>= (+ len($xs) _7) 2147483647)))) (a!2 (not (>= (+ $i (* (- 1) _6)) 0))) (a!3 (not (>= (+ $i (* (- 1) len($xs))) (- 9223372036854759422)))) (a!4 (not (<= (+ $i (* (- 1) len($xs))) (- 2147467263)))) (a!5 (not (<= (+ $i (* (- 1) len($xs)) (* (- 1) _7)) (- 2147467264)))) (a!6 (not (>= (+ $i (* (- 1) len($xs)) (* (- 1) _7)) (- 9223372036854759423))))) (and a!1 (or a!2 (not (>= len($xs) 2147483647)) (not (<= len($xs) 9223372036854775806))) (or (not (>= len($xs) 2147483647)) (not (>= $i 16384)) (not (<= len($xs) 9223372036854775806))) (or a!3 (not (>= $i 16382)) (not (= _6 16384)) (not (= _7 1)) a!4 (not (<= $i 16383))) (or a!5 a!6))); the site is proven",
+    "site line 20 (in MAIN), loop at line 10: confirmed: (let ((a!1 (not (>= (+ $round (* (- 1) _20) (* (- 1) _19)) (- 1))))) (and (or (not (>= len($xs) 2147483648)) a!1) (or (not (<= len($xs) 9223372036854775807)) (not (>= len($xs) 2147483648))) (or (not (>= $round 2)) (not (>= len($xs) 2147483648))))); the site is proven",
+    "site line 20 (in MAIN), loop at line 18: confirmed: (not (<= (+ _37 (* (- 1) $wrong) (* (- 1) _36)) (- 2147483647))); the site is proven"
+   ]
+  },
+  "bits+gg": {
+   "sites": 15,
+   "unproven": [
+    "kayo/compiler/tests/programs/msl_whole_pages.cy:20:13"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.86,
+    2.72,
+    2.71
+   ],
+   "total": [
+    2.99,
+    2.85,
+    2.84
+   ],
+   "log": [
+    "site line 20 (in MAIN), loop at line 6: spent its step budget",
+    "site line 20 (in MAIN), loop at line 10: found a way through its clauses to the bad value",
+    "site line 20 (in MAIN), loop at line 18: spent its step budget"
+   ]
+  }
+ },
+ "kayo/compiler/tests/programs/nested_loop_exit.cy": {
+  "off": {
+   "sites": 13,
+   "unproven": [
+    "kayo/compiler/tests/programs/nested_loop_exit.cy:15:20"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.44139999999999996,
+    0.44239999999999996,
+    0.4445
+   ],
+   "total": [
+    0.4982,
+    0.4993,
+    0.5023
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 13,
+   "unproven": [
+    "kayo/compiler/tests/programs/nested_loop_exit.cy:15:20"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.7051000000000001,
+    0.6996,
+    0.6942999999999999
+   ],
+   "total": [
+    0.7612000000000001,
+    0.7544,
+    0.7491
+   ],
+   "log": [
+    "site line 15 (in MAIN), loop at line 10: found a way through its clauses to the bad value",
+    "site line 15 (in MAIN), loop at line 12: not asked: a trip round the loop could not be put into words"
+   ]
+  },
+  "integers": {
+   "sites": 13,
+   "unproven": [
+    "kayo/compiler/tests/programs/nested_loop_exit.cy:15:20"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.5408,
+    0.5414,
+    0.5395
+   ],
+   "total": [
+    0.597,
+    0.5961000000000001,
+    0.5942999999999999
+   ],
+   "log": [
+    "site line 15 (in MAIN), loop at line 10: found a way through its clauses to the bad value",
+    "site line 15 (in MAIN), loop at line 12: not asked: a trip round the loop could not be put into words"
+   ]
+  },
+  "integers+gg": {
+   "sites": 13,
+   "unproven": [
+    "kayo/compiler/tests/programs/nested_loop_exit.cy:15:20"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.5481,
+    0.5453,
+    0.5482
+   ],
+   "total": [
+    0.6043999999999999,
+    0.6001000000000001,
+    0.6056
+   ],
+   "log": [
+    "site line 15 (in MAIN), loop at line 10: found a way through its clauses to the bad value",
+    "site line 15 (in MAIN), loop at line 12: not asked: a trip round the loop could not be put into words"
+   ]
+  },
+  "joint": {
+   "sites": 13,
+   "unproven": [
+    "kayo/compiler/tests/programs/nested_loop_exit.cy:15:20"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.526,
+    0.5312,
+    0.5291
+   ],
+   "total": [
+    0.581,
+    0.5872999999999999,
+    0.5867
+   ],
+   "log": [
+    "site line 15 (in MAIN), loop at line 10: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint+gg": {
+   "sites": 13,
+   "unproven": [
+    "kayo/compiler/tests/programs/nested_loop_exit.cy:15:20"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.5484,
+    0.5453,
+    0.5473
+   ],
+   "total": [
+    0.6041,
+    0.5999,
+    0.6023999999999999
+   ],
+   "log": [
+    "site line 15 (in MAIN), loop at line 10: found a way through its clauses to the bad value"
+   ]
+  },
+  "bits+gg": {
+   "sites": 13,
+   "unproven": [
+    "kayo/compiler/tests/programs/nested_loop_exit.cy:15:20"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.6978,
+    0.6967000000000001,
+    0.6998
+   ],
+   "total": [
+    0.7527999999999999,
+    0.7516,
+    0.7547
+   ],
+   "log": [
+    "site line 15 (in MAIN), loop at line 10: found a way through its clauses to the bad value",
+    "site line 15 (in MAIN), loop at line 12: not asked: a trip round the loop could not be put into words"
+   ]
+  }
+ },
+ "kayo/compiler/tests/programs/pairs_two_kinds.cy": {
+  "off": {
+   "sites": 34,
+   "unproven": [
+    "kayo/compiler/tests/programs/pairs_two_kinds.cy:20:13",
+    "kayo/compiler/tests/programs/pairs_two_kinds.cy:24:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.1278,
+    0.1414,
+    0.1306
+   ],
+   "total": [
+    0.1979,
+    0.2434,
+    0.2025
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 34,
+   "unproven": [
+    "kayo/compiler/tests/programs/pairs_two_kinds.cy:20:13",
+    "kayo/compiler/tests/programs/pairs_two_kinds.cy:24:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.2088,
+    0.2058,
+    0.213
+   ],
+   "total": [
+    0.2806,
+    0.2764,
+    0.2849
+   ],
+   "log": [
+    "site line 20 (in walk), loop at line 12: found a way through its clauses to the bad value",
+    "site line 20 (in walk), loop at line 18: found a way through its clauses to the bad value",
+    "site line 24 (in walk), loop at line 12: found a way through its clauses to the bad value",
+    "site line 24 (in walk), loop at line 18: found a way through its clauses to the bad value",
+    "site line 24 (in walk), loop at line 23: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers": {
+   "sites": 34,
+   "unproven": [
+    "kayo/compiler/tests/programs/pairs_two_kinds.cy:20:13",
+    "kayo/compiler/tests/programs/pairs_two_kinds.cy:24:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.1733,
+    0.175,
+    0.2718
+   ],
+   "total": [
+    0.2444,
+    0.2491,
+    0.351
+   ],
+   "log": [
+    "site line 20 (in walk), loop at line 12: found a way through its clauses to the bad value",
+    "site line 20 (in walk), loop at line 18: found a way through its clauses to the bad value",
+    "site line 24 (in walk), loop at line 12: found a way through its clauses to the bad value",
+    "site line 24 (in walk), loop at line 18: found a way through its clauses to the bad value",
+    "site line 24 (in walk), loop at line 23: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers+gg": {
+   "sites": 34,
+   "unproven": [
+    "kayo/compiler/tests/programs/pairs_two_kinds.cy:20:13",
+    "kayo/compiler/tests/programs/pairs_two_kinds.cy:24:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.1769,
+    0.1814,
+    0.1915
+   ],
+   "total": [
+    0.2507,
+    0.25689999999999996,
+    0.2651
+   ],
+   "log": [
+    "site line 20 (in walk), loop at line 12: found a way through its clauses to the bad value",
+    "site line 20 (in walk), loop at line 18: found a way through its clauses to the bad value",
+    "site line 24 (in walk), loop at line 12: found a way through its clauses to the bad value",
+    "site line 24 (in walk), loop at line 18: found a way through its clauses to the bad value",
+    "site line 24 (in walk), loop at line 23: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint": {
+   "sites": 34,
+   "unproven": [
+    "kayo/compiler/tests/programs/pairs_two_kinds.cy:20:13",
+    "kayo/compiler/tests/programs/pairs_two_kinds.cy:24:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.1664,
+    0.15819999999999998,
+    0.157
+   ],
+   "total": [
+    0.2388,
+    0.2308,
+    0.22790000000000002
+   ],
+   "log": [
+    "site line 20 (in walk), loop at line 12: found a way through its clauses to the bad value",
+    "site line 24 (in walk), loop at line 12: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint+gg": {
+   "sites": 34,
+   "unproven": [
+    "kayo/compiler/tests/programs/pairs_two_kinds.cy:20:13",
+    "kayo/compiler/tests/programs/pairs_two_kinds.cy:24:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.15469999999999998,
+    0.15519999999999998,
+    0.157
+   ],
+   "total": [
+    0.22640000000000002,
+    0.2255,
+    0.2304
+   ],
+   "log": [
+    "site line 20 (in walk), loop at line 12: found a way through its clauses to the bad value",
+    "site line 24 (in walk), loop at line 12: found a way through its clauses to the bad value"
+   ]
+  },
+  "bits+gg": {
+   "sites": 34,
+   "unproven": [
+    "kayo/compiler/tests/programs/pairs_two_kinds.cy:20:13",
+    "kayo/compiler/tests/programs/pairs_two_kinds.cy:24:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.2067,
+    0.2092,
+    0.207
+   ],
+   "total": [
+    0.2777,
+    0.2796,
+    0.277
+   ],
+   "log": [
+    "site line 20 (in walk), loop at line 12: found a way through its clauses to the bad value",
+    "site line 20 (in walk), loop at line 18: found a way through its clauses to the bad value",
+    "site line 24 (in walk), loop at line 12: found a way through its clauses to the bad value",
+    "site line 24 (in walk), loop at line 18: found a way through its clauses to the bad value",
+    "site line 24 (in walk), loop at line 23: found a way through its clauses to the bad value"
+   ]
+  }
+ },
+ "kayo/compiler/tests/programs/par_lent_param.cy": {
+  "off": {
+   "sites": 20,
+   "unproven": [
+    "kayo/compiler/tests/programs/par_lent_param.cy:8:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    3.58,
+    3.62,
+    3.58
+   ],
+   "total": [
+    3.65,
+    3.68,
+    3.64
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 20,
+   "unproven": [
+    "kayo/compiler/tests/programs/par_lent_param.cy:8:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    9.29,
+    9.52,
+    9.24
+   ],
+   "total": [
+    9.36,
+    9.59,
+    9.31
+   ],
+   "log": [
+    "site line 8 (in total), loop at line 7: spent its step budget"
+   ]
+  },
+  "integers": {
+   "sites": 20,
+   "unproven": [
+    "kayo/compiler/tests/programs/par_lent_param.cy:8:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    3.61,
+    3.64,
+    3.61
+   ],
+   "total": [
+    3.68,
+    3.71,
+    3.68
+   ],
+   "log": [
+    "site line 8 (in total), loop at line 7: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers+gg": {
+   "sites": 20,
+   "unproven": [
+    "kayo/compiler/tests/programs/par_lent_param.cy:8:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    3.67,
+    3.61,
+    3.61
+   ],
+   "total": [
+    3.73,
+    3.68,
+    3.68
+   ],
+   "log": [
+    "site line 8 (in total), loop at line 7: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint": {
+   "sites": 20,
+   "unproven": [
+    "kayo/compiler/tests/programs/par_lent_param.cy:8:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    3.64,
+    3.69,
+    3.79
+   ],
+   "total": [
+    3.71,
+    3.76,
+    3.87
+   ],
+   "log": [
+    "site line 8 (in total), loop at line 7: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint+gg": {
+   "sites": 20,
+   "unproven": [
+    "kayo/compiler/tests/programs/par_lent_param.cy:8:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    3.79,
+    3.62,
+    3.59
+   ],
+   "total": [
+    3.86,
+    3.69,
+    3.66
+   ],
+   "log": [
+    "site line 8 (in total), loop at line 7: found a way through its clauses to the bad value"
+   ]
+  },
+  "bits+gg": {
+   "sites": 20,
+   "unproven": [
+    "kayo/compiler/tests/programs/par_lent_param.cy:8:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    9.3,
+    9.12,
+    9.08
+   ],
+   "total": [
+    9.37,
+    9.19,
+    9.15
+   ],
+   "log": [
+    "site line 8 (in total), loop at line 7: spent its step budget"
+   ]
+  }
+ },
+ "kayo/compiler/tests/programs/par_trap.cy": {
+  "off": {
+   "sites": 10,
+   "unproven": [
+    "kayo/compiler/tests/programs/par_trap.cy:9:32"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.53,
+    1.52,
+    1.53
+   ],
+   "total": [
+    1.59,
+    1.58,
+    1.59
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 10,
+   "unproven": [
+    "kayo/compiler/tests/programs/par_trap.cy:9:32"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.24,
+    2.27,
+    2.25
+   ],
+   "total": [
+    2.29,
+    2.32,
+    2.31
+   ],
+   "log": [
+    "site line 9 (in MAIN), loop at line 8: spent its step budget"
+   ]
+  },
+  "integers": {
+   "sites": 10,
+   "unproven": [
+    "kayo/compiler/tests/programs/par_trap.cy:9:32"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.86,
+    1.9,
+    1.93
+   ],
+   "total": [
+    1.92,
+    1.96,
+    1.99
+   ],
+   "log": [
+    "site line 9 (in MAIN), loop at line 8: spent its step budget"
+   ]
+  },
+  "integers+gg": {
+   "sites": 10,
+   "unproven": [
+    "kayo/compiler/tests/programs/par_trap.cy:9:32"
+   ],
+   "same_every_run": true,
+   "precog": [
+    3.23,
+    3.18,
+    3.19
+   ],
+   "total": [
+    3.29,
+    3.23,
+    3.25
+   ],
+   "log": [
+    "site line 9 (in MAIN), loop at line 8: spent its step budget"
+   ]
+  },
+  "joint": {
+   "sites": 10,
+   "unproven": [
+    "kayo/compiler/tests/programs/par_trap.cy:9:32"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.87,
+    1.86,
+    1.86
+   ],
+   "total": [
+    1.93,
+    1.92,
+    1.92
+   ],
+   "log": [
+    "site line 9 (in MAIN), loop at line 8: spent its step budget"
+   ]
+  },
+  "joint+gg": {
+   "sites": 10,
+   "unproven": [
+    "kayo/compiler/tests/programs/par_trap.cy:9:32"
+   ],
+   "same_every_run": true,
+   "precog": [
+    3.11,
+    3.15,
+    3.16
+   ],
+   "total": [
+    3.17,
+    3.2,
+    3.21
+   ],
+   "log": [
+    "site line 9 (in MAIN), loop at line 8: spent its step budget"
+   ]
+  },
+  "bits+gg": {
+   "sites": 10,
+   "unproven": [
+    "kayo/compiler/tests/programs/par_trap.cy:9:32"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.17,
+    2.18,
+    2.18
+   ],
+   "total": [
+    2.23,
+    2.24,
+    2.23
+   ],
+   "log": [
+    "site line 9 (in MAIN), loop at line 8: spent its step budget"
+   ]
+  }
+ },
+ "kayo/compiler/tests/programs/past_the_inner_unrolling.cy": {
+  "off": {
+   "sites": 24,
+   "unproven": [
+    "kayo/compiler/tests/programs/past_the_inner_unrolling.cy:47:19"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.6397,
+    0.6433,
+    0.641
+   ],
+   "total": [
+    0.6982999999999999,
+    0.7016,
+    0.6986
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 24,
+   "unproven": [
+    "kayo/compiler/tests/programs/past_the_inner_unrolling.cy:47:19"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.7703,
+    0.7722,
+    0.7687999999999999
+   ],
+   "total": [
+    0.8285,
+    0.8302,
+    0.8279
+   ],
+   "log": [
+    "site line 47 (in MAIN), loop at line 45: found a way through its clauses to the bad value",
+    "site line 47 (in MAIN), loop at line 46: not asked: a trip round the loop could not be put into words"
+   ]
+  },
+  "integers": {
+   "sites": 24,
+   "unproven": [
+    "kayo/compiler/tests/programs/past_the_inner_unrolling.cy:47:19"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.696,
+    0.6952,
+    0.6958
+   ],
+   "total": [
+    0.7564,
+    0.7534,
+    0.7553
+   ],
+   "log": [
+    "site line 47 (in MAIN), loop at line 45: found a way through its clauses to the bad value",
+    "site line 47 (in MAIN), loop at line 46: not asked: a trip round the loop could not be put into words"
+   ]
+  },
+  "integers+gg": {
+   "sites": 24,
+   "unproven": [
+    "kayo/compiler/tests/programs/past_the_inner_unrolling.cy:47:19"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.7067,
+    0.7072999999999999,
+    0.6927000000000001
+   ],
+   "total": [
+    0.7647999999999999,
+    0.7652,
+    0.751
+   ],
+   "log": [
+    "site line 47 (in MAIN), loop at line 45: found a way through its clauses to the bad value",
+    "site line 47 (in MAIN), loop at line 46: not asked: a trip round the loop could not be put into words"
+   ]
+  },
+  "joint": {
+   "sites": 24,
+   "unproven": [
+    "kayo/compiler/tests/programs/past_the_inner_unrolling.cy:47:19"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.7802,
+    0.7812,
+    0.7865
+   ],
+   "total": [
+    0.8382999999999999,
+    0.8396,
+    0.8445
+   ],
+   "log": [
+    "site line 47 (in MAIN), loop at line 45: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint+gg": {
+   "sites": 24,
+   "unproven": [
+    "kayo/compiler/tests/programs/past_the_inner_unrolling.cy:47:19"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.7861,
+    0.7787000000000001,
+    0.7891
+   ],
+   "total": [
+    0.8445,
+    0.8368,
+    0.8472999999999999
+   ],
+   "log": [
+    "site line 47 (in MAIN), loop at line 45: found a way through its clauses to the bad value"
+   ]
+  },
+  "bits+gg": {
+   "sites": 24,
+   "unproven": [
+    "kayo/compiler/tests/programs/past_the_inner_unrolling.cy:47:19"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.7689,
+    0.7763,
+    0.769
+   ],
+   "total": [
+    0.8292999999999999,
+    0.8341000000000001,
+    0.827
+   ],
+   "log": [
+    "site line 47 (in MAIN), loop at line 45: found a way through its clauses to the bad value",
+    "site line 47 (in MAIN), loop at line 46: not asked: a trip round the loop could not be put into words"
+   ]
+  }
+ },
+ "kayo/compiler/tests/programs/shl_in_a_loop.cy": {
+  "off": {
+   "sites": 13,
+   "unproven": [
+    "kayo/compiler/tests/programs/shl_in_a_loop.cy:14:24"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.0422,
+    0.0426,
+    0.0428
+   ],
+   "total": [
+    0.09570000000000001,
+    0.09609999999999999,
+    0.0969
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 13,
+   "unproven": [
+    "kayo/compiler/tests/programs/shl_in_a_loop.cy:14:24"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.0526,
+    0.052700000000000004,
+    0.052399999999999995
+   ],
+   "total": [
+    0.1062,
+    0.10579999999999999,
+    0.10590000000000001
+   ],
+   "log": [
+    "site line 14 (in f1), loop at line 10: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers": {
+   "sites": 13,
+   "unproven": [
+    "kayo/compiler/tests/programs/shl_in_a_loop.cy:14:24"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.0518,
+    0.051,
+    0.0516
+   ],
+   "total": [
+    0.1056,
+    0.1056,
+    0.1055
+   ],
+   "log": [
+    "site line 14 (in f1), loop at line 10: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers+gg": {
+   "sites": 13,
+   "unproven": [
+    "kayo/compiler/tests/programs/shl_in_a_loop.cy:14:24"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.0515,
+    0.0515,
+    0.0511
+   ],
+   "total": [
+    0.10479999999999999,
+    0.1065,
+    0.1052
+   ],
+   "log": [
+    "site line 14 (in f1), loop at line 10: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint": {
+   "sites": 13,
+   "unproven": [
+    "kayo/compiler/tests/programs/shl_in_a_loop.cy:14:24"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.0511,
+    0.0517,
+    0.0526
+   ],
+   "total": [
+    0.1047,
+    0.1052,
+    0.10590000000000001
+   ],
+   "log": [
+    "site line 14 (in f1), loop at line 10: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint+gg": {
+   "sites": 13,
+   "unproven": [
+    "kayo/compiler/tests/programs/shl_in_a_loop.cy:14:24"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.0516,
+    0.0519,
+    0.0511
+   ],
+   "total": [
+    0.10679999999999999,
+    0.1061,
+    0.1052
+   ],
+   "log": [
+    "site line 14 (in f1), loop at line 10: found a way through its clauses to the bad value"
+   ]
+  },
+  "bits+gg": {
+   "sites": 13,
+   "unproven": [
+    "kayo/compiler/tests/programs/shl_in_a_loop.cy:14:24"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.052700000000000004,
+    0.052700000000000004,
+    0.0521
+   ],
+   "total": [
+    0.1065,
+    0.10679999999999999,
+    0.106
+   ],
+   "log": [
+    "site line 14 (in f1), loop at line 10: found a way through its clauses to the bad value"
+   ]
+  }
+ },
+ "kayo/compiler/tests/programs/two_loops_in_a_row.cy": {
+  "off": {
+   "sites": 9,
+   "unproven": [
+    "kayo/compiler/tests/programs/two_loops_in_a_row.cy:19:24",
+    "kayo/compiler/tests/programs/two_loops_in_a_row.cy:19:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.2035,
+    0.201,
+    0.2035
+   ],
+   "total": [
+    0.25880000000000003,
+    0.2555,
+    0.2582
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 9,
+   "unproven": [
+    "kayo/compiler/tests/programs/two_loops_in_a_row.cy:19:24",
+    "kayo/compiler/tests/programs/two_loops_in_a_row.cy:19:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.3697,
+    0.3644,
+    0.3598
+   ],
+   "total": [
+    0.42519999999999997,
+    0.4198,
+    0.4147
+   ],
+   "log": [
+    "site line 19 (in MAIN), loop at line 11: found a way through its clauses to the bad value",
+    "site line 19 (in MAIN), loop at line 15: found a way through its clauses to the bad value",
+    "site line 19 (in MAIN), loop at line 11: found a way through its clauses to the bad value",
+    "site line 19 (in MAIN), loop at line 15: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers": {
+   "sites": 9,
+   "unproven": [
+    "kayo/compiler/tests/programs/two_loops_in_a_row.cy:19:24",
+    "kayo/compiler/tests/programs/two_loops_in_a_row.cy:19:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.2464,
+    0.24380000000000002,
+    0.2439
+   ],
+   "total": [
+    0.3008,
+    0.29819999999999997,
+    0.29869999999999997
+   ],
+   "log": [
+    "site line 19 (in MAIN), loop at line 11: found a way through its clauses to the bad value",
+    "site line 19 (in MAIN), loop at line 15: found a way through its clauses to the bad value",
+    "site line 19 (in MAIN), loop at line 11: found a way through its clauses to the bad value",
+    "site line 19 (in MAIN), loop at line 15: found a way through its clauses to the bad value"
+   ]
+  },
+  "integers+gg": {
+   "sites": 9,
+   "unproven": [
+    "kayo/compiler/tests/programs/two_loops_in_a_row.cy:19:24",
+    "kayo/compiler/tests/programs/two_loops_in_a_row.cy:19:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.2445,
+    0.2432,
+    0.24480000000000002
+   ],
+   "total": [
+    0.29960000000000003,
+    0.29819999999999997,
+    0.29919999999999997
+   ],
+   "log": [
+    "site line 19 (in MAIN), loop at line 11: found a way through its clauses to the bad value",
+    "site line 19 (in MAIN), loop at line 15: found a way through its clauses to the bad value",
+    "site line 19 (in MAIN), loop at line 11: found a way through its clauses to the bad value",
+    "site line 19 (in MAIN), loop at line 15: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint": {
+   "sites": 9,
+   "unproven": [
+    "kayo/compiler/tests/programs/two_loops_in_a_row.cy:19:24",
+    "kayo/compiler/tests/programs/two_loops_in_a_row.cy:19:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.2369,
+    0.2335,
+    0.2292
+   ],
+   "total": [
+    0.2925,
+    0.2886,
+    0.2834
+   ],
+   "log": [
+    "site line 19 (in MAIN), loop at line 11: found a way through its clauses to the bad value",
+    "site line 19 (in MAIN), loop at line 11: found a way through its clauses to the bad value"
+   ]
+  },
+  "joint+gg": {
+   "sites": 9,
+   "unproven": [
+    "kayo/compiler/tests/programs/two_loops_in_a_row.cy:19:24",
+    "kayo/compiler/tests/programs/two_loops_in_a_row.cy:19:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.2349,
+    0.2349,
+    0.2366
+   ],
+   "total": [
+    0.2912,
+    0.2899,
+    0.2922
+   ],
+   "log": [
+    "site line 19 (in MAIN), loop at line 11: found a way through its clauses to the bad value",
+    "site line 19 (in MAIN), loop at line 11: found a way through its clauses to the bad value"
+   ]
+  },
+  "bits+gg": {
+   "sites": 9,
+   "unproven": [
+    "kayo/compiler/tests/programs/two_loops_in_a_row.cy:19:24",
+    "kayo/compiler/tests/programs/two_loops_in_a_row.cy:19:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.35969999999999996,
+    0.3599,
+    0.3598
+   ],
+   "total": [
+    0.4145,
+    0.4149,
+    0.4143
+   ],
+   "log": [
+    "site line 19 (in MAIN), loop at line 11: found a way through its clauses to the bad value",
+    "site line 19 (in MAIN), loop at line 15: found a way through its clauses to the bad value",
+    "site line 19 (in MAIN), loop at line 11: found a way through its clauses to the bad value",
+    "site line 19 (in MAIN), loop at line 15: found a way through its clauses to the bad value"
+   ]
+  }
+ },
+ "kayo/compiler/tests/programs/vacuous_after_exact_quotient.cy": {
+  "off": {
+   "sites": 33,
+   "unproven": [
+    "kayo/compiler/tests/programs/vacuous_after_exact_quotient.cy:28:46",
+    "kayo/compiler/tests/programs/vacuous_after_exact_quotient.cy:53:11",
+    "kayo/compiler/tests/programs/vacuous_after_exact_quotient.cy:53:11"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "total": [
+    1.56,
+    1.56,
+    1.56
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 33,
+   "unproven": [
+    "kayo/compiler/tests/programs/vacuous_after_exact_quotient.cy:53:11",
+    "kayo/compiler/tests/programs/vacuous_after_exact_quotient.cy:53:11"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.18,
+    2.17,
+    2.18
+   ],
+   "total": [
+    2.23,
+    2.23,
+    2.24
+   ],
+   "log": [
+    "site line 28 (in emit), loop at line 22: found a way through its clauses to the bad value",
+    "site line 28 (in emit), loop at line 27: confirmed: (bvsle (concat #b0 $k) (concat #b0 len($ds))); the site is proven"
+   ]
+  },
+  "integers": {
+   "sites": 33,
+   "unproven": [
+    "kayo/compiler/tests/programs/vacuous_after_exact_quotient.cy:53:11",
+    "kayo/compiler/tests/programs/vacuous_after_exact_quotient.cy:53:11"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.66,
+    1.66,
+    1.65
+   ],
+   "total": [
+    1.72,
+    1.71,
+    1.71
+   ],
+   "log": [
+    "site line 28 (in emit), loop at line 22: found a way through its clauses to the bad value",
+    "site line 28 (in emit), loop at line 27: confirmed: (not (>= (+ $k (* (- 1) len($ds))) 1)); the site is proven"
+   ]
+  },
+  "integers+gg": {
+   "sites": 33,
+   "unproven": [
+    "kayo/compiler/tests/programs/vacuous_after_exact_quotient.cy:53:11",
+    "kayo/compiler/tests/programs/vacuous_after_exact_quotient.cy:53:11"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.67,
+    1.66,
+    1.66
+   ],
+   "total": [
+    1.73,
+    1.71,
+    1.72
+   ],
+   "log": [
+    "site line 28 (in emit), loop at line 22: found a way through its clauses to the bad value",
+    "site line 28 (in emit), loop at line 27: confirmed: (not (>= (+ $k (* (- 1) len($ds))) 1)); the site is proven"
+   ]
+  },
+  "joint": {
+   "sites": 33,
+   "unproven": [
+    "kayo/compiler/tests/programs/vacuous_after_exact_quotient.cy:53:11",
+    "kayo/compiler/tests/programs/vacuous_after_exact_quotient.cy:53:11"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.67,
+    1.66,
+    1.67
+   ],
+   "total": [
+    1.73,
+    1.72,
+    1.73
+   ],
+   "log": [
+    "site line 28 (in emit), loop at line 22: confirmed: true; the site is proven",
+    "site line 28 (in emit), loop at line 27: confirmed: (not (>= (+ $k (* (- 1) len($ds))) 1)); the site is proven"
+   ]
+  },
+  "joint+gg": {
+   "sites": 33,
+   "unproven": [
+    "kayo/compiler/tests/programs/vacuous_after_exact_quotient.cy:53:11",
+    "kayo/compiler/tests/programs/vacuous_after_exact_quotient.cy:53:11"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.67,
+    1.67,
+    1.68
+   ],
+   "total": [
+    1.73,
+    1.73,
+    1.74
+   ],
+   "log": [
+    "site line 28 (in emit), loop at line 22: confirmed: true; the site is proven",
+    "site line 28 (in emit), loop at line 27: confirmed: (not (>= (+ $k (* (- 1) len($ds))) 1)); the site is proven"
+   ]
+  },
+  "bits+gg": {
+   "sites": 33,
+   "unproven": [
+    "kayo/compiler/tests/programs/vacuous_after_exact_quotient.cy:53:11",
+    "kayo/compiler/tests/programs/vacuous_after_exact_quotient.cy:53:11"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.16,
+    2.17,
+    2.17
+   ],
+   "total": [
+    2.22,
+    2.23,
+    2.23
+   ],
+   "log": [
+    "site line 28 (in emit), loop at line 22: found a way through its clauses to the bad value",
+    "site line 28 (in emit), loop at line 27: confirmed: (bvsle (concat #b0 $k) (concat #b0 len($ds))); the site is proven"
+   ]
+  }
+ },
+ "kayo/tools/spacer_probe/two_counters.cy": {
+  "off": {
+   "sites": 11,
+   "unproven": [
+    "kayo/tools/spacer_probe/two_counters.cy:8:9",
+    "kayo/tools/spacer_probe/two_counters.cy:10:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    0.8743,
+    0.888,
+    0.8664
+   ],
+   "total": [
+    0.9292,
+    0.9434,
+    0.9211
+   ],
+   "log": []
+  },
+  "bits": {
+   "sites": 11,
+   "unproven": [
+    "kayo/tools/spacer_probe/two_counters.cy:8:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.33,
+    1.33,
+    1.34
+   ],
+   "total": [
+    1.39,
+    1.39,
+    1.4
+   ],
+   "log": [
+    "site line 8 (in gap), loop at line 6: spent its step budget",
+    "site line 10 (in gap), loop at line 6: confirmed: (let ((a!1 (= (concat ((_ extract 31 31) $i) ((_ extract 31 31) $i) $i) (bvadd #b0000000000000000000000000000000001 (concat ((_ extract 31 31) $j) ((_ extract 31 31) $j) $j))))) (not a!1)); the site is proven"
+   ]
+  },
+  "integers": {
+   "sites": 11,
+   "unproven": [
+    "kayo/tools/spacer_probe/two_counters.cy:8:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.21,
+    2.2,
+    2.22
+   ],
+   "total": [
+    2.27,
+    2.26,
+    2.27
+   ],
+   "log": [
+    "site line 8 (in gap), loop at line 6: spent its step budget",
+    "site line 10 (in gap), loop at line 6: confirmed: (not (>= (+ $i (* (- 1) $j)) 1)); the site is proven"
+   ]
+  },
+  "integers+gg": {
+   "sites": 11,
+   "unproven": [],
+   "same_every_run": true,
+   "precog": [
+    1.83,
+    1.81,
+    1.8
+   ],
+   "total": [
+    1.88,
+    1.86,
+    1.86
+   ],
+   "log": [
+    "site line 8 (in gap), loop at line 6: confirmed: (let ((a!1 (not (>= (+ $j (* (- 1) $i)) 1))) (a!2 (not (>= (+ $n $j (* (- 1) $i)) 2147483648)))) (or (not (<= $n 2147483647)) (not (>= $n (- 2147483648))) (not (<= $j 2147483647)) a!1 a!2 (not (>= $i 0)))); the site is proven",
+    "site line 10 (in gap), loop at line 6: confirmed: (not (>= (+ $i (* (- 1) $j)) 1)); the site is proven"
+   ]
+  },
+  "joint": {
+   "sites": 11,
+   "unproven": [
+    "kayo/tools/spacer_probe/two_counters.cy:8:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    2.22,
+    2.23,
+    2.26
+   ],
+   "total": [
+    2.27,
+    2.29,
+    2.32
+   ],
+   "log": [
+    "site line 8 (in gap), loop at line 6: spent its step budget",
+    "site line 10 (in gap), loop at line 6: confirmed: (not (>= (+ $i (* (- 1) $j)) 1)); the site is proven"
+   ]
+  },
+  "joint+gg": {
+   "sites": 11,
+   "unproven": [],
+   "same_every_run": true,
+   "precog": [
+    1.89,
+    1.83,
+    1.83
+   ],
+   "total": [
+    1.94,
+    1.89,
+    1.89
+   ],
+   "log": [
+    "site line 8 (in gap), loop at line 6: confirmed: (let ((a!1 (not (<= (+ $i (* (- 1) $n) (* (- 1) $j)) (- 2147483648)))) (a!2 (not (<= (+ $i (* (- 1) $j)) (- 1))))) (or (not (<= $n 2147483647)) (not (>= $n (- 2147483648))) (not (<= $j 2147483647)) a!1 a!2 (not (>= $i 0)))); the site is proven",
+    "site line 10 (in gap), loop at line 6: confirmed: (not (>= (+ $i (* (- 1) $j)) 1)); the site is proven"
+   ]
+  },
+  "bits+gg": {
+   "sites": 11,
+   "unproven": [
+    "kayo/tools/spacer_probe/two_counters.cy:8:9"
+   ],
+   "same_every_run": true,
+   "precog": [
+    1.79,
+    1.79,
+    1.8
+   ],
+   "total": [
+    1.85,
+    1.85,
+    1.86
+   ],
+   "log": [
+    "site line 8 (in gap), loop at line 6: spent its step budget",
+    "site line 10 (in gap), loop at line 6: confirmed: (let ((a!1 (= (concat ((_ extract 31 31) $i) ((_ extract 31 31) $i) $i) (bvadd #b0000000000000000000000000000000001 (concat ((_ extract 31 31) $j) ((_ extract 31 31) $j) $j))))) (not a!1)); the site is proven"
+   ]
+  }
+ }
+}
