@@ -34,6 +34,11 @@ pub fn convert(text: &str, dir: &Path) -> Result<String, String> {
     if c.code != Some(0) || c.stdout.is_empty() {
         return Err(format!("oracle --redesign-show: {}", c.stderr.lines().next().unwrap_or("").chars().take(160).collect::<String>()));
     }
+    // the converter guesses `fn` / `let` when it cannot read the old program
+    // through (design claude, 2f7fd026): a stop, not a conversion
+    if let Some(l) = c.stderr.lines().find(|l| l.contains("not analysed")) {
+        return Err(format!("oracle --redesign-show: {}", l.chars().take(160).collect::<String>()));
+    }
     std::fs::write(&g, &c.stdout).map_err(|e| e.to_string())?;
     for tool in ["redesign_three.py", "plain_verbs.py"] {
         let t = engines::run(Command::new("python3").arg(tools.join(tool)).arg(&g), dir, &[], false, engines::RUN_LIMIT);
