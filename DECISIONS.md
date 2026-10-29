@@ -34,6 +34,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-29 — CyborgPL gets contracts: what a function requires of its callers and what it ensures, proven by Precog (owner: "yes"; not designed)
+
+The owner: "What are SPARK contracts?" Design claude explained them (SPARK's `Pre`, `Post`, `Loop_Invariant`, `Global`,
+type predicates, proven by GNATprove) and what CyborgPL already has: Precog proving no run-time error, bounded types as
+small predicates, loop invariants found by Precog, `fn` / `proc` and ownership for part of `Global`; missing, a general
+condition relating values (`$from <= $to`, "the result is at least `$a` and `$b`"). "Oh, should we add those?" Design
+claude recommended yes: Precog then proves what a function does, not only that it does not crash; proofs become modular
+(a caller proven from the callee's promise, more sites proven, each body proven once); the next step after bounded types.
+The owner: "yes". So **CyborgPL gets contracts**: a function says what it requires of its callers and what it ensures,
+and Precog proves every caller meets the first and the body the second. Not designed: the words, where they go, how the
+result is named, what an unproven contract does. The oracle will check them as the program runs.
+
 ### 2026-10-29 — CyDT 1 has full VS Code support: the formatter, the Roblox Studio-style code picker, and the rest of the IDE list (owner; not designed)
 
 Right after the formatter went on CyDT 1's list, the owner: "Full VS Code support too: formatter, Roblox Studio-style
