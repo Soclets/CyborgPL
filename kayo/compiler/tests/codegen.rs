@@ -954,7 +954,7 @@ fn emit_llvm_tv_keeps_every_function() {
     let _ = std::fs::remove_dir_all(&out);
     std::fs::create_dir_all(&out).unwrap();
     let src = out.join("t.cy");
-    std::fs::write(&src, "fn add [let $a: i32, let $b: i32] -> i32:\n    ret $a + $b;\n;fn add\nfn sum [let $n: u32] -> u64:\n    var $t: u64 = 0;\n    for $i: u32 [from: 1, to: $n, by: 1]:\n        change $t to $t + to.u64($i);\n    ;for\n    ret $t;\n;fn sum\nMAIN:\n    std::print(add(2, 3), \" \", sum(10), newln);\n;MAIN\n").unwrap();
+    std::fs::write(&src, "fn add [$a: i32, $b: i32] -> i32:\n    ret $a + $b;\n;fn add\nfn sum [$n: u32] -> u64:\n    var $t: u64 = 0;\n    for $i: u32 [from: 1, to: $n, by: 1]:\n        change $t to $t + to.u64($i);\n    ;for\n    ret $t;\n;fn sum\nMAIN:\n    std::print(add(2, 3), \" \", sum(10), newln);\n;MAIN\n").unwrap();
     let r = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(out.join("t")).arg("--emit-llvm-tv").arg(out.join("tv")).output().unwrap();
     assert!(r.status.success(), "the build failed:\n{}", String::from_utf8_lossy(&r.stderr));
     let defined = |name: &str| -> Vec<String> {

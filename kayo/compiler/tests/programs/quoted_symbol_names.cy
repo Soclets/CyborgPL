@@ -10,6 +10,6 @@ fn add [$'a+b': i32, $'c?': i32] -> i32:
 MAIN:
     let $'v1.2': i32 := 12;
     let $'it\'s up': i32 := 3;
-    let $'x"y \\ z': i32 := add(1, 2) + $'rate%' + $'v1.2' + $'it\'s up';
+    $'x"y \\ z': i32 := add(1, 2) + $'rate%' + $'v1.2' + $'it\'s up';
     no_check my.exit($'x"y \\ z');
 ;MAIN

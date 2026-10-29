@@ -650,7 +650,11 @@ impl<'a> Reader<'a> {
                     (Tok::Word(w), Ctx::Main) if w == "var" => {
                         return err(Diagnostic::error("MAIN's parameters are C's and never change: `let $argc: i32`").named("main_parameters_wrong").at(t.span).fix_edit(t.span, Edit::Replace, "let"));
                     }
-                    (Tok::Word(w), _) if w == "let" => edits.push((st, vec![word("immut", t.span)], 1)),
+                    // A default is never written out (owner, 2026-10-29: "refuse").
+                    (Tok::Word(w), _) if w == "let" => {
+                        let n = next.map(|n| self.text(n.span).to_string()).unwrap_or_else(|| "$a".into());
+                        return err(Diagnostic::error(format!("a parameter is fixed unless it says `var`: write `{}`, without `let` (owner, 2026-10-29)", n)).named("old_spelling").at(t.span).fix_edit(t.span.to(next.map_or(t.span, |n| Span::new(n.span.file, n.span.start as usize, n.span.start as usize))), Edit::Replace, ""));
+                    }
                     (Tok::Word(w), _) if w == "var" => edits.push((st, vec![word("mut", t.span)], 1)),
                     (Tok::Word(w), _) if w == "mut" || w == "immut" => {
                         let (said, new) = if w == "mut" { (old_said("mut", "var"), "var") } else { (old_said("immut", "let"), "let") };
@@ -851,21 +855,47 @@ impl<'a> Reader<'a> {
                         ("ls", _) => Some("list"),
                         ("arr", _) => Some("array"),
                         ("count", Tok::Word(m)) if m == "map" => Some("length"),
+                        // `print.shortest` written out is refused below; `to.shortest` stays.
                         ("shortest", _) => Some("useful"),
                         ("arrows", Tok::Word(m)) if m == "print" => Some("weird"),
                         ("auto_newline", _) => Some("auto_newline"),
                         _ => None,
                     };
+                    // A default is never written out (owner, 2026-10-29: "refuse"): `print.shortest`,
+                    // `print.arrows.shortest`.
+                    // Only `std::print…` itself, unmarked, and not before an older spelling the parser names
+                    // (`auto_newln`), as the oracle reads it.
+                    let n = out.len();
+                    let from_std = n >= 4 && matches!(out[n - 3].tok, Tok::ColonColon) && matches!(&out[n - 4].tok, Tok::Word(k) if k == "std") && !out[n - 2].marked
+                        || n >= 6 && matches!(before, Tok::Word(ref k) if k == "weird") && matches!(out[n - 5].tok, Tok::ColonColon);
+                    let older = line.get(i + 1).is_some_and(|d| d.tok == Tok::Dot) && line.get(i + 2).is_some_and(|x| matches!(&x.tok, Tok::Word(k) if k == "auto_newline" || k == "auto_newln"));
+                    if w == "shortest" && from_std && !older && matches!(before, Tok::Word(ref k) if k == "print" || k == "weird") {
+                        let base = if matches!(before, Tok::Word(ref k) if k == "weird") { "std::print.arrows" } else { "std::print" };
+                        let sentence = if base == "std::print" { "`std::print` is `print.shortest`, the default: write `std::print`, without `.shortest` (owner, 2026-10-29)".to_string() } else { "`std::print.arrows` is `print.arrows.shortest`, the default: write `std::print.arrows`, without `.shortest` (owner, 2026-10-29)".to_string() };
+                        let dot = out.last().map_or(t.span, |d| d.span);
+                        return err(Diagnostic::error(sentence).named("old_spelling").at(t.span).fix_edit(dot.to(t.span), Edit::Replace, ""));
+                    }
                     let mut c = t.clone();
                     if let Some(m) = mapped {
                         c.tok = Tok::Word(m.into());
                     }
                     out.push(c);
                     i += 1;
-                    // `std::print(…)` is `print.shortest`.
-                    if w == "print" && matches!(before, Tok::Word(ref k) if k == "std") && line.get(i).is_some_and(|n| n.tok == Tok::LParen || n.tok == Tok::LBracket) {
-                        out.push(tok(Tok::Dot, t.span));
-                        out.push(word("useful", t.span));
+                    // `std::print` with no more words is `print.shortest`; `print.stderr`,
+                    // `print.stdout` and `print.arrows` too, their shortest form (owner, 2026-10-29).
+                    let std_print = w == "print" && matches!(before, Tok::Word(ref k) if k == "std");
+                    let arrows = w == "arrows" && matches!(before, Tok::Word(ref k) if k == "print");
+                    if std_print || arrows {
+                        let next_word = if line.get(i).is_some_and(|n| n.tok == Tok::Dot) { line.get(i + 1).map(|n| self.text(n.span).to_string()) } else { None };
+                        let bare = match next_word.as_deref() {
+                            None => true,
+                            Some("stderr") | Some("stdout") => true,
+                            _ => false,
+                        };
+                        if bare {
+                            out.push(tok(Tok::Dot, t.span));
+                            out.push(word("useful", t.span));
+                        }
                     }
                     continue;
                 }
@@ -1367,9 +1397,9 @@ impl<'a> Reader<'a> {
 /// is `print` (or `print.shortest` beside more words), `list.length` is `ls.len`, `map.length`
 /// `map.count`, `grapheme` `cluster`, `brain16` `bf16`, `concur` `spawn.task`.
 pub fn spoken(internal: &str) -> String {
-    if internal == "print.useful" {
-        return "print".into();
-    }
+    // The shortest form is the default, never written (owner, 2026-10-29).
+    let internal = internal.replace("print.useful", "print").replace("print.weird.useful", "print.weird");
+    let internal = internal.as_str();
     let parts: Vec<&str> = internal.split('.').collect();
     let mut out: Vec<String> = Vec::new();
     for (k, p) in parts.iter().enumerate() {
@@ -1512,8 +1542,9 @@ pub fn code_words(text: &str) -> String {
             "list" if before != "'" => Some("ls".into()),
             "array" => Some("arr".into()),
             "length" if path_before => Some(if before2 == "map" { "count" } else { "len" }.into()),
-            "useful" if path_before && before2 == "print" && after != "." => {
-                // `print.useful(…)` is `print`; `print.useful.stderr` keeps its words.
+            "useful" if path_before && (before2 == "print" || before2 == "weird") => {
+                // `print.useful(…)` is `print`, `print.useful.stderr` `print.stderr`: the default is
+                // never written (owner, 2026-10-29).
                 out.pop();
                 Some(String::new())
             }

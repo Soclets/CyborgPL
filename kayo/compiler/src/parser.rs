@@ -4064,8 +4064,9 @@ impl<'a> Parser<'a> {
         }
         if self.eat_word("perm") {
             perm = true;
-        } else if self.eat_word("temp") {
-            perm = false;
+        } else if self.is_word("temp") {
+            // A default is never written out (owner, 2026-10-29: "refuse").
+            return self.fail_n("old_spelling", "`temp` is a loop's default: drop it (owner, 2026-10-29)").with_fix(Self::cut(self.span(), self.span_at(1)), Edit::Replace, "");
         } else if self.strict && !self.is_word("seq") && !self.is_word("para") {
             return self.fail_n("strict_word_missing", "a `for` says whether its variable outlives it: `for temp $i in …` or `for perm $i in …` — a `#strict` file writes it out");
         }

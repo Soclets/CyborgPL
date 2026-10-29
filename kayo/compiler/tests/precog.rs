@@ -98,7 +98,7 @@ fn a_full_width_unsigned_value_is_not_proven_safe() {
         // possible — `to.u32[getpid[]]` would not do: Precog knows that
         // one is at most 2^31 - 1, and then `'x' + 1` really is safe.
         "%extern.C proc getuid [] -> u32;\n\
-         fn bump [let $x: u32] -> u32:\n\
+         fn bump [$x: u32] -> u32:\n\
          \x20   let $y: u32 := $x + 1;\n\
          \x20   ret $y;\n\
          ;fn bump\n\
@@ -130,7 +130,7 @@ fn a_const_arrays_length_is_known_to_layer_3() {
     let p = build(
         "%extern.C proc getuid [] -> u32;\n\
          const $keys: arr[u32] := [65, 66, 67, 223, 913, 931];\n\
-         fn look [let $c: u32] -> u32:\n\
+         fn look [$c: u32] -> u32:\n\
          \x20   let $n := arr.len($keys);\n\
          \x20   var $p: u64[max: 6] = 0;\n\
          \x20   if $p + 4 <= $n and.then $keys[pos: $p + 4] <= $c:\n\
@@ -191,12 +191,12 @@ fn layer_3_proves_what_layer_2_can_only_guess_at() {
 /// does not test that — the call's own type is what gets written down.
 const PROGRAMS: &[&str] = &[
     "%extern.C proc getpid [] -> i32;\n\
-     fn a8 [let $x: u8] -> u8:\n    let $y: u8 := $x + 1;\n    ret $y;\n;fn a8\n\
-     fn a16 [let $x: u16] -> u16:\n    let $y: u16 := $x + 1;\n    ret $y;\n;fn a16\n\
-     fn a32 [let $x: u32] -> u32:\n    let $y: u32 := $x + 1;\n    ret $y;\n;fn a32\n\
-     fn a64 [let $x: u64] -> u64:\n    let $y: u64 := $x + 1;\n    ret $y;\n;fn a64\n\
-     fn b8 [let $x: i8] -> i8:\n    let $y: i8 := $x + 1;\n    ret $y;\n;fn b8\n\
-     fn b64 [let $x: i64] -> i64:\n    let $y: i64 := $x + 1;\n    ret $y;\n;fn b64\n\
+     fn a8 [$x: u8] -> u8:\n    let $y: u8 := $x + 1;\n    ret $y;\n;fn a8\n\
+     fn a16 [$x: u16] -> u16:\n    let $y: u16 := $x + 1;\n    ret $y;\n;fn a16\n\
+     fn a32 [$x: u32] -> u32:\n    let $y: u32 := $x + 1;\n    ret $y;\n;fn a32\n\
+     fn a64 [$x: u64] -> u64:\n    let $y: u64 := $x + 1;\n    ret $y;\n;fn a64\n\
+     fn b8 [$x: i8] -> i8:\n    let $y: i8 := $x + 1;\n    ret $y;\n;fn b8\n\
+     fn b64 [$x: i64] -> i64:\n    let $y: i64 := $x + 1;\n    ret $y;\n;fn b64\n\
      MAIN:\n\
      \x20   no_check let $p := getpid();\n\
      \x20   no_check let $u8: u8 := to.u8($p);\n\

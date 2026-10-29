@@ -558,7 +558,7 @@ print_format_type [fnv:68e54257a01e89be] :: does not apply to a str
 print_format_unused_numbered [fnv:0c9676228756aeee] :: value 1 is never used
 print_stored_weird_order [fnv:6a37cab2993bdfdf] :: `.arrows` comes first, the strongest modifier first
 print_weird_brackets [fnv:5c46b85e34e5d282] :: with arrows, not
-print_weird_order [fnv:6a37cab2993bdfdf] :: `.arrows` comes first, the strongest modifier first
+print_weird_order [fnv:1581af8e44b5caa8] :: `std::print` is `print.shortest`, the default
 printf_renamed [fnv:1732984806b6cbb0] :: is spelled std::print.format.stdout now
 printu_renamed [fnv:a2613067643c96b3] :: is spelled std::print.useful.stdout now
 ptr_bad_op [fnv:456eec83964b4a42] :: a pointer has `read`, `write`, `at`, `is_null`
@@ -842,8 +842,8 @@ bare_marks_gone [fnv:54d9fc27d8dfa456] :: the `bare.` marks are gone (owner, 202
 kit_name_needs_path [fnv:db529f7b2400ed9e] :: another kit's names take its path (owner, 2026-10-22), so write `greet::hello(…)`
 std_duration_needs_path [fnv:c1ae91c283a7ee42] :: `duration` is std's: write `std::duration`
 std_list_needs_path [fnv:d9b8e94e63365ee6] :: `ls` is std's: write `std::ls`
-std_name_needs_path [fnv:9b9d7df536c0ac09] :: `print` is std's: write `std::print`
-use_name_taken [fnv:c5b7f6ad27290b4a] :: `say` is this file's name for `std::print`
+std_name_needs_path [fnv:f54b9be2045ae159] :: `print` is std's: write `std::print`
+use_name_taken [fnv:304460fb3fc83f98] :: `say` is this file's name for `std::print`
 use_needs_as [fnv:f116abd9d3bfd802] :: `use` says the name after `as`
 use_not_at_top [fnv:1ad096234058360a] :: a `use` line goes at the top of the file
 use_own_kit [fnv:1c4e4cb9b427240e] :: `use` names another kit's path
@@ -854,7 +854,7 @@ toml_limb_name [fnv:2b6763bf27b6ec26] :: this id is the limb `cnc`'s
 toml_quotes [fnv:770c7aa4fbc65663] :: a value has no quotes: `name = x`
 toml_unknown_section [fnv:39d543a0f6705af5] :: `my friends:` is not a section of `CyJet.toml`
 toml_version_word [fnv:ca5a616268516e9c] :: it is `ver`, never `version`, in every section
-call_in_brackets [fnv:bcb3705b50cfc23e] :: a call takes `( )`: `std::print(…)`
+call_in_brackets [fnv:11900e9339b0ad34] :: a call takes `( )`: `std::print(…)`
 definition_in_parens [fnv:518b754ee0cee96c] :: a definition keeps its parameters in `[ ]`
 dollar_alone [fnv:4ecaa11006a8d93a] :: `$` starts a variable's name
 kit_call_in_brackets [fnv:6601c68f056642b6] :: a call takes `( )`: `twice(…)`
@@ -871,7 +871,7 @@ handler_argument_unlabelled [fnv:b5cd7de1743f2b1c] :: a handler's argument says 
 duration_seconds_old [fnv:f5b22b24e58a2209] :: `seconds` is an old spelling: write `5 secs`
 wait_bare [fnv:ac5e58c7bab9421b] :: only the thing worked on goes bare; this argument says what it is: `time.wait(for: 5 secs)`
 print_into_not_writer [fnv:2d5a0f74063fe512] :: a print never changes what it prints, so `lend.mut $n` names a writer to print into
-print_otherwise_wrong_reason [fnv:00c13e10b22096ce] :: never fails with `closed`
+print_otherwise_wrong_reason [fnv:8b508921760c6a9a] :: never fails with `closed`
 writer_size_unit [fnv:1b9d61434f660919] :: a writer's size says its unit: `size: 4096 bytes`
 writer_unflushed [fnv:60b7c7a39f4199a0] :: goes away still holding text: `std::print.flush(lend.mut $out);` before its block ends
 short_lambda_return_type [fnv:1129f5c2f12a209c] :: a short lambda takes its return type from where it goes
@@ -994,3 +994,6 @@ var_with_walrus [fnv:00958fea4d1ee7c6] :: a `var` starts with `=`, its starting 
 bug_not_literal [fnv:cbcce9be3885926a] :: `bug` says what went wrong, in a text literal
 for_let_variable [fnv:52f5539b41727c26] :: a loop's variable takes no `let` or `var`
 for_seq_gone [fnv:cedb999bbf5eed8c] :: a plain `for` runs in order, so `seq` is gone
+print_shortest_written [fnv:0ed39c2879e45535] :: `std::print` is `print.shortest`, the default: write `std::print`, without `.shortest`
+for_temp_written [fnv:57f3d172c185e21d] :: `temp` is a loop's default: drop it
+param_let_written [fnv:dafda0dfb96cde44] :: a parameter is fixed unless it says `var`: write `$a`, without `let`
