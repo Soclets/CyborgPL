@@ -10,7 +10,8 @@ Decided 2026-09-14. Concurrency (tasks that wait on the outside world —
 Every limb is marked with `%` where it acts, MCPS too. So **a plain `for` always runs in order**, with MCPS or without,
 and **`for %para` is MCPS's loop**: run in parallel where Precog proves it safe and estimates it worth the cores (the two
 tests below), in order otherwise. A loop that prints, reads input or calls C stays in order under `%para` as before unless
-its C is `no_check`ed. **`seq` is gone**, a plain `for` already being in order; it is refused naming that. Until this
+its C is `no_check`ed; a conflict Precog sees between trips is no longer an error (2026-09-30's "stays an error, `para` or
+not") but one more reason to run it in order (compiler claude's reading of "in order otherwise", built in kayo). **`seq` is gone**, a plain `for` already being in order; it is refused naming that. Until this
 date a plain `for` became parallel by itself once MCPS was listed (the sections below are that history, their rules now
 for `%para`): the one place a limb changed unmarked code, a `bin` total among what could come out differently.
 
