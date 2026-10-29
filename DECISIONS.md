@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-29 — Until std is converted, kayo's tests read a converted copy of std/ (owner: "(a)")
+
+Compiler claude, converting kayo to redesign three on the owner's go, asked what kayo reads as `std/` meanwhile: a lone
+file loads the repo's `std/` (2026-10-06), which stays in the old syntax until std claude's turn. Offered (a) kayo's
+tests point `KAYO_STD` at a git-ignored copy of `std/` made by a committed script in `kayo/tools/` (the three
+converters, then hand fixes), dropped once std claude's conversion lands, recommended by compiler claude and design
+claude; (b) compiler claude commits the converted `std/` itself; (c) examples needing `std/` wait. The owner: "(a)". So
+**`std/` stays std claude's; kayo tests against a throwaway converted copy until then.**
+
 ### 2026-10-28 — A big redesign goes through a checklist before the owner rules (owner: "yes, record it")
 
 After redesign three was built, several of its picks were found wrong only afterwards (`^` as power, `++`, `+=`,
