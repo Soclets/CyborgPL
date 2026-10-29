@@ -87,6 +87,24 @@ fn twice [let $n: i32] -> i32:
   arrow cannot name a kit's operator. `examples/long_arrow.cy`,
   `examples/short_arrow.cy`, `examples/chevron_arrows.cy`.
 
+## `fn` and `proc` (owner, 2026-10-27; revised 2026-10-29)
+
+A `fn` is a function in the maths sense: what it gives back depends only on what it is handed, and nothing else sees it
+run. A `proc` may have effects. A `fn` calls only `fn`s; a `fn` value goes where a `proc` type is asked, never the reverse.
+
+- **Effects**, which make a `proc`: printing, input, the clock, waiting, exiting (`std::exit`), a task, a channel, C or
+  another language's code, a pointer.
+- **Not effects**, which a `fn` may do:
+  - change its own local variables (2026-10-27, "(a)");
+  - change what it was lent, through `lent.mut` (2026-10-29, "(a)"): a `lend.mut` hands the value over and takes the
+    changed one back, and while it is lent nothing else can see it, so it is a second output, not an effect.
+    `fn append_point [lent.mut $out: std::ls[u32], let $c: u32]` and `fn Counter.next [lent.mut $c: Counter]` are
+    functions (Mercury's unique modes, Lean's and Koka's in-place updates are the same idea);
+  - fail (`-> T or fail[…]`): a function with no answer for some inputs is partial, still a function;
+  - stop on a bug, `bug "…";` (2026-10-29).
+
+`examples/lend_mut_is_pure.cy`, `examples/bug_stop.cy`.
+
 ## Calling (decided 2026-09-14)
 
 A function is a member of a kit. In the kit where it is defined it is

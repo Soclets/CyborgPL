@@ -34,6 +34,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-29 — Changing what a function was lent is no effect: a `fn` may take `lent.mut` (owner: "(a)")
+
+std claude, before converting std/: every std builder grows a list through a helper that changes what it is lent
+(`append_point`, 56 `lend.mut` sites in round.cy and str.cy), and 2026-10-27's rule ("only effects, changing what it was
+lent, and calling a `proc` make something a `proc`") makes each of them, and every `fn` calling them (rounding, `upper`,
+`lower`), a `proc`. The oracle was inconsistent: `std::ls.append(lend.mut $local)` was allowed in a `fn`, a user helper doing
+the same was not. Design claude offered (a) changing what was lent is no effect, (b) only lending one's own locals, std
+claude's pick, (c) builders are `proc`s, recommending (a): ownership lets only one place change a thing while it is lent,
+so a `lend.mut` is handing the value over and taking the changed one back, a second output, accurate in the maths sense
+(Mercury's unique modes, Lean 4, Koka, Haskell's `ST`). The owner: "What is correct?", then "(a)". So **a `fn` may take
+`lent.mut` and change what it was lent; only printing, input, the clock, waiting, exiting, tasks, channels, C, another
+language's code and pointers make a `proc`.** This reverses 2026-10-27's "a type's own that changes it (`Counter.next`) a
+procedure" and drops "changing what it was lent" from its list. Built: `examples/lend_mut_is_pure.cy`; the oracle's
+messages no longer list it; `design/functions.md`, "`fn` and `proc`".
+
 ### 2026-10-29 — `bug "…";` stops the program on a bug the code found in itself; a `fn` may use it (owner: "sure", "yup"; built the same day)
 
 Compiler claude, converting kayo, found std's "bug stops" (where std finds a bug in itself it prints `std: a bug: …` to

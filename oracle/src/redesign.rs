@@ -33,7 +33,9 @@ pub struct Info {
 /// another language's code; changing its own local variables is not an effect (design claude's reading).
 fn effects_of(f: &ast::Func) -> (bool, Vec<String>) {
     let text = format!("{:?}", f.body);
-    let mut effect = f.is_extern || f.params.iter().any(|p| p.kind == ast::ParamKind::LentMut) || f.ret_lent.as_ref().is_some_and(|(m, _)| *m);
+    // changing what it was lent is no effect: a `lend.mut` hands the value over and takes the changed one back, and
+    // nothing else can see it meanwhile (owner, 2026-10-29: "(a)")
+    let mut effect = f.is_extern;
     for marker in ["Asm {", "Msl {", "Concur {", "Whichever {", "ChannelNew(", "PtrReadChecked(", "PtrCast(", "MustStop"] {
         if text.contains(marker) { effect = true; }
     }
@@ -1290,10 +1292,10 @@ pub fn check_purity(prog: &ast::Program) -> Result<(), String> {
         let (effect, called) = effects_of(f);
         let member = MEMBERS.with(|m| m.borrow().iter().any(|(l, _)| *l == f.line));
         if effect && member {
-            return Err(format!("line {}: the member `{shown}` is in a `coll.fn`, which has no effects, but it prints, reads, waits, starts a task, changes what it was lent, or reaches C or another language: make the collection a `coll.proc` (owner, 2026-10-27)", f.line));
+            return Err(format!("line {}: the member `{shown}` is in a `coll.fn`, which has no effects, but it prints, reads, waits, starts a task, or reaches C or another language: make the collection a `coll.proc` (owner, 2026-10-27)", f.line));
         }
         if effect {
-            return Err(format!("line {}: `{shown}` is a `fn`, which has no effects, but it prints, reads, waits, starts a task, changes what it was lent, or reaches C or another language: make it a `proc` (owner, 2026-10-27)", f.line));
+            return Err(format!("line {}: `{shown}` is a `fn`, which has no effects, but it prints, reads, waits, starts a task, or reaches C or another language: make it a `proc` (owner, 2026-10-27)", f.line));
         }
         if let Some(c) = called.iter().find(|c| procedures.contains(*c) && !functions.contains(*c)) {
             return Err(format!("line {}: `{shown}` is a `fn`, so it calls only `fn`s, but `{c}` is a `proc`: make `{shown}` a `proc`, or `{c}` a `fn` (owner, 2026-10-27)", f.line));
@@ -1311,7 +1313,7 @@ pub fn check_purity(prog: &ast::Program) -> Result<(), String> {
         let bad_call = called.iter().find(|c| procedures.contains(*c) && !functions.contains(*c));
         if effect || bad_call.is_some() {
             return Err(format!("line {}: a `fn [ … ]` lambda has no effects, but this one {}: write it `proc [ … ] = …` (owner, 2026-10-27)", l.line,
-                bad_call.map(|c| format!("calls `{c}`, a `proc`")).unwrap_or_else(|| "prints, reads, waits, starts a task, changes what it was lent, or reaches C".into())));
+                bad_call.map(|c| format!("calls `{c}`, a `proc`")).unwrap_or_else(|| "prints, reads, waits, starts a task, or reaches C".into())));
         }
     }
     Ok(())
