@@ -143,6 +143,9 @@ def convert(src):
         code = re.sub(r'(?<![\w$])' + pat + r'(?!\w)', rep, code)
     # a generic's placeholders are declared in their own `[ ]` (owner, 2026-10-29): `fn total <T: Addable>` → `fn total [<T>: Addable]`
     code = generic_lists(code)
+    # a plain `for` runs in order, so `seq` is gone (owner, 2026-10-29); a plain loop stays plain: MCPS no longer makes it
+    # parallel, and only `for %para` is
+    code = re.sub(r'\bfor\s+seq\s+', 'for ', code)
     # the base's operators never take `std::` (owner, 2026-10-28: "`plus` isn't even `std`")
     code = re.sub(r'std::divide\.', 'div.', code)
     code = re.sub(r'std::shift_left\b', 'shl', code)
