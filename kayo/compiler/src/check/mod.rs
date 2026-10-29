@@ -8,6 +8,7 @@
 //! shape (generic blanks filled from the call, a variadic bundle typed by
 //! its arguments) — the per-shape compilation `generics.md` decides.
 
+pub mod effects;
 pub mod expr;
 pub mod msl;
 pub mod mutscan;
@@ -330,6 +331,7 @@ impl Checker {
                 ret: self.resolve(&f.ret),
                 fails: f.fails.iter().map(|(n, t)| (n.clone(), t.as_ref().map(|t| self.resolve(t)))).collect(),
                 owning: f.owning,
+                proc: f.proc,
             })),
             Ty::Bundle(ts) => Ty::Bundle(ts.iter().map(|t| self.resolve(t)).collect()),
             Ty::Bounded { inner, bound } => Ty::Bounded { inner: Box::new(self.resolve(inner)), bound: bound.clone() },
@@ -614,6 +616,21 @@ impl Checker {
                 scan.declare(&p.name, p.span, p.mutability == Some(Mutability::Mut));
             }
             scan.block(body);
+            // An operator on a `<T>` value comes from a `sig` in its bound that lists it (owner,
+            // 2026-10-28: (b)): read from the source here too, its blanks having no type.
+            for (spelled, at, names) in &scan.ops {
+                for n in names {
+                    let Some(p) = f.params.iter().find(|p| &p.name == n) else { continue };
+                    let Some(Ty::Var(b)) = &p.ty else { continue };
+                    let Some((blank, bounds)) = f.blanks.get(*b as usize) else { continue };
+                    let sets = bounds.iter().any(|i| !self.items.ifaces[i.0 as usize].types.is_empty());
+                    let listed = bounds.iter().any(|i| self.items.ifaces[i.0 as usize].entries.iter().any(|e| e.is_op && &e.name == spelled));
+                    if sets && !listed {
+                        let shown = crate::surface::op_spoken(spelled);
+                        return err(Diagnostic::error(format!("`{}` on a `<{}>` comes from a `sig` in its bound listing `op {}`: a `set` gives a body only its types (owner, 2026-10-28)", shown, blank, shown)).named("unknown_operator").at(*at));
+                    }
+                }
+            }
             for v in scan.vars.into_iter().filter(|v| v.promised) {
                 self.mut_seen.entry(v.span).or_insert((v.name, v.changed));
             }
@@ -745,6 +762,26 @@ impl Checker {
         Ok(self.instances[inst.0 as usize].body.as_ref().and_then(|b| b.ret_lent.as_ref().map(|(_, d)| d.clone())))
     }
 
+    /// Why a `fn` (or a `coll.fn`'s member, or a `fn` lambda) is a `proc`'s body, as the oracle
+    /// says it.
+    pub fn not_a_fn(&self, decl: &crate::resolve::FnDeclInfo, f: effects::Found) -> Diagnostic {
+        let (sentence, name, at) = match f {
+            effects::Found::Effect(what, at) if decl.is_literal => (format!("a `fn [ … ]` lambda has no effects, but this one {}: write it `proc [ … ] = …` (owner, 2026-10-27)", what), "fn_has_effect", at),
+            effects::Found::Effect(what, at) if decl.coll_member => (format!("the member `{}` is in a `coll.fn`, which has no effects, but it {}: make the collection a `coll.proc` (owner, 2026-10-27)", decl.name, what), "fn_has_effect", at),
+            effects::Found::Effect(what, at) => (format!("`{}` is a `fn`, which has no effects, but it {}: make it a `proc` (owner, 2026-10-27)", decl.name, what), "fn_has_effect", at),
+            effects::Found::Proc(callee, at) if decl.is_literal => (format!("a `fn [ … ]` lambda calls only `fn`s, but this one calls `{}`, a `proc`: write it `proc [ … ] = …` (owner, 2026-10-27)", callee), "fn_calls_proc", at),
+            effects::Found::Proc(callee, at) if decl.coll_member => (format!("the member `{}` is in a `coll.fn`, which calls only `fn`s, but `{}` is a `proc`: make the collection a `coll.proc` (owner, 2026-10-27)", decl.name, callee), "fn_calls_proc", at),
+            effects::Found::Proc(callee, at) => (format!("`{}` is a `fn`, so it calls only `fn`s, but `{}` is a `proc`: make `{}` a `proc`, or `{}` a `fn` (owner, 2026-10-27)", decl.name, callee, decl.name, callee), "fn_calls_proc", at),
+            effects::Found::ProcValue(held, at) if decl.is_literal => (format!("a `fn [ … ]` lambda calls only `fn`s, but {} holds a `proc[…]`: write it `proc [ … ] = …` (owner, 2026-10-27)", held), "fn_calls_proc", at),
+            effects::Found::ProcValue(held, at) => (format!("`{}` is a `fn`, so it calls only `fn`s, but {} holds a `proc[…]`: make `{}` a `proc`, or {} a `fn[…]` (owner, 2026-10-27)", decl.name, held, decl.name, held), "fn_calls_proc", at),
+        };
+        let mut d = Diagnostic::error(sentence).named(name).at(at);
+        if !decl.is_literal {
+            d = d.why_at(decl.name_span, format!("`{}` is declared a `fn` here", decl.name));
+        }
+        d
+    }
+
     fn check_instance_body(&mut self, inst: FnInst) -> Result<()> {
         let key = self.instances[inst.0 as usize].key.clone();
         let sig = self.instances[inst.0 as usize].sig.clone();
@@ -785,6 +822,17 @@ impl Checker {
             params.push(id);
         }
         let block = self.block(&mut ctx, body)?;
+        // A `fn` has no effects and calls only `fn`s (owner, 2026-10-27). std's own read from the
+        // `KAYO_STD` copy (kayo/tools/std_copy.py), until std claude converts std/, are taken at
+        // the kind they say: its stops on its own bugs print and exit.
+        let std_copy = std::env::var_os("KAYO_STD").is_some() && self.items.nerve_cord.is_some_and(|c| self.items.kit_root(decl.module) == c);
+        if !decl.proc && !decl.test && decl.op.is_none() && !std_copy {
+            let mut w = effects::Walk { checker: self, locals: &ctx.locals, found: None };
+            w.block(&block);
+            if let Some(f) = w.found {
+                return err(self.not_a_fn(&decl, f));
+            }
+        }
         // What the caller's result borrows: the group's parameters, or,
         // with no group written, the ones the body hands back (Precog's
         // inference, owner 2026-09-29).
@@ -833,7 +881,7 @@ impl Checker {
             return err(Diagnostic::error("an anonymous function has no blanks: write the types").named("parameter_type_missing").at(span));
         }
         let id = FnId(self.items.fns.len() as u32);
-        self.items.fns.push(crate::resolve::FnDeclInfo { name: "an anonymous function".into(), path: String::new(), module, vis: ast::Vis::Private, params, ret, ret_lent: None, fails, blanks: Vec::new(), body: Some(lit.body.clone()), op: None, is_literal: true, test: false, table_bytes: None, labels: None, defaults: Vec::new(), span, name_span: span });
+        self.items.fns.push(crate::resolve::FnDeclInfo { name: "an anonymous function".into(), path: String::new(), module, vis: ast::Vis::Private, params, ret, ret_lent: None, fails, blanks: Vec::new(), body: Some(lit.body.clone()), op: None, is_literal: true, test: false, proc: lit.proc, coll_member: false, table_bytes: None, labels: None, defaults: Vec::new(), span, name_span: span });
         self.literal_fns.push((lit.clone(), module));
         Ok(id)
     }

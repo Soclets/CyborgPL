@@ -122,6 +122,9 @@ pub struct FnTy {
     /// like a list (owner, 2026-09-24: a). Not part of what a `fn[…]` type
     /// says: a value's, known where the literal is written.
     pub owning: bool,
+    /// A `proc[…]`: it may have effects (owner, 2026-10-27). A `fn[…]`
+    /// value may go where a `proc[…]` is asked, never the reverse.
+    pub proc: bool,
 }
 
 /// A bound written into a type: `i32[0, 100]`, `list[T][0, 10]`,
@@ -401,6 +404,7 @@ impl Ty {
                 ret: f.ret.subst(args),
                 fails: f.fails.iter().map(|(n, t)| (n.clone(), t.as_ref().map(|t| t.subst(args)))).collect(),
                 owning: f.owning,
+                proc: f.proc,
             })),
             Ty::Bundle(ts) => Ty::Bundle(ts.iter().map(|t| t.subst(args)).collect()),
             Ty::Bounded { inner, bound } => Ty::Bounded { inner: Box::new(inner.subst(args)), bound: bound.clone() },
@@ -563,7 +567,7 @@ impl<'a> fmt::Display for TySpelling<'a> {
                 Ok(())
             }
             Ty::Fn(ft) => {
-                write!(f, "fn[{}]", ft.params.iter().map(|(k, t)| format!("{}{}", k.spelled(), sp(t))).collect::<Vec<_>>().join(", "))?;
+                write!(f, "{}[{}]", if ft.proc { "proc" } else { "fn" }, ft.params.iter().map(|(k, t)| format!("{}{}", k.spelled(), sp(t))).collect::<Vec<_>>().join(", "))?;
                 if ft.ret != Ty::Nothing {
                     write!(f, " -> {}", sp(&ft.ret))?;
                 }

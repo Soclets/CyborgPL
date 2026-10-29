@@ -22,12 +22,16 @@ pub struct Var {
 
 pub struct Scan {
     pub vars: Vec<Var>,
+    /// Each operator between two values: its name, where, and the names of
+    /// the variables it works on (an operator on a `<T>` value comes from a
+    /// `sig`, owner, 2026-10-28).
+    pub ops: Vec<(String, Span, Vec<String>)>,
     scopes: Vec<HashMap<String, usize>>,
 }
 
 impl Default for Scan {
     fn default() -> Self {
-        Scan { vars: Vec::new(), scopes: vec![HashMap::new()] }
+        Scan { vars: Vec::new(), ops: Vec::new(), scopes: vec![HashMap::new()] }
     }
 }
 
@@ -281,7 +285,9 @@ impl Scan {
             }
             ExprKind::Unary { expr, .. } | ExprKind::Paren(expr, _) | ExprKind::Pos(expr) | ExprKind::Count(expr) | ExprKind::Value(expr) | ExprKind::Label(_, expr) => self.expr(expr),
             ExprKind::PtrCast { value, .. } => self.expr(value),
-            ExprKind::Binary { lhs, rhs, .. } => {
+            ExprKind::Binary { lhs, rhs, op, op_span, .. } => {
+                let names = [lhs, rhs].iter().filter_map(|x| if let ExprKind::Name(q) = &x.kind { Some(q.name.clone()) } else { None }).collect();
+                self.ops.push((op.spelled(), *op_span, names));
                 self.expr(lhs);
                 self.expr(rhs);
             }

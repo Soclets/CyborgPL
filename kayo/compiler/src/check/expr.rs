@@ -402,10 +402,11 @@ impl Checker {
                 if !decl.blanks.is_empty() || decl.params.iter().any(|p| p.ty.is_none() || p.variadic) {
                     return err(Diagnostic::error(format!("`{}` has blanks, so it has no single type to hold: pass it where the blanks are filled, or write a version with the types", decl.name)).named("not_a_value").at(span));
                 }
+                let proc = decl.proc;
                 let key = InstKey { fn_id: id, blanks: Vec::new(), bundle: None, owning: Vec::new(), pages: Vec::new() };
                 let inst = self.instance(key);
                 let sig = self.instances[inst.0 as usize].sig.clone();
-                let ty = Ty::Fn(Box::new(FnTy { params: sig.params, ret: sig.ret, fails: sig.fails, owning: false }));
+                let ty = Ty::Fn(Box::new(FnTy { params: sig.params, ret: sig.ret, fails: sig.fails, owning: false, proc }));
                 Ok(Expr { kind: K::FnRef(inst), ty, span })
             }
             Ok(ItemRef::ExternFn(_)) => err(Diagnostic::error(format!("`{}` is an extern function: it is called (under `no_check`), and is not a value to hold", path.spelled())).named("not_a_value").at(span)),
@@ -498,7 +499,7 @@ impl Checker {
                     return err(Diagnostic::error(format!("reading {} is a `no_check` site: a `%layout.C union` holds one field at a time, and only C knows which — write `no_check` in front of the statement", whose)).named("no_check_missing").at(e.span).fix_edit(e.span, Edit::Before, "no_check "));
                 }
                 if use_ == PlaceUse::Write && f.immut {
-                    return err(Diagnostic::error(format!("`{}` is an `immut` field of `{}` and cannot be written", field.name, info.name)).named("cannot_change_immut").at(field.span));
+                    return err(Diagnostic::error(format!("`{}` is a `let` field of {}; it cannot be changed: make it `var {}: …;` (owner, 2026-10-27)", field.name, info.name, field.name)).named("cannot_change_immut").at(field.span));
                 }
                 // A part two or more steps in is not given away: it would
                 // leave a hole in what holds it (design claude, 2026-10-25,
@@ -595,12 +596,19 @@ impl Checker {
         Ok(Place { base: lid, proj: Vec::new(), ty: info.ret.clone(), span })
     }
 
+    /// Whether `name` is a parameter of the function being checked.
+    fn is_param(&self, ctx: &FnCtx, name: &str) -> bool {
+        self.instances.get(ctx.inst.0 as usize).is_some_and(|i| self.items.fns[i.key.fn_id.0 as usize].params.iter().any(|p| p.name == name))
+    }
+
     fn check_place_use(&self, ctx: &FnCtx, id: hir::LocalId, use_: PlaceUse, span: Span, name: &str) -> Result<()> {
         let local = &ctx.locals[id.0 as usize];
         match use_ {
             PlaceUse::Write => {
                 if local.mutability == Some(ast::Mutability::Immut) {
-                    return err(Diagnostic::error(format!("'{}' cannot be changed: it is `immut`", name)).named("cannot_change_immut").at(span).why_at(local.span, "declared `immut` here"));
+                    // A `let` never changes (owner, 2026-10-27).
+                    let param = self.is_param(ctx, name);
+                    return err(Diagnostic::error(format!("`${}` is a `let`{}, which never changes, but something changes it: write `var ${}` (owner, 2026-10-27)", name, if param { " parameter" } else { "" }, name)).named("cannot_change_immut").at(span).why_at(local.span, "declared `let` here"));
                 }
                 match local.kind {
                     LocalKind::Lent => return err(Diagnostic::error(format!("'{}' is lent (shared) and cannot be changed: it belongs to whoever lent it — `lent.mut` would allow it", name)).named("changed_through_lend").at(span).why_at(local.span, "lent here")),
@@ -610,7 +618,7 @@ impl Checker {
             }
             PlaceUse::LendMut => {
                 if local.mutability == Some(ast::Mutability::Immut) {
-                    return err(Diagnostic::error(format!("'{}' is `immut`: it cannot be lent mutably", name)).named("cannot_change_immut").at(span));
+                    return err(Diagnostic::error(format!("`${}` is a `let`, which never changes, so it is not lent to change: write `var ${}` (owner, 2026-10-27)", name, name)).named("cannot_change_immut").at(span));
                 }
                 if local.kind == LocalKind::Lent {
                     return err(Diagnostic::error(format!("'{}' is lent (shared): it cannot be lent mutably on — `lent.mut` would allow it", name)).named("changed_through_lend").at(span));
@@ -708,6 +716,10 @@ impl Checker {
         let ty = self.resolve(ty);
         if ty.is_owned() || from_blank || matches!(ty, Ty::Infer(_)) {
             return Ok(());
+        }
+        // A union whose cases hold no data is plain (owner, 2026-10-28).
+        if let Ty::Enum { .. } = ty.base() {
+            return err(Diagnostic::error(format!("`{}` on {}: {} is a plain enum and owns nothing (its cases hold no data), so it copies by itself — write {} with no verb", verb.spelled(), name, name, name)).named("nothing_to_give").at(span));
         }
         err(Diagnostic::error(format!("`{}` on {} is not possible: {} is a plain value that owns nothing (no allocation behind it), so it copies by itself — write {} with no verb", verb.spelled(), name, crate::types::a_type(&self.spell(&ty)), name)).named("nothing_to_give").at(span))
     }
@@ -821,6 +833,17 @@ impl Checker {
     pub fn expect_store(&mut self, ctx: &mut FnCtx, v: Expr, target: &Ty, what: &str) -> Result<Expr> {
         let t = self.resolve(target);
         let vt = self.resolve(&v.ty);
+        // A `fn[…]` holds only `fn`s; a `proc[…]` holds either (owner, 2026-10-27).
+        if let (Ty::Fn(want), Ty::Fn(got)) = (t.base(), vt.base()) {
+            if !want.proc && got.proc {
+                let who = match &v.kind {
+                    K::FnLit { .. } => "this lambda".to_string(),
+                    K::FnRef(inst) => format!("`{}`", self.items.fns[self.instances[inst.0 as usize].key.fn_id.0 as usize].name),
+                    _ => "this value".to_string(),
+                };
+                return err(Diagnostic::error(format!("expected {}: {} is a `proc`, which a `fn[…]` cannot hold: the type is `proc[…]` (owner, 2026-10-27)", self.spell(&t), who)).named("fn_calls_proc").at(v.span));
+            }
+        }
         // The places a `d` or a percent keeps (owner, 2026-10-17): a literal
         // with more is refused, and a value that could have more is
         // rounded on purpose.
@@ -1187,6 +1210,28 @@ impl Checker {
         }
     }
 
+    /// An operator on a `<T>` value comes from a `sig` in its bound that lists it: a `set` gives a
+    /// body only its types (owner, 2026-10-28: (b)).
+    fn op_from_sig(&self, ctx: &FnCtx, spelled: &str, op_span: Span, e: &ast::Expr) -> Result<()> {
+        let AK::Name(q) = &e.kind else { return Ok(()) };
+        let Some(id) = ctx.lookup(&q.name) else { return Ok(()) };
+        if !ctx.locals[id.0 as usize].from_blank || ctx.inst.0 == u32::MAX {
+            return Ok(());
+        }
+        let Some(inst) = self.instances.get(ctx.inst.0 as usize) else { return Ok(()) };
+        let decl = &self.items.fns[inst.key.fn_id.0 as usize];
+        let Some(p) = decl.params.iter().find(|p| p.name == q.name) else { return Ok(()) };
+        let Some(Ty::Var(b)) = &p.ty else { return Ok(()) };
+        let Some((blank, bounds)) = decl.blanks.get(*b as usize) else { return Ok(()) };
+        let sets = bounds.iter().any(|i| !self.items.ifaces[i.0 as usize].types.is_empty());
+        let listed = bounds.iter().any(|i| self.items.ifaces[i.0 as usize].entries.iter().any(|e| e.is_op && e.name == spelled));
+        if sets && !listed {
+            let shown = crate::surface::op_spoken(spelled);
+            return err(Diagnostic::error(format!("`{}` on a `<{}>` comes from a `sig` in its bound listing `op {}`: a `set` gives a body only its types (owner, 2026-10-28)", shown, blank, shown)).named("unknown_operator").at(op_span));
+        }
+        Ok(())
+    }
+
     fn binary(&mut self, ctx: &mut FnCtx, op: &BinOp, op_span: Span, lhs: &ast::Expr, rhs: &ast::Expr, span: Span) -> Result<Expr> {
         // `plus.ieee`, `minus.ieee`, `times.ieee` (owner, 2026-10-07):
         // checked as the plain operator, then kept as IEEE's own answer.
@@ -1203,6 +1248,8 @@ impl Checker {
         if let BinOp::Custom(spelling) = op {
             return self.user_op(ctx, spelling, op_span, lhs, rhs, span);
         }
+        self.op_from_sig(ctx, &op.spelled(), op_span, lhs)?;
+        self.op_from_sig(ctx, &op.spelled(), op_span, rhs)?;
         // The language's operators may be defined for a user type: look first at the left operand.
         let l = self.expr(ctx, lhs)?;
         let lt = self.resolve(&l.ty);
@@ -3837,7 +3884,7 @@ impl Checker {
         self.check_literal_now(inst, outer_names)?;
         let sig = self.instances[inst.0 as usize].sig.clone();
         let owning = caps.iter().any(|(_, v)| matches!(v, Verb::Copy | Verb::Give));
-        let ty = Ty::Fn(Box::new(FnTy { params: sig.params, ret: sig.ret, fails: sig.fails, owning }));
+        let ty = Ty::Fn(Box::new(FnTy { params: sig.params, ret: sig.ret, fails: sig.fails, owning, proc: lit.proc }));
         let captures = caps.into_iter().map(|(outer, verb)| hir::CaptureBinding { verb, outer, inner: hir::LocalId(0) }).collect();
         Ok(Expr { kind: K::FnLit { inst, captures }, ty, span })
     }
@@ -3872,12 +3919,12 @@ impl Checker {
         };
         let body = crate::ast::Block { stmts: vec![crate::ast::Stmt { kind: crate::ast::StmtKind::Return(Some(value)), span }], span };
         let fn_id = FnId(self.items.fns.len() as u32);
-        self.items.fns.push(crate::resolve::FnDeclInfo { name: format!("op {}", spelled), path: String::new(), module: ctx.module, vis: crate::ast::Vis::Private, params, ret: ft.ret.clone(), ret_lent: None, fails: Vec::new(), blanks: Vec::new(), body: Some(body), op: None, is_literal: true, test: false, table_bytes: None, labels: None, defaults: Vec::new(), span, name_span: span });
+        self.items.fns.push(crate::resolve::FnDeclInfo { proc: false, coll_member: false, name: format!("op {}", spelled), path: String::new(), module: ctx.module, vis: crate::ast::Vis::Private, params, ret: ft.ret.clone(), ret_lent: None, fails: Vec::new(), blanks: Vec::new(), body: Some(body), op: None, is_literal: true, test: false, table_bytes: None, labels: None, defaults: Vec::new(), span, name_span: span });
         let key = InstKey { fn_id, blanks: Vec::new(), bundle: None, owning: Vec::new(), pages: Vec::new() };
         let inst = self.instance(key);
         self.check_literal_now(inst, Vec::new())?;
         let sig = self.instances[inst.0 as usize].sig.clone();
-        let ty = Ty::Fn(Box::new(FnTy { params: sig.params, ret: sig.ret, fails: sig.fails, owning: false }));
+        let ty = Ty::Fn(Box::new(FnTy { params: sig.params, ret: sig.ret, fails: sig.fails, owning: false, proc: false }));
         Ok(Expr { kind: K::FnLit { inst, captures: Vec::new() }, ty, span })
     }
 
@@ -3916,6 +3963,14 @@ impl Checker {
         let block = self.block(&mut ctx, &body)?;
         if sig.ret != Ty::Nothing && !super::stmt::leaves_block(&block) {
             return err(Diagnostic::error(format!("this function returns {} but can fall off the end: every path must `return` a value", crate::types::a_type(&self.spell(&sig.ret)))).named("missing_return").at(decl.span));
+        }
+        // A `fn [ … ]` lambda has no effects (owner, 2026-10-27).
+        if !decl.proc {
+            let mut w = super::effects::Walk { checker: self, locals: &ctx.locals, found: None };
+            w.block(&block);
+            if let Some(f) = w.found {
+                return err(self.not_a_fn(&decl, f));
+            }
         }
         self.mut_promises_kept(&ctx)?;
         let mut block = block;
@@ -4021,6 +4076,16 @@ impl Checker {
             }
         }
         let t = self.body_type(ctx, target)?;
+        // A conversion lends what it only reads (owner, 2026-10-28: "(a)"): `to.i32(lend $t)`.
+        if let AK::Name(q) = &operand.kind {
+            if let Some(id) = ctx.lookup(&q.name) {
+                let l = &ctx.locals[id.0 as usize];
+                if self.resolve(&l.ty).is_owned() && !l.from_blank {
+                    let shown = format!("to.{}{}", match form { Some(true) => "shortest.", Some(false) => "stored.", None => "" }, crate::surface::spoken(&self.spell(&t)));
+                    return err(Diagnostic::error(format!("`{}` only looks at `${}`: pass `lend ${}` (owner, 2026-10-28)", shown, q.name, q.name)).named("owned_value_bare").at(operand.span).fix_edit(operand.span, Edit::Verb, "lend"));
+                }
+            }
+        }
         if let Some(u) = form {
             if !matches!(t.base(), Ty::Str(_) | Ty::Deci(_)) {
                 let f = if u { "useful" } else { "stored" };

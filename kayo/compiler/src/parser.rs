@@ -47,6 +47,9 @@ pub fn is_primitive_head(w: &str) -> bool {
 struct Parser<'a> {
     /// Copied on the first call's `( )`, which is written over as `[ ]`.
     toks: std::borrow::Cow<'a, [Token]>,
+    /// Whether the last `fn` read was a `proc` (redesign two): a function,
+    /// lambda or function type takes its kind from its keyword.
+    fn_proc: bool,
     /// A `let` declaring a channel whose value is `channel.empty`: its
     /// element type and bound (owner, 2026-10-22).
     channel_ty: Option<(Type, Option<Box<(Expr, Expr)>>)>,
@@ -526,7 +529,7 @@ pub fn set_shared_precedence(table: std::collections::HashMap<String, (u16, Chai
 
 /// The `precedence` blocks in one file's tokens: each operator's level.
 pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> {
-    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false, raw_texts: Default::default() };
+    let mut p = Parser { fn_proc: false, toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false, raw_texts: Default::default() };
     let mut out = Vec::new();
     let mut depth = 0i32;
     for i in 0..toks.len() {
@@ -556,7 +559,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
     let labelled = crate::argwords::labels(&used);
     let owned = crate::argwords::strip(&labelled)?;
     let toks = &owned[..];
-    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false, raw_texts: Default::default() };
+    let mut p = Parser { fn_proc: false, toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false, raw_texts: Default::default() };
     // Every Kit's levels, and this file's own blocks, read before any
     // expression in it: an operator above its block is parsed by it too.
     p.prec = SHARED_PREC.with(|t| t.borrow().clone());
@@ -700,7 +703,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
 /// A file that is one value and its `;`, as a `CCA.cplr` is (owner,
 /// 2026-10-06): `cca::Manifest[ … ];`.
 pub fn parse_value(toks: &[Token]) -> Result<Expr> {
-    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false, raw_texts: Default::default() };
+    let mut p = Parser { fn_proc: false, toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false, raw_texts: Default::default() };
     let value = p.expr(0)?;
     p.expect_semi("the value")?;
     if !p.at_eof() {
@@ -804,6 +807,9 @@ impl<'a> Parser<'a> {
         let t = self.toks[self.pos].clone();
         if !self.at_eof() {
             self.pos += 1;
+        }
+        if matches!(&t.tok, Tok::Word(w) if w == "fn") {
+            self.fn_proc = t.proc;
         }
         t
     }
@@ -1203,7 +1209,22 @@ impl<'a> Parser<'a> {
                     if let Some((_, at)) = bare {
                         return self.fail_at_n(at, "spelling_removed", "a collection's `bare.` mark is written in its block: `pub coll.fn area { bare.kit_prefix.never; … }`");
                     }
-                    let (lines, mark) = self.collection(vis, None)?;
+                    // Its members are its kind, `coll.fn` or `coll.proc` (owner, 2026-10-28).
+                    let proc = self.fn_proc;
+                    let (mut lines, mark) = self.collection(vis, None)?;
+                    for (_, l) in lines.iter_mut() {
+                        match l {
+                            ItemKind::Fn(d) => d.proc = proc,
+                            ItemKind::Module { items, .. } => {
+                                for it in items.iter_mut() {
+                                    if let ItemKind::Fn(d) = &mut it.kind {
+                                        d.proc = proc;
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
                     let span = start.to(self.prev_span());
                     return Ok(Item { vis, kind: ItemKind::ExternBlock(lines), span, bare: mark, enum_bare: None, case });
                 }
@@ -1895,8 +1916,12 @@ impl<'a> Parser<'a> {
         let mut toks = crate::lexer::lex(line.file, &text)?;
         for t in toks.iter_mut() {
             t.span = line;
+            // C's functions are reached by `proc`s (owner, 2026-10-27).
+            if matches!(&t.tok, Tok::Word(w) if w == "fn") {
+                t.proc = true;
+            }
         }
-        let mut p = Parser { toks: std::borrow::Cow::Borrowed(&toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default(), from_c: true, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false, raw_texts: Default::default() };
+        let mut p = Parser { fn_proc: false, toks: std::borrow::Cow::Borrowed(&toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default(), from_c: true, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false, raw_texts: Default::default() };
         let mut lines = Vec::new();
         while !p.at_eof() {
             let it = p.item()?;
@@ -2440,8 +2465,13 @@ impl<'a> Parser<'a> {
     /// or a variable, `'x': T;` (`mut 'x': T;` to write it; owner,
     /// 2026-09-25).
     fn extern_line(&mut self) -> Result<ItemKind> {
-        if self.eat_word("fn") {
+        if self.is_word("fn") {
+            let kw = self.bump();
             let decl = self.fn_decl(false)?;
+            // C may do anything, so it is reached by a `proc` (owner, 2026-10-27).
+            if !kw.proc && !self.from_c {
+                return self.fail_at_n(kw.span, "cnc::extern_fn_kind", format!("`{}` is C's, reached by a `proc`: `%extern.C proc {} […]` (owner, 2026-10-27)", decl.name.name, decl.name.name)).with_fix(kw.span, Edit::Replace, "proc");
+            }
             return Ok(ItemKind::ExternFn(decl));
         }
         if self.is_word("let") {
@@ -2491,6 +2521,7 @@ impl<'a> Parser<'a> {
     /// A function after its name: `[params] -> T { … }`, as each line of a
     /// `versions` block is written (owner, 2026-10-21).
     fn fn_rest(&mut self, name: Ident, owner: Option<Ident>, has_body: bool) -> Result<FnDecl> {
+        let proc = self.fn_proc;
         let announce = self.announce(&name.name, "fn")?;
         // A C function under another name (owner, 2026-10-19: "(c)"):
         // `extern.C fn length = C.strlen […]`.
@@ -2535,7 +2566,7 @@ impl<'a> Parser<'a> {
             self.expect_semi("the extern declaration")?;
             None
         };
-        Ok(FnDecl { name, owner, announce, params, ret, ret_lent, fails, body, test: false, table_bytes: None, c_name, in_coll: false, labels: None, defaults: Vec::new() })
+        Ok(FnDecl { name, owner, announce, params, ret, ret_lent, fails, body, test: false, table_bytes: None, c_name, in_coll: false, labels: None, defaults: Vec::new(), proc })
     }
 
     /// The group's name, right after its `@`.
@@ -3225,6 +3256,7 @@ impl<'a> Parser<'a> {
             }
             Tok::Word(w) if w == "fn" => {
                 self.bump();
+                let fn_proc = self.fn_proc;
                 self.expect(&Tok::LBracket, "`[` after `fn` in a function type")?;
                 let mut params = Vec::new();
                 while !self.is(&Tok::RBracket) {
@@ -3258,7 +3290,7 @@ impl<'a> Parser<'a> {
         if let Some(r) = self.ret_lent.take() {
             return self.fail_at_n(r.span, "not_built_yet", "not yet: only a named `fn` hands back a borrow (`fn f [lent $a: T] -> lent T`)");
         }
-                TypeKind::Fn { params, ret: ret.map(Box::new), fails }
+                TypeKind::Fn { params, ret: ret.map(Box::new), fails, proc: fn_proc }
             }
             // `list.page_aligned`, `list.not_page_aligned` (owner,
             // 2026-10-25) are the list's narrowings, not an element type.
@@ -5885,6 +5917,7 @@ impl<'a> Parser<'a> {
     }
 
     fn fn_lit(&mut self, start: Span) -> Result<Expr> {
+        let proc = self.fn_proc;
         // `fn [$s] = …`, `fn [$s] with [lend $limit] = …` (owner,
         // 2026-10-24): one value after `=`, read as `{ return …; }`.
         match self.short_lambda_ahead() {
@@ -5905,7 +5938,7 @@ impl<'a> Parser<'a> {
         }
         self.returns_value = outer;
         let span = start.to(self.prev_span());
-        Ok(Expr { kind: ExprKind::FnLit(Box::new(FnLit { params, ret, fails, captures, body, short: false })), span })
+        Ok(Expr { kind: ExprKind::FnLit(Box::new(FnLit { params, ret, fails, captures, body, short: false, proc })), span })
     }
 
     /// Whether the literal here is a short one: `Some(true)` for `fn [$s] =
@@ -5948,6 +5981,7 @@ impl<'a> Parser<'a> {
     }
 
     fn short_lambda(&mut self, start: Span) -> Result<Expr> {
+        let proc = self.fn_proc;
         let outer = std::mem::replace(&mut self.untyped_ok, true);
         let params = self.params(ParamContext::Fn);
         self.untyped_ok = outer;
@@ -5958,7 +5992,7 @@ impl<'a> Parser<'a> {
         let span = value.span;
         let body = Block { stmts: vec![Stmt { kind: StmtKind::Return(Some(value)), span }], span };
         let span = start.to(self.prev_span());
-        Ok(Expr { kind: ExprKind::FnLit(Box::new(FnLit { params, ret: None, fails: Vec::new(), captures, body, short: true })), span })
+        Ok(Expr { kind: ExprKind::FnLit(Box::new(FnLit { params, ret: None, fails: Vec::new(), captures, body, short: true, proc })), span })
     }
 
     /// After `to`: `.type[value]`, with an optional bound bracket first.
@@ -6098,6 +6132,7 @@ fn preset(main: &FnDecl, owner: &Ident, name: Ident, fills: &[(QName, Expr)], sp
         in_coll: true,
         labels: None,
         defaults: Vec::new(),
+        proc: main.proc,
     }
 }
 
@@ -6140,7 +6175,7 @@ pub fn pub_handlers(toks: &[Token]) -> Result<Vec<(String, Vec<HandlerMember>)>>
     let labelled = crate::argwords::labels(&used);
     let owned = crate::argwords::strip(&labelled)?;
     let toks = &owned[..];
-    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false, raw_texts: Default::default() };
+    let mut p = Parser { fn_proc: false, toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false, raw_texts: Default::default() };
     let mut out = Vec::new();
     for i in 1..toks.len() {
         let pub_coll = matches!(&toks[i - 1].tok, Tok::Word(w) if w == "pub") && matches!(&toks[i].tok, Tok::Word(w) if w == "coll");

@@ -76,7 +76,7 @@ pub enum TypeKind {
     /// `<T>` / `<T: Ordered>`.
     Var { name: Ident, bound: Option<Path> },
     /// `fn[lent T, T] -> R or fail[…]`.
-    Fn { params: Vec<FnTypeParam>, ret: Option<Box<Type>>, fails: Vec<FailSpec> },
+    Fn { params: Vec<FnTypeParam>, ret: Option<Box<Type>>, fails: Vec<FailSpec>, proc: bool },
     /// `count N` where a type parameter goes: the lane count of a
     /// `simd[u8, count 16]` (owner, 2026-10-19). Nothing else takes one.
     Count(u32),
@@ -482,6 +482,8 @@ pub struct FnLit {
     /// `fn [$s] = $s at_least 60` (owner, 2026-10-24: "(c)"): one value,
     /// its types from where it goes.
     pub short: bool,
+    /// `proc [ … ] = …`: a lambda with effects (owner, 2026-10-27).
+    pub proc: bool,
 }
 
 // ---------------------------------------------------------------- statements
@@ -700,6 +702,9 @@ pub struct FnDecl {
     /// Written inside a `coll.fn`, where several versions of one function
     /// may stand (owner, 2026-10-20).
     pub in_coll: bool,
+    /// A `proc`, which may have effects; a `fn` has none and calls only
+    /// `fn`s (owner, 2026-10-27).
+    pub proc: bool,
     /// `labels ['text' as value];` in its `coll.fn` (owner, 2026-10-21):
     /// the own function's parameters written `word:` in a call.
     pub labels: Option<Labels>,

@@ -220,3 +220,19 @@ pub fn old_symbol(s: &str) -> Option<&'static Old> {
     }
     get().old.iter().find(|o| o.written == s && o.where_.as_deref() == Some("special"))
 }
+
+/// A word the language retired, refused wherever it stands (`retired`, and the type words the
+/// redesigns shortened): the row that says what to write, if the table has one.
+pub fn retired(w: &str) -> Option<String> {
+    if reading() {
+        return None;
+    }
+    let listed = get().retired.iter().any(|r| r == w) || matches!(w, "string" | "boolean" | "character");
+    if !listed || w == "func" {
+        return None;
+    }
+    Some(match old_word(w, Some("special")).or_else(|| old_word(w, None)) {
+        Some(o) => o.dated(),
+        None => format!("`{}` is an old spelling", w),
+    })
+}

@@ -29,7 +29,7 @@ pub fn type_spelling(t: &Type) -> String {
             Some(b) => format!("<{}: {}>", name.name, b.spelled()),
             None => format!("<{}>", name.name),
         },
-        TypeKind::Fn { params, ret, fails } => {
+        TypeKind::Fn { params, ret, fails, .. } => {
             let mut s = String::from("fn[");
             s.push_str(&params.iter().map(|p| {
                 let k = match p.kind {

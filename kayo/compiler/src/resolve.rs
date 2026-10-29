@@ -145,6 +145,10 @@ pub struct FnDeclInfo {
     pub is_literal: bool,
     /// `test fn` (owner, 2026-09-29).
     pub test: bool,
+    /// A `proc`: it may have effects (owner, 2026-10-27).
+    pub proc: bool,
+    /// A member of a `coll.fn` or `coll.proc`, whose kind is the collection's.
+    pub coll_member: bool,
     /// `table_bytes N fn …` (owner, 2026-10-19).
     pub table_bytes: Option<u64>,
     /// Its collection's `labels` and `defaults` (owner, 2026-10-21).
@@ -463,7 +467,7 @@ impl Items {
             ItemKind::Op(op) => {
                 let id = FnId(self.fns.len() as u32);
                 self.fns.push(placeholder_fn(&op.op.name, m, vis, item.span, op.op.span));
-                let decl = ast::FnDecl { name: op.op.clone(), announce: op.announce.clone(), params: op.params.clone(), ret: op.ret.clone(), ret_lent: None, fails: Vec::new(), body: Some(op.body.clone()), test: false, owner: None, table_bytes: None, c_name: None, in_coll: false, labels: None, defaults: Vec::new() };
+                let decl = ast::FnDecl { proc: false, name: op.op.clone(), announce: op.announce.clone(), params: op.params.clone(), ret: op.ret.clone(), ret_lent: None, fails: Vec::new(), body: Some(op.body.clone()), test: false, owner: None, table_bytes: None, c_name: None, in_coll: false, labels: None, defaults: Vec::new() };
                 self.pending_fns.push((id, decl, m, Some(op.op.name.clone())));
                 self.ops.entry(op.op.name.clone()).or_default().push(id);
             }
@@ -948,7 +952,7 @@ impl Items {
             }
         }
         let path = if op.is_some() { decl.name.name.clone() } else { qualify(self, m, &decl.name.name) };
-        Ok(FnDeclInfo { name: decl.name.name.clone(), path, module: m, vis, params, ret, ret_lent: decl.ret_lent.as_ref().map(|r| (r.mutable, r.group.as_ref().map(|g| g.name.clone()))), fails, blanks, body: decl.body.clone(), op, is_literal: false, test: decl.test, table_bytes: decl.table_bytes, labels: decl.labels.clone(), defaults: decl.defaults.clone(), span, name_span: decl.name.span })
+        Ok(FnDeclInfo { name: decl.name.name.clone(), path, module: m, vis, params, ret, ret_lent: decl.ret_lent.as_ref().map(|r| (r.mutable, r.group.as_ref().map(|g| g.name.clone()))), fails, blanks, body: decl.body.clone(), op, is_literal: false, test: decl.test, proc: decl.proc, coll_member: decl.in_coll, table_bytes: decl.table_bytes, labels: decl.labels.clone(), defaults: decl.defaults.clone(), span, name_span: decl.name.span })
     }
 
     pub fn resolve_fails(&mut self, fails: &[ast::FailSpec], m: ModuleId, blanks: &mut Vec<(String, Vec<IfaceId>)>) -> Result<Vec<(String, Option<Ty>)>> {
@@ -1303,7 +1307,7 @@ impl Items {
                     None => err(Diagnostic::error(format!("`<{}>` was never announced: a generic is announced right after the name, with what it accepts — `fn f <{}>: any […]`", name.name, name.name)).named("unannounced").at(t.span)),
                 }
             }
-            ast::TypeKind::Fn { params, ret, fails } => {
+            ast::TypeKind::Fn { params, ret, fails, proc } => {
                 let mut ps = Vec::new();
                 for p in params {
                     ps.push((conv_kind(p.kind), self.resolve_type(&p.ty, m, blanks, allow_blanks)?));
@@ -1320,7 +1324,7 @@ impl Items {
                     };
                     fs.push((f.name.name.clone(), payload));
                 }
-                Ok(Ty::Fn(Box::new(FnTy { params: ps, ret: r, fails: fs, owning: false })))
+                Ok(Ty::Fn(Box::new(FnTy { params: ps, ret: r, fails: fs, owning: false, proc: *proc })))
             }
             ast::TypeKind::Bits { inner, bits, span } => {
                 let inner_ty = self.resolve_type(inner, m, blanks, allow_blanks)?;
@@ -1930,7 +1934,7 @@ fn call_shapes(f: &FnDeclInfo) -> Vec<(Vec<(Option<String>, Option<Ty>)>, bool)>
 }
 
 fn placeholder_fn(name: &str, m: ModuleId, vis: Vis, span: Span, name_span: Span) -> FnDeclInfo {
-    FnDeclInfo { name: name.to_string(), path: name.to_string(), module: m, vis, params: Vec::new(), ret: Ty::Nothing, ret_lent: None, fails: Vec::new(), blanks: Vec::new(), body: None, op: None, is_literal: false, test: false, table_bytes: None, labels: None, defaults: Vec::new(), span, name_span }
+    FnDeclInfo { proc: false, coll_member: false, name: name.to_string(), path: name.to_string(), module: m, vis, params: Vec::new(), ret: Ty::Nothing, ret_lent: None, fails: Vec::new(), blanks: Vec::new(), body: None, op: None, is_literal: false, test: false, table_bytes: None, labels: None, defaults: Vec::new(), span, name_span }
 }
 
 fn qualify(items: &Items, m: ModuleId, name: &str) -> String {

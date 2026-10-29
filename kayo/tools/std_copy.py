@@ -29,22 +29,42 @@ subprocess.run(["python3", str(REPO / "oracle/tools/redesign_three.py"), str(OUT
 kit = OUT / "kit.cy"
 kit.write_text(kit.read_text().replace("    tr; az; <; root;", "    tr; az; lt; root;"))
 
+# `text_of` stops with a print and an exit when std's own cut is not UTF-8 (a bug in std), which makes it a
+# `proc`, and `split` and `join`, which call it, could not be `fn`s. Until std claude decides how std stops on its
+# own bug, the copy gives the empty text there instead.
+s = (OUT / "str.cy").read_text()
+start = s.index("proc text_of [let $bytes: ls[u8]] -> str.utf8:")
+end = s.index(";proc text_of", start) + len(";proc text_of")
+s = s[:start] + "fn text_of [let $bytes: ls[u8]] -> str.utf8:\n    ret to.str.utf8(lend $bytes) ?? str.empty;\n;fn text_of" + s[end:]
+(OUT / "str.cy").write_text(s)
+
+# What std offers is the kind the oracle's built-in std has: rounding is a `fn`. (std's own functions read from
+# this copy are not checked for effects, its stops on its own bugs printing and exiting.)
+r = (OUT / "round.cy").read_text()
+(OUT / "round.cy").write_text(r.replace("pub coll.proc ", "pub coll.fn ").replace(";coll.proc ", ";coll.fn "))
+
 # A verb on a plain value, a round each.
 env = dict(os.environ, KAYO_STD=str(OUT))
-AT = re.compile(r"error\[nothing_to_give\] at (.*):(\d+):(\d+)")
+AT = re.compile(r"error\[(nothing_to_give|owned_value_bare)\] at (.*):(\d+):(\d+)")
 for _ in range(500):
     r = subprocess.run([str(KAYO), "build", str(REPO / "examples/hello.cy"), "-o", str(OUT / "hello")], env=env, capture_output=True, text=True)
     m = AT.search(r.stderr)
-    if not m:
+    if not m or not m.group(2).startswith(str(OUT)):
         break
-    path, line, col = Path(m.group(1)), int(m.group(2)), int(m.group(3))
+    kind, path, line, col = m.group(1), Path(m.group(2)), int(m.group(3)), int(m.group(4))
     lines = path.read_text().split("\n")
     text = lines[line - 1]
     at = col - 1
-    verb = re.match(r"(copy|give|lend\.mut|lend) ", text[at:])
-    if not verb:
-        raise SystemExit(f"{path}:{line}:{col}: no verb to take off: {text}")
-    lines[line - 1] = text[:at] + text[at + len(verb.group(0)):]
+    if kind == "owned_value_bare":
+        # A conversion lends what it only reads (owner, 2026-10-28).
+        if "only looks at" not in r.stderr and "(lend $" not in r.stderr:
+            raise SystemExit(f"{path}:{line}:{col}: {r.stderr}")
+        lines[line - 1] = text[:at] + "lend " + text[at:]
+    else:
+        verb = re.match(r"(copy|give|lend\.mut|lend) ", text[at:])
+        if not verb:
+            raise SystemExit(f"{path}:{line}:{col}: no verb to take off: {text}")
+        lines[line - 1] = text[:at] + text[at + len(verb.group(0)):]
     path.write_text("\n".join(lines))
 (OUT / "hello").unlink(missing_ok=True)
 print(OUT)

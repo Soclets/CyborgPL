@@ -360,6 +360,7 @@ pub fn resolved(t: &Ty, subst: &HashMap<crate::types::InferId, Ty>) -> Ty {
             ret: resolved(&f.ret, subst),
             fails: f.fails.iter().map(|(n, t)| (n.clone(), t.as_ref().map(|t| resolved(t, subst)))).collect(),
             owning: f.owning,
+            proc: f.proc,
         })),
         Ty::Bundle(ts) => Ty::Bundle(ts.iter().map(|t| resolved(t, subst)).collect()),
         Ty::Bounded { inner, bound } => Ty::Bounded { inner: Box::new(resolved(inner, subst)), bound: bound.clone() },

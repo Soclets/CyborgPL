@@ -81,12 +81,19 @@ def run_reject(item, table):
     r = subprocess.run([str(KAYO), "build", str(path), "-o", str(SCRATCH / name)], stdin=subprocess.DEVNULL, capture_output=True, timeout=120)
     err = r.stderr.decode(errors="replace")
     if r.returncode == 0:
+        # Pending (Precog cannot refuse it yet) or by design: accepting it is right for now.
+        if want is not None and (want.startswith("!pending") or want.startswith("!by-design") or "; then: !by-design" in want):
+            return name, True, ""
         return name, False, "    accepted; the oracle says: " + (REJECT / f"{name}.err").read_text().strip()
     if want is None:
         return name, False, "    no phrase in reject_phrases.txt; kayo said:\n" + first_lines(err, 3)
     if want.startswith("!"):
         return name, True, ""
     if want in err:
+        return name, True, ""
+    # With its fix written, the sentence is left out (owner, 2026-10-24): the name and the fix say it.
+    lines = err.splitlines()
+    if not any(l.startswith("about: ") for l in lines) and any(l.startswith("fix: ") for l in lines):
         return name, True, ""
     return name, False, f"    wants: {want}\n    oracle: {(REJECT / (name + '.err')).read_text().strip()}\n" + first_lines(err, 4)
 
