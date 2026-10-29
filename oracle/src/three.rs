@@ -239,8 +239,11 @@ pub fn from_three(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     let tail = if narrowed && write == w { format!("`{w}.{}`", match tok(i + 2) { Tok::Word(n) => n.as_str(), _ => "…" }) } else { format!("`{write}`") };
                     return Err((t.line, t.col, format!("`{w}` is the base's, not std's: write {tail}, without `std::` (owner, 2026-10-28: \"`plus` isn't even `std`\")")));
                 }
-                // redesign two's operator words, refused naming their symbol; a narrowing keeps its word (`times.wrap`)
-                if !after_dot && !after_kit {
+                // redesign two's operator words, refused naming their symbol; a narrowing keeps its word (`times.wrap`).
+                // Only where an operator stands: a name may still be `lt` (Lithuanian's case in std's casing, compiler
+                // claude, 2026-10-29), at a line's start or after the word that declares or picks it
+                let naming = starts_line || matches!(prev.map(|p| &p.tok), Some(Tok::Word(k)) if matches!(k.as_str(), "case" | "module" | "rec" | "sig" | "set" | "tag" | "union" | "enum" | "fn" | "proc" | "op" | "member" | "use" | "as" | "const" | "let" | "var" | "versions"));
+                if !after_dot && !after_kit && !naming {
                     let narrowed = tok(i + 1) == &Tok::Dot;
                     let sym = match w {
                         "plus" if !narrowed => Some("+"), "minus" if !narrowed => Some("-"), "times" if !narrowed => Some("x"),

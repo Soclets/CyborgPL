@@ -46,6 +46,8 @@ fn effects_of(f: &ast::Func) -> (bool, Vec<String>) {
         if kit.is_none() && matches!(path.first().map(String::as_str), Some("ptr") | Some("channel")) { effect = true; }
     }
     if text.contains("Builtin(\"ptr\"") || text.contains("head: \"ptr\"") { effect = true; }
+    // a channel's `send`, `take` and `empty` (`%channel.send(…)`), as `ChannelNew` is (compiler claude's finding, 2026-10-29)
+    if text.contains("Builtin(\"channel\"") || text.contains("head: \"channel\"") { effect = true; }
     let called = calls_in(&text).into_iter().filter(|(k, _)| k.is_none()).filter_map(|(_, p)| p.last().cloned()).collect();
     (effect, called)
 }

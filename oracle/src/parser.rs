@@ -131,7 +131,8 @@ const STD_STR_OPS: &[&str] = &["split", "find", "contains", "trim", "upper", "lo
 
 /// An operator as code writes it (`+` inside is `plus`).
 pub fn op_shown(op: &str) -> String {
-    match op { "+" => "plus".into(), "-" => "minus".into(), "x" => "times".into(), "+.ieee" => "plus.ieee".into(), "-.ieee" => "minus.ieee".into(), "x.ieee" => "times.ieee".into(), "+~" => "plus.wrap".into(), "-~" => "minus.wrap".into(), "x~" => "times.wrap".into(), "equal_to" => "equal_to".into(), "not_equal" => "not_equal".into(), "at_most" => "at_most".into(), "at_least" => "at_least".into(), o => o.into() }
+    // as redesign three writes it (owner, 2026-10-28): the symbols for the plain forms, the words for the narrowings
+    match op { "+.ieee" => "plus.ieee".into(), "-.ieee" => "minus.ieee".into(), "x.ieee" => "times.ieee".into(), "+~" => "plus.wrap".into(), "-~" => "minus.wrap".into(), "x~" => "times.wrap".into(), "equal_to" => "==".into(), "not_equal" => "!=".into(), "at_most" => "<=".into(), "at_least" => ">=".into(), "xx" => "std::pow".into(), "xx~" => "std::pow.wrap".into(), o => o.into() }
 }
 
 const OP_WORDS: &[&str] = &["x", "xx", "div", "mod", "and", "or"];
