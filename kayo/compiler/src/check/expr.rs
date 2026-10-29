@@ -3299,7 +3299,7 @@ impl Checker {
                     }
                 }
                 // `cord::exit[…]` leaves: no value is given.
-                if matches!(&v.kind, K::Call { callee: Callee::Builtin(Builtin::Std(n)), .. } if n == "exit") {
+                if matches!(&v.kind, K::Call { callee: Callee::Builtin(Builtin::Std(n)), .. } if n == "exit" || n == "bug") {
                     let span = v.span;
                     return Ok(hir::Otherwise::Leave(Box::new(hir::Stmt { kind: hir::StmtKind::Expr(v), span, tier: ctx.tier })));
                 }

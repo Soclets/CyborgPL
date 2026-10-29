@@ -177,7 +177,7 @@ impl Scan {
                     self.expr(e);
                 }
             }
-            StmtKind::Break | StmtKind::Continue => {}
+            StmtKind::Break | StmtKind::Continue | StmtKind::Bug(_) => {}
             StmtKind::Tier { stmt, .. } | StmtKind::NoCheat { stmt } => self.stmt(stmt),
             StmtKind::Concur { captures, body, otherwise, .. } => {
                 self.captures(captures);

@@ -994,3 +994,4 @@ three_star_not_times [fnv:309ade135b429416] :: `*` is an old spelling: write `x`
 three_times_word_old [fnv:27c90086f866714e] :: `times` is an old spelling: write `x`; redesign three
 three_x_bare_call [fnv:f1a25faa7388e5dc] :: a bare `x` is multiplication
 var_with_walrus [fnv:00958fea4d1ee7c6] :: a `var` starts with `=`, its starting value
+bug_not_literal [fnv:cbcce9be3885926a] :: `bug` says what went wrong, in a text literal

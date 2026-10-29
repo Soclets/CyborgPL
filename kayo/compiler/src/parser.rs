@@ -3945,6 +3945,11 @@ impl<'a> Parser<'a> {
                 self.expect_semi("`break`")?;
                 Ok(StmtKind::Break)
             }
+            "bug" => {
+                let msg = self.bug_rest()?;
+                self.expect_semi("`bug`")?;
+                Ok(StmtKind::Bug(msg))
+            }
             "continue" => {
                 self.bump();
                 self.expect_semi("`continue`")?;
@@ -3990,6 +3995,18 @@ impl<'a> Parser<'a> {
             "MAIN" => self.fail_n("main_form", "bare `MAIN` is the program's block and cannot be nested or called; a function named `MAIN` is called by its path, `my.MAIN()`").with_fix(self.span(), Edit::DeleteLine, ""),
             "lang" if matches!(self.peek_at(1), Tok::Colon) => self.fail_n("spelling_removed", "`lang:` was removed: keywords are bare — `let $x := 1;`").with_fix(Span::new(self.span().file, self.span().start as usize, self.span_at(2).start as usize), Edit::Replace, ""),
             _ => self.expr_stmt(),
+        }
+    }
+
+    /// `bug "…"` from its word: the message, a text literal.
+    fn bug_rest(&mut self) -> Result<String> {
+        self.bump();
+        match self.peek().clone() {
+            Tok::Str(s) => {
+                self.bump();
+                Ok(s)
+            }
+            _ => self.fail_n("bug_form", "`bug` says what went wrong, in a text literal: `bug \"a rounded bin's digits did not read back\";` (owner, 2026-10-29)"),
         }
     }
 
@@ -4514,6 +4531,12 @@ impl<'a> Parser<'a> {
                 let value = if self.is(&Tok::Semi) || self.is(&Tok::RBrace) { None } else { Some(self.expr_top()?) };
                 let s = Stmt { kind: StmtKind::Return(value), span: span.to(self.prev_span()) };
                 Ok(Otherwise::Leave(Box::new(s)))
+            }
+            // `?? bug "…"` (owner, 2026-10-29).
+            Tok::Word(w) if w == "bug" => {
+                let span = self.span();
+                let msg = self.bug_rest()?;
+                Ok(Otherwise::Leave(Box::new(Stmt { kind: StmtKind::Bug(msg), span: span.to(self.prev_span()) })))
             }
             Tok::Word(w) if w == "break" => {
                 let span = self.bump().span;

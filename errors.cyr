@@ -465,5 +465,6 @@ errors::table[
         errors::error[name = "interface_form", means = "A `set` lists an operation, or a `sig` lists types: a `set` holds types, a `sig` operations.", tests = ["set_with_operation", "sig_mixed", "sig_of_types",]],
         errors::error[name = "line_join_misplaced", means = "A line ends in `-` that does not go on to a block's opening line below it.", tests = ["dash_not_before_block",]],
         errors::error[name = "semicolon_missing", means = "A line that ends with `;` is missing it.", tests = []],
+        errors::error[name = "bug_form", means = "A `bug` stop's message is not a text literal.", tests = ["bug_not_literal",]],
     ],
 ];

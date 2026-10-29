@@ -118,7 +118,7 @@ pub fn lower_for<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, nam
         }
         Err(e) => return Err(vec![NotYet { what: format!("this machine has no target description: {}", e), span: None }]),
     };
-    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), ranges_trusted: None, tests, cur_fi: 0, const_arrays: HashMap::new(), op_sites: Vec::new(), par: crate::par::plan(p), par_child: None, nocheat: nocheat_blocks(p), keep: HashMap::new(), sink: None, bits: crate::mir::bits::bit_lists(p), paged: crate::precog::paged::decide(p), alloc_paged: None };
+    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), ranges_trusted: None, tests, cur_fi: 0, const_arrays: HashMap::new(), op_sites: Vec::new(), op_span: None, par: crate::par::plan(p), par_child: None, nocheat: nocheat_blocks(p), keep: HashMap::new(), sink: None, bits: crate::mir::bits::bit_lists(p), paged: crate::precog::paged::decide(p), alloc_paged: None };
     cg.keep = keep::keep_loops(p, &cg.nocheat);
     // Read by the pipeline (`llvm-passes/pipeline.cpp`): a build with a loop
     // under `no_cheat` never has a loop's answer replaced by its closed form.
@@ -194,6 +194,8 @@ struct Cg<'a, 'ctx> {
     cur_fi: usize,
     /// The check sites guarding the operation being lowered.
     op_sites: Vec<SiteId>,
+    /// Where the operation being built stands (a `bug` says it).
+    op_span: Option<crate::source::Span>,
     /// Parallel `for` (`crate::par`): the loops that run in slices.
     par: crate::par::Plan,
     /// The slice being written, when one is.
@@ -976,6 +978,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 StmtKind::Op { dest, op, args } => {
                     // The sites guarding this operation (`simd.sum`'s).
                     self.op_sites = std::mem::take(&mut pending);
+                    self.op_span = Some(f.span(s.span));
                     let dest_ty = dest.as_ref().and_then(|d| self.slot_of(fi, d, slots)).map(|(_, t)| t);
                     let as_bits = matches!(op, Op::ListFill) && dest.as_ref().is_some_and(|d| d.proj.is_empty() && self.bits.contains(&(fi, d.local.0)));
                     let paged = dest.as_ref().and_then(|d| self.paged_list(fi, d));
@@ -3610,6 +3613,25 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // Of cord, the prints and `exit` (owner, 2026-10-09).
             Op::Std(name) if name == "exit" => {
                 self.emit_exit(fi, args, slots)?;
+                Some(None)
+            }
+            // `bug "…";` (owner, 2026-10-29): `error[bug] at file:line: message`, and exit 101,
+            // as a check that fires stops.
+            Op::Std(name) if name == "bug" => {
+                let Some(Operand::Const(crate::mir::Const::Str(msg))) = args.first() else { return None };
+                let span = self.op_span?;
+                let file = self.sources.get(span.file);
+                let (line, _) = file.line_col(span.start);
+                let msg = format!("error[bug] at {}:{}: {}\n", file.path.display(), line, msg);
+                let ptr = self.global_bytes(&msg);
+                let len = self.ctx.i64_type().const_int(msg.len() as u64, false);
+                if let Some(handler) = self.module.get_function("cyborg_check_failed") {
+                    let _ = self.builder.build_call(handler, &[ptr.into(), len.into()], "");
+                }
+                let _ = self.builder.build_unreachable();
+                let func = self.builder.get_insert_block()?.get_parent()?;
+                let after = self.ctx.append_basic_block(func, "after_bug");
+                self.builder.position_at_end(after);
                 Some(None)
             }
             // A print's own buffer, and sending what is held (owner,

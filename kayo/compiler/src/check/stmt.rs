@@ -28,7 +28,7 @@ pub fn leaves_stmt(s: &hir::Stmt) -> bool {
 
 fn otherwise_leaves(e: &hir::Expr) -> bool {
     // `std::exit[…]` leaves; a leaving `otherwise` only leaves on the failure path.
-    matches!(&e.kind, hir::ExprKind::Call { callee: hir::Callee::Builtin(hir::Builtin::Std(n)), .. } if n == "exit")
+    matches!(&e.kind, hir::ExprKind::Call { callee: hir::Callee::Builtin(hir::Builtin::Std(n)), .. } if n == "exit" || n == "bug")
 }
 
 fn has_break(b: &hir::Block) -> bool {
@@ -641,6 +641,12 @@ impl Checker {
                 }
             }
             ast::StmtKind::Fail { name, payload } => self.fail_stmt(ctx, name, payload.as_ref(), s.span),
+            // `bug "…";`: std's call that stops, exit 101, with the message (owner, 2026-10-29).
+            ast::StmtKind::Bug(msg) => Ok(hir::StmtKind::Expr(hir::Expr {
+                kind: hir::ExprKind::Call { callee: hir::Callee::Builtin(hir::Builtin::Std("bug".into())), args: vec![hir::Arg::Value(hir::Expr { kind: hir::ExprKind::Str(msg.clone()), ty: Ty::utf8(), span: s.span })], otherwise: None, fails: Vec::new() },
+                ty: Ty::Nothing,
+                span: s.span,
+            })),
             ast::StmtKind::Break => {
                 if ctx.loop_depth == 0 {
                     return err(Diagnostic::error("`break` outside a loop: there is nothing to leave").named("outside_loop").at(s.span));

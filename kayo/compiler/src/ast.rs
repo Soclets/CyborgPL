@@ -610,6 +610,9 @@ pub enum StmtKind {
     Fail { name: Ident, payload: Option<Expr> },
     Break,
     Continue,
+    /// `bug "…";` (owner, 2026-10-29): the program found a bug in itself and
+    /// stops, exit 101. Not an effect: a `fn` may use it.
+    Bug(String),
     Block(Block),
     Tier { tier: Tier, stmt: Box<Stmt> },
     /// `no_cheat` in front of a statement or block (owner, 2026-10-18:
