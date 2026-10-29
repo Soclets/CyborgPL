@@ -330,10 +330,12 @@ impl Ty {
     }
 
     /// Owned values need the verbs; plain values copy by themselves.
-    /// A struct or enum is always owned (decided 2026-09-18, 2026-09-20).
+    /// A struct is always owned (decided 2026-09-18); a union whose cases
+    /// hold no data is plain (owner, 2026-10-28), any other owned.
     pub fn is_owned(&self) -> bool {
         match self.base() {
-            Ty::Str(_) | Ty::Seq { .. } | Ty::Map { .. } | Ty::Struct { .. } | Ty::Enum { .. } | Ty::Channel(_) | Ty::Writer | Ty::Bundle(_) => true,
+            Ty::Enum { id, .. } => !plain_enum(id.0),
+            Ty::Str(_) | Ty::Seq { .. } | Ty::Map { .. } | Ty::Struct { .. } | Ty::Channel(_) | Ty::Writer | Ty::Bundle(_) => true,
             Ty::Char(Unit::Grapheme) => true,
             Ty::Fn(f) => f.owning,
             Ty::Var(_) => true,
@@ -733,4 +735,23 @@ pub fn a_type(name: &str) -> String {
     // As read aloud: "an i32", "a u8", "an f64" ("ef"), "a d64".
     let an = name.starts_with(|c: char| matches!(c, 'a' | 'e' | 'i' | 'o')) || (name.starts_with('f') && name[1..].starts_with(|c: char| c.is_ascii_digit()));
     format!("{} `{}`", if an { "an" } else { "a" }, name)
+}
+
+thread_local! {
+    /// The unions whose cases hold no data (owner, 2026-10-28), by their
+    /// ids: plain, as a number is. Filled as a program's enums are resolved.
+    static PLAIN_ENUMS: std::cell::RefCell<std::collections::HashSet<u32>> = Default::default();
+}
+
+pub fn set_plain_enum(id: u32) {
+    PLAIN_ENUMS.with(|p| p.borrow_mut().insert(id));
+}
+
+pub fn plain_enum(id: u32) -> bool {
+    PLAIN_ENUMS.with(|p| p.borrow().contains(&id))
+}
+
+/// A new program's enums start over.
+pub fn forget_plain_enums() {
+    PLAIN_ENUMS.with(|p| p.borrow_mut().clear());
 }

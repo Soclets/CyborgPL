@@ -177,6 +177,7 @@ fn gather_precedence(sources: &mut SourceMap, path: &Path) -> Result<()> {
 
 pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Result<Items> {
     crate::parser::forget_wrong_brackets();
+    crate::types::forget_plain_enums();
     old_names(path)?;
     // The target, known before any file is read (`on.target`): the one
     // named, or else the root Neuron's default, set where its manifest is
@@ -293,7 +294,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
     }
     // The Brainstem's `optional` (owner, 2026-10-08), every program's.
     let base_id = sources.add(Path::new("the base"), BASE_SOURCE.to_string());
-    let base = crate::parser::parse_file(&crate::lexer::lex(base_id, BASE_SOURCE)?)?;
+    let base = crate::parser::parse_file(&crate::surface::read(crate::lexer::lex(base_id, BASE_SOURCE)?, BASE_SOURCE)?)?;
     items.add_base(&base)?;
     items.resolve_all()?;
     // Every kit's C libraries, once each, in the order they were read.
@@ -356,7 +357,7 @@ fn board_fn(items: &Items, written: &str, at: crate::source::Span, field: &str) 
 }
 
 /// What every program has without writing it (owner, 2026-10-08: "yea").
-const BASE_SOURCE: &str = "enum optional <T: any> { value: <T>, none }\n";
+const BASE_SOURCE: &str = "union.tag optional <T: any>:\n    value: <T>;\n    none;\n;union.tag optional\n";
 
 /// The targets CCA writes code for: `cca/targets.txt`, the one list,
 /// which Synthia copies.

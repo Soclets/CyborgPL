@@ -3,7 +3,7 @@
 //! `print_format_width.cy`): `{}` takes the next value in its readable form,
 //! `{1}`, `{2}`… a numbered one (from 1, never mixed with `{}`); then, in any
 //! order, its shapes: `align: left|right|center`, `width: N cols` (or
-//! `cols.east_asian`, `graphemes`, `points`, `bytes`; `col` for one),
+//! `cols.east_asian`, `clusters`, `points`, `bytes`; `col` for one),
 //! `` fill: `c` ``, `places: N`, `base: bin|oct|hex|hex.upper`,
 //! `form: stored|science`, and the bare words `zeros` and `sign`. Rust's
 //! `{:>8.2}` is an old spelling, refused naming its words. The text has its
@@ -29,7 +29,7 @@ pub struct Spec {
     /// `zeros`.
     pub zero: bool,
     pub width: Option<u32>,
-    /// What the width counts: 0 cols, 1 cols.east_asian, 2 graphemes, 3
+    /// What the width counts: 0 cols, 1 cols.east_asian, 2 clusters, 3
     /// points, 4 bytes.
     pub unit: u32,
     pub places: Option<u32>,
@@ -43,7 +43,7 @@ pub struct Spec {
 mod tables;
 
 /// A width's units, as written.
-pub const UNITS: [&str; 5] = ["cols", "cols.east_asian", "graphemes", "points", "bytes"];
+pub const UNITS: [&str; 5] = ["cols", "cols.east_asian", "clusters", "points", "bytes"];
 
 /// The pieces of a format text, or why it is refused (the oracle's words).
 pub fn parse(text: &str) -> Result<Vec<Piece>, String> {
@@ -73,6 +73,18 @@ pub fn parse(text: &str) -> Result<Vec<Piece>, String> {
                         Some(ch) => inside.push(ch),
                         None => return Err("a `{` in a format text is never closed: a literal brace is `\\{`".into()),
                     }
+                }
+                // `{newln}` and `{tab}` are a line break and a tab (redesign two).
+                match inside.trim() {
+                    "newln" => {
+                        lit.push('\n');
+                        continue;
+                    }
+                    "tab" => {
+                        lit.push('\t');
+                        continue;
+                    }
+                    _ => {}
                 }
                 // Rust's shapes, `{:>8.2}`, `{2:x}`: an old spelling.
                 if let Some((head, old)) = inside.split_once(':') {
@@ -268,10 +280,10 @@ fn spec(inside: &str, items: &[String]) -> Result<Spec, String> {
                 sp.unit = match unit {
                     "col" | "cols" => 0,
                     "cols.east_asian" => 1,
-                    "graphemes" => 2,
+                    "clusters" => 2,
                     "points" => 3,
                     "bytes" => 4,
-                    _ => return Err(format!("`width: {} {}`: a width counts `cols`, `cols.east_asian`, `graphemes`, `points` or `bytes`", n, unit)),
+                    _ => return Err(format!("`width: {} {}`: a width counts `cols`, `cols.east_asian`, `clusters`, `points` or `bytes`", n, unit)),
                 };
                 sp.width = Some(n);
             }

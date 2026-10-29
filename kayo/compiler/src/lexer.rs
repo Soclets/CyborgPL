@@ -111,6 +111,9 @@ pub struct Token {
     /// limb adds. `marks::check` says where one goes; the word reads as it
     /// always did.
     pub marked: bool,
+    /// A `proc` read as the `fn` the parser knows (redesign two, owner
+    /// 2026-10-27): a function, lambda or type that may have effects.
+    pub proc: bool,
 }
 
 pub const OP_CHARS: &str = "!%&*+-/<>=?@^|~";
@@ -185,7 +188,7 @@ impl<'a> Lexer<'a> {
             _ => (span, false),
         };
         let line_first = line_first || (marked && self.toks.last().map_or(true, |t| self.src.get(t.span.end as usize..span.start as usize).is_some_and(|gap| gap.contains('\n'))));
-        self.toks.push(Token { tok, span, line_first, alt: None, labelled: false, call: false, raw: None, marked });
+        self.toks.push(Token { tok, span, line_first, alt: None, labelled: false, call: false, raw: None, marked, proc: false });
     }
     fn push_alt(&mut self, tok: Tok, start: usize, alt: Option<(String, &'static str)>) {
         self.push(tok, start);
@@ -327,7 +330,15 @@ impl<'a> Lexer<'a> {
                             self.bump();
                             self.push(Tok::ColonColon, start);
                         }
-                        _ => self.push(Tok::Colon, start),
+                        _ => {
+                            self.push(Tok::Colon, start);
+                            // `inline.ASM with […]:` ends its line, and the
+                            // lines under it up to `;inline.ASM` are the
+                            // code as written (redesign three).
+                            if self.inline_on_line() && self.rest_of_line_blank() {
+                                self.raw_lines(start)?;
+                            }
+                        }
                     }
                 }
                 // `$total` is the variable `'total'` (owner, 2026-10-22: "Why
@@ -373,11 +384,7 @@ impl<'a> Lexer<'a> {
                 }
                 '{' => {
                     self.bump();
-                    if self.after_inline_asm() {
-                        self.raw_block(start)?;
-                    } else {
-                        self.push(Tok::LBrace, start);
-                    }
+                    self.push(Tok::LBrace, start);
                 }
                 '}' => {
                     self.bump();
@@ -398,63 +405,57 @@ impl<'a> Lexer<'a> {
             }
         }
         let end = self.src.len();
-        self.toks.push(Token { tok: Tok::Eof, span: Span::new(self.file, end, end), line_first: true, marked: false, alt: None, labelled: false, call: false, raw: None });
+        self.toks.push(Token { tok: Tok::Eof, span: Span::new(self.file, end, end), line_first: true, marked: false, alt: None, labelled: false, call: false, raw: None, proc: false });
         Ok(())
     }
 
-    /// `inline` `.` and a language were the last three tokens: the brace
-    /// opens raw text (owner, 2026-10-07: `inline.ASM`, `inline.LL`,
-    /// `inline.MSL`, and MTM's whole names for them).
-    fn after_inline_asm(&self) -> bool {
-        let n = self.toks.len();
-        let inline_at = |k: usize, names: &[&str]| k >= 2
-            && matches!(&self.toks[k].tok, Tok::Word(w) if names.contains(&w.as_str()))
-            && self.toks[k - 1].tok == Tok::Dot
-            && matches!(&self.toks[k - 2].tok, Tok::Word(w) if w == "inline");
-        if n >= 3 && inline_at(n - 1, &["ASM", "Assembly", "S", "LL", "LLVM", "LLVM_Intermediate_Representation", "MSL", "Metal_Shading_Language"]) {
-            return true;
-        }
-        // `inline.MSL threads <count> {` (owner, 2026-10-01): the count
-        // stands between the name and the Metal code.
-        let mut k = n;
-        while k > 0 {
-            k -= 1;
-            match &self.toks[k].tok {
-                Tok::Semi | Tok::LBrace | Tok::RBrace | Tok::Raw(_) => return false,
-                Tok::Word(w) if w == "threads" => {
-                    // Past `.precise` and `.wrap` (owner, 2026-10-25), or a
-                    // word the parser then refuses as no narrowing: the
-                    // block is Metal's either way.
-                    let mut at = k;
-                    while at >= 3 && !inline_at(at - 1, &["MSL", "Metal_Shading_Language"]) && matches!(&self.toks[at - 1].tok, Tok::Word(_)) && self.toks[at - 2].tok == Tok::Dot {
-                        at -= 2;
-                    }
-                    return at >= 1 && inline_at(at - 1, &["MSL", "Metal_Shading_Language"]);
-                }
-                _ => {}
-            }
-        }
-        false
+    /// `inline` `.` and a language stand on the line the cursor is on.
+    fn inline_on_line(&self) -> bool {
+        let first = self.toks.iter().rposition(|t| t.line_first).unwrap_or(0);
+        let line = &self.toks[first..];
+        (0..line.len().saturating_sub(2)).any(|k| {
+            matches!(&line[k].tok, Tok::Word(w) if w == "inline")
+                && line[k + 1].tok == Tok::Dot
+                && matches!(&line[k + 2].tok, Tok::Word(w) if matches!(w.as_str(), "ASM" | "LL" | "MSL" | "Assembly" | "S" | "LLVM" | "Metal_Shading_Language"))
+        })
     }
 
-    fn raw_block(&mut self, start: usize) -> Result<()> {
+    /// Nothing but spaces, or a comment, before the line's end.
+    fn rest_of_line_blank(&self) -> bool {
+        let rest = &self.src[self.pos..];
+        let line = rest.split('\n').next().unwrap_or("");
+        let line = line.trim();
+        line.is_empty() || line.starts_with("# ") || line == "#"
+    }
+
+    /// The lines under an inline block's opening line, up to the one that
+    /// starts `;inline`: one raw text, its own lines kept.
+    fn raw_lines(&mut self, start: usize) -> Result<()> {
+        self.skip_line();
+        if self.peek() == Some('\n') {
+            self.bump();
+            self.line_start = self.pos;
+        }
         let body_start = self.pos;
-        let mut depth = 1;
         loop {
-            match self.bump() {
-                None => return self.fail(start, "unclosed_block", "this `{` is never closed").with_fix(Span::new(self.file, self.src.len(), self.src.len()), Edit::Append, "}"),
-                Some('{') => depth += 1,
-                Some('}') => {
-                    depth -= 1;
-                    if depth == 0 {
-                        break;
-                    }
-                }
-                Some(_) => {}
+            let line = self.src[self.pos..].split('\n').next().unwrap_or("");
+            if line.trim_start().starts_with(";inline") {
+                break;
+            }
+            if self.pos >= self.src.len() {
+                return self.fail(start, "unclosed_block", "this inline block is never closed: its code ends at a line `;inline.ASM` (or `;inline.%MSL`)");
+            }
+            self.skip_line();
+            if self.peek() == Some('\n') {
+                self.bump();
+                self.line_start = self.pos;
             }
         }
-        let text = self.src[body_start..self.pos - 1].to_string();
-        self.push(Tok::Raw(text), start);
+        let text = self.src[body_start..self.pos].to_string();
+        let text = text.strip_suffix('\n').unwrap_or(&text).to_string();
+        // Its span ends before the last line break, so the closer starts a line.
+        let end = (body_start + text.len()).max(body_start);
+        self.toks.push(Token { tok: Tok::Raw(text), span: Span::new(self.file, body_start, end), line_first: true, alt: None, labelled: false, call: false, raw: None, marked: false, proc: false });
         Ok(())
     }
 

@@ -218,6 +218,22 @@ impl Run<'_> {
             }
             // `to.stored.str.utf8['n']`, `to.str.utf8['n']`: the digits.
             ExprKind::Conv { target: Type { kind: TypeKind::Path { path, .. }, .. }, expr, .. } if path.segs.len() >= 2 && path.segs[path.segs.len() - 2].name == "str" && path.last().name == "utf8" => Val::Text(self.expr(expr, env)?.text()),
+            // std's text replacement, `std::str.replace(lend $t, from: ".", to: "_")`.
+            ExprKind::Call { path, args, otherwise: None } if path.kit.as_ref().is_some_and(|k| k.name == "std") && path.segs.len() == 2 && path.segs[0].name == "str" && path.segs[1].name == "replace" && args.len() == 3 => {
+                let mut texts = Vec::new();
+                for a in args {
+                    let Arg::Positional(x) = a else { return Self::not_yet(e) };
+                    let x = match &x.kind {
+                        ExprKind::Verb { expr, .. } => expr,
+                        _ => x,
+                    };
+                    texts.push(self.expr(x, env)?.text());
+                }
+                if texts[1].is_empty() {
+                    return Self::not_yet(e);
+                }
+                Val::Text(texts[0].replace(&texts[1], &texts[2]))
+            }
             ExprKind::Call { path, args, otherwise: None } if path.kit.is_none() && path.segs.len() == 1 => {
                 let Some(f) = find_fn(&self.file.items, &path.segs[0].name) else {
                     return err(Diagnostic::error(format!("`{}` is not a function of this file, which is what runs while generating", path.segs[0].name)).named("unknown_function").at(e.span));
@@ -368,7 +384,9 @@ fn values(t: &Template, text: &str, consts: &HashMap<String, Val>) -> Result<Vec
 fn block(t: &Template, text: &str, file: &File, consts: &HashMap<String, Val>) -> Result<Vec<String>> {
     let base = indent_of(text, t.at.start as usize);
     let member = &text[t.member.start as usize..t.member.end as usize];
-    let deeper = indent_of(text, t.member.start as usize).len().saturating_sub(base.len());
+    // The member's own lines sit one level in from the template: each keeps
+    // what it has past the member's line.
+    let deeper = indent_of(text, t.member.start as usize).len();
     let toks = crate::lexer::lex(crate::source::FileId(0), member)?;
     let mut lines = Vec::new();
     for (v, written) in values(t, text, consts)? {
@@ -379,10 +397,13 @@ fn block(t: &Template, text: &str, file: &File, consts: &HashMap<String, Val>) -
                 body.replace_range(tok.span.start as usize..tok.span.end as usize, &written);
             }
         }
+        let count = body.lines().count();
         for (i, l) in body.lines().enumerate() {
             if i == 0 {
-                // The collection's name in front (owner, 2026-10-19).
-                lines.push(format!("{}{}.{} {}", base, t.coll, name, l));
+                // `member` and the collection's name in front (owner, 2026-10-19; redesign two).
+                lines.push(format!("{}member {}.{} {}", base, t.coll, name, l));
+            } else if i + 1 == count && l.trim() == ";member" {
+                lines.push(format!("{};member {}.{}", base, t.coll, name));
             } else {
                 let cut = l.chars().take(deeper).take_while(|c| *c == ' ' || *c == '\t').count();
                 lines.push(format!("{}{}", base, &l[cut..]));

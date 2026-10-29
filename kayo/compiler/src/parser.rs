@@ -447,6 +447,8 @@ fn old_spelling(toks: &[Token], i: usize) -> Option<String> {
             // `equal_to` is this token inside, written in full.
             "==" if written == 2 => return row("==", false),
             "!=" | "<=" | ">=" | "/" | "%" | "&&" | "||" | "**" | "++" | "--" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=" => return row(o, false),
+            // `otherwise h.*m`: a jumping handler's mark (redesign three).
+            "*" if i > 0 && toks[i - 1].tok == Tok::Dot => return None,
             "*" => {
                 return match next(1) {
                     _ if after_value => row("*", true),
@@ -2237,7 +2239,18 @@ impl<'a> Parser<'a> {
     /// with their words (owner, 2026-10-23), so an argument is worked out
     /// only when an arm runs.
     fn use_handler(&mut self, coll: &str, members: &[HandlerMember], start: Span) -> Result<Otherwise> {
+        // `*` marks a handler that can jump where it is used, and only there
+        // (owner, 2026-10-27/28): `otherwise half_failed.*skip`.
+        let star = if self.is_op("*") { Some(self.bump().span) } else { None };
         let member = self.ident("the handler's name")?;
+        if let Some((_, _, arms)) = members.iter().find(|(m, _, _)| *m == member.name) {
+            let jumps = arms.iter().any(|a| block_jumps(&a.body));
+            match (jumps, star) {
+                (true, None) => return self.fail_at_n(member.span, "handler_jump_unmarked", format!("`{}.{}` can `ret`, `break` or `continue`, so its use says so: `{}.*{}`", coll, member.name, coll, member.name)).with_fix(member.span, Edit::Insert, "*"),
+                (false, Some(at)) => return self.fail_at_n(at, "handler_jump_unmarked", format!("`{}.{}` never jumps, so it takes no `*`: `{}.{}`", coll, member.name, coll, member.name)).with_fix(at, Edit::Replace, ""),
+                _ => {}
+            }
+        }
         let Some((_, params, arms)) = members.iter().find(|(m, _, _)| *m == member.name) else {
             let have = members.iter().map(|(m, _, _)| format!("`{}`", m)).collect::<Vec<_>>().join(", ");
             return self.fail_at_n(member.span, "unknown_handler", format!("`{}` has no handler `{}`; it has {}", coll, member.name, have)).map_err(|d| Box::new(d.fix_close(member.span, &member.name, members.iter().map(|(m, _, _)| m.as_str()))));
@@ -2738,6 +2751,8 @@ impl<'a> Parser<'a> {
                     return self.fail_at_n(start, "parameter_form", "an owning parameter has no keyword — `$x: T` — and the caller writes `give` or `copy`");
                 }
                 kind = ParamKind::Owned;
+                // `var $a` on an operand is the parser's `give mut $a` (redesign two).
+                let mutability = if self.eat_word("mut") { Some(Mutability::Mut) } else if self.eat_word("immut") { Some(Mutability::Immut) } else { mutability };
                 let p = self.param_rest(start, kind, amp, mutability, true)?;
                 return Ok(p);
             }
@@ -3042,9 +3057,6 @@ impl<'a> Parser<'a> {
                 let span = self.bump().span;
                 // A comparison is named by its word (owner, 2026-10-07).
                 let name = match o.as_str() {
-                    // `==` written (two characters) is the symbol; the word
-                    // `equal_to` reads as the same token.
-                    "==" if span.end - span.start == 2 => o,
                     "==" => "equal_to".to_string(),
                     "!==" => "not_equal".to_string(),
                     "</==" => "at_most".to_string(),
@@ -6142,6 +6154,29 @@ pub fn pub_handlers(toks: &[Token]) -> Result<Vec<(String, Vec<HandlerMember>)>>
 
 /// A declared channel type: the type without its bound, the element type,
 /// and the bound (`channel[T][max: 10]`, a `min` written being 0).
+/// Whether a handler's arm can `ret`, `break` or `continue` from where it is used.
+fn block_jumps(b: &Block) -> bool {
+    b.stmts.iter().any(stmt_jumps)
+}
+
+fn stmt_jumps(s: &Stmt) -> bool {
+    match &s.kind {
+        StmtKind::Return(_) | StmtKind::Break | StmtKind::Continue => true,
+        StmtKind::If { then, else_, .. } => {
+            block_jumps(then)
+                || match else_ {
+                    Some(ElseArm::Block(b)) => block_jumps(b),
+                    Some(ElseArm::If(s)) => stmt_jumps(s),
+                    None => false,
+                }
+        }
+        StmtKind::Block(b) => block_jumps(b),
+        StmtKind::Tier { stmt, .. } | StmtKind::NoCheat { stmt } => stmt_jumps(stmt),
+        StmtKind::Match { arms, .. } => arms.iter().any(|a| block_jumps(&a.body)),
+        _ => false,
+    }
+}
+
 fn channel_type(t: &Type) -> Option<(Type, Type, Option<Box<(Expr, Expr)>>)> {
     let is_channel = |t: &Type| match &t.kind {
         TypeKind::Path { path, args } if path.kit.is_none() && path.segs.len() == 1 && path.head() == "channel" && args.len() == 1 => Some(args[0].clone()),

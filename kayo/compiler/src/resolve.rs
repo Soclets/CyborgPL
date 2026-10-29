@@ -631,6 +631,11 @@ impl Items {
             if decl.layout_c {
                 e.numbers = Some(numbers);
             }
+            // A union whose every case holds no data is plain, as a number is
+            // (owner, 2026-10-28): passed bare and copied.
+            if cases.iter().all(|c| c.payload.is_none()) && blanks.is_empty() {
+                crate::types::set_plain_enum(id.0);
+            }
             e.cases = cases;
             e.bounds = blanks.iter().map(|(_, b)| b.clone()).collect();
             e.blanks = blanks.into_iter().map(|(n, _)| n).collect();

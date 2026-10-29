@@ -3789,6 +3789,23 @@ impl Checker {
         } else {
             None
         };
+        // A short lambda where nothing is handed back, `proc [let $s] =
+        // std::print($s, newln)`: its value is a statement, not a `ret`.
+        let unit;
+        let lit = match (&from, lit.body.stmts.first().map(|s| &s.kind)) {
+            (Some(ft), Some(ast::StmtKind::Return(Some(v)))) if ft.ret == Ty::Nothing => {
+                let mut l = lit.clone();
+                // A value that is not a call is worked out and dropped
+                // (`each(8, fn [let $s] = $s + 1)`, the oracle's reading).
+                l.body.stmts[0].kind = match &v.kind {
+                    AK::Call { .. } | AK::CallValue { .. } => ast::StmtKind::Expr(v.clone()),
+                    _ => ast::StmtKind::Let { mutability: None, name: ast::QName { name: "a short lambda's value".into(), span: v.span }, ty: None, shadow: false, value: v.clone(), sealed: false },
+                };
+                unit = l;
+                &unit
+            }
+            _ => lit,
+        };
         let fn_id = self.declare_literal(lit, ctx.module, span, from.as_ref())?;
         // A function written inside one keeps its variables' case.
         if ctx.fold_vars {

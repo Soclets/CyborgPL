@@ -10,6 +10,7 @@ pub mod cyjet_toml;
 pub mod format;
 pub mod metal;
 pub mod lexer;
+pub mod surface;
 pub mod uses;
 pub mod bounds;
 pub mod marks;

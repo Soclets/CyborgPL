@@ -17,10 +17,12 @@ fn limb_of(word: &str, before: Option<&str>, after: Option<&str>, prev: Option<&
     Some(match (before, word) {
         (None, "extern" | "layout") if after.is_some() => "CNC",
         (None, "C") if after.is_some() => "CNC",
-        (None | Some("to"), "d32" | "d64" | "d128") => "Money",
-        (None | Some("to"), "i128" | "u128" | "f128") => "WSMW",
+        // A limb's number type is marked wherever it stands (owner, 2026-10-28):
+        // `to.stored.%d64` too.
+        (_, "d32" | "d64" | "d128") => "Money",
+        (_, "i128" | "u128" | "f128") => "WSMW",
         (None, "not_std") if after.is_some() => "WSMW",
-        (None | Some("to"), "brain16") => "AI",
+        (_, "brain16" | "bf16") => "AI",
         (None, "concur" | "channel" | "whichever") => "MCPS",
         (None, "para") if matches!(prev, Some(Tok::Word(w)) if w == "for") => "MCPS",
         (Some("incl"), "C") => "CNC",
@@ -32,6 +34,11 @@ fn limb_of(word: &str, before: Option<&str>, after: Option<&str>, prev: Option<&
         (None, "graphemes" | "grapheme" | "points" | "point") if matches!(prev, Some(Tok::Num { .. })) => "unicode",
         _ => return None,
     })
+}
+
+/// A limb's number type, marked wherever it stands in a path.
+fn number_type(w: &str) -> bool {
+    matches!(w, "d32" | "d64" | "d128" | "i128" | "u128" | "f128" | "brain16" | "bf16")
 }
 
 fn word(t: &Token) -> Option<&str> {
@@ -77,8 +84,8 @@ pub fn check(toks: &[Token]) -> Result<()> {
                 let next = path.get(n + 1).and_then(|t| word(t));
                 // Only a base word before a limb's own first one: `to.`,
                 // `incl.`, `inline.`, `char.`, `str.`, or none.
-                if n > 0 && !matches!(before, Some("to" | "incl" | "inline" | "char" | "str")) {
-                    break;
+                if n > 0 && !matches!(before, Some("to" | "incl" | "inline" | "char" | "str")) && !number_type(word(path[n]).unwrap_or("")) {
+                    continue;
                 }
                 if let Some(limb) = limb_of(word(path[n]).unwrap_or(""), before, next, if n == 0 { prev } else { None }) {
                     first = Some((n, limb));
@@ -187,8 +194,8 @@ fn mark_code(code: &str) -> String {
                 let w = text(&pieces[path[n]]);
                 let before = n.checked_sub(1).map(|m| text(&pieces[path[m]]));
                 let next = path.get(n + 1).map(|&m| text(&pieces[m]));
-                if n > 0 && !matches!(before, Some("to" | "incl" | "inline" | "char" | "str")) {
-                    break;
+                if n > 0 && !matches!(before, Some("to" | "incl" | "inline" | "char" | "str")) && !number_type(w) {
+                    continue;
                 }
                 if limb_of(w, before, next, if n == 0 { prev.as_ref() } else { None }).is_some() {
                     if !marked_already(path[n]) {

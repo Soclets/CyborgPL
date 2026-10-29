@@ -147,7 +147,8 @@ impl SourceMap {
     /// decoded.
     pub fn lex_file(&self, id: FileId) -> crate::diag::Result<Vec<crate::lexer::Token>> {
         self.decoded(id)?;
-        crate::lexer::lex(id, &self.get(id).text)
+        let text = &self.get(id).text;
+        crate::surface::read(crate::lexer::lex(id, text)?, text)
     }
 
     /// Whether a file is a concise file that cannot be decoded.
