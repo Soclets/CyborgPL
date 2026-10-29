@@ -2,11 +2,12 @@
 //! redesign two: "a word means what it means in mathematics"). A `fn` may change its own
 //! variables, which no caller sees, and one that can fail is still a `fn`. What makes a `proc`:
 //! printing, reading input, waiting, exiting, a task or a channel, C or a pointer, another
-//! language's code, changing what it was lent, and calling a `proc` or a `proc[…]` value.
+//! language's code, and calling a `proc` or a `proc[…]` value. Changing what it was lent is no
+//! effect (owner, 2026-10-29: "(a)"): the caller handed it over to be changed.
 //!
 //! Read from a function's checked body, the first such thing found.
 
-use crate::hir::{Arg, Block, Builtin, Callee, Expr, ExprKind, LocalKind, Otherwise, Place, Stmt, StmtKind};
+use crate::hir::{Arg, Block, Builtin, Callee, Expr, ExprKind, Otherwise, Place, Stmt, StmtKind};
 use crate::source::Span;
 use crate::types::Ty;
 
@@ -33,11 +34,6 @@ impl<'a> Walk<'a> {
         }
     }
 
-    fn lent(&self, place: &Place) -> Option<&str> {
-        let l = self.locals.get(place.base.0 as usize)?;
-        (l.kind == LocalKind::LentMut).then_some(l.name.as_str())
-    }
-
     pub fn block(&mut self, b: &Block) {
         for s in &b.stmts {
             if self.found.is_some() {
@@ -52,9 +48,6 @@ impl<'a> Walk<'a> {
             StmtKind::NoCheat(ss) => ss.iter().for_each(|s| self.stmt(s)),
             StmtKind::Let { value, .. } => self.expr(value),
             StmtKind::Assign { place, value } => {
-                if let Some(n) = self.lent(place) {
-                    self.note(Found::Effect(format!("changes what it was lent ('{}')", n), place.span));
-                }
                 self.place(place);
                 self.expr(value);
             }
@@ -143,15 +136,7 @@ impl<'a> Walk<'a> {
     fn arg(&mut self, a: &Arg, builtin: bool) {
         match a {
             Arg::Value(e) => self.expr(e),
-            Arg::Lend { place, mutable } => {
-                // Handing on what it was lent for a language operation to change.
-                if *mutable && builtin {
-                    if let Some(n) = self.lent(place) {
-                        self.note(Found::Effect(format!("changes what it was lent ('{}')", n), place.span));
-                    }
-                }
-                self.place(place);
-            }
+            Arg::Lend { place, .. } => self.place(place),
             Arg::Give(p) | Arg::Copy(p) => self.place(p),
             Arg::Spread { expr, .. } => self.arg(expr, builtin),
         }
