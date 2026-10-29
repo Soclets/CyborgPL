@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-29 — Bare `print` stays the shortest form of its values; formatting stays `print.format` (owner: "keep it")
+
+The owner: "Should we only make it mean format?" Design claude, by the redesign checklist: formatting is the more specific
+choice (holes, places, widths, bases), so by the naming rule it is the narrowing; 508 bare `std::print(…)` calls against
+25 `print.format` in the examples, most of which would grow (`std::print("{}{newln}", $x)`); languages split (Rust's
+`println!` and C's `printf` format, Python's `print`, JS's `console.log` and Go's `Println` take values); nothing would run
+differently, a stray `{` being refused at build; recommended keeping it. The owner: "keep it". So **`std::print(…)` stays
+`print.shortest`, and `print.format` stays a narrowing.**
+
 ### 2026-10-29 — Changing what a function was lent is no effect: a `fn` may take `lent.mut` (owner: "(a)")
 
 std claude, before converting std/: every std builder grows a list through a helper that changes what it is lent
