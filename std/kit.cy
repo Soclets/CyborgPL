@@ -4,4 +4,9 @@
 
 # Whose case rules a full case change follows (owner, 2026-10-20: "casing, go"): Turkish, Azerbaijani and
 # Lithuanian have rules of their own in Unicode's tables; `root` is every other language.
-pub enum casing { tr, az, lt, root }
+pub union.tag casing:
+    tr;
+    az;
+    lt;
+    root;
+;union.tag casing

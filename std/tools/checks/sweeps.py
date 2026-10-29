@@ -25,12 +25,12 @@ def ok(c):
 
 def write(calls):
     """calls: (function, lang or None, text). The program prints `k answer` for each."""
-    lines = ["MAIN {"]
+    lines = ["MAIN:"]
     for k, (f, lang, t) in enumerate(calls, 1):
         word = f", lang: std::casing.{lang}" if lang else ""
         lines.append(f'    let $t{k} := "{t}";')
-        lines.append(f'    std::print.useful({k}, " ", std::str.{f}.full(lend $t{k}{word}), newln);')
-    lines.append("}")
+        lines.append(f'    std::print({k}, " ", std::str.{f}.full(lend $t{k}{word}), newln);')
+    lines.append(";MAIN")
     open(f"{folder}/prog/kit.cy", "w", encoding="utf-8").write("\n".join(lines) + "\n")
     open(f"{folder}/texts.txt", "w", encoding="utf-8").write(
         "\n".join(f"{f} {lang or '-'} " + t.encode("unicode_escape").decode() for f, lang, t in calls))

@@ -6,7 +6,7 @@
 # its keys sorted; each range table lists runs of code points, lo and hi. A search gives the last position whose
 # key is at most 'c', or 0 when there is none.
 
-pub.kit const $simple_upper_keys: array[u32] = [
+pub.kit const $simple_upper_keys: arr[u32] := [
     97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118,
     119, 120, 121, 122, 181, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239,
     240, 241, 242, 243, 244, 245, 246, 248, 249, 250, 251, 252, 253, 254, 255, 257, 259, 261, 263, 265, 267,
@@ -100,7 +100,7 @@ pub.kit const $simple_upper_keys: array[u32] = [
     125241, 125242, 125243, 125244, 125245, 125246, 125247, 125248, 125249, 125250, 125251,
 ];
 
-pub.kit const $simple_upper_values: array[u32] = [
+pub.kit const $simple_upper_values: arr[u32] := [
     65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90,
     924, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211,
     212, 213, 214, 216, 217, 218, 219, 220, 221, 222, 376, 256, 258, 260, 262, 264, 266, 268, 270, 272, 274,
@@ -194,32 +194,56 @@ pub.kit const $simple_upper_values: array[u32] = [
 ];
 
 # Unicode's simple uppercase: one code point for one.
-pub.kit fn simple_upper_at [$c: u32] -> u64 {
-    let $n := array.length($simple_upper_keys);
-    let mut $p: u64[max: 1505] = 0;
-    if $p + 1024 at_most $n and.then $simple_upper_keys[pos: $p + 1024] at_most $c { change $p = $p + 1024; }
-    if $p + 512 at_most $n and.then $simple_upper_keys[pos: $p + 512] at_most $c { change $p = $p + 512; }
-    if $p + 256 at_most $n and.then $simple_upper_keys[pos: $p + 256] at_most $c { change $p = $p + 256; }
-    if $p + 128 at_most $n and.then $simple_upper_keys[pos: $p + 128] at_most $c { change $p = $p + 128; }
-    if $p + 64 at_most $n and.then $simple_upper_keys[pos: $p + 64] at_most $c { change $p = $p + 64; }
-    if $p + 32 at_most $n and.then $simple_upper_keys[pos: $p + 32] at_most $c { change $p = $p + 32; }
-    if $p + 16 at_most $n and.then $simple_upper_keys[pos: $p + 16] at_most $c { change $p = $p + 16; }
-    if $p + 8 at_most $n and.then $simple_upper_keys[pos: $p + 8] at_most $c { change $p = $p + 8; }
-    if $p + 4 at_most $n and.then $simple_upper_keys[pos: $p + 4] at_most $c { change $p = $p + 4; }
-    if $p + 2 at_most $n and.then $simple_upper_keys[pos: $p + 2] at_most $c { change $p = $p + 2; }
-    if $p + 1 at_most $n and.then $simple_upper_keys[pos: $p + 1] at_most $c { change $p = $p + 1; }
-    return $p;
-}
+pub.kit fn simple_upper_at [let $c: u32] -> u64:
+    let $n := arr.len($simple_upper_keys);
+    var $p: u64[max: 1505] = 0;
+    if $p + 1024 <= $n and.then $simple_upper_keys[pos: $p + 1024] <= $c:
+        change $p to $p + 1024;
+    ;if
+    if $p + 512 <= $n and.then $simple_upper_keys[pos: $p + 512] <= $c:
+        change $p to $p + 512;
+    ;if
+    if $p + 256 <= $n and.then $simple_upper_keys[pos: $p + 256] <= $c:
+        change $p to $p + 256;
+    ;if
+    if $p + 128 <= $n and.then $simple_upper_keys[pos: $p + 128] <= $c:
+        change $p to $p + 128;
+    ;if
+    if $p + 64 <= $n and.then $simple_upper_keys[pos: $p + 64] <= $c:
+        change $p to $p + 64;
+    ;if
+    if $p + 32 <= $n and.then $simple_upper_keys[pos: $p + 32] <= $c:
+        change $p to $p + 32;
+    ;if
+    if $p + 16 <= $n and.then $simple_upper_keys[pos: $p + 16] <= $c:
+        change $p to $p + 16;
+    ;if
+    if $p + 8 <= $n and.then $simple_upper_keys[pos: $p + 8] <= $c:
+        change $p to $p + 8;
+    ;if
+    if $p + 4 <= $n and.then $simple_upper_keys[pos: $p + 4] <= $c:
+        change $p to $p + 4;
+    ;if
+    if $p + 2 <= $n and.then $simple_upper_keys[pos: $p + 2] <= $c:
+        change $p to $p + 2;
+    ;if
+    if $p + 1 <= $n and.then $simple_upper_keys[pos: $p + 1] <= $c:
+        change $p to $p + 1;
+    ;if
+    ret $p;
+;fn simple_upper_at
 
 # 'c' mapped by simple_upper, or 'c' itself when it has no mapping.
-pub.kit fn simple_upper [$c: u32] -> u32 {
+pub.kit fn simple_upper [let $c: u32] -> u32:
     let $p := simple_upper_at($c);
-    if $p at_least 1 and.then $p at_most array.length($simple_upper_keys) and.then $simple_upper_keys[pos: $p] equal_to $c
-        and.then $p at_most array.length($simple_upper_values) { return $simple_upper_values[pos: $p]; }
-    return $c;
-}
+    if $p >= 1 and.then $p <= arr.len($simple_upper_keys) and.then $simple_upper_keys[pos: $p] == $c
+        and.then $p <= arr.len($simple_upper_values):
+            ret $simple_upper_values[pos: $p];
+        ;if
+    ret $c;
+;fn simple_upper
 
-pub.kit const $simple_lower_keys: array[u32] = [
+pub.kit const $simple_lower_keys: arr[u32] := [
     65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90,
     192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212,
     213, 214, 216, 217, 218, 219, 220, 221, 222, 256, 258, 260, 262, 264, 266, 268, 270, 272, 274, 276, 278,
@@ -312,7 +336,7 @@ pub.kit const $simple_lower_keys: array[u32] = [
     125216, 125217,
 ];
 
-pub.kit const $simple_lower_values: array[u32] = [
+pub.kit const $simple_lower_values: arr[u32] := [
     97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118,
     119, 120, 121, 122, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240,
     241, 242, 243, 244, 245, 246, 248, 249, 250, 251, 252, 253, 254, 257, 259, 261, 263, 265, 267, 269, 271,
@@ -406,32 +430,56 @@ pub.kit const $simple_lower_values: array[u32] = [
 ];
 
 # Unicode's simple lowercase: one code point for one.
-pub.kit fn simple_lower_at [$c: u32] -> u64 {
-    let $n := array.length($simple_lower_keys);
-    let mut $p: u64[max: 1488] = 0;
-    if $p + 1024 at_most $n and.then $simple_lower_keys[pos: $p + 1024] at_most $c { change $p = $p + 1024; }
-    if $p + 512 at_most $n and.then $simple_lower_keys[pos: $p + 512] at_most $c { change $p = $p + 512; }
-    if $p + 256 at_most $n and.then $simple_lower_keys[pos: $p + 256] at_most $c { change $p = $p + 256; }
-    if $p + 128 at_most $n and.then $simple_lower_keys[pos: $p + 128] at_most $c { change $p = $p + 128; }
-    if $p + 64 at_most $n and.then $simple_lower_keys[pos: $p + 64] at_most $c { change $p = $p + 64; }
-    if $p + 32 at_most $n and.then $simple_lower_keys[pos: $p + 32] at_most $c { change $p = $p + 32; }
-    if $p + 16 at_most $n and.then $simple_lower_keys[pos: $p + 16] at_most $c { change $p = $p + 16; }
-    if $p + 8 at_most $n and.then $simple_lower_keys[pos: $p + 8] at_most $c { change $p = $p + 8; }
-    if $p + 4 at_most $n and.then $simple_lower_keys[pos: $p + 4] at_most $c { change $p = $p + 4; }
-    if $p + 2 at_most $n and.then $simple_lower_keys[pos: $p + 2] at_most $c { change $p = $p + 2; }
-    if $p + 1 at_most $n and.then $simple_lower_keys[pos: $p + 1] at_most $c { change $p = $p + 1; }
-    return $p;
-}
+pub.kit fn simple_lower_at [let $c: u32] -> u64:
+    let $n := arr.len($simple_lower_keys);
+    var $p: u64[max: 1488] = 0;
+    if $p + 1024 <= $n and.then $simple_lower_keys[pos: $p + 1024] <= $c:
+        change $p to $p + 1024;
+    ;if
+    if $p + 512 <= $n and.then $simple_lower_keys[pos: $p + 512] <= $c:
+        change $p to $p + 512;
+    ;if
+    if $p + 256 <= $n and.then $simple_lower_keys[pos: $p + 256] <= $c:
+        change $p to $p + 256;
+    ;if
+    if $p + 128 <= $n and.then $simple_lower_keys[pos: $p + 128] <= $c:
+        change $p to $p + 128;
+    ;if
+    if $p + 64 <= $n and.then $simple_lower_keys[pos: $p + 64] <= $c:
+        change $p to $p + 64;
+    ;if
+    if $p + 32 <= $n and.then $simple_lower_keys[pos: $p + 32] <= $c:
+        change $p to $p + 32;
+    ;if
+    if $p + 16 <= $n and.then $simple_lower_keys[pos: $p + 16] <= $c:
+        change $p to $p + 16;
+    ;if
+    if $p + 8 <= $n and.then $simple_lower_keys[pos: $p + 8] <= $c:
+        change $p to $p + 8;
+    ;if
+    if $p + 4 <= $n and.then $simple_lower_keys[pos: $p + 4] <= $c:
+        change $p to $p + 4;
+    ;if
+    if $p + 2 <= $n and.then $simple_lower_keys[pos: $p + 2] <= $c:
+        change $p to $p + 2;
+    ;if
+    if $p + 1 <= $n and.then $simple_lower_keys[pos: $p + 1] <= $c:
+        change $p to $p + 1;
+    ;if
+    ret $p;
+;fn simple_lower_at
 
 # 'c' mapped by simple_lower, or 'c' itself when it has no mapping.
-pub.kit fn simple_lower [$c: u32] -> u32 {
+pub.kit fn simple_lower [let $c: u32] -> u32:
     let $p := simple_lower_at($c);
-    if $p at_least 1 and.then $p at_most array.length($simple_lower_keys) and.then $simple_lower_keys[pos: $p] equal_to $c
-        and.then $p at_most array.length($simple_lower_values) { return $simple_lower_values[pos: $p]; }
-    return $c;
-}
+    if $p >= 1 and.then $p <= arr.len($simple_lower_keys) and.then $simple_lower_keys[pos: $p] == $c
+        and.then $p <= arr.len($simple_lower_values):
+            ret $simple_lower_values[pos: $p];
+        ;if
+    ret $c;
+;fn simple_lower
 
-pub.kit const $full_upper_keys: array[u32] = [
+pub.kit const $full_upper_keys: arr[u32] := [
     223, 329, 496, 912, 944, 1415, 7830, 7831, 7832, 7833, 7834, 8016, 8018, 8020, 8022, 8064, 8065, 8066,
     8067, 8068, 8069, 8070, 8071, 8072, 8073, 8074, 8075, 8076, 8077, 8078, 8079, 8080, 8081, 8082, 8083,
     8084, 8085, 8086, 8087, 8088, 8089, 8090, 8091, 8092, 8093, 8094, 8095, 8096, 8097, 8098, 8099, 8100,
@@ -441,7 +489,7 @@ pub.kit const $full_upper_keys: array[u32] = [
     64279,
 ];
 
-pub.kit const $full_upper_1: array[u32] = [
+pub.kit const $full_upper_1: arr[u32] := [
     83, 700, 74, 921, 933, 1333, 72, 84, 87, 89, 65, 933, 933, 933, 933, 7944, 7945, 7946, 7947, 7948, 7949,
     7950, 7951, 7944, 7945, 7946, 7947, 7948, 7949, 7950, 7951, 7976, 7977, 7978, 7979, 7980, 7981, 7982,
     7983, 7976, 7977, 7978, 7979, 7980, 7981, 7982, 7983, 8040, 8041, 8042, 8043, 8044, 8045, 8046, 8047,
@@ -450,7 +498,7 @@ pub.kit const $full_upper_1: array[u32] = [
     83, 1348, 1348, 1348, 1358, 1348,
 ];
 
-pub.kit const $full_upper_2: array[u32] = [
+pub.kit const $full_upper_2: arr[u32] := [
     83, 78, 780, 776, 776, 1362, 817, 776, 778, 778, 702, 787, 787, 787, 787, 921, 921, 921, 921, 921, 921,
     921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921,
     921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921, 921,
@@ -458,7 +506,7 @@ pub.kit const $full_upper_2: array[u32] = [
     921, 921, 921, 834, 834, 921, 70, 73, 76, 70, 70, 84, 84, 1350, 1333, 1339, 1350, 1341,
 ];
 
-pub.kit const $full_upper_3: array[u32] = [
+pub.kit const $full_upper_3: arr[u32] := [
     0, 0, 0, 769, 769, 0, 0, 0, 0, 0, 0, 0, 768, 769, 834, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     921, 0, 0, 0, 0, 0, 921, 0, 768, 769, 0, 834, 768, 769, 0, 0, 834, 0, 0, 0, 0, 921, 0, 0, 0, 0, 73, 76, 0,
@@ -466,110 +514,146 @@ pub.kit const $full_upper_3: array[u32] = [
 ];
 
 # SpecialCasing's unconditional uppercase, up to three code points (0: none).
-pub.kit fn full_upper_at [$c: u32] -> u64 {
-    let $n := array.length($full_upper_keys);
-    let mut $p: u64[max: 102] = 0;
-    if $p + 64 at_most $n and.then $full_upper_keys[pos: $p + 64] at_most $c { change $p = $p + 64; }
-    if $p + 32 at_most $n and.then $full_upper_keys[pos: $p + 32] at_most $c { change $p = $p + 32; }
-    if $p + 16 at_most $n and.then $full_upper_keys[pos: $p + 16] at_most $c { change $p = $p + 16; }
-    if $p + 8 at_most $n and.then $full_upper_keys[pos: $p + 8] at_most $c { change $p = $p + 8; }
-    if $p + 4 at_most $n and.then $full_upper_keys[pos: $p + 4] at_most $c { change $p = $p + 4; }
-    if $p + 2 at_most $n and.then $full_upper_keys[pos: $p + 2] at_most $c { change $p = $p + 2; }
-    if $p + 1 at_most $n and.then $full_upper_keys[pos: $p + 1] at_most $c { change $p = $p + 1; }
-    return $p;
-}
+pub.kit fn full_upper_at [let $c: u32] -> u64:
+    let $n := arr.len($full_upper_keys);
+    var $p: u64[max: 102] = 0;
+    if $p + 64 <= $n and.then $full_upper_keys[pos: $p + 64] <= $c:
+        change $p to $p + 64;
+    ;if
+    if $p + 32 <= $n and.then $full_upper_keys[pos: $p + 32] <= $c:
+        change $p to $p + 32;
+    ;if
+    if $p + 16 <= $n and.then $full_upper_keys[pos: $p + 16] <= $c:
+        change $p to $p + 16;
+    ;if
+    if $p + 8 <= $n and.then $full_upper_keys[pos: $p + 8] <= $c:
+        change $p to $p + 8;
+    ;if
+    if $p + 4 <= $n and.then $full_upper_keys[pos: $p + 4] <= $c:
+        change $p to $p + 4;
+    ;if
+    if $p + 2 <= $n and.then $full_upper_keys[pos: $p + 2] <= $c:
+        change $p to $p + 2;
+    ;if
+    if $p + 1 <= $n and.then $full_upper_keys[pos: $p + 1] <= $c:
+        change $p to $p + 1;
+    ;if
+    ret $p;
+;fn full_upper_at
 
 # Whether 'c' has a longer mapping in full_upper.
-pub.kit fn full_upper_has [$c: u32] -> bool {
+pub.kit fn full_upper_has [let $c: u32] -> bool:
     let $p := full_upper_at($c);
-    return $p at_least 1 and.then $p at_most array.length($full_upper_keys) and.then $full_upper_keys[pos: $p] equal_to $c;
-}
+    ret $p >= 1 and.then $p <= arr.len($full_upper_keys) and.then $full_upper_keys[pos: $p] == $c;
+;fn full_upper_has
 
 # The code point number 1 of 'c''s longer mapping in full_upper, or 0 when there is none.
-pub.kit fn full_upper_1_of [$c: u32] -> u32 {
+pub.kit fn full_upper_1_of [let $c: u32] -> u32:
     let $p := full_upper_at($c);
-    if $p at_least 1 and.then $p at_most array.length($full_upper_keys) and.then $full_upper_keys[pos: $p] equal_to $c
-        and.then $p at_most array.length($full_upper_1) { return $full_upper_1[pos: $p]; }
-    return 0;
-}
+    if $p >= 1 and.then $p <= arr.len($full_upper_keys) and.then $full_upper_keys[pos: $p] == $c
+        and.then $p <= arr.len($full_upper_1):
+            ret $full_upper_1[pos: $p];
+        ;if
+    ret 0;
+;fn full_upper_1_of
 
 # The code point number 2 of 'c''s longer mapping in full_upper, or 0 when there is none.
-pub.kit fn full_upper_2_of [$c: u32] -> u32 {
+pub.kit fn full_upper_2_of [let $c: u32] -> u32:
     let $p := full_upper_at($c);
-    if $p at_least 1 and.then $p at_most array.length($full_upper_keys) and.then $full_upper_keys[pos: $p] equal_to $c
-        and.then $p at_most array.length($full_upper_2) { return $full_upper_2[pos: $p]; }
-    return 0;
-}
+    if $p >= 1 and.then $p <= arr.len($full_upper_keys) and.then $full_upper_keys[pos: $p] == $c
+        and.then $p <= arr.len($full_upper_2):
+            ret $full_upper_2[pos: $p];
+        ;if
+    ret 0;
+;fn full_upper_2_of
 
 # The code point number 3 of 'c''s longer mapping in full_upper, or 0 when there is none.
-pub.kit fn full_upper_3_of [$c: u32] -> u32 {
+pub.kit fn full_upper_3_of [let $c: u32] -> u32:
     let $p := full_upper_at($c);
-    if $p at_least 1 and.then $p at_most array.length($full_upper_keys) and.then $full_upper_keys[pos: $p] equal_to $c
-        and.then $p at_most array.length($full_upper_3) { return $full_upper_3[pos: $p]; }
-    return 0;
-}
+    if $p >= 1 and.then $p <= arr.len($full_upper_keys) and.then $full_upper_keys[pos: $p] == $c
+        and.then $p <= arr.len($full_upper_3):
+            ret $full_upper_3[pos: $p];
+        ;if
+    ret 0;
+;fn full_upper_3_of
 
-pub.kit const $full_lower_keys: array[u32] = [
+pub.kit const $full_lower_keys: arr[u32] := [
     304, 8072, 8073, 8074, 8075, 8076, 8077, 8078, 8079, 8088, 8089, 8090, 8091, 8092, 8093, 8094, 8095, 8104,
     8105, 8106, 8107, 8108, 8109, 8110, 8111, 8124, 8140, 8188,
 ];
 
-pub.kit const $full_lower_1: array[u32] = [
+pub.kit const $full_lower_1: arr[u32] := [
     105, 8064, 8065, 8066, 8067, 8068, 8069, 8070, 8071, 8080, 8081, 8082, 8083, 8084, 8085, 8086, 8087, 8096,
     8097, 8098, 8099, 8100, 8101, 8102, 8103, 8115, 8131, 8179,
 ];
 
-pub.kit const $full_lower_2: array[u32] = [
+pub.kit const $full_lower_2: arr[u32] := [
     775, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ];
 
-pub.kit const $full_lower_3: array[u32] = [
+pub.kit const $full_lower_3: arr[u32] := [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ];
 
 # SpecialCasing's unconditional lowercase, up to three code points (0: none).
-pub.kit fn full_lower_at [$c: u32] -> u64 {
-    let $n := array.length($full_lower_keys);
-    let mut $p: u64[max: 28] = 0;
-    if $p + 16 at_most $n and.then $full_lower_keys[pos: $p + 16] at_most $c { change $p = $p + 16; }
-    if $p + 8 at_most $n and.then $full_lower_keys[pos: $p + 8] at_most $c { change $p = $p + 8; }
-    if $p + 4 at_most $n and.then $full_lower_keys[pos: $p + 4] at_most $c { change $p = $p + 4; }
-    if $p + 2 at_most $n and.then $full_lower_keys[pos: $p + 2] at_most $c { change $p = $p + 2; }
-    if $p + 1 at_most $n and.then $full_lower_keys[pos: $p + 1] at_most $c { change $p = $p + 1; }
-    return $p;
-}
+pub.kit fn full_lower_at [let $c: u32] -> u64:
+    let $n := arr.len($full_lower_keys);
+    var $p: u64[max: 28] = 0;
+    if $p + 16 <= $n and.then $full_lower_keys[pos: $p + 16] <= $c:
+        change $p to $p + 16;
+    ;if
+    if $p + 8 <= $n and.then $full_lower_keys[pos: $p + 8] <= $c:
+        change $p to $p + 8;
+    ;if
+    if $p + 4 <= $n and.then $full_lower_keys[pos: $p + 4] <= $c:
+        change $p to $p + 4;
+    ;if
+    if $p + 2 <= $n and.then $full_lower_keys[pos: $p + 2] <= $c:
+        change $p to $p + 2;
+    ;if
+    if $p + 1 <= $n and.then $full_lower_keys[pos: $p + 1] <= $c:
+        change $p to $p + 1;
+    ;if
+    ret $p;
+;fn full_lower_at
 
 # Whether 'c' has a longer mapping in full_lower.
-pub.kit fn full_lower_has [$c: u32] -> bool {
+pub.kit fn full_lower_has [let $c: u32] -> bool:
     let $p := full_lower_at($c);
-    return $p at_least 1 and.then $p at_most array.length($full_lower_keys) and.then $full_lower_keys[pos: $p] equal_to $c;
-}
+    ret $p >= 1 and.then $p <= arr.len($full_lower_keys) and.then $full_lower_keys[pos: $p] == $c;
+;fn full_lower_has
 
 # The code point number 1 of 'c''s longer mapping in full_lower, or 0 when there is none.
-pub.kit fn full_lower_1_of [$c: u32] -> u32 {
+pub.kit fn full_lower_1_of [let $c: u32] -> u32:
     let $p := full_lower_at($c);
-    if $p at_least 1 and.then $p at_most array.length($full_lower_keys) and.then $full_lower_keys[pos: $p] equal_to $c
-        and.then $p at_most array.length($full_lower_1) { return $full_lower_1[pos: $p]; }
-    return 0;
-}
+    if $p >= 1 and.then $p <= arr.len($full_lower_keys) and.then $full_lower_keys[pos: $p] == $c
+        and.then $p <= arr.len($full_lower_1):
+            ret $full_lower_1[pos: $p];
+        ;if
+    ret 0;
+;fn full_lower_1_of
 
 # The code point number 2 of 'c''s longer mapping in full_lower, or 0 when there is none.
-pub.kit fn full_lower_2_of [$c: u32] -> u32 {
+pub.kit fn full_lower_2_of [let $c: u32] -> u32:
     let $p := full_lower_at($c);
-    if $p at_least 1 and.then $p at_most array.length($full_lower_keys) and.then $full_lower_keys[pos: $p] equal_to $c
-        and.then $p at_most array.length($full_lower_2) { return $full_lower_2[pos: $p]; }
-    return 0;
-}
+    if $p >= 1 and.then $p <= arr.len($full_lower_keys) and.then $full_lower_keys[pos: $p] == $c
+        and.then $p <= arr.len($full_lower_2):
+            ret $full_lower_2[pos: $p];
+        ;if
+    ret 0;
+;fn full_lower_2_of
 
 # The code point number 3 of 'c''s longer mapping in full_lower, or 0 when there is none.
-pub.kit fn full_lower_3_of [$c: u32] -> u32 {
+pub.kit fn full_lower_3_of [let $c: u32] -> u32:
     let $p := full_lower_at($c);
-    if $p at_least 1 and.then $p at_most array.length($full_lower_keys) and.then $full_lower_keys[pos: $p] equal_to $c
-        and.then $p at_most array.length($full_lower_3) { return $full_lower_3[pos: $p]; }
-    return 0;
-}
+    if $p >= 1 and.then $p <= arr.len($full_lower_keys) and.then $full_lower_keys[pos: $p] == $c
+        and.then $p <= arr.len($full_lower_3):
+            ret $full_lower_3[pos: $p];
+        ;if
+    ret 0;
+;fn full_lower_3_of
 
-pub.kit const $cased_lo: array[u32] = [
+pub.kit const $cased_lo: arr[u32] := [
     65, 97, 170, 181, 186, 192, 216, 248, 444, 452, 662, 704, 736, 837, 880, 886, 890, 895, 902, 904, 908,
     910, 931, 1015, 1162, 1329, 1376, 4256, 4295, 4301, 4304, 4348, 5024, 5112, 7296, 7312, 7357, 7424, 7680,
     7960, 7968, 8008, 8016, 8025, 8027, 8029, 8031, 8064, 8118, 8126, 8130, 8134, 8144, 8150, 8160, 8178,
@@ -583,7 +667,7 @@ pub.kit const $cased_lo: array[u32] = [
     127344,
 ];
 
-pub.kit const $cased_hi: array[u32] = [
+pub.kit const $cased_hi: arr[u32] := [
     90, 122, 170, 181, 186, 214, 246, 442, 447, 659, 696, 705, 740, 837, 883, 887, 893, 895, 902, 906, 908,
     929, 1013, 1153, 1327, 1366, 1416, 4293, 4295, 4301, 4346, 4351, 5109, 5117, 7306, 7354, 7359, 7615, 7957,
     7965, 8005, 8013, 8023, 8025, 8027, 8029, 8061, 8116, 8124, 8126, 8132, 8140, 8147, 8155, 8172, 8180,
@@ -598,27 +682,43 @@ pub.kit const $cased_hi: array[u32] = [
 ];
 
 # Cased (DerivedCoreProperties), for final sigma.
-pub.kit fn cased_at [$c: u32] -> u64 {
-    let $n := array.length($cased_lo);
-    let mut $p: u64[max: 158] = 0;
-    if $p + 128 at_most $n and.then $cased_lo[pos: $p + 128] at_most $c { change $p = $p + 128; }
-    if $p + 64 at_most $n and.then $cased_lo[pos: $p + 64] at_most $c { change $p = $p + 64; }
-    if $p + 32 at_most $n and.then $cased_lo[pos: $p + 32] at_most $c { change $p = $p + 32; }
-    if $p + 16 at_most $n and.then $cased_lo[pos: $p + 16] at_most $c { change $p = $p + 16; }
-    if $p + 8 at_most $n and.then $cased_lo[pos: $p + 8] at_most $c { change $p = $p + 8; }
-    if $p + 4 at_most $n and.then $cased_lo[pos: $p + 4] at_most $c { change $p = $p + 4; }
-    if $p + 2 at_most $n and.then $cased_lo[pos: $p + 2] at_most $c { change $p = $p + 2; }
-    if $p + 1 at_most $n and.then $cased_lo[pos: $p + 1] at_most $c { change $p = $p + 1; }
-    return $p;
-}
+pub.kit fn cased_at [let $c: u32] -> u64:
+    let $n := arr.len($cased_lo);
+    var $p: u64[max: 158] = 0;
+    if $p + 128 <= $n and.then $cased_lo[pos: $p + 128] <= $c:
+        change $p to $p + 128;
+    ;if
+    if $p + 64 <= $n and.then $cased_lo[pos: $p + 64] <= $c:
+        change $p to $p + 64;
+    ;if
+    if $p + 32 <= $n and.then $cased_lo[pos: $p + 32] <= $c:
+        change $p to $p + 32;
+    ;if
+    if $p + 16 <= $n and.then $cased_lo[pos: $p + 16] <= $c:
+        change $p to $p + 16;
+    ;if
+    if $p + 8 <= $n and.then $cased_lo[pos: $p + 8] <= $c:
+        change $p to $p + 8;
+    ;if
+    if $p + 4 <= $n and.then $cased_lo[pos: $p + 4] <= $c:
+        change $p to $p + 4;
+    ;if
+    if $p + 2 <= $n and.then $cased_lo[pos: $p + 2] <= $c:
+        change $p to $p + 2;
+    ;if
+    if $p + 1 <= $n and.then $cased_lo[pos: $p + 1] <= $c:
+        change $p to $p + 1;
+    ;if
+    ret $p;
+;fn cased_at
 
 # Whether 'c' is in cased.
-pub.kit fn cased [$c: u32] -> bool {
+pub.kit fn cased [let $c: u32] -> bool:
     let $p := cased_at($c);
-    return $p at_least 1 and.then $p at_most array.length($cased_hi) and.then $cased_hi[pos: $p] at_least $c;
-}
+    ret $p >= 1 and.then $p <= arr.len($cased_hi) and.then $cased_hi[pos: $p] >= $c;
+;fn cased
 
-pub.kit const $case_ignorable_lo: array[u32] = [
+pub.kit const $case_ignorable_lo: arr[u32] := [
     39, 46, 58, 94, 96, 168, 173, 175, 180, 183, 688, 884, 890, 900, 903, 1155, 1369, 1375, 1425, 1471, 1473,
     1476, 1479, 1524, 1536, 1552, 1564, 1600, 1611, 1648, 1750, 1759, 1770, 1807, 1809, 1840, 1958, 2027,
     2042, 2045, 2070, 2137, 2184, 2192, 2199, 2249, 2362, 2364, 2369, 2381, 2385, 2402, 2417, 2433, 2492,
@@ -651,7 +751,7 @@ pub.kit const $case_ignorable_lo: array[u32] = [
     125136, 125252, 127995, 917505, 917536, 917760,
 ];
 
-pub.kit const $case_ignorable_hi: array[u32] = [
+pub.kit const $case_ignorable_hi: arr[u32] := [
     39, 46, 58, 94, 96, 168, 173, 175, 180, 184, 879, 885, 890, 901, 903, 1161, 1369, 1375, 1469, 1471, 1474,
     1477, 1479, 1524, 1541, 1562, 1564, 1600, 1631, 1648, 1757, 1768, 1773, 1807, 1809, 1866, 1968, 2037,
     2042, 2045, 2093, 2139, 2184, 2193, 2207, 2306, 2362, 2364, 2376, 2381, 2391, 2403, 2417, 2433, 2492,
@@ -685,59 +785,89 @@ pub.kit const $case_ignorable_hi: array[u32] = [
 ];
 
 # Case_Ignorable (DerivedCoreProperties), for final sigma.
-pub.kit fn case_ignorable_at [$c: u32] -> u64 {
-    let $n := array.length($case_ignorable_lo);
-    let mut $p: u64[max: 464] = 0;
-    if $p + 256 at_most $n and.then $case_ignorable_lo[pos: $p + 256] at_most $c { change $p = $p + 256; }
-    if $p + 128 at_most $n and.then $case_ignorable_lo[pos: $p + 128] at_most $c { change $p = $p + 128; }
-    if $p + 64 at_most $n and.then $case_ignorable_lo[pos: $p + 64] at_most $c { change $p = $p + 64; }
-    if $p + 32 at_most $n and.then $case_ignorable_lo[pos: $p + 32] at_most $c { change $p = $p + 32; }
-    if $p + 16 at_most $n and.then $case_ignorable_lo[pos: $p + 16] at_most $c { change $p = $p + 16; }
-    if $p + 8 at_most $n and.then $case_ignorable_lo[pos: $p + 8] at_most $c { change $p = $p + 8; }
-    if $p + 4 at_most $n and.then $case_ignorable_lo[pos: $p + 4] at_most $c { change $p = $p + 4; }
-    if $p + 2 at_most $n and.then $case_ignorable_lo[pos: $p + 2] at_most $c { change $p = $p + 2; }
-    if $p + 1 at_most $n and.then $case_ignorable_lo[pos: $p + 1] at_most $c { change $p = $p + 1; }
-    return $p;
-}
+pub.kit fn case_ignorable_at [let $c: u32] -> u64:
+    let $n := arr.len($case_ignorable_lo);
+    var $p: u64[max: 464] = 0;
+    if $p + 256 <= $n and.then $case_ignorable_lo[pos: $p + 256] <= $c:
+        change $p to $p + 256;
+    ;if
+    if $p + 128 <= $n and.then $case_ignorable_lo[pos: $p + 128] <= $c:
+        change $p to $p + 128;
+    ;if
+    if $p + 64 <= $n and.then $case_ignorable_lo[pos: $p + 64] <= $c:
+        change $p to $p + 64;
+    ;if
+    if $p + 32 <= $n and.then $case_ignorable_lo[pos: $p + 32] <= $c:
+        change $p to $p + 32;
+    ;if
+    if $p + 16 <= $n and.then $case_ignorable_lo[pos: $p + 16] <= $c:
+        change $p to $p + 16;
+    ;if
+    if $p + 8 <= $n and.then $case_ignorable_lo[pos: $p + 8] <= $c:
+        change $p to $p + 8;
+    ;if
+    if $p + 4 <= $n and.then $case_ignorable_lo[pos: $p + 4] <= $c:
+        change $p to $p + 4;
+    ;if
+    if $p + 2 <= $n and.then $case_ignorable_lo[pos: $p + 2] <= $c:
+        change $p to $p + 2;
+    ;if
+    if $p + 1 <= $n and.then $case_ignorable_lo[pos: $p + 1] <= $c:
+        change $p to $p + 1;
+    ;if
+    ret $p;
+;fn case_ignorable_at
 
 # Whether 'c' is in case_ignorable.
-pub.kit fn case_ignorable [$c: u32] -> bool {
+pub.kit fn case_ignorable [let $c: u32] -> bool:
     let $p := case_ignorable_at($c);
-    return $p at_least 1 and.then $p at_most array.length($case_ignorable_hi) and.then $case_ignorable_hi[pos: $p] at_least $c;
-}
+    ret $p >= 1 and.then $p <= arr.len($case_ignorable_hi) and.then $case_ignorable_hi[pos: $p] >= $c;
+;fn case_ignorable
 
-pub.kit const $soft_dotted_lo: array[u32] = [
+pub.kit const $soft_dotted_lo: arr[u32] := [
     105, 303, 585, 616, 669, 690, 1011, 1110, 1112, 7522, 7574, 7588, 7592, 7725, 7883, 8305, 8520, 11388,
     119842, 119894, 119946, 119998, 120050, 120102, 120154, 120206, 120258, 120310, 120362, 120414, 120466,
     122650, 122956, 122984,
 ];
 
-pub.kit const $soft_dotted_hi: array[u32] = [
+pub.kit const $soft_dotted_hi: arr[u32] := [
     106, 303, 585, 616, 669, 690, 1011, 1110, 1112, 7522, 7574, 7588, 7592, 7725, 7883, 8305, 8521, 11388,
     119843, 119895, 119947, 119999, 120051, 120103, 120155, 120207, 120259, 120311, 120363, 120415, 120467,
     122650, 122957, 122984,
 ];
 
 # Soft_Dotted (PropList), for the Lithuanian rules.
-pub.kit fn soft_dotted_at [$c: u32] -> u64 {
-    let $n := array.length($soft_dotted_lo);
-    let mut $p: u64[max: 34] = 0;
-    if $p + 32 at_most $n and.then $soft_dotted_lo[pos: $p + 32] at_most $c { change $p = $p + 32; }
-    if $p + 16 at_most $n and.then $soft_dotted_lo[pos: $p + 16] at_most $c { change $p = $p + 16; }
-    if $p + 8 at_most $n and.then $soft_dotted_lo[pos: $p + 8] at_most $c { change $p = $p + 8; }
-    if $p + 4 at_most $n and.then $soft_dotted_lo[pos: $p + 4] at_most $c { change $p = $p + 4; }
-    if $p + 2 at_most $n and.then $soft_dotted_lo[pos: $p + 2] at_most $c { change $p = $p + 2; }
-    if $p + 1 at_most $n and.then $soft_dotted_lo[pos: $p + 1] at_most $c { change $p = $p + 1; }
-    return $p;
-}
+pub.kit fn soft_dotted_at [let $c: u32] -> u64:
+    let $n := arr.len($soft_dotted_lo);
+    var $p: u64[max: 34] = 0;
+    if $p + 32 <= $n and.then $soft_dotted_lo[pos: $p + 32] <= $c:
+        change $p to $p + 32;
+    ;if
+    if $p + 16 <= $n and.then $soft_dotted_lo[pos: $p + 16] <= $c:
+        change $p to $p + 16;
+    ;if
+    if $p + 8 <= $n and.then $soft_dotted_lo[pos: $p + 8] <= $c:
+        change $p to $p + 8;
+    ;if
+    if $p + 4 <= $n and.then $soft_dotted_lo[pos: $p + 4] <= $c:
+        change $p to $p + 4;
+    ;if
+    if $p + 2 <= $n and.then $soft_dotted_lo[pos: $p + 2] <= $c:
+        change $p to $p + 2;
+    ;if
+    if $p + 1 <= $n and.then $soft_dotted_lo[pos: $p + 1] <= $c:
+        change $p to $p + 1;
+    ;if
+    ret $p;
+;fn soft_dotted_at
 
 # Whether 'c' is in soft_dotted.
-pub.kit fn soft_dotted [$c: u32] -> bool {
+pub.kit fn soft_dotted [let $c: u32] -> bool:
     let $p := soft_dotted_at($c);
-    return $p at_least 1 and.then $p at_most array.length($soft_dotted_hi) and.then $soft_dotted_hi[pos: $p] at_least $c;
-}
+    ret $p >= 1 and.then $p <= arr.len($soft_dotted_hi) and.then $soft_dotted_hi[pos: $p] >= $c;
+;fn soft_dotted
 
-pub.kit const $above_lo: array[u32] = [
+pub.kit const $above_lo: arr[u32] := [
     768, 829, 838, 842, 848, 855, 859, 867, 1155, 1426, 1431, 1436, 1448, 1451, 1455, 1476, 1552, 1619, 1623,
     1629, 1750, 1759, 1764, 1767, 1771, 1840, 1842, 1845, 1850, 1853, 1855, 1859, 1861, 1863, 1865, 2027,
     2035, 2070, 2075, 2085, 2089, 2199, 2204, 2250, 2260, 2276, 2279, 2282, 2291, 2295, 2299, 2385, 2387,
@@ -749,7 +879,7 @@ pub.kit const $above_lo: array[u32] = [
     124143, 124398, 124643, 124646, 124654, 124661, 125252,
 ];
 
-pub.kit const $above_hi: array[u32] = [
+pub.kit const $above_hi: arr[u32] := [
     788, 836, 838, 844, 850, 855, 859, 879, 1159, 1429, 1433, 1441, 1449, 1452, 1455, 1476, 1559, 1620, 1627,
     1630, 1756, 1762, 1764, 1768, 1772, 1840, 1843, 1846, 1850, 1853, 1857, 1859, 1861, 1863, 1866, 2033,
     2035, 2073, 2083, 2087, 2093, 2200, 2207, 2254, 2273, 2277, 2280, 2284, 2293, 2296, 2303, 2385, 2388,
@@ -762,27 +892,43 @@ pub.kit const $above_hi: array[u32] = [
 ];
 
 # Combining class 230, Above, for the Lithuanian and Turkish rules.
-pub.kit fn above_at [$c: u32] -> u64 {
-    let $n := array.length($above_lo);
-    let mut $p: u64[max: 137] = 0;
-    if $p + 128 at_most $n and.then $above_lo[pos: $p + 128] at_most $c { change $p = $p + 128; }
-    if $p + 64 at_most $n and.then $above_lo[pos: $p + 64] at_most $c { change $p = $p + 64; }
-    if $p + 32 at_most $n and.then $above_lo[pos: $p + 32] at_most $c { change $p = $p + 32; }
-    if $p + 16 at_most $n and.then $above_lo[pos: $p + 16] at_most $c { change $p = $p + 16; }
-    if $p + 8 at_most $n and.then $above_lo[pos: $p + 8] at_most $c { change $p = $p + 8; }
-    if $p + 4 at_most $n and.then $above_lo[pos: $p + 4] at_most $c { change $p = $p + 4; }
-    if $p + 2 at_most $n and.then $above_lo[pos: $p + 2] at_most $c { change $p = $p + 2; }
-    if $p + 1 at_most $n and.then $above_lo[pos: $p + 1] at_most $c { change $p = $p + 1; }
-    return $p;
-}
+pub.kit fn above_at [let $c: u32] -> u64:
+    let $n := arr.len($above_lo);
+    var $p: u64[max: 137] = 0;
+    if $p + 128 <= $n and.then $above_lo[pos: $p + 128] <= $c:
+        change $p to $p + 128;
+    ;if
+    if $p + 64 <= $n and.then $above_lo[pos: $p + 64] <= $c:
+        change $p to $p + 64;
+    ;if
+    if $p + 32 <= $n and.then $above_lo[pos: $p + 32] <= $c:
+        change $p to $p + 32;
+    ;if
+    if $p + 16 <= $n and.then $above_lo[pos: $p + 16] <= $c:
+        change $p to $p + 16;
+    ;if
+    if $p + 8 <= $n and.then $above_lo[pos: $p + 8] <= $c:
+        change $p to $p + 8;
+    ;if
+    if $p + 4 <= $n and.then $above_lo[pos: $p + 4] <= $c:
+        change $p to $p + 4;
+    ;if
+    if $p + 2 <= $n and.then $above_lo[pos: $p + 2] <= $c:
+        change $p to $p + 2;
+    ;if
+    if $p + 1 <= $n and.then $above_lo[pos: $p + 1] <= $c:
+        change $p to $p + 1;
+    ;if
+    ret $p;
+;fn above_at
 
 # Whether 'c' is in above.
-pub.kit fn above [$c: u32] -> bool {
+pub.kit fn above [let $c: u32] -> bool:
     let $p := above_at($c);
-    return $p at_least 1 and.then $p at_most array.length($above_hi) and.then $above_hi[pos: $p] at_least $c;
-}
+    ret $p >= 1 and.then $p <= arr.len($above_hi) and.then $above_hi[pos: $p] >= $c;
+;fn above
 
-pub.kit const $marks_lo: array[u32] = [
+pub.kit const $marks_lo: arr[u32] := [
     768, 848, 1155, 1425, 1471, 1473, 1476, 1479, 1552, 1611, 1648, 1750, 1759, 1767, 1770, 1809, 1840, 2027,
     2045, 2070, 2075, 2085, 2089, 2137, 2199, 2250, 2275, 2364, 2381, 2385, 2492, 2509, 2558, 2620, 2637,
     2748, 2765, 2876, 2893, 3021, 3132, 3149, 3157, 3260, 3277, 3387, 3405, 3530, 3640, 3656, 3768, 3784,
@@ -798,7 +944,7 @@ pub.kit const $marks_lo: array[u32] = [
     123023, 123184, 123566, 123628, 124140, 124398, 124643, 124646, 124654, 124661, 125136, 125252,
 ];
 
-pub.kit const $marks_hi: array[u32] = [
+pub.kit const $marks_hi: arr[u32] := [
     846, 879, 1159, 1469, 1471, 1474, 1477, 1479, 1562, 1631, 1648, 1756, 1764, 1768, 1773, 1809, 1866, 2035,
     2045, 2073, 2083, 2087, 2093, 2139, 2207, 2273, 2303, 2364, 2381, 2388, 2492, 2509, 2558, 2620, 2637,
     2748, 2765, 2876, 2893, 3021, 3132, 3149, 3158, 3260, 3277, 3388, 3405, 3530, 3642, 3659, 3770, 3787,
@@ -815,22 +961,38 @@ pub.kit const $marks_hi: array[u32] = [
 ];
 
 # Any combining class but 0, for the Lithuanian and Turkish rules.
-pub.kit fn marks_at [$c: u32] -> u64 {
-    let $n := array.length($marks_lo);
-    let mut $p: u64[max: 202] = 0;
-    if $p + 128 at_most $n and.then $marks_lo[pos: $p + 128] at_most $c { change $p = $p + 128; }
-    if $p + 64 at_most $n and.then $marks_lo[pos: $p + 64] at_most $c { change $p = $p + 64; }
-    if $p + 32 at_most $n and.then $marks_lo[pos: $p + 32] at_most $c { change $p = $p + 32; }
-    if $p + 16 at_most $n and.then $marks_lo[pos: $p + 16] at_most $c { change $p = $p + 16; }
-    if $p + 8 at_most $n and.then $marks_lo[pos: $p + 8] at_most $c { change $p = $p + 8; }
-    if $p + 4 at_most $n and.then $marks_lo[pos: $p + 4] at_most $c { change $p = $p + 4; }
-    if $p + 2 at_most $n and.then $marks_lo[pos: $p + 2] at_most $c { change $p = $p + 2; }
-    if $p + 1 at_most $n and.then $marks_lo[pos: $p + 1] at_most $c { change $p = $p + 1; }
-    return $p;
-}
+pub.kit fn marks_at [let $c: u32] -> u64:
+    let $n := arr.len($marks_lo);
+    var $p: u64[max: 202] = 0;
+    if $p + 128 <= $n and.then $marks_lo[pos: $p + 128] <= $c:
+        change $p to $p + 128;
+    ;if
+    if $p + 64 <= $n and.then $marks_lo[pos: $p + 64] <= $c:
+        change $p to $p + 64;
+    ;if
+    if $p + 32 <= $n and.then $marks_lo[pos: $p + 32] <= $c:
+        change $p to $p + 32;
+    ;if
+    if $p + 16 <= $n and.then $marks_lo[pos: $p + 16] <= $c:
+        change $p to $p + 16;
+    ;if
+    if $p + 8 <= $n and.then $marks_lo[pos: $p + 8] <= $c:
+        change $p to $p + 8;
+    ;if
+    if $p + 4 <= $n and.then $marks_lo[pos: $p + 4] <= $c:
+        change $p to $p + 4;
+    ;if
+    if $p + 2 <= $n and.then $marks_lo[pos: $p + 2] <= $c:
+        change $p to $p + 2;
+    ;if
+    if $p + 1 <= $n and.then $marks_lo[pos: $p + 1] <= $c:
+        change $p to $p + 1;
+    ;if
+    ret $p;
+;fn marks_at
 
 # Whether 'c' is in marks.
-pub.kit fn marks [$c: u32] -> bool {
+pub.kit fn marks [let $c: u32] -> bool:
     let $p := marks_at($c);
-    return $p at_least 1 and.then $p at_most array.length($marks_hi) and.then $marks_hi[pos: $p] at_least $c;
-}
+    ret $p >= 1 and.then $p <= arr.len($marks_hi) and.then $marks_hi[pos: $p] >= $c;
+;fn marks

@@ -11,6 +11,13 @@ def q(s):
     return "str.empty" if s == "" else '"' + s + '"'
 
 
+def otherwise(indent, arm):
+    """The otherwise below a call's line, its one arm out_of_range doing `arm`."""
+    i = " " * indent
+    return [f"{i}otherwise:", f"{i}    case out_of_range:", f"{i}        {arm}", f"{i}    ;case out_of_range", f"{i};otherwise;"]
+
+
+
 if mode == "python":
     for k, t in enumerate(texts, 1):
         b = t.encode()
@@ -23,17 +30,20 @@ if mode == "python":
                     print(f"slb {k} {x} {y} [" + "".join(f" {v}" for v in b[x - 1:y]) + " ]")
     sys.exit(0)
 
-out = ["MAIN {"]
+out = ["MAIN:"]
 for k, t in enumerate(texts, 1):
     out.append(f"    let $s{k} := {q(t)};")
     n = len(t.encode()) + 2
-    out.append(f"    for $a: u64 [from: 1, to: {n}, by: 1] {{")
-    out.append(f"        for $b: u64 [from: 1, to: {n}, by: 1] {{")
-    out.append(f'            let $x := std::str.slice.byte(lend $s{k}, from: pos $a, to: pos $b) otherwise {{ out_of_range {{ std::print.stored("slb {k} ", $a, " ", $b, " out_of_range", newln); continue; }} }};')
+    out.append(f"    for $a: u64 [from: 1, to: {n}, by: 1]:")
+    out.append(f"        for $b: u64 [from: 1, to: {n}, by: 1]:")
+    out.append(f"            let $x := std::str.slice.byte(lend $s{k}, from: pos $a, to: pos $b)-")
+    out += otherwise(12, f'std::print.stored("slb {k} ", $a, " ", $b, " out_of_range", newln); continue;')
     out.append(f'            std::print.stored("slb {k} ", $a, " ", $b, " [");')
-    out.append('            for $v in lend $x { std::print.stored(" ", $v); }')
+    out.append("            for $v in lend $x:")
+    out.append('                std::print.stored(" ", $v);')
+    out.append("            ;for")
     out.append('            std::print.stored(" ]", newln);')
-    out.append("        }")
-    out.append("    }")
-out.append("}")
+    out.append("        ;for")
+    out.append("    ;for")
+out.append(";MAIN")
 print("\n".join(out))

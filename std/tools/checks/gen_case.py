@@ -21,7 +21,7 @@ def q(s):
     return "str.empty" if s == "" else '"' + s + '"'
 
 
-out = ["MAIN {"]
+out = ["MAIN:"]
 sides = [("A", "std::", True)] + ([("B", "stdtest::", False)] if mode == "pair" else [])
 for k, t in enumerate(texts, 1):
     out.append(f"    let $s{k} := {q(t)};")
@@ -35,5 +35,5 @@ for k, t in enumerate(texts, 1):
                 else:
                     call = f"{pre}str.{f}.{u}(lend $s{k})"
                 out.append(f'    std::print.stored("{tag} {f}.{u} {k} [", {call}, "]", newln);')
-out.append("}")
+out.append(";MAIN")
 print("\n".join(out))

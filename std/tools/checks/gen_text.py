@@ -13,7 +13,7 @@ def q(s):
     return "str.empty" if s == "" else '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-out = ["use std::list as list;", "MAIN {"]
+out = ["use std::ls as ls;", "MAIN:"]
 
 
 def show(label, a, b):
@@ -40,19 +40,19 @@ for t in texts:
         out.append(f"    let $x{k} := {a};")
         if mode == "pair":
             out.append(f"    let $y{k} := {b};")
-        show(f"split {k}", f'list.length(lend $x{k}), ":", std::str.join(lend $x{k}, between: "|")',
-             f'list.length(lend $y{k}), ":", std::str.join(lend $y{k}, between: "|")')
+        show(f"split {k}", f'ls.len(lend $x{k}), ":", std::str.join(lend $x{k}, between: "|")',
+             f'ls.len(lend $y{k}), ":", std::str.join(lend $y{k}, between: "|")')
         for to, lab in [('"<>"', "replace"), ("str.empty", "replace0")]:
             a, b = call("replace", [f"lend $s{k}", f"from: lend $p{k}", f"to: {to}"], [f"lend $s{k}", f"lend $p{k}", to])
             show(f"{lab} {k}", f'"[", {a}, "]"', f'"[", {b}, "]"')
 lists = [[], [""], ["a"], ["a", "b"], ["", ""], ["é", "🍎", ""], ["red", "green", "blue"]]
 for i, l in enumerate(lists):
     lit = "[" + ", ".join(q(x) for x in l) + ("," if len(l) == 1 else "") + "]"
-    out.append(f"    let $l{i}: list[str.utf8] = {lit};")
+    out.append(f"    let $l{i}: ls[str.utf8] := {lit};")
     for bt in ["", ",", " and ", "🍎"]:
         k += 1
         out.append(f"    let $b{k} := {q(bt)};")
         a, b = call("join", [f"lend $l{i}", f"between: lend $b{k}"], [f"lend $l{i}", f"lend $b{k}"])
         show(f"join {k}", f'"[", {a}, "]"', f'"[", {b}, "]"')
-out.append("}")
+out.append(";MAIN")
 print("\n".join(out))

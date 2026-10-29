@@ -11,7 +11,14 @@ def q(s):
     return "str.empty" if s == "" else '"' + s + '"'
 
 
-out = ["MAIN {"]
+def otherwise(indent, arm):
+    """The otherwise below a call's line, its one arm out_of_range doing `arm`."""
+    i = " " * indent
+    return [f"{i}otherwise:", f"{i}    case out_of_range:", f"{i}        {arm}", f"{i}    ;case out_of_range", f"{i};otherwise;"]
+
+
+
+out = ["MAIN:"]
 sides = [("A", "std", True)] + ([("B", "stdtest", False)] if mode == "pair" else [])
 for k, t in enumerate(texts, 1):
     out.append(f"    let $s{k} := {q(t)};")
@@ -19,9 +26,10 @@ for k, t in enumerate(texts, 1):
     for tag, prefix, builtin in sides:
         for unit in ["byte", "point"]:
             pos = "pos: $i" if builtin else "$i"
-            out.append(f"    for $i: u64 [from: 1, to: {n}, by: 1] {{")
-            out.append(f'        let $v := {prefix}::str.at.{unit}(lend $s{k}, {pos}) otherwise {{ out_of_range {{ std::print.stored("{tag} {unit} {k} ", $i, " out_of_range", newln); continue; }} }};')
+            out.append(f"    for $i: u64 [from: 1, to: {n}, by: 1]:")
+            out.append(f"        let $v := {prefix}::str.at.{unit}(lend $s{k}, {pos})-")
+            out += otherwise(8, f'std::print.stored("{tag} {unit} {k} ", $i, " out_of_range", newln); continue;')
             out.append(f'        std::print.stored("{tag} {unit} {k} ", $i, " ", $v, newln);')
-            out.append("    }")
-out.append("}")
+            out.append("    ;for")
+out.append(";MAIN")
 print("\n".join(out))
