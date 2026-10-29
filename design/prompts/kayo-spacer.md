@@ -11,11 +11,11 @@ The shape, from that entry:
 1. Shapes first, as now. Spacer runs only for a loop where no shape fits.
 2. Spacer runs under a fixed budget counted in its own steps, or another deterministic bound, never a wall-clock timeout. Builds are reproducible and Precog never reads the clock, so the same build must prove the same sites every time.
 3. Every invariant Spacer proposes is confirmed inductively by both Z3 and CVC5, as any proof is, before its sites count as proven, so a bug in Spacer cannot produce a wrong proof. CVC5 has no Horn engine, so it confirms rather than searches.
-4. It is off by default, behind a switch only the measurement uses (a flag or environment variable of your choosing; name it in the report). Turning it on by default is the owner's decision after the numbers.
+4. It is on by default (owner: "yes", compile time being free beside a proof gained), with a switch that turns it off, used for the baseline runs below (a flag or environment variable of your choosing; name it in the report). Whether it stays, and with what budget, is the owner's decision after the numbers.
 </design>
 
 <measure>
-Run each program with Spacer off and on, on the same machine with the same cores:
+Run each program with Spacer off (the switch) and on (the default), on the same machine with the same cores:
 - examples/night_trains.cy first. Design claude's scratch build on 2026-10-25 left 12 of its 60 sites unproven; measure your own baseline, since the count may have moved.
 - Then every example and kayo test program that has an unproven loop site with Spacer off.
 
@@ -30,7 +30,7 @@ For each program, record:
 <constraints>
 - Cores: at most 3 at once (CLAUDE.md). std claude works only while you don't.
 - Nothing is downloaded without the owner's yes. Spacer is already inside the linked Z3; if anything else turns out to be needed, stop and say what, through design claude.
-- Keep to the measurement. Don't change the shapes, the 100 000-trip step budget or any other Precog behaviour, and don't turn Spacer on by default. If you find a bug in Precog along the way, note it in the report, and fix it only if the fix is small and leaves the baseline unchanged.
+- Keep to Spacer and its measurement. Don't change the shapes, the 100 000-trip step budget or any other Precog behaviour. If you find a bug in Precog along the way, note it in the report, and fix it only if the fix is small and leaves the baseline unchanged.
 - The measuring script and its results are worth running again, so they go in the repo, inside kayo/ (as kayo/metal/bench/ does), not in a scratch folder.
 - This is one connected task: work on it directly, without subagents.
 - Finish the whole measurement before reporting. If something blocks it, report what blocks it and what you measured so far.
