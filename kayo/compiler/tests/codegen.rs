@@ -493,18 +493,19 @@ fn borrows_keep_what_they_borrow_while_in_use() {
     assert!(ok.status.success(), "borrow_given_after.cy should build:\n{}", String::from_utf8_lossy(&ok.stderr));
 }
 
-/// Parallel `for` (owner, 2026-09-30: "do para for"): a loop whose
-/// iterations are proven apart gets a slice of its own and a call into the
-/// runtime's pool; a loop that calls C gets one only under `for para`, and
-/// `for seq` never does. What they compute is the in-order answer at any
-/// thread count (tests/programs/par_*.nrv, run at 3).
+/// Parallel `for` (owner, 2026-09-30: "do para for"; marked since
+/// 2026-10-29): a `for %para` loop whose iterations are proven apart gets a
+/// slice of its own and a call into the runtime's pool, one that calls C
+/// too, its `no_check` vouching; a plain `for` never does. What they
+/// compute is the in-order answer at any thread count
+/// (tests/programs/par_*.cy, run at 3).
 #[test]
 fn parallel_for_runs_in_slices() {
     let ir = ir_of("par_for");
     let slices = ir.matches("define internal void @cy_slice_").count();
     assert!(slices >= 3 && ir.contains("@cyborg_par_for"), "par_for.cy should run three loops in slices, and has {}:\n{}", slices, indent(&ir));
     let ir = ir_of("par_extern");
-    assert_eq!(ir.matches("define internal void @cy_slice_").count(), 1, "only the `for para` loop over C should run in slices:\n{}", indent(&ir));
+    assert_eq!(ir.matches("define internal void @cy_slice_").count(), 1, "only the `for %para` loop over C should run in slices:\n{}", indent(&ir));
     for threads in ["1", "2", "3"] {
         let exe = std::env::temp_dir().join("cca-codegen-tests/par_for");
         let r = Command::new(cca()).arg("build").arg(dir().join("par_for.cy")).arg("-o").arg(&exe).output().unwrap();

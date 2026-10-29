@@ -4,13 +4,13 @@
 %extern.C proc exit [let $code: i32];
 fn total [lent $xs: std::ls[i64]] -> i64:
     var $acc: i64 = 0;
-    for $x in lend $xs:
+    for %para $x in lend $xs:
         change $acc to $acc + ($x mod.floor 7);
     ;for
     ret $acc;
 ;fn total
 proc scale [lent.mut $xs: std::ls[i64], let $k: i64]:
-    for $i: u64 [from: 1, to: std::ls.len(lend $xs), by: 1]:
+    for %para $i: u64 [from: 1, to: std::ls.len(lend $xs), by: 1]:
         change $xs[pos: $i] to ($xs[pos: $i] x $k) mod.floor 1000;
     ;for
 ;proc scale

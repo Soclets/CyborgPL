@@ -5,7 +5,7 @@
 MAIN:
     let $n: i64 := 200000;
     var $xs: std::ls[i8] = std::ls.fill(value: 0, count: $n);
-    for $i: i64 [from: 1, to: $n, by: 1]:
+    for %para $i: i64 [from: 1, to: $n, by: 1]:
         change $xs[pos: $i] to to.i8($i);
     ;for
     no_check my.exit(to.i32($xs[pos: 1]));

@@ -83,8 +83,12 @@ pub struct Plan {
 
 #[derive(Clone, Copy, Default, PartialEq, Debug)]
 struct Effects {
-    /// Prints, reads input, or reaches C: in order unless `para`.
+    /// Prints, reads input, or reaches C: never by itself in slices.
     outside: bool,
+    /// Prints or reads input, std's: in order even under `%para`; C alone,
+    /// its `no_check` vouching for it, may run in slices there (owner,
+    /// 2026-10-29).
+    prints: bool,
     /// Tasks, channels, `must`: never in slices.
     never: bool,
 }
@@ -93,6 +97,7 @@ impl Effects {
     fn join(&mut self, o: Effects) -> bool {
         let before = *self;
         self.outside |= o.outside;
+        self.prints |= o.prints;
         self.never |= o.never;
         *self != before
     }
@@ -100,8 +105,9 @@ impl Effects {
 
 fn op_effects(op: &Op) -> Effects {
     match op {
-        Op::Std(_) | Op::PtrRead | Op::PtrWrite => Effects { outside: true, never: false },
-        Op::ChannelSend | Op::ChannelTake | Op::ChannelRelease | Op::MustReport | Op::MustStopFork | Op::MustStopDone => Effects { outside: false, never: true },
+        Op::Std(_) => Effects { outside: true, prints: true, never: false },
+        Op::PtrRead | Op::PtrWrite => Effects { outside: true, prints: false, never: false },
+        Op::ChannelSend | Op::ChannelTake | Op::ChannelRelease | Op::MustReport | Op::MustStopFork | Op::MustStopDone => Effects { outside: false, prints: false, never: true },
         _ => Effects::default(),
     }
 }
@@ -319,8 +325,10 @@ fn live_in(f: &Function, only: Option<&HashSet<usize>>) -> Vec<HashSet<u32>> {
 // ------------------------------------------------------------ the plan
 
 enum Why {
-    /// Prints, input, C: in order by itself, `para` overrides.
+    /// C, vouched for by its `no_check`: in slices under `%para`.
     Order,
+    /// Prints or reads input: in order, `%para` or not.
+    Prints,
     /// Two iterations would touch the same thing, or a trip can leave the
     /// loop: never in slices, and an error under `para`.
     Conflict(String),
@@ -335,19 +343,20 @@ pub fn plan(p: &Program) -> Plan {
         }
         let live_fn = live_in(f, None);
         for fl in &f.fors {
-            if fl.seq {
+            // A plain `for` runs in order; only `for %para` is MCPS's to run
+            // in slices (owner, 2026-10-29: "(a)", every limb marked where it acts).
+            if !fl.para {
                 continue;
             }
             match analyse(p, f, fl, &eff, &live_fn) {
                 Ok(pl) => {
                     out.loops.insert((fi, fl.pre.0 as usize), pl);
                 }
-                Err((Why::Order, Some(pl))) if fl.para => {
+                Err((Why::Order, Some(pl))) => {
                     out.loops.insert((fi, fl.pre.0 as usize), pl);
                 }
-                Err((Why::Conflict(why), _)) if fl.para => out.errors.push((fi, fl.span, why)),
                 Err((Why::Conflict(why), _)) => out.declined.push((fi, fl.span, why)),
-                Err((Why::Order, _)) => out.declined.push((fi, fl.span, "it prints, reads input or calls C, so it stays in order (`para` would override)".into())),
+                Err((_, _)) => out.declined.push((fi, fl.span, "it prints or reads input, so it stays in order".into())),
             }
         }
     }
@@ -790,7 +799,7 @@ fn analyse(p: &Program, f: &Function, fl: &ForLoop, eff: &[Effects], live_fn: &[
     }
     let pl = ParLoop { fl: fl.clone(), blocks: lb, private, folds, work: work.max(1) };
     if effects_here.outside {
-        return Err((Why::Order, Some(pl)));
+        return Err((if effects_here.prints { Why::Prints } else { Why::Order }, Some(pl)));
     }
     let _ = p;
     Ok(pl)

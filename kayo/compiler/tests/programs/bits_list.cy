@@ -36,7 +36,7 @@ MAIN:
     for $p: i64 [from: 2, to: $top, by: 1]:
         if not $comp[pos: to.u64($p + 1)]:
             change $code to $code + 1;
-            for $m: i64 [from: $p x $p, to: $top, by: $p]:
+            for %para $m: i64 [from: $p x $p, to: $top, by: $p]:
                 change $comp[pos: to.u64($m + 1)] to true;
             ;for
         ;if

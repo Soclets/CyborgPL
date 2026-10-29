@@ -272,7 +272,6 @@ for_no_cheat_inside [fnv:2387d68246f8f7f8] :: `for no_cheat` is an old spelling
 for_no_cheat_order [fnv:7311d036f904b2ec] :: `no_skip` goes in front of the loop
 for_no_next [fnv:ce601e91e7d21e30] :: which has no `fn Point.next`: `for` walks a list, or an iterator
 for_position_range [fnv:207789db02876035] :: a counting loop's counter already is the position
-for_seq_and_para [fnv:7936e43d22d1f2db] :: `seq` or `para`, not both
 for_without_in [fnv:64d751df57cc16a6] :: expected `in` or `[from: …]` after the loop variable, found `[`
 func_keyword [fnv:06228e3da7cced76] :: became `fn`
 generic_any_and [fnv:a8a533fe624275bd] :: `any` stands alone
@@ -612,7 +611,7 @@ round_unknown_way [fnv:4b951c0ea841a459] :: is not a way to round
 rust_string [fnv:ffdc0506a249c7be] :: text is `str.utf8`
 rust_usize [fnv:6bb0e8d9e2e18eb7] :: as big as the machine
 send_lend [fnv:39b4c67c5c98f0f5] :: write `give` (it moves) or `copy` (a second one)
-seq_after_perm [fnv:a288e62e94f2a408] :: `seq` or `para` goes first, then `temp` / `perm`, then the name
+seq_after_perm [fnv:cedb999bbf5eed8c] :: a plain `for` runs in order, so `seq` is gone
 shadow [fnv:6f58e8bff03be94f] :: to shadow it deliberately write `shadow $x := …;`
 shadow_nothing [fnv:21615fa293366dc7] :: and none is visible here
 shadow_sealed [fnv:41a31805c19e5721] :: cannot be shadowed: it is `no_shadow`
@@ -996,3 +995,4 @@ three_x_bare_call [fnv:f1a25faa7388e5dc] :: a bare `x` is multiplication
 var_with_walrus [fnv:00958fea4d1ee7c6] :: a `var` starts with `=`, its starting value
 bug_not_literal [fnv:cbcce9be3885926a] :: `bug` says what went wrong, in a text literal
 for_let_variable [fnv:52f5539b41727c26] :: a loop's variable takes no `let` or `var`
+for_seq_gone [fnv:cedb999bbf5eed8c] :: a plain `for` runs in order, so `seq` is gone

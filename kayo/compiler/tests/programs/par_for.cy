@@ -7,23 +7,23 @@
 MAIN:
     let $n: i64 := 300000;
     var $xs: std::ls[i64] = std::ls.fill(value: 3, count: $n);
-    for $i: i64 [from: 1, to: $n, by: 1]:
+    for %para $i: i64 [from: 1, to: $n, by: 1]:
         change $xs[pos: $i] to ($xs[pos: $i] x 7) mod.floor 11;
     ;for
     var $total: i64 = 0;
-    for $x in lend $xs:
+    for %para $x in lend $xs:
         change $total to $total + ($x mod.floor 7);
     ;for
     var $grid: std::ls[i64] = std::ls.fill(value: 0, count: 2000);
-    for $r: i64 [from: 1, to: 2000, by: 1]:
+    for %para $r: i64 [from: 1, to: 2000, by: 1]:
         var $row: i64 = 0;
-        for $c: i64 [from: 1, to: 200, by: 1]:
+        for %para $c: i64 [from: 1, to: 200, by: 1]:
             change $row to $row + (($r x $c) mod.floor 5);
         ;for
         change $grid[pos: $r] to $row;
     ;for
     var $g: i64 = 0;
-    for $v in lend $grid:
+    for %para $v in lend $grid:
         change $g to $g + $v;
     ;for
     no_check my.exit(to.i32(($total + $g) mod.floor 256));

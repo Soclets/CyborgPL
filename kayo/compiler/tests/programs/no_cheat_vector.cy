@@ -5,11 +5,11 @@
 %extern.C proc exit [let $code: i32];
 MAIN:
     var $acc: i64 = 0;
-    no_skip for seq $i: i64 [from: 1, to: 100_000, by: 1]:
+    no_skip for $i: i64 [from: 1, to: 100_000, by: 1]:
         change $acc to $acc + $i;
     ;for
     var $last: i64 = 0;
-    no_skip for seq $i: i64 [from: 1, to: 1000, by: 1]:
+    no_skip for $i: i64 [from: 1, to: 1000, by: 1]:
         change $last to $i x $i;
     ;for
     no_check my.exit(to.i32(($acc mod.floor 256) + ($last mod.floor 7)));

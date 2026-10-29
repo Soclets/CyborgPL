@@ -4046,13 +4046,16 @@ impl<'a> Parser<'a> {
             let for_at = self.prev_span();
             return self.fail_n("old_spelling", said).map_err(|d| Box::new(d.fix_edit(gone, Edit::Replace, "").fix_also(for_at, Edit::Insert, "no_cheat ")));
         }
-        // `seq` keeps a loop in order, `para` makes it parallel (owner,
-        // 2026-09-30); never both. CCA runs every loop in order so far.
-        if self.eat_word("seq") {
-            seq = true;
-        } else if self.eat_word("para") {
+        // A plain `for` runs in order; `for %para` is MCPS's, parallel where
+        // Precog proves it safe and worth the cores (owner, 2026-10-29: "(a)").
+        // `seq` is gone.
+        if self.is_word("seq") {
+            return self.fail_n("old_spelling", "a plain `for` runs in order, so `seq` is gone: drop it (owner, 2026-10-29)").with_fix(Self::cut(self.span(), self.span_at(1)), Edit::Replace, "");
+        }
+        if self.eat_word("para") {
             para = true;
         }
+        let _ = &mut seq;
         if self.is_word("seq") || self.is_word("para") {
             return self.fail_n("mcps::seq_and_para", "a `for` is `seq` or `para`, not both").with_fix(Self::cut(self.span(), self.span_at(1)), Edit::Replace, "").with_fix(Self::cut(self.prev_span(), self.span()), Edit::Replace, "");
         }
@@ -4066,8 +4069,11 @@ impl<'a> Parser<'a> {
         } else if self.strict && !self.is_word("seq") && !self.is_word("para") {
             return self.fail_n("strict_word_missing", "a `for` says whether its variable outlives it: `for temp $i in …` or `for perm $i in …` — a `#strict` file writes it out");
         }
-        if self.is_word("seq") || self.is_word("para") {
-            return self.fail_n("unexpected_text", "expected the loop's variable, `$i`, found `seq`: `seq` or `para` goes first, then `temp` / `perm`, then the name — `for seq perm $i in …`");
+        if self.is_word("seq") {
+            return self.fail_n("old_spelling", "a plain `for` runs in order, so `seq` is gone: drop it (owner, 2026-10-29)").with_fix(Self::cut(self.span(), self.span_at(1)), Edit::Replace, "");
+        }
+        if self.is_word("para") {
+            return self.fail_n("unexpected_text", "expected the loop's variable, `$i`, found `para`: `%para` goes first, then `temp` / `perm`, then the name — `for %para perm $i in …`");
         }
         let name = match self.peek().clone() {
             Tok::Name(n) => {

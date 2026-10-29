@@ -7,21 +7,21 @@ MAIN:
     let $n: i64 := 300000;
     let $bs: std::ls[f64] := std::ls.fill(value: 0.5, count: $n);
     var $bsum: f64 = 0.0;
-    for $x in lend $bs:
+    for %para $x in lend $bs:
         change $bsum to $bsum + $x;
     ;for
     let $q: %d64 := 0.25;
     let $ds: std::ls[%d64] := std::ls.fill(value: $q, count: $n);
     var $dsum: %d64 = 0;
-    for $x in lend $ds:
+    for %para $x in lend $ds:
         change $dsum to $dsum + $x;
     ;for
     var $dprod: %d64 = 2;
-    for $y in lend $ds:
+    for %para $y in lend $ds:
         change $dprod to $dprod x 1;
     ;for
     var $sign: i64 = 1;
-    for $i: i64 [from: 1, to: $n, by: 1]:
+    for %para $i: i64 [from: 1, to: $n, by: 1]:
         change $sign to $sign x (($i mod.floor 2) x 2 - 1);
     ;for
     let $b: i32 := to.i32($bsum div.near 1000.0) ?? 1;
