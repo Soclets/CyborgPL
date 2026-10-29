@@ -15,6 +15,24 @@ the prover sees every call site, so `max[3, 9]` and `max[2.5, 1.5]` become an
 hand-written copies. This is the machinery variadics already use; Zig's
 comptime and Rust's monomorphisation do the same.
 
+## Declared in `[ ]` (owner, 2026-10-29; not built)
+
+The bracket rule (2026-10-22: "`( )` runs something; `[ ]` describes or holds") covers every declaration list, so a
+generic's placeholders are declared in their own `[ ]`, and `< >` only marks a placeholder's name, at every mention:
+
+```
+fn total [<T>: Addable] [lent $xs: std::ls[<T>]] -> <T>:
+fn whole [<T>: any] [@x] [lent $xs: std::ls[<T>]] -> lent@x <T>:
+fn add [let $a: i32, let $b: i32] -> i32:
+sig Addable [<T>]:
+rec Pair [<A>, <B>]:
+```
+
+Three lists, in this order, each holding one kind: the placeholders (`<T>`, with bounds), the lifetimes (`@x`), the
+parameters (`$x`). The first two appear only when used; the parameters are always written, `[]` when there are none.
+What a list holds says which it is. Until this is built, the spelling below (`fn total <T: Addable> […]`) is what the
+oracle reads.
+
 ## Spelling (revised 2026-10-02)
 
 ```

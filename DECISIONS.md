@@ -34,6 +34,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-29 — A generic's placeholders are declared in their own `[ ]`, `fn total [<T>: Addable] [lent $xs: std::ls[<T>]]` (owner: "yes, record it"; not built)
+
+multifinity's Claude, on the bracket rule: `< >` is a third bracket kind the rule never mentions, generic parameters
+being declared in `< >` and passed in `[ ]`; it offered (a) recording `< >` as its own kind or (b) folding generics into
+`[ ]`. Design claude first called it no gap (`<T>` on every mention, 2026-09-20), the owner: "Bro, look at the `[]` vs
+`()` rule": a declaration describes, so `[ ]`. Design claude then recommended bare `T` at the mentions, as Go, Scala and
+Python write generics in `[ ]`; the owner: "But would you know it's a generic?" (no, not at a glance, and a record name is
+capitalized too), so design claude recommended keeping `<T>` and one list for both kinds, `[<T>: any, @x]`. The owner:
+"Why not just have three `[]` one for life, one for gener, one for param", then "yes, record it". So **a generic's
+placeholders are declared in their own `[ ]`, before the lifetimes' and the parameters'**: `fn whole [<T>: any] [@x]
+[lent $xs: std::ls[<T>]] -> lent@x <T>:`, `sig Addable [<T>]:`, `rec Pair [<A>, <B>]:`. **`<T>` stays on every
+mention** (2026-09-20 kept), now only a placeholder's mark, never a list. Each list holds one kind, in that order, the
+first two only when used. By the redesign checklist: Go (`func Max[T cmp.Ordered]`), Scala and Python 3.12 declare
+generics in `[ ]`; nothing runs with another meaning; 27 declaration lists in 12 example files change, the 121 `<T>`
+mentions do not. `design/generics.md`. Not built (no go yet).
+
 ### 2026-10-29 — Until std is converted, kayo's tests read a converted copy of std/ (owner: "(a)")
 
 Compiler claude, converting kayo to redesign three on the owner's go, asked what kayo reads as `std/` meanwhile: a lone
