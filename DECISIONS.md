@@ -34,6 +34,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-29 — `Soclets/CyborgPL` is public (owner: "(a)")
+
+The owner, moving on to Radium: "you'll still be use when needed, but might aswell... Make the GH repo public."
+Design claude checked the whole history first: no tokens or keys, but the owner's own email is the author of 7
+commits (2026-09-21..10-14), so offered (a) public as it is, or (b) rewrite those 7 to the `.invalid` address first,
+changing every hash after them. The owner: "(a)". The repository is public with its full history.
+
 ### 2026-10-29 — CyborgPL gets contracts: what a function requires of its callers and what it ensures, proven by Precog (owner: "yes"; not designed)
 
 The owner: "What are SPARK contracts?" Design claude explained them (SPARK's `Pre`, `Post`, `Loop_Invariant`, `Global`,

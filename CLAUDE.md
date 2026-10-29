@@ -86,7 +86,7 @@ v1 syntax carries over unless the owner explicitly chooses it.
 ## Repository (moved 2026-10-16)
 
 Zag is **CyborgPL** again (owner, 2026-10-15). The repository is now **`Soclets/CyborgPL`**
-(private, full history, homepage cyborgpl.dev); the design clone is `/Users/ts/CyborgPL`, the
+(public since 2026-10-29, owner: "Make the GH repo public"; full history, homepage cyborgpl.dev); the design clone is `/Users/ts/CyborgPL`, the
 others `/Users/ts/CyborgPL compiler`, `/Users/ts/CyborgPL verification`, `/Users/ts/CyborgPL website`,
 `/Users/ts/CyborgPL std`. The old repo `Soclets/Zag-lang` and the `/Users/ts/Zag…` folders are frozen
 (remote renamed `frozen-old`, push disabled, 2026-10-16; Zag-lang archived on GitHub, owner: "Archive"): never push there. Older still, `Soclets/Nerve-lang`
