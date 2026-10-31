@@ -980,7 +980,7 @@ impl<'p> Interp<'p> {
                         Some(Ty::List(_, _)) => (Value::List(Vec::new()), Prov::Fresh),
                         Some(Ty::Array(_)) => return rt(*line, format!("an empty `array` '{name}' could never be filled; make it a `list`")),
                         Some(t) => return rt(*line, format!("`[]` is an empty list, but '{name}' is {}", ty_name(t))),
-                        None => return rt(*line, format!("`[]` with `:=` says nothing about what '{name}' is; write `list.empty`")),
+                        None => return rt(*line, format!("`[]` with `:=` says nothing about what '{name}' is; write `std::ls.empty`")),
                     }
                 } else {
                     if let Some(t) = ty { self.check_places(value, t, *line)?; }
