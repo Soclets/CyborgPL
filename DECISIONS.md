@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-31 — An offline Linux bundle of KAYO\n, as a GitHub pre-release (owner: "yes, make the release")
+
+multifinity's Claude wanted to try KAYO\n on an x86-64 Linux VM with restricted network access. The owner: "Precog is
+the language", so the oracle would not do; with the owner's yes, design claude bundled CyborgPL's source (06943508),
+LLVM 22.1.8 and lld (static libraries, headers, `llvm-config`), Z3 5.1.0, CVC5 1.4.0, kayo's vendored crates, and a
+patch linking LLVM and lld statically with GCC's C++ library (LLVM's Linux release has no shared `libLLVM`). For `kayo
+prove`; kayo has no Linux target. Untested, never built on Linux. Released as the pre-release
+`kayo-linux-x86_64-2026-10-31` on `Soclets/CyborgPL`; the patch is the bundle's only, `kayo/` unchanged.
+
 ### 2026-10-29 — CyborgPL is abandoned (owner)
 
 The owner: "I'm moving on to to Radium, sorry. But you'll still be use when needed", then "post that CyborgPL is
