@@ -3,8 +3,8 @@
 
 Each program reads N from the environment and exits with its answer's low byte, so
 nothing is worked out while compiling and every language is checked against C's
-answer. Lust has no getenv and no exit code, so the runner writes N into its source
-and reads the printed answer instead. `nbody` (the Benchmarks Game's, in bench/nbody/) is
+answer. Lust and Lumen have no getenv and no exit code, so the runner writes N into their
+source and reads the printed answer instead. `nbody` (the Benchmarks Game's, in bench/nbody/) is
 written only in C, C++, Rust, Zig, Fortran and CyborgPL; it prints the energy to 9 places
 before and after, and its whole output must match C's text exactly. No version of it fuses
 a multiply and an add: clang, clang++ and gfortran get -ffp-contract=off for it (CASE_FLAGS),
@@ -16,7 +16,7 @@ is recorded as a timeout.
     python3 run.py c rust cyborgpl          # only these
     python3 run.py --quick             # tiny sizes, one run: does everything build and agree?
     python3 run.py --allow-working     # time a working build where kayo refuses the final one
-    KAYO=/path/to/kayo LUST=/path/to/lust python3 run.py
+    KAYO=/path/to/kayo LUST=/path/to/lust LUMEN_DIR=/path/to/lumen python3 run.py
     CYBORGPL_BENCH_THREADS=10 python3 run.py   # CyborgPL's row on every core, when nothing else runs
 
 CyborgPL is timed only as a final build. If kayo refuses one (a check it cannot prove), that case is
@@ -42,6 +42,10 @@ if "--quick" in sys.argv:  # tiny sizes, one run: checks every language builds a
 _KAYO = os.path.join(HERE, "..", "kayo", "target", "release", "kayo")
 KAYO = os.environ.get("KAYO", _KAYO)
 LUST = os.environ.get("LUST", "lust")
+# Lumen (lumen-source/lumen, owner 2026-11-02): a checkout of its repo, built by lumen_build.mjs
+LUMEN_DIR = os.environ.get("LUMEN_DIR", "")
+# Languages that read no N: the runner writes it into a copy of the source, and they print the answer
+BAKED = {"lust": ".lust", "lumen": ".lm"}
 # Cases written in only some languages; every other case is in all of them.
 CASE_LANGS = {"nbody": {"cyborgpl", "cyborgpl1", "cyborgpl_nc", "cyborgpl1_nc", "cyborgpl1_ieee", "c", "cpp", "rust", "zig", "fortran"}}
 # Rows written for only some cases; every other row runs every case it has.
@@ -110,6 +114,11 @@ def kayo_build(src, d, b):
     sh([KAYO, "build", src, "-o", out])
 
 
+def lumen_build(src, d, b):
+    # the copy with N written in, as Lumen's own bench builds: its C emitter, then clang -O3
+    sh(["node", os.path.join(HERE, "lumen_build.mjs"), os.path.join(d, b + ".lm"), os.path.join(d, b)])
+
+
 def ocaml_build(src, d, b):
     shutil.copy(src, os.path.join(d, b + ".ml"))
     sh(["ocamlfind", "ocamlopt", "-O3", "-o", b, b + ".ml"] if shutil.which("ocamlfind") else ["ocamlopt", "-o", b, b + ".ml"], cwd=d)
@@ -163,6 +172,7 @@ LANGS = {
     "elixir": ("Elixir", "elixir", "{b}.exs", None, lambda s, d, b: ["elixir", s]),
     "erlang": ("Erlang (escript)", "escript", "{b}.erl", None, lambda s, d, b: ["escript", s]),
     "lust": ("Lust", None, "{b}.lust", None, lambda s, d, b: [LUST, os.path.join(d, b + ".lust")]),
+    "lumen": ("Lumen (its C emitter, clang -O3)", "node", "{b}.lm", lumen_build, lambda s, d, b: [os.path.join(d, b)]),
     "python": ("Python (CPython)", "python3", "{b}.py", None, lambda s, d, b: ["python3", s]),
     "ruby": ("Ruby", "ruby", "{b}.rb", None, lambda s, d, b: ["ruby", "--yjit", s]),
     "lua": ("Lua", "lua", "{b}.lua", None, lambda s, d, b: ["lua", s]),
@@ -177,6 +187,8 @@ def available(key):
         return os.path.exists(KAYO)
     if key == "lust":
         return shutil.which(LUST) is not None or os.path.exists(LUST)
+    if key == "lumen":
+        return bool(LUMEN_DIR) and os.path.exists(os.path.join(LUMEN_DIR, "native", "pipeline.mjs")) and shutil.which("node") is not None
     return shutil.which(tool) is not None
 
 
@@ -188,7 +200,7 @@ CYBORGPL_THREADS = os.environ.get("CYBORGPL_BENCH_THREADS", os.environ.get("CYBO
 THREADS = {"cyborgpl": CYBORGPL_THREADS, "cyborgpl1": "1", "cyborgpl_nc": CYBORGPL_THREADS, "cyborgpl1_nc": "1", "cyborgpl1_ieee": "1"}
 
 
-def run_once(cmd, n, lust, key="", prints=False):
+def run_once(cmd, n, baked, key="", prints=False):
     env = dict(os.environ, N=str(n))
     if key in THREADS:
         env["THREAD_CAP"] = THREADS[key]; env["CYBORG_THREADS"] = THREADS[key]  # until every build reads THREAD_CAP
@@ -200,7 +212,7 @@ def run_once(cmd, n, lust, key="", prints=False):
     took = time.perf_counter() - t
     if prints:
         return took, (r.stdout if r.returncode == 0 else ("fail", r.returncode))
-    if lust:
+    if baked:
         m = re.search(r"-?\d+", r.stdout)
         return took, (int(m.group()) if m and r.returncode == 0 else ("fail", r.returncode))
     return took, r.returncode
@@ -245,8 +257,8 @@ def main():
             d = os.path.join(BUILD, key, name)
             os.makedirs(d, exist_ok=True)
             try:
-                if key == "lust":
-                    with open(src) as f, open(os.path.join(d, name + ".lust"), "w") as g:
+                if key in BAKED:
+                    with open(src) as f, open(os.path.join(d, name + BAKED[key]), "w") as g:
                         g.write(f.read().replace("{{N}}", str(n)))
                 if build:
                     build(src, d, name)
@@ -260,9 +272,9 @@ def main():
                 continue
             best, answer = None, None
             if build:  # warm-up, untimed: macOS scans a freshly built program on its first run
-                run_once(run(src, d, name), n, key == "lust", key, name in PRINTS)
+                run_once(run(src, d, name), n, key in BAKED, key, name in PRINTS)
             for _ in range(RUNS):
-                took, got = run_once(run(src, d, name), n, key == "lust", key, name in PRINTS)
+                took, got = run_once(run(src, d, name), n, key in BAKED, key, name in PRINTS)
                 if took is None:
                     best = None if best is None else best
                     answer = "timeout" if best is None else answer

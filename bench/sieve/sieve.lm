@@ -1,0 +1,21 @@
+# sieve, twin of sieve.c. Lumen's arrays hold Int or Float only, so a mark is an Int (8 bytes,
+# where C's is 1); the runner writes N in for {{N}}.
+fn main(console: Console) -> Unit {
+  let n = {{N}}
+  var count = 0
+  let comp = iarray(n + 1)
+  var p = 2
+  while p <= n {
+    if iaget(comp, p) == 0 {
+      count = count + 1
+      var m = p * p
+      while m <= n {
+        iaset(comp, m, 1)
+        m = m + p
+      }
+    }
+    p = p + 1
+  }
+  console.print_int(count % 256)
+  return ()
+}

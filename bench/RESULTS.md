@@ -2,6 +2,33 @@
 
 Machine: arm64 (Apple Silicon, 10 cores: 4 performance, 6 efficiency), Darwin 27.0.0. Best of 3 runs, wall-clock from process start to exit (startup included); runs past 60 s are timeouts. Every answer is checked against C's, and every one agreed.
 
+## 2026-11-02: CyborgPL against Lumen (owner: "Bench CyborgPL against https://github.com/lumen-source/lumen")
+
+Lumen (`lumen-source/lumen`, an "AI-native" language whose native path emits C and hands it to clang), checked first by a
+subagent (read only: no malware, no network on this path; it needs npm's `wabt` 1.0.39, installed with
+`--ignore-scripts`, owner: "yes"). Its four programs are new, `bench/*/*.lm`, written from the C ones, built by
+`bench/lumen_build.mjs` the way Lumen's own bench builds (its self-hosted C emitter `emit_fn.lm`, then clang -O3).
+`SDKROOT=$(xcrun --sdk macosx --show-sdk-path) KAYO=… LUMEN_DIR=… python3 bench/run.py cyborgpl cyborgpl1 c lumen`
+(`xcrun --show-sdk-version` without an SDK named fails on this Mac today, so kayo refused every build until `SDKROOT`
+was set); kayo `CyDT 88f33171+ KAYO\n`, Apple clang 21.0.0; final builds; best of 3; load about 2.
+
+| | sum | fib | lists | sieve |
+|---|---|---|---|---|
+| CyborgPL, 3 threads | 0.094 s (1.01×) | 0.003 s (0.20×) | 0.042 s (1.05×) | 0.244 s (0.63×) |
+| CyborgPL, 1 thread | 0.095 s (1.02×) | 0.002 s (0.13×) | 0.041 s (1.02×) | 0.249 s (0.64×) |
+| C (clang -O3) | 0.093 s | 0.015 s | 0.040 s | 0.388 s |
+| Lumen (its C emitter, clang -O3) | 0.094 s (1.01×) | 0.017 s (1.13×) | cannot run | cannot run |
+
+- **Lumen cannot run `lists` or `sieve` at these sizes**: its emitted runtime holds every array in one fixed heap of
+  9,072 slots (`#define AHEAP_CAP 9072`), and past it stops with "lumen: heap capacity exceeded" (exit 70). It ran
+  `lists` at N = 1,000 and stopped at 10,000; the bench asks for 20,000,000 and 100,000,000. Not changed: that is Lumen.
+  Its out-of-range `aget` gives 0 and `aset` does nothing, silently.
+- **N is written into Lumen's source**, as for Lust (it reads no environment and sets no exit code; it prints the answer),
+  so clang knows N while compiling. Its times track C's (sum 0.094 against 0.093), so nothing was worked out ahead.
+- Lumen's `lists` makes its array at full length up front (it has no list that grows), and its `sieve` marks are 8-byte
+  Ints (its arrays hold Int or Float only); neither got far enough to matter.
+- nbody is not written in Lumen. In this run CyborgPL's nbody took 4.28 s against C's 2.78 s (1.54×; 2.36× on 2026-10-21).
+
 ## 2026-10-21, later: n-body, a "real" program (owner: "bench C, C++, Rust, Zig, Fortran, ASM, and CyborgPL for a 'real' program", then "drop ASM")
 
 The Benchmarks Game's n-body (the Sun and four Jovian planets, the symplectic integrator, the energy to 9 places

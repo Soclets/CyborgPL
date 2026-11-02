@@ -1,0 +1,12 @@
+# sum, twin of sum.c. Lumen reads no environment, so the runner writes N in for {{N}}.
+fn main(console: Console) -> Unit {
+  let n = {{N}}
+  var acc = 0
+  var i = 1
+  while i <= n {
+    acc = acc + (i * i) % 7
+    i = i + 1
+  }
+  console.print_int(acc % 1000000007 % 256)
+  return ()
+}
