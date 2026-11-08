@@ -150,9 +150,10 @@ holes"):
   and `print` show them; number shapes are refused for them (owner:
   "allow").
 - **The format text has its own escapes, read in one pass** (owner:
-  "Format print has its own rules"): `\n \t \r \\ \" \' \0`, `\xHH`,
+  "Format print has its own rules"): `\r \\ \" \' \0`, `\xHH`,
   `\uHHHH`, `\UHHHHHHHH`, and **`\{` `\}`** for literal braces (owner:
-  "`\`", over Rust's `{{ }}`). The language's own text rules do not run on
+  "`\`", over Rust's `{{ }}`). A newline is `{newln}` and a tab `{tab}`, holes that take no value (2026-10-26;
+  `\n` and `\t` there are refused as old spellings). The language's own text rules do not run on
   it first, so `\\` is one backslash: `"C:\\temp"` prints `C:\temp`. An
   unknown escape is an error (owner: "Fine") — so `\%` is refused and
   `\\%` prints a backslash and a percent. **`%` is plain text.**
