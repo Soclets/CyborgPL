@@ -1431,8 +1431,8 @@ fn format_text_back(raw: &str) -> Result<String, String> {
         let c = cs[i];
         if c == '\\' && i + 1 < cs.len() {
             match cs[i + 1] {
-                'n' => return Err("in a format, a newline is `{newline}` since 2026-10-26 (owner); `\\n` is an old spelling".into()),
-                't' => return Err("in a format, a tab is `{tab}` since 2026-10-26 (owner); `\\t` is an old spelling".into()),
+                'n' => return Err("in a format, a newline is `{newln}` (owner, 2026-10-26; `newln` since 2026-10-27, redesign two); `\\n` is an old spelling".into()),
+                't' => return Err("in a format, a tab is `{tab}` (owner, 2026-10-26); `\\t` is an old spelling".into()),
                 d => { out.push(c); out.push(d); i += 2; continue; }
             }
         }
