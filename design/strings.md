@@ -12,7 +12,7 @@ The quotes are not part of the text, and nothing inside them means
 anything but itself — `"hello\n"` is seven bytes ending in a backslash
 and an `n`, not six ending in a newline. The only two escapes are `\"`
 and `\\`. A newline is written outside the quotes and joined:
-`"hello" ++ \n`, which is the same six bytes C's `"hello\n"` makes.
+`"hello" concat newln` (2026-09-22 wrote `"hello" ++ \n`), which is the same six bytes C's `"hello\n"` makes.
 (Restated after Claude wrote `"hello\n"` in an example and the owner
 asked whether it works; it doesn't — the oracle stores the backslash.)
 
@@ -43,19 +43,21 @@ split a print, for raw throughput. A print longer than a whole writer goes out a
 
 **A failed write stops the program** (owner, 2026-10-23: "default to stop, handle with `otherwise`?", then "yea,
 record it"). A print with `otherwise` flushes there, so its handler covers all printed so far:
-`std::print.useful("total: ", $total, newln) otherwise { write_failed { std::exit(code: 3); } };`. A writer fails at a
+`std::print("total: ", $total, newln) otherwise { write_failed { std::exit(code: 3); } };`. A writer fails at a
 print that fills its buffer or at its flush; a flush kayo put in itself stops the program. `write_failed` is design
 claude's name. With no `otherwise`, the stop is exit 1 and `error[write_failed]` on stderr (owner, 2026-10-24: "(a)"). Today each print sends its own 512-byte stack buffer when it ends.
 
 ## `std::print.written` — a literal as it was typed (owner, 2026-10-17; not built)
 
-A third form beside `print.stored` and `print.useful`: each value printed as its literal was typed in the source,
+A third form beside `print.stored` and the bare `std::print` (the shortest form, `print.useful` until 2026-10-27): each value printed as its literal was typed in the source,
 even past what the type holds (`let 'x': f16 = 0.123456789;` prints `0.123456789`; stored `0.12347412109375`,
 useful `0.1235`). Precog proves at compile time that every value printed is a typed literal; where it cannot,
-the print says what to do, `std::print.written['total', newln] otherwise std::print.useful;`, or it is refused.
+the print says what to do, `std::print.written['total', newln] otherwise std::print;`, or it is refused.
 Decided when building: no source text is carried at run time.
 
 ## `std::print.useful.auto_newline` — the line ended for you (owner, 2026-09-30)
+
+> **Retired** (redesign three, 2026-10-27/28): a line ends with `newln` in every form, `std::print("Hello, World!", newln);`, and `std::println` is refused naming it. History below.
 
 ```
 std::print("Hello, World!", newln);
@@ -70,6 +72,8 @@ form is decided: `print` and `print.format` have no `auto_newline`.
 `examples/print_auto_newline.cy`.
 
 ## `std::print.weird` — C++'s `cout <<`, with arrows (owner, 2026-10-01)
+
+> **`std::print.arrows`** since 2026-10-27 (redesign). The prose below keeps the old names.
 
 ```
 std::print.arrows <- "tenth is " <- $tenth <- ", n is " <- $n <- newln;
@@ -101,14 +105,14 @@ std::print.format("{2} vs {1}, and {2} wins{newln}", "a", "b");
 std::print.format.stderr("error: {}{newln}", $msg);
 ```
 
-The third print, beside `print.stored` (stored form) and `print.useful` (useful
-form), and the only one that shapes its output — hex, padding, places —
+The third print, beside `print.stored` (stored form) and the bare `std::print` (the shortest form, `print.useful` until
+2026-10-27), and the only one that shapes its output — hex, padding, places —
 so it keeps its own job (owner: "print is print, print useful is print
 useful"). Decided 2026-10-01, replacing C's `%` codes (owner: "yea, {}
 holes"):
 
 - **A hole is `{}`**: the next value, in its **readable form**, as
-  `print.useful` shows it (owner: "If you can change it inside, then go
+  the bare `std::print` shows it (owner: "If you can change it inside, then go
   with readable"). The compiler knows every value's type, so no type
   letters.
 - **Numbered holes** `{1}`, `{2}`… take a value by position, to use one
@@ -134,15 +138,15 @@ holes"):
   - `zeros` (pad with zeros after the sign, `-0005`) and `sign` (always show it, `+5`).
 
   ```
-  std::print.format("  {align: left, width: 10 cols} x{width: 2 cols}  {width: 8 cols, places: 2}\n", …);
-  std::print.format("{2, base: hex.upper, zeros, width: 4 cols} {1}\n", "id", 255);   # 00FF id
+  std::print.format("  {align: left, width: 10 cols} x{width: 2 cols}  {width: 8 cols, places: 2}{newln}", …);
+  std::print.format("{2, base: hex.upper, zeros, width: 4 cols} {1}{newln}", "id", 255);   # 00FF id
   ```
 
   There is no `#`: type the prefix, `0x{base: hex}`. `examples/print_format_width.cy`.
 - A negative whole number in a base is its sign and digits, `{base: bin}` of -5 being `-101` (owner, 2026-10-24: "(b)");
   the stored bits are asked for by name, `to.u8.bits($b)`.
   `{places: 2}` of a `d64` is exact, from its decimal digits, half to even.
-- **Lists, structs and maps** fill a plain `{}` or `{form: stored}`, as `print.useful`
+- **Lists, structs and maps** fill a plain `{}` or `{form: stored}`, as the bare `std::print`
   and `print` show them; number shapes are refused for them (owner:
   "allow").
 - **The format text has its own escapes, read in one pass** (owner:
