@@ -60,7 +60,7 @@ still text).
 - The lockfile's byte layout and its format version; the command names (`cyjet update`, `cyjet show lock`, `cyjet
   why`) are design claude's sketches, CyJet having no command of its own yet (2026-10-15).
 - Version conflicts: two kits wanting different versions of one dependency (one version picked, or both side by side).
-- Not built in kayo yet.
+- The lockfile is not built in kayo yet; kayo reads `CyJet.toml` since 2026-10-22 (`kayo/compiler/src/cyjet_toml.rs`, 258684de).
 
 ## Built in the oracle (2026-10-22)
 
