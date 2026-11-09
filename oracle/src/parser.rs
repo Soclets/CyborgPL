@@ -2678,7 +2678,7 @@ impl Parser {
                         Tok::Word(k) if k == "no_cheat" => return self.err("`no_cheat no_cheat`: once is enough"),
                         // the stronger word comes first, and `no_check` is the stronger: it can let a wrong program do harm, where
                         // `no_cheat` at worst runs slower; and the unchecked part should be what a reader sees first (owner, 2026-10-19)
-                        Tok::Word(k) if k == "no_check" || k == "NO_FUCKING_CHECKS" => return self.err(format!("`{k}` comes first, the stronger word: `{k} no_cheat …` (owner, 2026-10-19)")),
+                        Tok::Word(k) if k == "no_check" || k == "NO_FUCKING_CHECKS" => return self.err(format!("`{k}` comes first, the stronger word: `{k} no_skip …` (owner, 2026-10-19)")),
                         // `check` too: the check word always comes before `no_cheat` (owner, 2026-10-19: "(a)")
                         Tok::Word(k) if k == "check" => return self.err("`check` comes first: the check word always comes before `no_cheat`: `check no_cheat …` (owner, 2026-10-19)"),
                         _ => {}
@@ -3215,7 +3215,7 @@ impl Parser {
         // runs every round of every loop already, so it only reads the word.
         if self.is_word("!c") { return self.err("`!c` is `no_cheat` now, in front of the loop: `no_cheat for $i in …` (owner, 2026-10-06, 2026-10-18)"); }
         // `no_cheat` goes in front of the `for`, as `no_check` does (owner, 2026-10-18: "(a)")
-        if self.is_word("no_cheat") { return self.err(crate::spellings::message(crate::spellings::old("for no_cheat"))); }
+        if self.is_word("no_cheat") { return self.err(crate::spellings::message(crate::spellings::old("for no_cheat")).replacen("`for no_cheat`", "`for no_skip`", 1)); }  // the table keeps the inner word; the writer wrote `no_skip`
         // a plain `for` runs in order, with MCPS or without; `for %para` is MCPS's loop, run in parallel where Precog proves
         // it safe and worth the cores (owner, 2026-10-29: "(a)", every limb marked where it acts), so `seq` is gone. The
         // oracle runs every loop in order, one schedule of the design's, so it only reads `para`
