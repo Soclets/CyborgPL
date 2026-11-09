@@ -6108,12 +6108,38 @@ impl<'p> Interp<'p> {
                     o => rt(c.line, format!("std::exit takes a u8, got {}", o.kind())),
                 }
             }
-            other => rt(c.line, format!("std::{other} does not exist in the oracle (it knows print, print.useful, print.useful.auto_newln and print.format, each .stdout/.stderr; input.line/all; exit; round.near/half_up/floor/ceil/trunc; div.trunc, mod.trunc; time.after/every/wait; str.*)")),
+            other if print_order_hint(other).is_some() => rt(c.line, print_order_hint(other).unwrap_or_default()),
+            other => rt(c.line, format!("std::{} does not exist in the oracle (it knows print, print.stored, print.format and print.arrows, each also .stderr; input.line/all; exit; round.near/half_up/floor/ceil/trunc; time.after/every/wait; str.*)", other.strip_suffix(".stdout").unwrap_or(other))),
         }
     }
 }
 
 /// A type's shape, matching `shape_of`: the kind, or the struct/enum name.
+
+/// A print whose narrowings are all real but out of order, `std::print.stderr.stored`: the hint naming the order, the
+/// strongest first (owner, 2026-10-01): the shape (`arrows`), then the form (`stored`), then `format`, then the stream.
+/// Spelled as the program writes it: `weird` is `arrows`, and `useful` and `stdout`, the defaults, are not written.
+fn print_order_hint(path: &str) -> Option<String> {
+    let rest = path.strip_prefix("print.")?;
+    let mut segs: Vec<&str> = rest.split('.').collect();
+    if segs.last() == Some(&"stdout") { segs.pop(); }
+    let rank = |s: &str| match s { "weird" => Some(0), "stored" | "useful" => Some(1), "format" => Some(2), "stderr" => Some(3), _ => None };
+    let ranks: Vec<u8> = segs.iter().map(|s| rank(s)).collect::<Option<_>>()?;
+    let mut sorted = ranks.clone();
+    sorted.sort();
+    sorted.dedup();
+    if sorted.len() != ranks.len() || sorted == ranks { return None; }
+    // `format` takes no form of its own (it says `form:` in a hole)
+    if ranks.contains(&1) && ranks.contains(&2) { return None; }
+    let shown = |v: &[&str]| -> String {
+        let words: Vec<&str> = v.iter().filter(|s| **s != "useful").map(|s| if *s == "weird" { "arrows" } else { *s }).collect();
+        if words.is_empty() { "std::print".to_string() } else { format!("std::print.{}", words.join(".")) }
+    };
+    let mut canon = segs.clone();
+    canon.sort_by_key(|s| rank(s));
+    Some(format!("`{}` has its narrowings out of order: write `{}`, the strongest first (owner, 2026-10-01): the shape, then the form, then the stream", shown(&segs), shown(&canon)))
+}
+
 fn unranged(t: &Ty) -> Ty { match t { Ty::Ranged(b, _, _) => unranged(b), other => other.clone() } }
 
 fn ty_shape(t: &Ty) -> String {
