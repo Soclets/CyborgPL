@@ -3047,14 +3047,14 @@ impl Parser {
                 let (elem, cap) = match &ty {
                     Some(Ty::Channel(t)) => ((**t).clone(), None),
                     Some(Ty::Ranged(b, _, Bound::Int(n))) if matches!(**b, Ty::Channel(_)) => { let Ty::Channel(t) = &**b else { unreachable!() }; ((**t).clone(), Some(*n as usize)) }
-                    _ => return self.err(format!("`%channel.empty` takes its type from the declaration: `let ${name}: %channel[i32] = %channel.empty;`")),
+                    _ => return self.err(format!("`%channel.empty` takes its type from the declaration: `let ${name}: %channel[i32] := %channel.empty;`")),
                 };
                 value.values = vec![Value::Expr(Expr::ChannelNew(elem, cap, l))];
             }
         }
         // a short lambda takes its types from where it goes, and `:=` gives it none (design claude's reading)
         if let ([Value::Expr(Expr::Lambda(f, ..))], None) = (value.values.as_slice(), &ty) {
-            if f.short { return self.err(format!("a short lambda takes its types from where it goes, and here nothing says them: `let ${name}: fn[i32] -> bool = fn [$s] = …;`")); }
+            if f.short { return self.err(format!("a short lambda takes its types from where it goes, and here nothing says them: `let ${name}: fn[i32] -> bool := fn [$s] = …;`")); }
         }
         if let ([Value::Expr(Expr::OpValue(op, ..))], None) = (value.values.as_slice(), &ty) {
             // design claude's reading, not ruled: nothing says which `+` (i32? f64? a Vec?)
@@ -4561,7 +4561,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
         let op = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected an operation after `ptr.`, found {other}")) };
         // `ptr.null`, the null pointer, a value: its target type is where it goes (owner, 2026-10-21: "yea, add it")
         if op == "null" {
-            if *self.peek() == Tok::LBracket { return self.err("`ptr.null` is the null pointer, a value, not a call: `let $p: ptr[u8] = ptr.null;`"); }
+            if *self.peek() == Tok::LBracket { return self.err("`ptr.null` is the null pointer, a value, not a call: `let $p: ptr[u8] := ptr.null;`"); }
             let line = self.line();
             return Ok(("ptr".into(), op, Bracket { values: Vec::new(), line, one_list: false }));
         }
@@ -5291,7 +5291,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
                 "channel" if *self.peek_at(1) == Tok::LBracket => {
                     // a type standing as a value was `channel[T]`, before 2026-10-22 (owner): a channel is made as a list is
                     if !OLD_CALLS.with(|c| c.get()) {
-                        return self.err("a channel is made as a list or a map is: `let $ch: %channel[i32] = %channel.empty;` (owner, 2026-10-22)");
+                        return self.err("a channel is made as a list or a map is: `let $ch: %channel[i32] := %channel.empty;` (owner, 2026-10-22)");
                     }
                     self.advance(); self.advance();
                     let ty = self.ty()?;

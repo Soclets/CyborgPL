@@ -711,7 +711,7 @@ fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
     fn is_cmp(op: &str) -> bool { matches!(op, "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least") }
     fn refuse((op, line): (String, usize)) -> Result<(), String> {
         let op = op.split('.').next().unwrap_or("shl").to_string();
-        Err(format!("line {line}: `{op}` needs a width, and nothing here gives one: declare where the value goes (`let $v: u32 = 1 {op} 3;`) or write `to.u32(1) {op} 3`"))
+        Err(format!("line {line}: `{op}` needs a width, and nothing here gives one: declare where the value goes (`let $v: u32 := 1 {op} 3;`) or write `to.u32(1) {op} 3`"))
     }
     // a written position below 1 in std's text calls is refused when building (owner, 2026-10-17: "(a)")
     fn positions(c: &ast::Call) -> Result<(), String> {

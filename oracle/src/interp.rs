@@ -3442,7 +3442,7 @@ impl<'p> Interp<'p> {
                     // the width can come from a name, a conversion, either side, or the type
                     // stored into (2026-09-23); a bare literal with none of those has no size to wrap in
                     Some(t) => return rt(line, format!("`{op}` wraps modulo an integer's size, and {} is not an integer", ty_name(&t))),
-                    None => return rt(line, format!("`{op}` wraps modulo a type's size, so it needs to know which: give a side a type, or say it in the declaration (`let $x: u64 = $a {op} $b;`)")),
+                    None => return rt(line, format!("`{op}` wraps modulo a type's size, so it needs to know which: give a side a type, or say it in the declaration (`let $x: u64 := $a {op} $b;`)")),
                 };
                 let (a, _) = self.eval(l)?;
                 let (b, _) = self.eval(r)?;
@@ -3577,7 +3577,7 @@ impl<'p> Interp<'p> {
                         // `shl` pushes bits off the left end, so its width must be known (operators.md,
                         // owner 2026-09-23: from any operand or the context; context stops at a call)
                         if width_ty.is_none() {
-                            return rt(line, format!("`{op}` needs a width, and nothing here gives one: declare where the value goes (`let $v: u32 = 1 {op} 3;`) or write `to.u32(1) {op} 3`"));
+                            return rt(line, format!("`{op}` needs a width, and nothing here gives one: declare where the value goes (`let $v: u32 := 1 {op} 3;`) or write `to.u32(1) {op} 3`"));
                         }
                         let bits = match &width_ty { Some(Ty::Int(w)) | Some(Ty::Uint(w)) => int_bits(w), _ => 127 };
                         // the shifted number must fit its width first, as a bitwise operand must (owner,
