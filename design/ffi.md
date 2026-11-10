@@ -329,17 +329,18 @@ no_check inline.ASM with [$fd -> x0, $buf -> x1, $len -> x2, $n <- x0, clobber x
   compiler does not read it, LLVM's assembler does. Not a list of strings
   (owner: "I don't think Assembly looks like that").
 - **`with [ … ]` binds variables to registers; the arrow is the
-  direction** (owner: "drop the words, keep the arrows"): `'v' -> x0`
-  copies the variable in before the block, `'v' <-- x0` stores the
-  register into `'v'` after (declaring it, like `let 'v' := …`), `'v' <--> x0`
-  both (`<-->` the main spelling since 2026-10-06; `<->`, `<<>>`, `<<<>>>`,
-  `<---->`, `<--|-->`, `<-|->`, `<<|>>`, `<<<|>>>` the others); `clobber x16` says a register was overwritten.
+  direction** (owner: "drop the words, keep the arrows"): `$v -> x0`
+  copies the variable in before the block, `$v <- x0` stores the
+  register into `$v` after (declaring it, like `let $v := …`), `$v <-> x0`
+  both, keeping the variable's type; `clobber x16` says a register was overwritten. The arrows are short since
+  2026-10-07 ("Short, the neck & eye movement is less"); `<--`, `-->`, `<-->` (the main spelling from 2026-10-06) and
+  the other long forms are refused as old spellings.
 - **A lend goes into a register as the address of the lent data**
-  (owner, 2026-09-30: a): `lend 'text' --> x1`, and `lend.mut 'buf' --> x1`
+  (owner, 2026-09-30: a): `lend $text -> x1`, and `lend.mut $buf -> x1`
   for data the assembly may write through — the rule an `extern` call
   already has, "a lend satisfies a pointer". Into a register only: a
-  `<--` or `<-->` after a lend is refused. A plain pointer variable (`'buf'
-  --> x1`, from: `malloc`) still works, for memory the program manages
+  `<-` or `<->` after a lend is refused. A plain pointer variable (`$buf
+  -> x1`, from: `malloc`) still works, for memory the program manages
   itself. The length, if the code needs one, is bound separately.
 - **Compiler rule (2026-09-21):** on AArch64 the lowering spells `x29` as
   `fp` and `x30` as `lr` in what it hands LLVM — the ABI names. LLVM 22
