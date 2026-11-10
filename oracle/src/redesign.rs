@@ -1906,7 +1906,7 @@ fn fields_back(toks: Vec<Token>) -> Result<Vec<Token>, Fault> {
                     // types and operations do not mix (owner, 2026-10-27): the types go in a `set`, joined where used with `and`
                     if let Some(Some(at)) = type_at.last() {
                         let t = &toks[*at];
-                        return Err((t.line, t.col, "a `sig` lists operations only; put its types in a `set` and join the two where used: `<T: Whole and Ordered>` (owner, 2026-10-27)".into()));
+                        return Err((t.line, t.col, "a `sig` lists operations only; put its types in a `set` and join the two where used: `[<T>: Whole and Ordered]` (owner, 2026-10-27)".into()));
                     }
                 }
                 // a field or case before the end with no `;` of its own

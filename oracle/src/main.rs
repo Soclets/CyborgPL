@@ -829,7 +829,7 @@ fn check_generic_ops(prog: &ast::Program) -> Result<(), String> {
                 if !self.allowed(&t, op) {
                     let bound: Vec<&str> = self.bounds.iter().filter(|(v, _)| *v == t).map(|(_, b)| b.as_str()).collect();
                     let has = if bound.is_empty() { "nothing".to_string() } else { format!("`{}`", bound.join(" and ")) };
-                    return Err(format!("line {line}: `{}` on a `<{t}>` comes from a `sig` in its bound listing `op {}`; `<{t}>` has {has}, and a `set` gives only its types: `<{t}: Whole and Ordered>` (owner, 2026-10-28)", shown(op), shown(op)));
+                    return Err(format!("line {line}: `{}` on a `<{t}>` comes from a `sig` in its bound listing `op {}`; `<{t}>` has {has}, and a `set` gives only its types: `[<{t}>: Whole and Ordered]` (owner, 2026-10-28)", shown(op), shown(op)));
                 }
             }
             Ok(())
