@@ -2912,7 +2912,12 @@ impl Parser {
                 }
                 match self.peek() {
                     Tok::Word(w) if w == "mut" || w == "immut" => return self.err(format!("`{w}` goes before the name: `let {w} '{name}' := …;`")),
-                    Tok::LBracket | Tok::Dot | Tok::Eq | Tok::ShadowEq => return self.err(format!("changing a variable says so: `change '{name}' = …;` (a declaration is `let '{name}' := …;`)")),
+                    // `$c.next()`: there is no method call; a type's own function is called by its type (owner, 2026-10-09: "`b`")
+                    Tok::Dot if matches!(self.peek_at(2), Tok::LParen) => {
+                        let f = match self.peek_at(1) { Tok::Word(w) => w.clone(), _ => "next".into() };
+                        return self.err(format!("a function that belongs to a type is called through the type, not the value: `Type.{f}(lend '{name}')`, as `Counter.next(lend.mut $c)` (owner, 2026-10-09)"));
+                    }
+                    Tok::LBracket | Tok::Dot | Tok::Eq | Tok::ShadowEq => return self.err(format!("changing a variable says so: `change '{name}' to …;` (a declaration is `let '{name}' := …;`)")),
                     // `'i'++;`, `'i' += 1;` and the others spell `change 'i' = 'i' plus 1;` (owner, 2026-10-14: "(a), they
                     // aren't supposed to be used anyways"): `++` and `--` only as a whole statement
                     Tok::Op(o) if ["++", "--", "+=", "-=", "*=", "/=", "%=", "**="].contains(&o.as_str()) => {
